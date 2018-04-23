@@ -12,7 +12,7 @@ DESCRIPTION = 'A toolkit to download, integrate, and query multi-omics TCGA canc
 URL = 'https://github.com/JonnyTran/TCGAMultiOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Jonny Tran'
-REQUIRES_PYTHON = '>=2.7.*'
+REQUIRES_PYTHON = '>=3.6.0'
 VERSION = '0.1'
 
 REQUIRED = [

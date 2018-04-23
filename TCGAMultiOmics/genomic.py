@@ -131,9 +131,9 @@ class miRNAExpression(GenomicData):
         self.process_mirna_target_interactions(mirna_list, gene_symbols)
         self.process_mirna_target_interactions_context_score(mirna_list, gene_symbols)
 
-    def process_targetscan_mirna_family(self, mirna_list, incremental_group_numbering=False):
+    def process_targetscan_mirna_family(self, mirna_list, file_path="./TargetScan_miR_Family_Info.txt", incremental_group_numbering=False):
         targetScan_family_df = pd.read_table(
-            os.path.join(ROOT_DIR, 'data/external/TargetScan/TargetScan_miR_Family_Info.txt'),
+            os.path.join(ROOT_DIR, file_path),
             delimiter='\t')
         targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606]
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.lower()
@@ -163,14 +163,15 @@ class miRNAExpression(GenomicData):
                 else:
                     self.mirna_family_assg.append(counter)
 
-    def process_mirna_target_interactions(self, mirna_list, gene_symbols):
+    def process_mirna_target_interactions(self, mirna_list, gene_symbols,
+                                          file_path='./TargetScan_Predicted_Targets_Info_default_predictions.tsv',
+                                          family_file_path='./TargetScan_miR_Family_Info.txt'):
         # Load data frame from file
         targetScan_df = pd.read_table(
-            os.path.join(ROOT_DIR,
-                         'data/external/TargetScan/TargetScan_Predicted_Targets_Info_default_predictions.tsv'),
+            os.path.join(ROOT_DIR, file_path),
             delimiter='\t')
         targetScan_family_df = pd.read_table(
-            os.path.join(ROOT_DIR, 'data/external/TargetScan/TargetScan_miR_Family_Info.txt'),
+            os.path.join(ROOT_DIR, family_file_path),
             delimiter='\t')
 
         # Select only homo sapiens miRNA-target pairs
@@ -192,11 +193,11 @@ class miRNAExpression(GenomicData):
         self.targetScan_df = targetScan_df[
             targetScan_df['MiRBase ID'].isin(mirna_list) & targetScan_df['Gene Symbol'].isin(gene_symbols)]
 
-    def process_mirna_target_interactions_context_score(self, mirna_list, gene_symbols):
+    def process_mirna_target_interactions_context_score(self, mirna_list, gene_symbols,
+                                                        file_path='./TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt'):
         # Load data frame from file
         targetScan_context_df = pd.read_table(
-            os.path.join(ROOT_DIR,
-                         'data/external/TargetScan/TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt'),
+            os.path.join(ROOT_DIR, file_path),
             delimiter='\t')
 
         # Select only homo sapiens miRNA-target pairs
