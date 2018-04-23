@@ -4,7 +4,7 @@ import pandas as pd
 from definitions import ROOT_DIR
 
 
-# from src.features.multi_omics import MultiOmicsData
+# from multiomics import MultiOmicsData
 
 
 class ClinicalData:

@@ -8,7 +8,7 @@ import networkx as nx
 import dask.dataframe as dd
 from dask.multiprocessing import get
 
-from src.features.genomicdata import GenomicData
+from genomic import GenomicData
 
 
 class Association():
