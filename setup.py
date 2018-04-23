@@ -63,6 +63,7 @@ setup(
     name=NAME,
     version=VERSION,
     packages=find_packages(),
+    package_dir={NAMe: 'tcga'},
     url=URL,
     license='',
     python_requires=REQUIRES_PYTHON,
