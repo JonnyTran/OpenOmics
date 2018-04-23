@@ -166,7 +166,7 @@ class MultiOmicsData:
 
 
 if __name__ == '__main__':
-    folder_path = "/data/tcga-assembler/LUSC/"
+    folder_path = "/data/TCGAMultiOmics-assembler/LUSC/"
     luad_data = MultiOmicsData(cancer_type="LUSC", folder_path=ROOT_DIR + folder_path,
                                modalities=["GE", "MIR"])
 

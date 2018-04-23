@@ -92,6 +92,6 @@ class ClinicalData:
 
 
 if __name__ == '__main__':
-    # table = pd.read_table(ROOT_DIR+"/data/tcga-assembler/LUAD/clinical/nationwidechildrens.org_clinical_patient_luad.txt", sep="\t")
-    folder_path = "/data/tcga-assembler/LUAD/clinical/"
+    # table = pd.read_table(ROOT_DIR+"/data/TCGAMultiOmics-assembler/LUAD/clinical/nationwidechildrens.org_clinical_patient_luad.txt", sep="\t")
+    folder_path = "/data/TCGAMultiOmics-assembler/LUAD/clinical/"
     luad_clinical = ClinicalData(cancer_type="LUAD", folder_path=ROOT_DIR + folder_path)

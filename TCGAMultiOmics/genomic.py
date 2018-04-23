@@ -80,7 +80,7 @@ class LncRNAExpression(GenomicData):
         lncrna_exp = df
 
         lncrna_names = pd.read_table(
-            os.path.join(ROOT_DIR, "data/tcga-assembler/HGNC_RNA_long_non-coding.txt"),
+            os.path.join(ROOT_DIR, "data/TCGAMultiOmics-assembler/HGNC_RNA_long_non-coding.txt"),
             delimiter="\t")
         lncrna_dict = pd.Series(lncrna_names.symbol.values, index=lncrna_names.ensembl_gene_id).to_dict()
 
@@ -248,5 +248,5 @@ class ProteinExpression(GenomicData):
 
 
 if __name__ == '__main__':
-    folder_path = "/data/tcga-assembler/LUAD/lncrna/"
+    folder_path = "/data/TCGAMultiOmics-assembler/LUAD/lncrna/"
     lncRNA_expression = LncRNAExpression(cancer_type="LUAD", folder_path=ROOT_DIR + folder_path)
