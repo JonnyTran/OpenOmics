@@ -4,8 +4,8 @@ import os
 
 from definitions import ROOT_DIR
 
-from src.features.clinicaldata import ClinicalData
-from src.features.genomicdata import GeneExpression, SNP, DNAMethylation, miRNAExpression, CopyNumberVariation, \
+from clinicaldata import ClinicalData
+from genomicdata import GeneExpression, SNP, DNAMethylation, miRNAExpression, CopyNumberVariation, \
     ProteinExpression, LncRNAExpression
 
 
