@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='TCGA-Data-Merger',
+    name='TCGAMultiOmics',
     version='0.1',
     packages=[''],
     url='https://github.com/JonnyTran/TCGA-Data-Merger',
