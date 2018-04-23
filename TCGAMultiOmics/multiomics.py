@@ -18,7 +18,8 @@ class MultiOmicsData:
 
             folder_path/
                 clinical/
-                    genome.wustl.edu_biospecimen_sample.txt
+                    genome.wustl.edu_biospecimen_sample.txt (optional)
+                    nationwidechildrens.org_clinical_drug.txt
                     nationwidechildrens.org_clinical_patient.txt
                 gene_exp/
                     geneExp.txt
@@ -30,6 +31,8 @@ class MultiOmicsData:
                     protein_RPPA.txt
                 somatic/
                     somaticMutation_geneLevel.txt
+                lncrna/
+                    TCGA-rnaexpr.tsv
 
         :param cancer_type: TCGA cancer code name
         :param folder_path: relative directory path to the folder containing multi-omics data downloaded from TCGA-assembler
