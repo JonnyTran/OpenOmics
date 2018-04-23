@@ -74,12 +74,10 @@ class LncRNAExpression(GenomicData):
         file_path = os.path.join(folder_path, "TCGA-rnaexpr.tsv")
         super().__init__(cancer_type, file_path)
 
-    def preprocess_expression_table(self, df, columns):
+    def preprocess_expression_table(self, df, columns, lncrna_names_file_path="data/external/HGNC_RNA_long_non-coding.txt"):
         lncrna_exp = df
 
-        lncrna_names = pd.read_table(
-            os.path.join(ROOT_DIR, "data/TCGAMultiOmics-assembler/HGNC_RNA_long_non-coding.txt"),
-            delimiter="\t")
+        lncrna_names = pd.read_table(lncrna_names_file_path, delimiter="\t")
         lncrna_dict = pd.Series(lncrna_names.symbol.values, index=lncrna_names.ensembl_gene_id).to_dict()
 
         # Replacing ENSG Gene ID to the lncRNA symbol name
@@ -129,10 +127,8 @@ class miRNAExpression(GenomicData):
         self.process_mirna_target_interactions(mirna_list, gene_symbols)
         self.process_mirna_target_interactions_context_score(mirna_list, gene_symbols)
 
-    def process_targetscan_mirna_family(self, mirna_list, file_path="./TargetScan_miR_Family_Info.txt", incremental_group_numbering=False):
-        targetScan_family_df = pd.read_table(
-            os.path.join(ROOT_DIR, file_path),
-            delimiter='\t')
+    def process_targetscan_mirna_family(self, mirna_list, file_path="/data/external/TargetScan/TargetScan_miR_Family_Info.txt", incremental_group_numbering=False):
+        targetScan_family_df = pd.read_table(file_path, delimiter='\t')
         targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606]
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.lower()
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
@@ -162,15 +158,11 @@ class miRNAExpression(GenomicData):
                     self.mirna_family_assg.append(counter)
 
     def process_mirna_target_interactions(self, mirna_list, gene_symbols,
-                                          file_path='./TargetScan_Predicted_Targets_Info_default_predictions.tsv',
-                                          family_file_path='./TargetScan_miR_Family_Info.txt'):
+                                          file_path='data/external/TargetScan/TargetScan_Predicted_Targets_Info_default_predictions.tsv',
+                                          family_file_path='data/external/TargetScan/TargetScan_miR_Family_Info.txt'):
         # Load data frame from file
-        targetScan_df = pd.read_table(
-            os.path.join(ROOT_DIR, file_path),
-            delimiter='\t')
-        targetScan_family_df = pd.read_table(
-            os.path.join(ROOT_DIR, family_file_path),
-            delimiter='\t')
+        targetScan_df = pd.read_table(file_path, delimiter='\t')
+        targetScan_family_df = pd.read_table(family_file_path, delimiter='\t')
 
         # Select only homo sapiens miRNA-target pairs
         targetScan_df = targetScan_df[targetScan_df["Species ID"] == 9606][["miR Family", "Gene Symbol"]]
@@ -192,11 +184,9 @@ class miRNAExpression(GenomicData):
             targetScan_df['MiRBase ID'].isin(mirna_list) & targetScan_df['Gene Symbol'].isin(gene_symbols)]
 
     def process_mirna_target_interactions_context_score(self, mirna_list, gene_symbols,
-                                                        file_path='./TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt'):
+                                                        file_path='data/external/TargetScan/TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt'):
         # Load data frame from file
-        targetScan_context_df = pd.read_table(
-            os.path.join(ROOT_DIR, file_path),
-            delimiter='\t')
+        targetScan_context_df = pd.read_table(file_path, delimiter='\t')
 
         # Select only homo sapiens miRNA-target pairs
         targetScan_context_df = targetScan_context_df[targetScan_context_df["Gene Tax ID"] == 9606][
