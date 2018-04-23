@@ -1,10 +1,8 @@
 import os
 import pandas as pd
 
-from definitions import ROOT_DIR
 
-
-# from multiomics import MultiOmicsData
+# from TCGAMultiOmics.multiomics import MultiOmicsData
 
 
 class ClinicalData:

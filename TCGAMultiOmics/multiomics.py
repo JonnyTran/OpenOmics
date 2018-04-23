@@ -2,10 +2,8 @@ import pandas as pd
 
 import os
 
-from definitions import ROOT_DIR
-
-from clinical import ClinicalData
-from genomic import GeneExpression, SNP, DNAMethylation, miRNAExpression, CopyNumberVariation, \
+from TCGAMultiOmics.clinical import ClinicalData
+from TCGAMultiOmics.genomic import GeneExpression, SNP, DNAMethylation, miRNAExpression, CopyNumberVariation, \
     ProteinExpression, LncRNAExpression
 
 
@@ -164,16 +162,3 @@ class MultiOmicsData:
     def add_association(self, modality_A, modality_B, bi_direction=True):
         pass
 
-
-if __name__ == '__main__':
-    folder_path = "/data/TCGAMultiOmics-assembler/LUSC/"
-    luad_data = MultiOmicsData(cancer_type="LUSC", folder_path=ROOT_DIR + folder_path,
-                               modalities=["GE", "MIR"])
-
-    matched_samples = luad_data.match_samples(modalities=["GE"])
-    # print("matched samples", matched_samples.shape, matched_samples)
-
-
-    patients_clinical = luad_data.get_patients_clinical(matched_samples)
-    X, y = luad_data.load_data(modalities="all", target=['pathologic_stage'])
-    # print(patients_clinical)

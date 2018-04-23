@@ -1,14 +1,12 @@
 import os
 
-from definitions import ROOT_DIR
-
 import numpy as np
 import pandas as pd
 import networkx as nx
 import dask.dataframe as dd
 from dask.multiprocessing import get
 
-from genomic import GenomicData
+from TCGAMultiOmics.genomic import GenomicData
 
 
 class Association():

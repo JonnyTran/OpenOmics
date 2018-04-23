@@ -1,7 +1,5 @@
 import os
 
-from definitions import ROOT_DIR
-
 import numpy as np
 import pandas as pd
 
@@ -247,7 +245,3 @@ class ProteinExpression(GenomicData):
         file_path = os.path.join(folder_path, "protein_RPPA.txt")
         super().__init__(cancer_type, file_path)
 
-
-if __name__ == '__main__':
-    folder_path = "/data/TCGAMultiOmics-assembler/LUAD/lncrna/"
-    lncRNA_expression = LncRNAExpression(cancer_type="LUAD", folder_path=ROOT_DIR + folder_path)
