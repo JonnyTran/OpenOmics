@@ -7,9 +7,9 @@ from setuptools import find_packages, setup, Command
 
 
 # Package meta-data.
-NAME = 'TCGAMultiOmics'
+NAME = 'tcga'
 DESCRIPTION = 'A toolkit to download, integrate, and query multi-omics TCGA cancer data.'
-URL = 'https://github.com/JonnyTran/TCGAMultiOmics'
+URL = 'https://github.com/JonnyTran/tcga'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Jonny Tran'
 REQUIRES_PYTHON = '>=2.7.*'
