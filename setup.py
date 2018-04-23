@@ -12,7 +12,7 @@ DESCRIPTION = 'A toolkit to download, integrate, and query multi-omics TCGA canc
 URL = 'https://github.com/JonnyTran/TCGA-Data-Merger'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Jonny Tran'
-REQUIRES_PYTHON = '>=2.7.*'
+REQUIRES_PYTHON = '=2.7.*'
 VERSION = '0.1'
 
 REQUIRED = [
@@ -62,7 +62,7 @@ class UploadCommand(Command):
 setup(
     name=NAME,
     version=VERSION,
-    packages=find_packages(exclude=('tests',)),
+    packages=find_packages(where='./TCGAMultiOmics', exclude=('tests',)),
     url=URL,
     license='',
     python_requires=REQUIRES_PYTHON,
