@@ -9,7 +9,7 @@ from setuptools import find_packages, setup, Command
 # Package meta-data.
 NAME = 'TCGAMultiOmics'
 DESCRIPTION = 'A toolkit to download, integrate, and query multi-omics TCGA cancer data.'
-URL = 'https://github.com/JonnyTran/TCGA-Data-Merger'
+URL = 'https://github.com/JonnyTran/TCGAMultiOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Jonny Tran'
 REQUIRES_PYTHON = '>=2.7.*'
