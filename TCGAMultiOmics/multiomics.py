@@ -172,6 +172,17 @@ class MultiOmicsData:
 
 
     def add_subtypes_to_patients_clinical(self, dictionary):
+        """
+        This function adds a "predicted_subtype" field to the patients clinical data. For instance, patients were classified
+        into subtypes based on their expression profile using k-means, then, to use this function, do:
+
+        add_subtypes_to_patients_clinical(dict(zip(<list of patient barcodes>, <list of corresponding patient's subtypes>)))
+
+        Adding a field to the patients clinical data allows TCGAMultiOmics to query the patients data through the
+        .load_data(predicted_subtypes=[]) parameter,
+
+        :param dictionary: A dictionary mapping patient's barcode to a subtype
+        """
         self.data["PATIENTS"] = self.data["PATIENTS"].assign(
             predicted_subtype=self.data["PATIENTS"]["bcr_patient_barcode"].map(dictionary))
 
