@@ -43,10 +43,10 @@ To load microRNA and lncRNA, additional external databases are required, e.g. Ta
                 
    
 
+# How to use TCGAMultiOmics:
 
-# Install with "pip install git+https://github.com/JonnyTran/TCGAMultiOmics"
 
-# Importing the TCGAMultiOmics library
+## Importing the TCGAMultiOmics library
 
 
 ```python
@@ -56,18 +56,12 @@ import pandas as pd
 import numpy as np
 ```
 
-# Import TCGA LUAD data downloaded from TCGA-Assembler
+## Import TCGA LUAD data downloaded from TCGA-Assembler
 
 
 ```python
 folder_path ="./data/tcga-assembler/LUAD/"
 ```
-
-
-
-
-    './data/tcga-assembler/LUAD/'
-
 
 
 
@@ -89,7 +83,7 @@ luad_data = MultiOmicsData(cancer_type="LUAD", folder_path=folder_path,
     SAMPLES (1160, 6)
 
 
-# Each multi-omics and clinical data can be accessed through luad_data.data[""]
+## Each multi-omics and clinical data can be accessed through luad_data.data[""]
 
 
 ```python
@@ -509,7 +503,7 @@ luad_data.data["GE"]
 
 
 
-# To match samples accross different multi-omics, use
+## To match samples accross different multi-omics, use
 
 
 ```python
@@ -532,7 +526,7 @@ luad_data.match_samples(modalities=["MIR", "GE"])
 
 
 
-# To prepare the data for classification
+## To prepare the data for classification
 
 
 ```python
@@ -641,7 +635,7 @@ y
 
 
 
-# Log2 transform the mRNA, microRNA, and lncRNA expression values
+## Log2 transform the mRNA, microRNA, and lncRNA expression values
 
 
 ```python
@@ -652,7 +646,7 @@ X_multiomics['MIR'] = X_multiomics['MIR'].applymap(expression_val_transform)
 # X_multiomics['LNC'] = X_multiomics['LNC'].applymap(expression_val_transform)
 ```
 
-# Classification of Cancer Stage
+## Classification of Cancer Stage
 
 
 ```python
