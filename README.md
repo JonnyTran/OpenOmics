@@ -7,7 +7,7 @@ Installation via pip (Python >= 3.6.0):
     pip install git+https://github.com/JonnyTran/TCGAMultiOmics
 
 
-The TCGA multi-omics data is downloaded by TCGA-Assembler. Load all multi-omics data files with the following folder structure:
+The TCGA multi-omics data is downloaded by [TCGA-Assembler](http://www.compgenome.org/TCGA-Assembler/). Load all multi-omics data files with the following folder structure:
 
     folder_path/
         clinical/
