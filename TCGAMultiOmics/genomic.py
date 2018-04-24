@@ -5,10 +5,20 @@ import pandas as pd
 
 
 class GenomicData:
-    def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA", log2_transform=True):
+    def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA",
+                 import_from_TCGA_Assembler=True, log2_transform=True):
+        """
+
+        :param cancer_type: TCGA cancer cohort code name
+        :param file_path: Path of the table file to import
+        :param columns: column names to import from the table. Columns names imported are string match, separated by "|"
+        :param import_from_TCGA_Assembler: If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
+        :param log2_transform: Whether to log2 transform the expression values
+        """
         self.cancer_type = cancer_type
 
-        self.data = self.preprocess_expression_table(pd.read_table(file_path, sep="\t"), columns)
+        if import_from_TCGA_Assembler:
+            self.data = self.preprocess_expression_table(pd.read_table(file_path), columns)
 
         if log2_transform:
             self.data = self.data.applymap(self.log2_transform)
@@ -20,7 +30,7 @@ class GenomicData:
 
     def preprocess_expression_table(self, df, columns):
         """
-        Download
+        This function preprocesses the table files obtained from TCGA-Assembler
         :param df:
         :param columns:
         :return:
@@ -71,13 +81,29 @@ class GenomicData:
 
 class LncRNAExpression(GenomicData):
     def __init__(self, cancer_type, folder_path):
+        """
+        :param folder_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
+        :param lncrna_names_file_path: Path to the HGNC_RNA_long_non-coding.txt file to map ensembl gene id to lncRNA names
+        """
         file_path = os.path.join(folder_path, "TCGA-rnaexpr.tsv")
+        self.lncrna_names_file_path = os.path.join(folder_path, "HGNC_RNA_long_non-coding.txt")
         super().__init__(cancer_type, file_path)
 
-    def preprocess_expression_table(self, df, columns, lncrna_names_file_path="./data/external/HGNC_RNA_long_non-coding.txt"):
+
+    def preprocess_expression_table(self, df, columns):
+        """
+        Preprocess LNCRNA expression file obtained from TANRIC MDAnderson
+        :param df:
+        :param columns:
+        :return:
+        """
         lncrna_exp = df
 
-        lncrna_names = pd.read_table(lncrna_names_file_path, delimiter="\t")
+        try:
+            lncrna_names = pd.read_table(self.lncrna_names_file_path, delimiter="\t")
+        except Exception:
+            raise FileNotFoundError("Needs the file HGNC_RNA_long_non-coding.txt at directory /lncrna/")
+
         lncrna_dict = pd.Series(lncrna_names.symbol.values, index=lncrna_names.ensembl_gene_id).to_dict()
 
         # Replacing ENSG Gene ID to the lncRNA symbol name
@@ -111,24 +137,34 @@ class GeneExpression(GenomicData):
         super().__init__(cancer_type, file_path)
 
 
-class SNP(GenomicData):
+class SomaticMutation(GenomicData):
     def __init__(self, cancer_type, folder_path):
         file_path = os.path.join(folder_path, "somaticMutation_geneLevel.txt")
         super().__init__(cancer_type, file_path)
 
 
-class miRNAExpression(GenomicData):
+class MiRNAExpression(GenomicData):
     def __init__(self, cancer_type, folder_path):
         file_path = os.path.join(folder_path, "miRNAExp__RPM.txt")
         super().__init__(cancer_type, file_path)
 
-    def process_target_scan(self, mirna_list, gene_symbols):
+
+    def process_target_scan(self, mirna_list, gene_symbols, targetScan_miR_family_info_path,
+                 targetScan_predicted_targets_path, targetScan_predicted_targets_context_score_path):
+        self.targetScan_miR_family_info_path = targetScan_miR_family_info_path
+        self.targetScan_predicted_targets_path = targetScan_predicted_targets_path
+        self.targetScan_predicted_targets_context_score_path = targetScan_predicted_targets_context_score_path
+
         self.process_targetscan_mirna_family(mirna_list)
         self.process_mirna_target_interactions(mirna_list, gene_symbols)
         self.process_mirna_target_interactions_context_score(mirna_list, gene_symbols)
 
-    def process_targetscan_mirna_family(self, mirna_list, file_path="./data/external/TargetScan/TargetScan_miR_Family_Info.txt", incremental_group_numbering=False):
-        targetScan_family_df = pd.read_table(file_path, delimiter='\t')
+    def process_targetscan_mirna_family(self, mirna_list, incremental_group_numbering=False):
+        try:
+            targetScan_family_df = pd.read_table(self.targetScan_miR_family_info_path, delimiter='\t')
+        except Exception:
+            raise FileNotFoundError("expected TargetScan_miR_Family_Info.txt in directory mirna/TargetScan/")
+
         targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606]
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.lower()
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
@@ -157,12 +193,18 @@ class miRNAExpression(GenomicData):
                 else:
                     self.mirna_family_assg.append(counter)
 
-    def process_mirna_target_interactions(self, mirna_list, gene_symbols,
-                                          file_path='./data/external/TargetScan/TargetScan_Predicted_Targets_Info_default_predictions.tsv',
-                                          family_file_path='./data/external/TargetScan/TargetScan_miR_Family_Info.txt'):
+    def process_mirna_target_interactions(self, mirna_list, gene_symbols):
         # Load data frame from file
-        targetScan_df = pd.read_table(file_path, delimiter='\t')
-        targetScan_family_df = pd.read_table(family_file_path, delimiter='\t')
+        try:
+            targetScan_df = pd.read_table(self.targetScan_predicted_targets_path, delimiter='\t')
+        except Exception:
+            raise FileNotFoundError("expected TargetScan_Predicted_Targets_Info_default_predictions.tsv in directory mirna/TargetScan/")
+
+        try:
+            targetScan_family_df = pd.read_table(self.targetScan_miR_family_info_path, delimiter='\t')
+        except Exception:
+            raise FileNotFoundError("expected TargetScan_miR_Family_Info.txt in directory mirna/TargetScan/")
+
 
         # Select only homo sapiens miRNA-target pairs
         targetScan_df = targetScan_df[targetScan_df["Species ID"] == 9606][["miR Family", "Gene Symbol"]]
@@ -183,10 +225,12 @@ class miRNAExpression(GenomicData):
         self.targetScan_df = targetScan_df[
             targetScan_df['MiRBase ID'].isin(mirna_list) & targetScan_df['Gene Symbol'].isin(gene_symbols)]
 
-    def process_mirna_target_interactions_context_score(self, mirna_list, gene_symbols,
-                                                        file_path='./data/external/TargetScan/TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt'):
+    def process_mirna_target_interactions_context_score(self, mirna_list, gene_symbols):
         # Load data frame from file
-        targetScan_context_df = pd.read_table(file_path, delimiter='\t')
+        try:
+            targetScan_context_df = pd.read_table(self.targetScan_predicted_targets_context_score_path, delimiter='\t')
+        except Exception:
+            raise FileNotFoundError("Expected TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt in directory mirna/TargetScan/")
 
         # Select only homo sapiens miRNA-target pairs
         targetScan_context_df = targetScan_context_df[targetScan_context_df["Gene Tax ID"] == 9606][
@@ -208,12 +252,18 @@ class miRNAExpression(GenomicData):
                 gene_symbols)]
 
     def get_miRNA_family_group_assg(self):
+        if self.mirna_family_assg == None:
+            raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
         return self.mirna_family_assg
 
     def get_miRNA_target_interaction(self):
+        if self.targetScan_df == None:
+            raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
         return self.targetScan_df
 
     def get_miRNA_target_interaction_context(self):
+        if self.targetScan_context_df == None:
+            raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
         return self.targetScan_context_df
 
 

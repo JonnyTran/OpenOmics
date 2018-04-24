@@ -7,7 +7,8 @@ Installation via pip (Python >= 3.6.0):
     pip install git+https://github.com/JonnyTran/TCGAMultiOmics
 
 
-The TCGA multi-omics data is downloaded by [TCGA-Assembler](http://www.compgenome.org/TCGA-Assembler/). Load all multi-omics data files with the following folder structure:
+The TCGA multi-omics data is downloaded by [TCGA-Assembler](http://www.compgenome.org/TCGA-Assembler/).
+Load all multi-omics data files according the following folder structure and naming convention:
 
     folder_path/
         clinical/
@@ -18,6 +19,11 @@ The TCGA multi-omics data is downloaded by [TCGA-Assembler](http://www.compgenom
             geneExp.txt
         mirna/
             miRNAExp__RPM.txt
+            TargetScan/ (Obtained from http://www.targetscan.org/vert_72/)
+                    TargetScan_miR_Family_Info.txt
+                    TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt
+                    TargetScan_Predicted_Targets_Info.default_predictions.txt
+                    TargetScan_Predicted_Targets_Info_default_predictions.tsv
         cnv/
             copyNumber.txt
         protein_rppa/
@@ -26,22 +32,14 @@ The TCGA multi-omics data is downloaded by [TCGA-Assembler](http://www.compgenom
             somaticMutation_geneLevel.txt
         lncrna/
             TCGA-rnaexpr.tsv (obtained from http://ibl.mdanderson.org/tanric/_design/basic/download.html)
+            HGNC_RNA_long_non-coding.txt (obtained from http://ensembl.org)
             
 
-To load microRNA and lncRNA data, additional external databases are required, e.g. TargetScan, microRNA family, HGNC long non-coding RNA names, etc. Put the files in the following folder structure, with the same file names:              
+The microRNA and lncRNA data requires additional external databases, e.g. TargetScan, microRNA family, HGNC long non-coding RNA names, etc. Put these files in the same directory as the data files:
 
-    project_root_directory/
-        data/
-            external/
-                HGNC_RNA_long_non-coding.txt
-                TargetScan/
-                    TargetScan_miR_Family_Info.txt
-                    TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt
-                    TargetScan_Predicted_Targets_Info.default_predictions.txt
-                    TargetScan_Predicted_Targets_Info_default_predictions.tsv
+
                 
-                
-   
+
 
 # How to use TCGAMultiOmics:
 

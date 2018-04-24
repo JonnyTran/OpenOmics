@@ -1,13 +1,12 @@
 import pandas as pd
-
 import os
 
 from TCGAMultiOmics.clinical import ClinicalData
-from TCGAMultiOmics.genomic import GeneExpression, SNP, DNAMethylation, miRNAExpression, CopyNumberVariation, \
+from TCGAMultiOmics.genomic import GeneExpression, SomaticMutation, DNAMethylation, MiRNAExpression, CopyNumberVariation, \
     ProteinExpression, LncRNAExpression
 
 
-# from src.features.slide_image import WholeSlideImages
+# from TCGAMultiOmics.slideimage import WholeSlideImages
 
 
 class MultiOmicsData:
@@ -25,6 +24,11 @@ class MultiOmicsData:
                     geneExp.txt
                 mirna/
                     miRNAExp__RPM.txt
+                    TargetScan/
+                        TargetScan_miR_Family_Info.txt
+                        TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt
+                        TargetScan_Predicted_Targets_Info.default_predictions.txt
+                        TargetScan_Predicted_Targets_Info_default_predictions.tsv
                 cnv/
                     copyNumber.txt
                 protein_rppa/
@@ -33,6 +37,7 @@ class MultiOmicsData:
                     somaticMutation_geneLevel.txt
                 lncrna/
                     TCGA-rnaexpr.tsv
+                    HGNC_RNA_long_non-coding.txt
 
         :param cancer_type: TCGA cancer code name
         :param folder_path: relative directory path to the folder containing multi-omics data downloaded from TCGA-assembler
@@ -42,42 +47,51 @@ class MultiOmicsData:
 
         # LOADING DATA FROM FILES
         self.data = {}
-        self.clinical = ClinicalData(cancer_type, folder_path + "clinical/")
+        self.clinical = ClinicalData(cancer_type, os.path.join(folder_path, "clinical/"))
         self.data["PATIENTS"] = self.clinical.patient
         # self.multi_omics_data["BIOSPECIMENS"] = self.clinical.biospecimen
         self.data["DRUGS"] = self.clinical.drugs
 
         if ("WSI" in modalities):
-            self.WSI = WholeSlideImages(cancer_type, folder_path)
-            self.data["WSI"] = self.WSI
+            pass
+            # self.WSI = WholeSlideImages(cancer_type, folder_path)
+            # self.data["WSI"] = self.WSI
         if ("GE" in modalities):
-            self.GE = GeneExpression(cancer_type, folder_path + "gene_exp/", )
+            self.GE = GeneExpression(cancer_type, os.path.join(folder_path, "gene_exp/"))
             self.data["GE"] = self.GE.data
         if ("SNP" in modalities):
-            self.SNP = SNP(cancer_type, folder_path + "somatic/")
+            self.SNP = SomaticMutation(cancer_type, os.path.join(folder_path, "somatic/"))
             self.data["SNP"] = self.SNP.data
         if ("MIR" in modalities):
-            self.MIR = miRNAExpression(cancer_type, folder_path + "mirna/")
+            self.MIR = MiRNAExpression(cancer_type, os.path.join(folder_path, "mirna/"))
             self.data["MIR"] = self.MIR.data
 
-            self.MIR.process_target_scan(mirna_list=self.MIR.get_genes_list(),
-                                         gene_symbols=self.GE.get_genes_list())
+            try:
+                self.MIR.process_target_scan(mirna_list=self.MIR.get_genes_list(),
+                                             gene_symbols=self.GE.get_genes_list(),
+                                             targetScan_miR_family_info_path=os.path.join(folder_path, "mirna", "TargetScan", "miR_Family_Info.txt"),
+                                             targetScan_predicted_targets_path=os.path.join(folder_path, "mirna", "TargetScan", "Predicted_Targets_Info_default_predictions.txt"),
+                                             targetScan_predicted_targets_context_score_path=os.path.join(folder_path, "mirna", "TargetScan", "Predicted_Targets_Context_Scores.default_predictions.txt"))
+            except Exception as e:
+                print(e)
+                print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan files in directory mirna/TargetScan/", folder_path)
+
         if ("LNC" in modalities):
-            self.LNC = LncRNAExpression(cancer_type, folder_path + "lncrna/")
+            self.LNC = LncRNAExpression(cancer_type, os.path.join(folder_path, "lncrna/"))
             self.data["LNC"] = self.LNC.data
         if ("DNA" in modalities):
-            self.DNA = DNAMethylation(cancer_type, folder_path + "dna/")
+            self.DNA = DNAMethylation(cancer_type, os.path.join(folder_path, "dna/"))
             self.data["DNA"] = self.DNA.data
         if ("CNV" in modalities):
-            self.CNV = CopyNumberVariation(cancer_type, folder_path + "cnv/")
+            self.CNV = CopyNumberVariation(cancer_type, os.path.join(folder_path, "cnv/"))
             self.data["CNV"] = self.CNV.data
         if ("PRO" in modalities):
-            self.PRO = ProteinExpression(cancer_type, folder_path + "protein_rppa/")
+            self.PRO = ProteinExpression(cancer_type, os.path.join(folder_path, "protein_rppa/"))
             self.data["PRO"] = self.PRO.data
 
         # Build a table for each samples's clinical data
         all_samples = pd.Index([])
-        for modality in modalities:
+        for modality in self.modalities:
             all_samples = all_samples.union(self.data[modality].index)
         self.clinical.build_clinical_samples(all_samples)
         self.data["SAMPLES"] = self.clinical.samples
