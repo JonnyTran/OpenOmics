@@ -6,7 +6,7 @@ import pandas as pd
 
 class GenomicData:
     def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA",
-                 import_from_TCGA_Assembler=True, log2_transform=True):
+                 import_from_TCGA_Assembler=True, log2_transform=False):
         """
 
         :param cancer_type: TCGA cancer cohort code name

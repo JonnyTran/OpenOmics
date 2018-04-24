@@ -25,10 +25,9 @@ class MultiOmicsData:
                 mirna/
                     miRNAExp__RPM.txt
                     TargetScan/
-                        TargetScan_miR_Family_Info.txt
-                        TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt
-                        TargetScan_Predicted_Targets_Info.default_predictions.txt
-                        TargetScan_Predicted_Targets_Info_default_predictions.txt
+                        miR_Family_Info.txt
+                        Predicted_Targets_Context_Scores.default_predictions.txt
+                        Predicted_Targets_Info.default_predictions.txt
                 cnv/
                     copyNumber.txt
                 protein_rppa/

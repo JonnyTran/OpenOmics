@@ -7,7 +7,7 @@ Installation via pip (Python >= 3.6.0):
     pip install git+https://github.com/JonnyTran/TCGAMultiOmics
 
 
-The TCGA multi-omics data is downloaded by [TCGA-Assembler](http://www.compgenome.org/TCGA-Assembler/).
+The TCGA multi-omics data is downloaded from [TCGA-Assembler](http://www.compgenome.org/TCGA-Assembler/).
 Load all multi-omics data files according the following folder structure and naming convention:
 
     folder_path/
@@ -20,10 +20,9 @@ Load all multi-omics data files according the following folder structure and nam
         mirna/
             miRNAExp__RPM.txt
             TargetScan/ (Obtained from http://www.targetscan.org/vert_72/)
-                    TargetScan_miR_Family_Info.txt
-                    TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt
-                    TargetScan_Predicted_Targets_Info.default_predictions.txt
-                    TargetScan_Predicted_Targets_Info_default_predictions.tsv
+                miR_Family_Info.txt
+                Predicted_Targets_Context_Scores.default_predictions.txt
+                Predicted_Targets_Info.default_predictions.txt
         cnv/
             copyNumber.txt
         protein_rppa/
