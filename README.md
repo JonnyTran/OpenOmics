@@ -51,9 +51,6 @@ To load microRNA and lncRNA data, additional external databases are required, e.
 
 ```python
 from TCGAMultiOmics.multiomics import MultiOmicsData
-
-import pandas as pd
-import numpy as np
 ```
 
 ## Import TCGA LUAD data downloaded from TCGA-Assembler
