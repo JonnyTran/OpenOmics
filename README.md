@@ -2,7 +2,9 @@
 
 This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data. By providing a series of data manipulation tools, TCGAMultiOmics facilitaties pan-cancer bioinformatics analysis. The TCGA multi-omics data is downloaded from TCGA-Assembler.
 
-# Install Guide: "pip install git+https://github.com/JonnyTran/TCGAMultiOmics"
+Installation via pip (Python >= 3.6.0): 
+
+    pip install git+https://github.com/JonnyTran/TCGAMultiOmics
 
 
 Load all multi-omics TCGA data from a given folder_path with the following folder structure:
