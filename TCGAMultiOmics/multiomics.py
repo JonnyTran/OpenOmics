@@ -28,7 +28,7 @@ class MultiOmicsData:
                         TargetScan_miR_Family_Info.txt
                         TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt
                         TargetScan_Predicted_Targets_Info.default_predictions.txt
-                        TargetScan_Predicted_Targets_Info_default_predictions.tsv
+                        TargetScan_Predicted_Targets_Info_default_predictions.txt
                 cnv/
                     copyNumber.txt
                 protein_rppa/
@@ -70,7 +70,7 @@ class MultiOmicsData:
                 self.MIR.process_target_scan(mirna_list=self.MIR.get_genes_list(),
                                              gene_symbols=self.GE.get_genes_list(),
                                              targetScan_miR_family_info_path=os.path.join(folder_path, "mirna", "TargetScan", "miR_Family_Info.txt"),
-                                             targetScan_predicted_targets_path=os.path.join(folder_path, "mirna", "TargetScan", "Predicted_Targets_Info_default_predictions.txt"),
+                                             targetScan_predicted_targets_path=os.path.join(folder_path, "mirna", "TargetScan", "Predicted_Targets_Info.default_predictions.txt"),
                                              targetScan_predicted_targets_context_score_path=os.path.join(folder_path, "mirna", "TargetScan", "Predicted_Targets_Context_Scores.default_predictions.txt"))
             except Exception as e:
                 print(e)

@@ -198,7 +198,7 @@ class MiRNAExpression(GenomicData):
         try:
             targetScan_df = pd.read_table(self.targetScan_predicted_targets_path, delimiter='\t')
         except Exception:
-            raise FileNotFoundError("expected TargetScan_Predicted_Targets_Info_default_predictions.tsv in directory mirna/TargetScan/")
+            raise FileNotFoundError("expected TargetScan_Predicted_Targets_Info_default_predictions.txt in directory mirna/TargetScan/")
 
         try:
             targetScan_family_df = pd.read_table(self.targetScan_miR_family_info_path, delimiter='\t')
