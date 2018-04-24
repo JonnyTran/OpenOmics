@@ -1,13 +1,13 @@
 # TCGAMultiOmics
 
-This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data. By providing a series of data manipulation tools, TCGAMultiOmics facilitaties pan-cancer bioinformatics analysis. The TCGA multi-omics data is downloaded from TCGA-Assembler.
+This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data. By providing a series of data manipulation tools, TCGAMultiOmics facilitaties pan-cancer bioinformatics analysis.
 
 Installation via pip (Python >= 3.6.0): 
 
     pip install git+https://github.com/JonnyTran/TCGAMultiOmics
 
 
-Load all multi-omics TCGA data from a given folder_path with the following folder structure:
+The TCGA multi-omics data is downloaded by TCGA-Assembler. Load all multi-omics data files with the following folder structure:
 
     folder_path/
         clinical/
@@ -28,7 +28,7 @@ Load all multi-omics TCGA data from a given folder_path with the following folde
             TCGA-rnaexpr.tsv (obtained from http://ibl.mdanderson.org/tanric/_design/basic/download.html)
             
 
-To load microRNA and lncRNA, additional external databases are required, e.g. TargetScan, microRNA family, HGNC long non-coding RNA names, etc. Put the files in the following folder structure, with the same file names as:              
+To load microRNA and lncRNA data, additional external databases are required, e.g. TargetScan, microRNA family, HGNC long non-coding RNA names, etc. Put the files in the following folder structure, with the same file names:              
 
     project_root_directory/
         data/
