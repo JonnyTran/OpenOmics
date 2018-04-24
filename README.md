@@ -69,6 +69,8 @@ luad_data = MultiOmicsData(cancer_type="LUAD", folder_path=folder_path,
 
 ```
 
+Each data is stored as a Pandas DataFrame. Below are all the data imported for TCGA LUAD. For each, the first number represents the number of samples, the second number is the number of features.
+
     PATIENTS (522, 5)
     DRUGS (461, 4)
     GE (576, 20472)
