@@ -1,12 +1,15 @@
 # TCGAMultiOmics
 
-This Python package provide a series of tool to download, integrate, and query multi-omics TCGA data. The TCGA data is downloaded from TCGA-Assembler.
+This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data. By providing a series of data manipulation tools, TCGAMultiOmics facilitaties pan-cancer bioinformatics analysis. The TCGA multi-omics data is downloaded from TCGA-Assembler.
+
+# Install Guide: "pip install git+https://github.com/JonnyTran/TCGAMultiOmics"
+
 
 Load all multi-omics TCGA data from a given folder_path with the following folder structure:
 
     folder_path/
         clinical/
-            genome.wustl.edu_biospecimen_sample.txt (optional)
+            genome.wustl.edu_biospecimen_sample.txt (optional, not used)
             nationwidechildrens.org_clinical_drug.txt
             nationwidechildrens.org_clinical_patient.txt
         gene_exp/
@@ -20,10 +23,24 @@ Load all multi-omics TCGA data from a given folder_path with the following folde
         somatic/
             somaticMutation_geneLevel.txt
         lncrna/
-            TCGA-rnaexpr.tsv
+            TCGA-rnaexpr.tsv (obtained from http://ibl.mdanderson.org/tanric/_design/basic/download.html)
             
 
-            
+To load microRNA and lncRNA, additional external databases are required, e.g. TargetScan, microRNA family, HGNC long non-coding RNA names, etc. Put the files in the following folder structure, with the same file names as:              
+
+    project_root_directory/
+        data/
+            external/
+                HGNC_RNA_long_non-coding.txt
+                TargetScan/
+                    TargetScan_miR_Family_Info.txt
+                    TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt
+                    TargetScan_Predicted_Targets_Info.default_predictions.txt
+                    TargetScan_Predicted_Targets_Info_default_predictions.tsv
+                
+                
+   
+
 
 # Install with "pip install git+https://github.com/JonnyTran/TCGAMultiOmics"
 
