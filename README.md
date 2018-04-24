@@ -82,7 +82,7 @@ Each data is stored as a Pandas DataFrame. Below are all the data imported for T
     SAMPLES (1160, 6)
 
 
-## Each multi-omics and clinical data can be accessed through luad_data.data[""]
+## Each multi-omics and clinical data can be accessed through luad_data.data[""], for instance:
 
 
 ```python
