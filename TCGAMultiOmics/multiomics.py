@@ -116,8 +116,17 @@ class MultiOmicsData:
                   pathologic_stages=[], histological_subtypes=[], predicted_subtypes=[], tumor_normal=[],
                   samples_barcode=None):
         """
-        Load and return the multi-omics dataset (classification)
+        Query and fetch the multi-omics dataset based on requested . The data matrices are row index-ed by sample barcode.
+
         :param modalities: A list of the data modalities to load. Default "all" to select all modalities
+        :param target: The clinical data field to include in the
+        :param pathologic_stages: List. Only fetch samples having certain stages in their corresponding patient's clinical
+        data. For instance, ["Stage I", "Stage II"] will only fetch samples from Stage I and Stage II patients. Default is [] which fetches all pathologic stages.
+        :param histological_subtypes: A list specifying the histological subtypes to fetch. Default is [] which fetches all histological sybtypes.
+        :param predicted_subtypes: A list specifying the predicted subtypes (if not null) to fetch. Default is [] which fetches all predicted subtypes.
+        :param tumor_normal: ["Tumor"] or ["Normal"]. Default is [], which fetches all tumor or normal sample types.
+        :param samples_barcode: A list of sample's barcode. If not None, only fetch data with matching bcr_sample_barcodes provided in this list
+        :return: X, y
         """
         if modalities == 'all' or modalities == None:
             modalities = self.modalities
@@ -160,7 +169,8 @@ class MultiOmicsData:
 
     def get_patients_clinical(self, matched_samples):
         """
-        Fetch patient's clinical data for each given samples barcodes given in matched_samples
+        Fetch patient's clinical data for each given samples barcodes in the matched_samples
+        :param matched_samples: A list of sample barcodes
         """
         return self.data["SAMPLES"].loc[matched_samples]
 
