@@ -173,7 +173,7 @@ class MultiOmicsData:
         Fetch patient's clinical data for each given samples barcodes in the matched_samples
         :param matched_samples: A list of sample barcodes
         """
-        return self.data["SAMPLES"].loc[matched_samples]
+        return self.data["SAMPLES"].loc[matched_samples, :]
 
 
     def print_sample_sizes(self):
