@@ -258,7 +258,7 @@ class MiRNAExpression(GenomicData):
 
         # Select only homo sapiens miRNA-target pairs
         targetScan_context_df = targetScan_context_df[targetScan_context_df["Gene Tax ID"] == 9606][
-            ["miRNA", "Gene Symbol"]]
+            ["miRNA", "Gene Symbol", "weighted context++ score percentile"]]
 
         # TODO Select only interactions with high context score
 
