@@ -167,9 +167,13 @@ class MiRNAExpression(GenomicData):
 
         if human_only:
             targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606]
+
+        # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
+
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.lower()
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
         targetScan_family_df.drop_duplicates(inplace=True)
+
         targetScan_family_df = targetScan_family_df[['miR family', 'MiRBase ID']]
         in_family_mirnas_list = targetScan_family_df["MiRBase ID"].tolist()
         self.mirna_family = list(targetScan_family_df["MiRBase ID"].groupby(targetScan_family_df["miR family"]))
@@ -213,12 +217,12 @@ class MiRNAExpression(GenomicData):
         targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606][
             ['miR family', 'MiRBase ID']]
 
-        # Use miRBase ID names
+        # map miRBase ID names to miR Family
         targetScan_family_df.rename(columns={'miR family': 'miR Family'}, inplace=True)
         targetScan_df = pd.merge(targetScan_df, targetScan_family_df, how='inner', on="miR Family")
         targetScan_df = targetScan_df[["MiRBase ID", "Gene Symbol"]]
 
-        # Standardize miRNA names
+        # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
         targetScan_df['MiRBase ID'] = targetScan_df['MiRBase ID'].str.lower()
         targetScan_df['MiRBase ID'] = targetScan_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
         targetScan_df.drop_duplicates(inplace=True)
