@@ -252,17 +252,17 @@ class MiRNAExpression(GenomicData):
                 gene_symbols)]
 
     def get_miRNA_family_group_assg(self):
-        if self.mirna_family_assg == None:
+        if self.mirna_family_assg is None:
             raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
         return self.mirna_family_assg
 
     def get_miRNA_target_interaction(self):
-        if self.targetScan_df == None:
+        if self.targetScan_df is None:
             raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
         return self.targetScan_df
 
     def get_miRNA_target_interaction_context(self):
-        if self.targetScan_context_df == None:
+        if self.targetScan_context_df is None:
             raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
         return self.targetScan_context_df
 
