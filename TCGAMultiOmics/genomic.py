@@ -74,6 +74,10 @@ class GenomicData:
     def get_genes_list(self):
         return self.features
 
+    def get_genes_info(self):
+        if self.genes_info is not None:
+            return self.genes_info
+
 
     def get_samples_list(self):
         return self.samples
@@ -92,7 +96,9 @@ class LncRNAExpression(GenomicData):
 
     def preprocess_expression_table(self, df, columns):
         """
-        Preprocess LNCRNA expression file obtained from TANRIC MDAnderson
+        Preprocess LNCRNA expression file obtained from TANRIC MDAnderson. This function overwrites the
+        GenomicData.process_expression_table() function which processes TCGA-Assembler data.
+
         :param df:
         :param columns:
         :return:
@@ -101,8 +107,10 @@ class LncRNAExpression(GenomicData):
 
         try:
             lncrna_names = pd.read_table(self.lncrna_names_file_path, delimiter="\t")
+            self.genes_info = lncrna_names
         except Exception:
-            raise FileNotFoundError("Needs the file HGNC_RNA_long_non-coding.txt at directory /lncrna/")
+            raise FileNotFoundError("Needs the file RNA_long_non-coding.txt at directory external_data/HUGO_Gene_names")
+
 
         lncrna_dict = pd.Series(lncrna_names.symbol.values, index=lncrna_names.ensembl_gene_id).to_dict()
 
@@ -136,6 +144,16 @@ class GeneExpression(GenomicData):
         file_path = os.path.join(folder_path, "geneExp.txt")
         super().__init__(cancer_type, file_path)
 
+    def process_gene_info(self, targetScan_gene_info_path, human_only=True):
+        self.targetScan_gene_info_path = targetScan_gene_info_path
+        self.genes_info = pd.read_table(self.targetScan_gene_info_path)
+
+        if human_only:
+            self.genes_info = self.genes_info[self.genes_info["Species ID"]==9606]
+
+    def process_protein_coding_genes_info(self, hugo_protein_gene_names_path):
+        self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
+        self.protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path)
 
 class SomaticMutation(GenomicData):
     def __init__(self, cancer_type, folder_path):

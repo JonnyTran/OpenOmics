@@ -33,6 +33,9 @@ class MultiOmicsData:
                 lncrna/
                     TCGA-rnaexpr.tsv
 
+        Load the external data downloaded from various databases. These data will be imported as attribute information to
+        the genes, or interactions between the genes.
+
             external_data_path/
                 TargetScan/
                     Gene_info.txt
@@ -45,8 +48,10 @@ class MultiOmicsData:
                     RNA_long_non-coding.txt
                     RNA_micro.txt
 
-        :param cancer_type: TCGA cancer code name
+        :param cancer_type: TCGA cancer cohort name
         :param tcga_data_path: directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
+        :param external_data_path: directory path to the folder containing external databases
+        :param modalities: A list of multi-omics data to import. All available data includes ["WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"]. Clinical data is always automatically imported.
         """
         self.cancer_type = cancer_type
         self.modalities = modalities
@@ -66,6 +71,13 @@ class MultiOmicsData:
         if ("GE" in modalities):
             self.GE = GeneExpression(cancer_type, os.path.join(tcga_data_path, "gene_exp/"))
             self.data["GE"] = self.GE.data
+
+            try:
+                self.GE.process_gene_info(targetScan_gene_info_path=os.path.join(external_data_path, "TargetScan", "Gene_info.txt"))
+            except FileNotFoundError as e:
+                print(e)
+                print("Could not run GeneExpression.process_gene_info() because of missing TargetScan/Gene_info.txt data in the directory", external_data_path)
+
         if ("SNP" in modalities):
             self.SNP = SomaticMutation(cancer_type, os.path.join(tcga_data_path, "somatic/"))
             self.data["SNP"] = self.SNP.data
@@ -79,7 +91,7 @@ class MultiOmicsData:
                                              targetScan_miR_family_info_path=os.path.join(external_data_path, "TargetScan", "miR_Family_Info.txt"),
                                              targetScan_predicted_targets_path=os.path.join(external_data_path, "TargetScan", "Predicted_Targets_Info.default_predictions.txt"),
                                              targetScan_predicted_targets_context_score_path=os.path.join(external_data_path, "TargetScan", "Predicted_Targets_Context_Scores.default_predictions.txt"))
-            except Exception as e:
+            except FileNotFoundError as e:
                 print(e)
                 print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data in the directory", external_data_path)
 
