@@ -11,11 +11,11 @@ from TCGAMultiOmics.genomic import GeneExpression, SomaticMutation, DNAMethylati
 
 class MultiOmicsData:
 
-    def __init__(self, cancer_type, folder_path, modalities=["WSI", "GE", "SNP", "CNV", "DNA", "MIR", "PRO"]):
+    def __init__(self, cancer_type, tcga_data_path, external_data_path, modalities=["WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"]):
         """
-        Load all multi-omics TCGA data from a given folder_path with the following folder structure:
+        Load all multi-omics TCGA data from a given tcga_data_path with the following folder structure:
 
-            folder_path/
+            tcga_data_path/
                 clinical/
                     genome.wustl.edu_biospecimen_sample.txt (optional)
                     nationwidechildrens.org_clinical_drug.txt
@@ -24,10 +24,6 @@ class MultiOmicsData:
                     geneExp.txt
                 mirna/
                     miRNAExp__RPM.txt
-                    TargetScan/
-                        miR_Family_Info.txt
-                        Predicted_Targets_Context_Scores.default_predictions.txt
-                        Predicted_Targets_Info.default_predictions.txt
                 cnv/
                     copyNumber.txt
                 protein_rppa/
@@ -36,19 +32,34 @@ class MultiOmicsData:
                     somaticMutation_geneLevel.txt
                 lncrna/
                     TCGA-rnaexpr.tsv
-                    HGNC_RNA_long_non-coding.txt
+
+            external_data_path/
+                TargetScan/
+                    Gene_info.txt
+                    miR_Family_Info.txt
+                    Predicted_Targets_Context_Scores.default_predictions.txt
+                    Predicted_Targets_Info.default_predictions.txt
+
+                HUGO_Gene_names/
+                    gene_with_protein_product.txt
+                    RNA_long_non-coding.txt
+                    RNA_micro.txt
+
+
+
 
         :param cancer_type: TCGA cancer code name
-        :param folder_path: relative directory path to the folder containing multi-omics data downloaded from TCGA-assembler
+        :param tcga_data_path: directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
         """
         self.cancer_type = cancer_type
         self.modalities = modalities
+        self.external_data_path = external_data_path
 
         # LOADING DATA FROM FILES
         self.data = {}
-        self.clinical = ClinicalData(cancer_type, os.path.join(folder_path, "clinical/"))
+        self.clinical = ClinicalData(cancer_type, os.path.join(tcga_data_path, "clinical/"))
         self.data["PATIENTS"] = self.clinical.patient
-        # self.multi_omics_data["BIOSPECIMENS"] = self.clinical.biospecimen
+        # self.data["BIOSPECIMENS"] = self.clinical.biospecimen
         self.data["DRUGS"] = self.clinical.drugs
 
         if ("WSI" in modalities):
@@ -56,37 +67,37 @@ class MultiOmicsData:
             # self.WSI = WholeSlideImages(cancer_type, folder_path)
             # self.data["WSI"] = self.WSI
         if ("GE" in modalities):
-            self.GE = GeneExpression(cancer_type, os.path.join(folder_path, "gene_exp/"))
+            self.GE = GeneExpression(cancer_type, os.path.join(tcga_data_path, "gene_exp/"))
             self.data["GE"] = self.GE.data
         if ("SNP" in modalities):
-            self.SNP = SomaticMutation(cancer_type, os.path.join(folder_path, "somatic/"))
+            self.SNP = SomaticMutation(cancer_type, os.path.join(tcga_data_path, "somatic/"))
             self.data["SNP"] = self.SNP.data
         if ("MIR" in modalities):
-            self.MIR = MiRNAExpression(cancer_type, os.path.join(folder_path, "mirna/"))
+            self.MIR = MiRNAExpression(cancer_type, os.path.join(tcga_data_path, "mirna/"))
             self.data["MIR"] = self.MIR.data
 
             try:
                 self.MIR.process_target_scan(mirna_list=self.MIR.get_genes_list(),
                                              gene_symbols=self.GE.get_genes_list(),
-                                             targetScan_miR_family_info_path=os.path.join(folder_path, "mirna", "TargetScan", "miR_Family_Info.txt"),
-                                             targetScan_predicted_targets_path=os.path.join(folder_path, "mirna", "TargetScan", "Predicted_Targets_Info.default_predictions.txt"),
-                                             targetScan_predicted_targets_context_score_path=os.path.join(folder_path, "mirna", "TargetScan", "Predicted_Targets_Context_Scores.default_predictions.txt"))
+                                             targetScan_miR_family_info_path=os.path.join(external_data_path, "TargetScan", "miR_Family_Info.txt"),
+                                             targetScan_predicted_targets_path=os.path.join(external_data_path, "TargetScan", "Predicted_Targets_Info.default_predictions.txt"),
+                                             targetScan_predicted_targets_context_score_path=os.path.join(external_data_path, "TargetScan", "Predicted_Targets_Context_Scores.default_predictions.txt"))
             except Exception as e:
                 print(e)
-                print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan files in directory mirna/TargetScan/", folder_path)
+                print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan files in directory mirna/TargetScan/", tcga_data_path)
 
         if ("LNC" in modalities):
-            self.LNC = LncRNAExpression(cancer_type, os.path.join(folder_path, "lncrna/"),
-                                        HGNC_lncRNA_names_path=os.path.join(folder_path, "lncrna/", "HGNC_RNA_long_non-coding.txt"))
+            self.LNC = LncRNAExpression(cancer_type, os.path.join(tcga_data_path, "lncrna/"),
+                                        HGNC_lncRNA_names_path=os.path.join(external_data_path, "HUGO_Gene_names/", "RNA_long_non-coding.txt"))
             self.data["LNC"] = self.LNC.data
         if ("DNA" in modalities):
-            self.DNA = DNAMethylation(cancer_type, os.path.join(folder_path, "dna/"))
+            self.DNA = DNAMethylation(cancer_type, os.path.join(tcga_data_path, "dna/"))
             self.data["DNA"] = self.DNA.data
         if ("CNV" in modalities):
-            self.CNV = CopyNumberVariation(cancer_type, os.path.join(folder_path, "cnv/"))
+            self.CNV = CopyNumberVariation(cancer_type, os.path.join(tcga_data_path, "cnv/"))
             self.data["CNV"] = self.CNV.data
         if ("PRO" in modalities):
-            self.PRO = ProteinExpression(cancer_type, os.path.join(folder_path, "protein_rppa/"))
+            self.PRO = ProteinExpression(cancer_type, os.path.join(tcga_data_path, "protein_rppa/"))
             self.data["PRO"] = self.PRO.data
 
         # Build a table for each samples's clinical data
@@ -167,6 +178,7 @@ class MultiOmicsData:
             X_multiomics[modality] = self.data[modality].loc[matched_samples, :]
 
         return X_multiomics, y
+
 
     def get_patients_clinical(self, matched_samples):
         """
