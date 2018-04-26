@@ -45,9 +45,6 @@ class MultiOmicsData:
                     RNA_long_non-coding.txt
                     RNA_micro.txt
 
-
-
-
         :param cancer_type: TCGA cancer code name
         :param tcga_data_path: directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
         """
@@ -84,7 +81,7 @@ class MultiOmicsData:
                                              targetScan_predicted_targets_context_score_path=os.path.join(external_data_path, "TargetScan", "Predicted_Targets_Context_Scores.default_predictions.txt"))
             except Exception as e:
                 print(e)
-                print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan files in directory mirna/TargetScan/", tcga_data_path)
+                print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data in the directory", external_data_path)
 
         if ("LNC" in modalities):
             self.LNC = LncRNAExpression(cancer_type, os.path.join(tcga_data_path, "lncrna/"),
