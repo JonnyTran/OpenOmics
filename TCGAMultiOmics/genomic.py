@@ -75,7 +75,7 @@ class GenomicData:
         return self.features
 
     def get_genes_info(self):
-        if self.genes_info is not None:
+        if hasattr(self, "genes_info"):
             return self.genes_info
 
 
