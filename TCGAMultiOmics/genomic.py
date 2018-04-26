@@ -159,13 +159,14 @@ class MiRNAExpression(GenomicData):
         self.process_mirna_target_interactions(mirna_list, gene_symbols)
         self.process_mirna_target_interactions_context_score(mirna_list, gene_symbols)
 
-    def process_targetscan_mirna_family(self, mirna_list, incremental_group_numbering=False):
+    def process_targetscan_mirna_family(self, mirna_list, human_only=True, incremental_group_numbering=False):
         try:
             targetScan_family_df = pd.read_table(self.targetScan_miR_family_info_path, delimiter='\t')
         except Exception:
             raise FileNotFoundError("expected TargetScan_miR_Family_Info.txt in directory mirna/TargetScan/")
 
-        targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606]
+        if human_only:
+            targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606]
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.lower()
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
         targetScan_family_df.drop_duplicates(inplace=True)
@@ -175,6 +176,7 @@ class MiRNAExpression(GenomicData):
         self.mirna_family_names = [fam[0] for fam in self.mirna_family]
         self.mirna_family = {fam[0]: fam[1].tolist() for fam in self.mirna_family}
 
+        # Assign a unique integer number to miRNAs representing their miRNA family assignment
         self.mirna_family_assg = []
         counter = 9999
         for m in mirna_list:
@@ -255,6 +257,11 @@ class MiRNAExpression(GenomicData):
         if self.mirna_family_assg is None:
             raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
         return self.mirna_family_assg
+
+    def get_miRNA_family(self):
+        if self.mirna_family is None:
+            raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
+        return self.mirna_family
 
     def get_miRNA_target_interaction(self):
         if self.targetScan_df is None:
