@@ -80,13 +80,13 @@ class GenomicData:
 
 
 class LncRNAExpression(GenomicData):
-    def __init__(self, cancer_type, folder_path):
+    def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_path=None):
         """
         :param folder_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
         :param lncrna_names_file_path: Path to the HGNC_RNA_long_non-coding.txt file to map ensembl gene id to lncRNA names
         """
         file_path = os.path.join(folder_path, "TCGA-rnaexpr.tsv")
-        self.lncrna_names_file_path = os.path.join(folder_path, "HGNC_RNA_long_non-coding.txt")
+        self.lncrna_names_file_path = HGNC_lncRNA_names_path
         super().__init__(cancer_type, file_path)
 
 

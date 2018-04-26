@@ -76,7 +76,8 @@ class MultiOmicsData:
                 print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan files in directory mirna/TargetScan/", folder_path)
 
         if ("LNC" in modalities):
-            self.LNC = LncRNAExpression(cancer_type, os.path.join(folder_path, "lncrna/"))
+            self.LNC = LncRNAExpression(cancer_type, os.path.join(folder_path, "lncrna/"),
+                                        HGNC_lncRNA_names_path=os.path.join(folder_path, "lncrna/", "HGNC_RNA_long_non-coding.txt"))
             self.data["LNC"] = self.LNC.data
         if ("DNA" in modalities):
             self.DNA = DNAMethylation(cancer_type, os.path.join(folder_path, "dna/"))
@@ -163,7 +164,7 @@ class MultiOmicsData:
         # Build data matrix for each modality, indexed by matched_samples
         X_multiomics = {}
         for modality in modalities:
-            X_multiomics[modality] = self.data[modality].loc[matched_samples]
+            X_multiomics[modality] = self.data[modality].loc[matched_samples, :]
 
         return X_multiomics, y
 
