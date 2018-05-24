@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
-
+import networkx as nx
 
 class GenomicData:
     def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA",
@@ -27,6 +27,7 @@ class GenomicData:
         self.samples = self.data.index
         self.features = self.data.columns.tolist()
         # self.features.remove("bcr_sample_barcode")
+
 
     def preprocess_expression_table(self, df, columns):
         """
@@ -78,9 +79,11 @@ class GenomicData:
         if hasattr(self, "genes_info"):
             return self.genes_info
 
-
     def get_samples_list(self):
         return self.samples
+
+    def process_interactions_from_table(self, table_file):
+        pass
 
 
 class LncRNAExpression(GenomicData):
@@ -294,7 +297,6 @@ class MiRNAExpression(GenomicData):
         if self.targetScan_context_df is None:
             raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
         return self.targetScan_context_df
-
 
 
 class CopyNumberVariation(GenomicData):

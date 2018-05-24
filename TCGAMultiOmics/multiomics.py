@@ -118,6 +118,24 @@ class MultiOmicsData:
 
         self.print_sample_sizes()
 
+    def __getitem__(self, item):
+        if item == "GE":
+            return self.GE
+        elif item == "MIR":
+            return self.MIR
+        elif item == "LNC":
+            return self.LNC
+        elif item == "WSI":
+            return self.WSI
+        elif item == "SNP":
+            return self.SNP
+        elif item == "CNV":
+            return self.CN
+        elif item == "DNA":
+            return self.DNA
+        elif item == "PRO":
+            return self.PRO
+
     def match_samples(self, modalities):
         """
         Return the index of bcr_sample_barcodes of the intersection of samples from all modalities
@@ -218,6 +236,12 @@ class MultiOmicsData:
         self.data["PATIENTS"] = self.data["PATIENTS"].assign(
             predicted_subtype=self.data["PATIENTS"]["bcr_patient_barcode"].map(dictionary))
 
-    def add_association(self, modality_A, modality_B, bi_direction=True):
-        pass
+    def get_multiomics_interactions(self, modalities=[]):
+        """
+        This function returns a networkx directed graph for a multi-omics interactions network containing the heterogeneous interactions among and between different omics. The number of nodes included in the graph depends on the modalities included
+        :param modalities: a list of multi-omics to fetch, e.g. ["LNC", "MIR", "GE"]
+        :return G: a networkx DiGraph
+        """
+        for modality in self.data.keys():
+            print(modality)
 
