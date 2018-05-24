@@ -19,22 +19,12 @@ class HeterogeneousNetwork():
 
     def preprocess_graph(self):
         for modality in self.modalities:
-            print(self.multi_omics[modality])
             self.G.add_nodes_from(self.multi_omics[modality].get_genes_list())
 
     def add_edges_from_modality(self, modality):
         self.G.add_edges_from(self.multi_omics[modality].network.edges(data=True))
 
-    def add_edges_from_edgelist(self, modality, edgelist, undirected=False):
-        """
-        Takes in a pandas edgelist containing source, target, and weight columns to construct a networkx DiGraph
-        :param df: Pandas Dataframe
-        :param undirected: whether the edges are undirected. If so, all directed edges are considred undirected
-        """
-        nodes = self.multi_omics[modality].get_genes_list()
-
-        edgelist_graph = nx.from_pandas_dataframe()
-
+    def add_edges_from_edgelist(self, edgelist):
         self.G.add_edges_from(edgelist)
 
 

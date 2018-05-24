@@ -307,6 +307,21 @@ class MiRNAExpression(GenomicData):
             raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
         return self.targetScan_context_df
 
+    def get_miRNA_target_interaction_context_edgelist(self):
+        mirna_target_interactions = self.targetScan_context_df.copy()
+        mirna_target_interactions["weighted context++ score percentile"] = \
+            mirna_target_interactions["weighted context++ score percentile"].apply(func=lambda x: x / 100.0)
+        mirna_target_interactions.rename(columns={"weighted context++ score percentile": "weight",
+                                                  "MiRBase ID": "MIR",
+                                                  "Gene Symbol": "GE"}, inplace=True)
+        mir_target_network = nx.from_pandas_dataframe(mirna_target_interactions,
+                                                      source="MIR", target="GE", edge_attr="weight",
+                                                      create_using=nx.DiGraph())
+        return mir_target_network.edges(data=True)
+
+    def get_miRNA_family_edgelist(self):
+        pass
+
 
 class CopyNumberVariation(GenomicData):
     def __init__(self, cancer_type, folder_path):
