@@ -6,11 +6,11 @@ import networkx as nx
 import dask.dataframe as dd
 from dask.multiprocessing import get
 
-from TCGAMultiOmics.genomic import GenomicData
+from TCGAMultiOmics.multiomics import MultiOmicsData
 
 
-class Association():
-    def __init__(self, modalities, multi_omics):
+class HeterogeneousNetwork():
+    def __init__(self, modalities:list, multi_omics:MultiOmicsData):
         self.modalities = modalities
         self.multi_omics = multi_omics
         self.G = nx.DiGraph()
@@ -22,19 +22,30 @@ class Association():
             print(self.multi_omics[modality])
             self.G.add_nodes_from(self.multi_omics[modality].get_genes_list())
 
-    def compute_network_from_edgelist(self, edgelist, undirected=False):
+    def add_edges_from_modality(self, modality):
+        self.G.add_edges_from(self.multi_omics[modality].network.edges(data=True))
+
+    def add_edges_from_edgelist(self, modality, edgelist, undirected=False):
         """
         Takes in a pandas edgelist containing source, target, and weight columns to construct a networkx DiGraph
         :param df: Pandas Dataframe
         :param undirected: whether the edges are undirected. If so, all directed edges are considred undirected
         """
-        self.G = nx.from_pandas_edgelist(edgelist, source="source", target="target", edge_attr="weight", create_using=nx.DiGraph())
+        nodes = self.multi_omics[modality].get_genes_list()
+
+        edgelist_graph = nx.from_pandas_dataframe()
+
+        self.G.add_edges_from(edgelist)
+
 
     def compute_network_from_expression_correlation(self):
         pass
 
+    def get_affinity_matrix(self):
+        return nx.adjacency_matrix(self.G)
 
-
+    def get_edge(self, i, j):
+        return self.G.get_edge_data(i, j)
 
 
 # def fit(self, putative_assocs, map_function, n_jobs=4):

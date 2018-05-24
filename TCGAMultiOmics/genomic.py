@@ -158,6 +158,15 @@ class GeneExpression(GenomicData):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
         self.protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path)
 
+    def process_HPRD_PPI_network(self, ppi_data_file_path):
+        HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
+        self.network = nx.from_pandas_dataframe(HPRD_PPI, source=0, target=3,
+                                          create_using=nx.DiGraph())
+
+    def process_STRING_PPI_network(self, ppi_data_file_path):
+        pass
+
+
 class SomaticMutation(GenomicData):
     def __init__(self, cancer_type, folder_path):
         file_path = os.path.join(folder_path, "somaticMutation_geneLevel.txt")
