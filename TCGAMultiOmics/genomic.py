@@ -162,6 +162,9 @@ class GeneExpression(GenomicData):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
         self.protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path)
 
+    def process_gene_regulatory_network(self, grn_file_path):
+        grn_df = pd.read_table(grn_file_path, header=None)
+        self.network = nx.from_pandas_dataframe(grn_df, source=0, target=1, create_using=nx.DiGraph())
 
 
 class SomaticMutation(GenomicData):

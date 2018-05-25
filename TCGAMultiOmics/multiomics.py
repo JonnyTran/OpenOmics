@@ -74,7 +74,8 @@ class MultiOmicsData:
 
             try:
                 self.GE.process_gene_info(targetScan_gene_info_path=os.path.join(external_data_path, "TargetScan", "Gene_info.txt"))
-
+                self.GE.process_gene_regulatory_network(grn_file_path=os.path.join(external_data_path, "RegNetwork",
+                                                    "human.source"))
             except FileNotFoundError as e:
                 print(e)
                 print("Could not run GeneExpression.process_gene_info() because of missing TargetScan/Gene_info.txt data in the directory", external_data_path)
@@ -110,7 +111,7 @@ class MultiOmicsData:
             self.PRO = ProteinExpression(cancer_type, os.path.join(tcga_data_path, "protein_rppa/"))
             self.data["PRO"] = self.PRO.data
             self.PRO.process_HPRD_PPI_network(
-                ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI/", "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
+                ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI", "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
 
         # Build a table for each samples's clinical data
         all_samples = pd.Index([])
@@ -122,6 +123,9 @@ class MultiOmicsData:
         self.print_sample_sizes()
 
     def __getitem__(self, item):
+        """
+        This function allows the MultiOmicData class objects to access individual omics by a dictionary lookup
+        """
         if item == "GE":
             return self.GE
         elif item == "MIR":
@@ -133,7 +137,7 @@ class MultiOmicsData:
         elif item == "SNP":
             return self.SNP
         elif item == "CNV":
-            return self.CN
+            return self.CNV
         elif item == "DNA":
             return self.DNA
         elif item == "PRO":
