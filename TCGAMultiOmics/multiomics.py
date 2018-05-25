@@ -75,7 +75,6 @@ class MultiOmicsData:
             try:
                 self.GE.process_gene_info(targetScan_gene_info_path=os.path.join(external_data_path, "TargetScan", "Gene_info.txt"))
 
-                self.GE.process_HPRD_PPI_network(ppi_data_file_path="/home/jonny_admin/PycharmProjects/Bioinformatics_ExternalData/HPRD_PPI/BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt")
             except FileNotFoundError as e:
                 print(e)
                 print("Could not run GeneExpression.process_gene_info() because of missing TargetScan/Gene_info.txt data in the directory", external_data_path)
@@ -110,6 +109,8 @@ class MultiOmicsData:
         if ("PRO" in modalities):
             self.PRO = ProteinExpression(cancer_type, os.path.join(tcga_data_path, "protein_rppa/"))
             self.data["PRO"] = self.PRO.data
+            self.PRO.process_HPRD_PPI_network(
+                ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI/", "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
 
         # Build a table for each samples's clinical data
         all_samples = pd.Index([])

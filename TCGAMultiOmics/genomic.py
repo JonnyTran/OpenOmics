@@ -82,8 +82,12 @@ class GenomicData:
     def get_samples_list(self):
         return self.samples
 
-    def process_interactions_from_table(self, table_file):
-        pass
+    def get_network_edgelist(self):
+        if hasattr(self, "network"):
+            self.network.edges()
+        else:
+            print(self.__class__.__str__(), "does not have network interaction data yet. (at self.network)")
+            return None
 
 
 class LncRNAExpression(GenomicData):
@@ -158,13 +162,6 @@ class GeneExpression(GenomicData):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
         self.protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path)
 
-    def process_HPRD_PPI_network(self, ppi_data_file_path):
-        HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
-        self.network = nx.from_pandas_dataframe(HPRD_PPI, source=0, target=3,
-                                          create_using=nx.DiGraph())
-
-    def process_STRING_PPI_network(self, ppi_data_file_path):
-        pass
 
 
 class SomaticMutation(GenomicData):
@@ -307,7 +304,7 @@ class MiRNAExpression(GenomicData):
             raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
         return self.targetScan_context_df
 
-    def get_miRNA_target_interaction_context_edgelist(self):
+    def get_miRNA_target_interaction_edgelist(self):
         mirna_target_interactions = self.targetScan_context_df.copy()
         mirna_target_interactions["weighted context++ score percentile"] = \
             mirna_target_interactions["weighted context++ score percentile"].apply(func=lambda x: x / 100.0)
@@ -320,7 +317,10 @@ class MiRNAExpression(GenomicData):
         return mir_target_network.edges(data=True)
 
     def get_miRNA_family_edgelist(self):
-        pass
+        edgelist_df = pd.DataFrame()
+
+        for miFam in self.mirna_family.keys():
+            self.mirna_family[miFam]
 
 
 class CopyNumberVariation(GenomicData):
@@ -339,4 +339,12 @@ class ProteinExpression(GenomicData):
     def __init__(self, cancer_type, folder_path):
         file_path = os.path.join(folder_path, "protein_RPPA.txt")
         super().__init__(cancer_type, file_path)
+
+    def process_HPRD_PPI_network(self, ppi_data_file_path):
+        HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
+        self.network = nx.from_pandas_dataframe(HPRD_PPI, source=0, target=3,
+                                          create_using=nx.DiGraph())
+
+    def process_STRING_PPI_network(self, ppi_data_file_path):
+        pass
 
