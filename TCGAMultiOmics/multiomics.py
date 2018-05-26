@@ -74,11 +74,15 @@ class MultiOmicsData:
 
             try:
                 self.GE.process_gene_info(targetScan_gene_info_path=os.path.join(external_data_path, "TargetScan", "Gene_info.txt"))
-                self.GE.process_gene_regulatory_network(grn_file_path=os.path.join(external_data_path, "RegNetwork",
-                                                    "human.source"))
             except FileNotFoundError as e:
                 print(e)
                 print("Could not run GeneExpression.process_gene_info() because of missing TargetScan/Gene_info.txt data in the directory", external_data_path)
+
+            try:
+                self.GE.process_gene_regulatory_network(grn_file_path=os.path.join(external_data_path, "RegNetwork",
+                                                                               "human.source"))
+            except FileNotFoundError as e:
+                print(e)
 
         if ("SNP" in modalities):
             self.SNP = SomaticMutation(cancer_type, os.path.join(tcga_data_path, "somatic/"))

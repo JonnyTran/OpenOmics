@@ -84,7 +84,7 @@ class GenomicData:
 
     def get_network_edgelist(self):
         if hasattr(self, "network"):
-            self.network.edges()
+            return self.network.edges()
         else:
             print(self.__class__.__str__(), "does not have network interaction data yet. (at self.network)")
             return None
@@ -163,8 +163,13 @@ class GeneExpression(GenomicData):
         self.protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path)
 
     def process_gene_regulatory_network(self, grn_file_path):
+        self.grn_file_path = grn_file_path
         grn_df = pd.read_table(grn_file_path, header=None)
-        self.network = nx.from_pandas_dataframe(grn_df, source=0, target=1, create_using=nx.DiGraph())
+        self.network = nx.from_pandas_dataframe(grn_df, source=0, target=2, create_using=nx.DiGraph())
+
+    def get_GRN_edgelist(self):
+        grn_df = pd.read_table(self.grn_file_path, header=None)
+        return nx.from_pandas_dataframe(grn_df, source=0, target=2, create_using=nx.DiGraph()).edges()
 
 
 class SomaticMutation(GenomicData):
