@@ -18,8 +18,10 @@ class HeterogeneousNetwork():
         self.preprocess_graph()
 
     def preprocess_graph(self):
+        self.nodes = {}
         for modality in self.modalities:
             self.G.add_nodes_from(self.multi_omics[modality].get_genes_list())
+            self.nodes["modality"] = self.multi_omics[modality].get_genes_list()
 
     def add_edges_from_modality(self, modality):
         self.G.add_edges_from(self.multi_omics[modality].network.edges(data=True))
@@ -36,6 +38,13 @@ class HeterogeneousNetwork():
 
     def get_edge(self, i, j):
         return self.G.get_edge_data(i, j)
+
+    def get_subgraph(self, modalities):
+        nodes = []
+        for modality in modalities:
+            nodes.extend(self.nodes[modality])
+
+        return self.G.subgraph(nodes)
 
 
 # def fit(self, putative_assocs, map_function, n_jobs=4):
