@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import networkx as nx
+from TCGAMultiOmics.utils.GTF import dataframe
 
 class GenomicData:
     def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA",
@@ -91,38 +92,37 @@ class GenomicData:
 
 
 class LncRNAExpression(GenomicData):
-    def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_path=None):
+    def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_file_path, GENCODE_LncRNA_gtf_file_path):
         """
         :param folder_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
         :param lncrna_names_file_path: Path to the HGNC_RNA_long_non-coding.txt file to map ensembl gene id to lncRNA names
         """
         file_path = os.path.join(folder_path, "TCGA-rnaexpr.tsv")
-        self.lncrna_names_file_path = HGNC_lncRNA_names_path
+        self.HGNC_lncRNA_names_path = HGNC_lncRNA_names_file_path
+        self.GENCODE_LncRNA_gtf_file_path = GENCODE_LncRNA_gtf_file_path
         super().__init__(cancer_type, file_path)
 
 
     def preprocess_expression_table(self, df, columns):
         """
-        Preprocess LNCRNA expression file obtained from TANRIC MDAnderson. This function overwrites the
-        GenomicData.process_expression_table() function which processes TCGA-Assembler data.
+        Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
 
         :param df:
         :param columns:
         :return:
         """
         lncrna_exp = df
-
+        print("THIS RAN")
         try:
-            lncrna_names = pd.read_table(self.lncrna_names_file_path, delimiter="\t")
-            self.genes_info = lncrna_names
+            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t")
+            self.genes_info = HGNC_lncrna_info
         except Exception:
             raise FileNotFoundError("Needs the file RNA_long_non-coding.txt at directory external_data/HUGO_Gene_names")
 
 
-        lncrna_dict = pd.Series(lncrna_names.symbol.values, index=lncrna_names.ensembl_gene_id).to_dict()
-
-        # Replacing ENSG Gene ID to the lncRNA symbol name
-        lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")
+        # Replacing ENSG Gene ID to the lncRNA gene symbol name
+        lncrna_dict = self.get_lncRNA_gene_name_dict()
+        # lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")
         lncrna_exp.replace({"Gene_ID": lncrna_dict}, inplace=True)
 
         # Drop NA gene rows
@@ -145,14 +145,25 @@ class LncRNAExpression(GenomicData):
 
         return lncrna_exp
 
+    def get_lncRNA_gene_name_dict(self):
+        GENCODE_LncRNA_names = dataframe(self.GENCODE_LncRNA_gtf_file_path)
+        lncrna_dict = pd.Series(GENCODE_LncRNA_names['gene_name'].values, index=GENCODE_LncRNA_names['gene_id']).to_dict()
+        return lncrna_dict
+
     def process_starBase_miRNA_lncRNA_interactions(self, starBase_folder_path):
         self.starBase_miRNA_lncRNA_file_path = os.path.join(starBase_folder_path, "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
         # grn_df = pd.read_table(starBase_miRNA_lncRNA_file_path, header=None)
         # self.network = nx.from_pandas_dataframe(grn_df, source='name', target='geneName', create_using=nx.DiGraph())
 
-    def get_miRNA_lncRNA_interactions_edgelist(self):
+    def get_miRNA_to_lncRNA_interactions_edgelist(self, directed=True):
         grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=0)
-        return nx.from_pandas_dataframe(grn_df, source='name', target='geneName', create_using=nx.DiGraph()).edges()
+
+        if directed:
+            graph = nx.from_pandas_dataframe(grn_df, source='name', target='geneName', create_using=nx.DiGraph())
+        else:
+            graph = nx.from_pandas_dataframe(grn_df, source='name', target='geneName', create_using=nx.Graph())
+
+        return graph.edges()
 
 
 class GeneExpression(GenomicData):
@@ -172,13 +183,11 @@ class GeneExpression(GenomicData):
         self.protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path)
 
     def process_RegNet_gene_regulatory_network(self, grn_file_path):
-        self.grn_file_path = grn_file_path
         grn_df = pd.read_table(grn_file_path, header=None)
-        self.network = nx.from_pandas_dataframe(grn_df, source=0, target=2, create_using=nx.DiGraph())
+        self.regnet_grn_network = nx.from_pandas_dataframe(grn_df, source=0, target=2, create_using=nx.DiGraph())
 
-    def get_GRN_edgelist(self):
-        grn_df = pd.read_table(self.grn_file_path, header=None)
-        return nx.from_pandas_dataframe(grn_df, source=0, target=2, create_using=nx.DiGraph()).edges()
+    def get_RegNet_GRN_edgelist(self):
+        return self.regnet_grn_network.edges()
 
 
 class SomaticMutation(GenomicData):
@@ -337,6 +346,7 @@ class MiRNAExpression(GenomicData):
 
         for miFam in self.mirna_family.keys():
             self.mirna_family[miFam]
+        #TODO finish this function
 
 
 class CopyNumberVariation(GenomicData):
@@ -358,9 +368,13 @@ class ProteinExpression(GenomicData):
 
     def process_HPRD_PPI_network(self, ppi_data_file_path):
         HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
-        self.network = nx.from_pandas_dataframe(HPRD_PPI, source=0, target=3,
+        self.HPRD_PPI_network = nx.from_pandas_dataframe(HPRD_PPI, source=0, target=3,
                                           create_using=nx.DiGraph())
+
+    def get_HPRD_PPI_network_edgelist(self):
+        return self.HPRD_PPI_network.edges()
 
     def process_STRING_PPI_network(self, ppi_data_file_path):
         pass
+
 

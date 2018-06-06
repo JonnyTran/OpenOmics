@@ -101,7 +101,8 @@ class MultiOmicsData:
 
         if ("LNC" in modalities):
             self.LNC = LncRNAExpression(cancer_type, os.path.join(tcga_data_path, "lncrna/"),
-                                        HGNC_lncRNA_names_path=os.path.join(external_data_path, "HUGO_Gene_names/", "RNA_long_non-coding.txt"))
+                                        HGNC_lncRNA_names_file_path=os.path.join(external_data_path, "HUGO_Gene_names", "RNA_long_non-coding.txt"),
+                                        GENCODE_LncRNA_gtf_file_path=os.path.join(external_data_path, "GENCODE", "gencode.v28.long_noncoding_RNAs.gtf"))
             self.data["LNC"] = self.LNC.data
 
             try:
