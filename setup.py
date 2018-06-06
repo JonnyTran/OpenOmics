@@ -62,7 +62,7 @@ class UploadCommand(Command):
 setup(
     name=NAME,
     version=VERSION,
-    packages=find_packages(exclude=["test"]),
+    packages=find_packages(exclude=["test"], include="utils"),
     package_dir={NAME: 'TCGAMultiOmics', 'TCGAMultiOmics.utils': 'TCGAMultiOmics.utils'},
     url=URL,
     license='',

@@ -112,7 +112,6 @@ class LncRNAExpression(GenomicData):
         :return:
         """
         lncrna_exp = df
-        print("THIS RAN")
         try:
             HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t")
             self.genes_info = HGNC_lncrna_info
