@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import networkx as nx
-from TCGAMultiOmics.utils.GTF import dataframe
+from TCGAMultiOmics.utils import GTF
 
 class GenomicData:
     def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA",
@@ -146,7 +146,7 @@ class LncRNAExpression(GenomicData):
         return lncrna_exp
 
     def get_lncRNA_gene_name_dict(self):
-        GENCODE_LncRNA_names = dataframe(self.GENCODE_LncRNA_gtf_file_path)
+        GENCODE_LncRNA_names = GTF.dataframe(self.GENCODE_LncRNA_gtf_file_path)
         lncrna_dict = pd.Series(GENCODE_LncRNA_names['gene_name'].values, index=GENCODE_LncRNA_names['gene_id']).to_dict()
         return lncrna_dict
 
