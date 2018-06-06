@@ -79,7 +79,7 @@ class MultiOmicsData:
                 print("Could not run GeneExpression.process_gene_info() because of missing TargetScan/Gene_info.txt data in the directory", external_data_path)
 
             try:
-                self.GE.process_gene_regulatory_network(grn_file_path=os.path.join(external_data_path, "RegNetwork",
+                self.GE.process_RegNet_gene_regulatory_network(grn_file_path=os.path.join(external_data_path, "RegNetwork",
                                                                                "human.source"))
             except FileNotFoundError as e:
                 print(e)
@@ -94,17 +94,21 @@ class MultiOmicsData:
             try:
                 self.MIR.process_target_scan(mirna_list=self.MIR.get_genes_list(),
                                              gene_symbols=self.GE.get_genes_list(),
-                                             targetScan_miR_family_info_path=os.path.join(external_data_path, "TargetScan", "miR_Family_Info.txt"),
-                                             targetScan_predicted_targets_path=os.path.join(external_data_path, "TargetScan", "Predicted_Targets_Info.default_predictions.txt"),
-                                             targetScan_predicted_targets_context_score_path=os.path.join(external_data_path, "TargetScan", "Predicted_Targets_Context_Scores.default_predictions.txt"))
+                                             targetScan_folder_path=os.path.join(external_data_path, "TargetScan"))
             except FileNotFoundError as e:
                 print(e)
-                print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data in the directory", external_data_path)
+                print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data folder in the directory", external_data_path)
 
         if ("LNC" in modalities):
             self.LNC = LncRNAExpression(cancer_type, os.path.join(tcga_data_path, "lncrna/"),
                                         HGNC_lncRNA_names_path=os.path.join(external_data_path, "HUGO_Gene_names/", "RNA_long_non-coding.txt"))
             self.data["LNC"] = self.LNC.data
+
+            try:
+                self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
+            except FileNotFoundError as e:
+                print(e)
+
         if ("DNA" in modalities):
             self.DNA = DNAMethylation(cancer_type, os.path.join(tcga_data_path, "dna/"))
             self.data["DNA"] = self.DNA.data

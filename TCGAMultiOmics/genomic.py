@@ -145,6 +145,15 @@ class LncRNAExpression(GenomicData):
 
         return lncrna_exp
 
+    def process_starBase_miRNA_lncRNA_interactions(self, starBase_folder_path):
+        self.starBase_miRNA_lncRNA_file_path = os.path.join(starBase_folder_path, "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
+        # grn_df = pd.read_table(starBase_miRNA_lncRNA_file_path, header=None)
+        # self.network = nx.from_pandas_dataframe(grn_df, source='name', target='geneName', create_using=nx.DiGraph())
+
+    def get_miRNA_lncRNA_interactions_edgelist(self):
+        grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=0)
+        return nx.from_pandas_dataframe(grn_df, source='name', target='geneName', create_using=nx.DiGraph()).edges()
+
 
 class GeneExpression(GenomicData):
     def __init__(self, cancer_type, folder_path):
@@ -162,7 +171,7 @@ class GeneExpression(GenomicData):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
         self.protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path)
 
-    def process_gene_regulatory_network(self, grn_file_path):
+    def process_RegNet_gene_regulatory_network(self, grn_file_path):
         self.grn_file_path = grn_file_path
         grn_df = pd.read_table(grn_file_path, header=None)
         self.network = nx.from_pandas_dataframe(grn_df, source=0, target=2, create_using=nx.DiGraph())
@@ -184,11 +193,10 @@ class MiRNAExpression(GenomicData):
         super().__init__(cancer_type, file_path)
 
 
-    def process_target_scan(self, mirna_list, gene_symbols, targetScan_miR_family_info_path,
-                 targetScan_predicted_targets_path, targetScan_predicted_targets_context_score_path):
-        self.targetScan_miR_family_info_path = targetScan_miR_family_info_path
-        self.targetScan_predicted_targets_path = targetScan_predicted_targets_path
-        self.targetScan_predicted_targets_context_score_path = targetScan_predicted_targets_context_score_path
+    def process_target_scan(self, mirna_list, gene_symbols, targetScan_folder_path):
+        self.targetScan_miR_family_info_path = os.path.join(targetScan_folder_path,"miR_Family_Info.txt")
+        self.targetScan_predicted_targets_path = os.path.join(targetScan_folder_path, "Predicted_Targets_Info.default_predictions.txt")
+        self.targetScan_predicted_targets_context_score_path = os.path.join(targetScan_folder_path, "Predicted_Targets_Context_Scores.default_predictions.txt")
 
         self.process_targetscan_mirna_family(mirna_list)
         self.process_mirna_target_interactions(mirna_list, gene_symbols)
@@ -339,7 +347,7 @@ class CopyNumberVariation(GenomicData):
 
 class DNAMethylation(GenomicData):
     def __init__(self, cancer_type, folder_path):
-        file_path = os.path.join(folder_path, "")
+        file_path = os.path.join(folder_path, "methylation_450.txt")
         super().__init__(cancer_type, file_path)
 
 
