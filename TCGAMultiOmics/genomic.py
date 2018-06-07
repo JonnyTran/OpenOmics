@@ -116,7 +116,7 @@ class LncRNAExpression(GenomicData):
             HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t")
             self.genes_info = HGNC_lncrna_info
         except Exception:
-            raise FileNotFoundError("Needs the file RNA_long_non-coding.txt at directory external_data/HUGO_Gene_names")
+            raise FileNotFoundError("Needs the file RNA_long_non-coding.txt at directory external_data/HUGO_Gene_names to process lncRNA gene info")
 
 
         # Replacing ENSG Gene ID to the lncRNA gene symbol name
@@ -151,8 +151,8 @@ class LncRNAExpression(GenomicData):
 
     def process_starBase_miRNA_lncRNA_interactions(self, starBase_folder_path):
         self.starBase_miRNA_lncRNA_file_path = os.path.join(starBase_folder_path, "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
-        # grn_df = pd.read_table(starBase_miRNA_lncRNA_file_path, header=None)
-        # self.network = nx.from_pandas_dataframe(grn_df, source='name', target='geneName', create_using=nx.DiGraph())
+        grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=None)
+        self.network = nx.from_pandas_dataframe(grn_df, source='name', target='geneName', create_using=nx.DiGraph())
 
     def get_miRNA_to_lncRNA_interactions_edgelist(self, directed=True):
         grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=0)
