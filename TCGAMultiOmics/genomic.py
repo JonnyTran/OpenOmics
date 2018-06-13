@@ -152,6 +152,10 @@ class LncRNAExpression(GenomicData):
     def process_starBase_miRNA_lncRNA_interactions(self, starBase_folder_path):
         self.starBase_miRNA_lncRNA_file_path = os.path.join(starBase_folder_path, "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
         grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=None)
+
+        grn_df['name'] = grn_df['name'].str.lower()
+        grn_df['name'] = grn_df['name'].str.replace("-3p.*|-5p.*", "")
+
         self.network = nx.from_pandas_dataframe(grn_df, source='name', target='geneName', create_using=nx.DiGraph())
 
     def get_miRNA_to_lncRNA_interactions_edgelist(self, directed=True):
