@@ -107,6 +107,8 @@ class LncRNAExpression(GenomicData):
         """
         Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
 
+        TANRIC LNCRNA expression values are log2 transformed
+
         :param df:
         :param columns:
         :return:
