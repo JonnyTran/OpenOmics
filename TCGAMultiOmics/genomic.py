@@ -161,6 +161,20 @@ class LncRNAExpression(GenomicData):
     def get_miRNA_to_lncRNA_interactions_edgelist(self):
         return self.starBase_miRNA_lncRNA_network.edges()
 
+    def process_lncRNome_miRNA_binding_sites(self, lncRNome_folder_path):
+        self.lnRNome_miRNA_binding_sites_path = os.path.join(lncRNome_folder_path, "miRNA_binding_sites.txt")
+
+        df = pd.read_table(self.lnRNome_miRNA_binding_sites_path, header=0)
+
+        df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
+        df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "")
+
+        self.lncRNome_miRNA_binding_sites_network = nx.from_pandas_dataframe(df, source='Gene Name', target='Binding miRNAs', create_using=nx.DiGraph())
+
+    def get_lncRNome_miRNA_binding_sites_edgelist(self):
+        return self.lncRNome_miRNA_binding_sites_network.edges()
+
+
 
 class GeneExpression(GenomicData):
     def __init__(self, cancer_type, folder_path):
@@ -180,7 +194,13 @@ class GeneExpression(GenomicData):
 
     def process_RegNet_gene_regulatory_network(self, grn_file_path):
         grn_df = pd.read_table(grn_file_path, header=None)
+
+        # Since RegNet GRN contains miRNA and TF regulatory interactions
+        # hsa-miR-* microRNA gene names will be mapped to hsa-mir-*
+        grn_df = grn_df[0].map(lambda x: x.lower() if ("hsa-miR" in x) else x)
+
         self.regnet_grn_network = nx.from_pandas_dataframe(grn_df, source=0, target=2, create_using=nx.DiGraph())
+
 
     def get_RegNet_GRN_edgelist(self):
         return self.regnet_grn_network.edges()

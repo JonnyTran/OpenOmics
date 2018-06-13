@@ -106,6 +106,7 @@ class MultiOmicsData:
             self.data["LNC"] = self.LNC.data
 
             try:
+                self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
                 self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
             except FileNotFoundError as e:
                 print(e)
