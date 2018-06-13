@@ -121,7 +121,7 @@ class LncRNAExpression(GenomicData):
 
         # Replacing ENSG Gene ID to the lncRNA gene symbol name
         lncrna_dict = self.get_lncRNA_gene_name_dict()
-        # lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")
+        lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         lncrna_exp.replace({"Gene_ID": lncrna_dict}, inplace=True)
 
         # Drop NA gene rows
@@ -146,6 +146,9 @@ class LncRNAExpression(GenomicData):
 
     def get_lncRNA_gene_name_dict(self):
         GENCODE_LncRNA_names = GTF.dataframe(self.GENCODE_LncRNA_gtf_file_path)
+
+        GENCODE_LncRNA_names['gene_id'] = GENCODE_LncRNA_names['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
+
         lncrna_dict = pd.Series(GENCODE_LncRNA_names['gene_name'].values, index=GENCODE_LncRNA_names['gene_id']).to_dict()
         return lncrna_dict
 
@@ -158,7 +161,7 @@ class LncRNAExpression(GenomicData):
 
         self.starBase_miRNA_lncRNA_network = nx.from_pandas_dataframe(grn_df, source='name', target='geneName', create_using=nx.DiGraph())
 
-    def get_miRNA_to_lncRNA_interactions_edgelist(self):
+    def get_starBase_lncRNA_miRNA_interactions_edgelist(self):
         return self.starBase_miRNA_lncRNA_network.edges()
 
     def process_lncRNome_miRNA_binding_sites(self, lncRNome_folder_path):
