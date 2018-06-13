@@ -197,7 +197,7 @@ class GeneExpression(GenomicData):
 
         # Since RegNet GRN contains miRNA and TF regulatory interactions
         # hsa-miR-* microRNA gene names will be mapped to hsa-mir-*
-        grn_df = grn_df[0].map(lambda x: x.lower() if ("hsa-miR" in x) else x)
+        grn_df[0] = grn_df[0].map(lambda x: x.lower() if ("hsa-miR" in x) else x)
 
         self.regnet_grn_network = nx.from_pandas_dataframe(grn_df, source=0, target=2, create_using=nx.DiGraph())
 
