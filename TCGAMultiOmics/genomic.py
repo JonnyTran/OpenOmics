@@ -188,14 +188,17 @@ class GeneExpression(GenomicData):
 
     def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
         self.targetScan_gene_info_path = targetScan_gene_info_path
-        self.targetScan_genes_info = pd.read_table(self.targetScan_gene_info_path, usecols=["Transcript ID", "Gene ID", "Gene symbol", "Gene description"])
+        self.targetScan_genes_info = pd.read_table(self.targetScan_gene_info_path, usecols=["Transcript ID", "Gene ID", "Species ID", "Gene symbol", "Gene description"])
 
         if human_only:
             self.targetScan_genes_info = self.targetScan_genes_info[self.targetScan_genes_info["Species ID"] == 9606]
+        self.targetScan_genes_info.drop(columns=["Species ID"])
+
 
     def process_protein_coding_genes_info(self, hugo_protein_gene_names_path):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
-        self.protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path, usecols=None)
+        self.hugo_protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path, usecols=None)
+
 
     def process_RegNet_gene_regulatory_network(self, grn_file_path):
         grn_df = pd.read_table(grn_file_path, header=None)
@@ -212,12 +215,12 @@ class GeneExpression(GenomicData):
 
     def get_genes_info(self):
         gene_info = pd.DataFrame(index=self.get_genes_list())
+
         gene_info.index.name = "Gene symbol"
+        gene_info = gene_info.join(self.targetScan_genes_info.groupby("Gene symbol").first(), on="Gene symbol", how="left")
 
-        gene_info.join(self.targetScan_gene_info_path.groupby("Gene symbol").first(), on="Gene symbol", how="left")
-
-        gene_info.join()
-
+        gene_info.index.name = "symbol"
+        gene_info = gene_info.join(self.hugo_protein_genes_info.groupby("symbol").first(), on="symbol", how="left")
         return gene_info
 
 
