@@ -115,7 +115,7 @@ class LncRNAExpression(GenomicData):
         """
         lncrna_exp = df
         try:
-            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t")
+            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t", usecols=['symbol', 'ensembl_gene_id', 'name', 'location', ''])
             self.HGNC_lncrna_info = HGNC_lncrna_info
             self.HGNC_lncrna_info.index = self.HGNC_lncrna_info["symbol"]
         except Exception:
@@ -127,7 +127,6 @@ class LncRNAExpression(GenomicData):
         lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         lncrna_exp.replace({"Gene_ID": gencode_lncrna_dict}, inplace=True)
         lncrna_exp.replace({"Gene_ID": hgnc_lncrna_dict}, inplace=True)
-
 
         # Drop NA gene rows
         lncrna_exp.dropna(axis=0, inplace=True)
