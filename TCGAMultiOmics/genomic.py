@@ -116,15 +116,18 @@ class LncRNAExpression(GenomicData):
         lncrna_exp = df
         try:
             HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t")
-            self.genes_info = HGNC_lncrna_info
+            self.HGNC_lncrna_info = HGNC_lncrna_info
+            self.HGNC_lncrna_info.index = self.HGNC_lncrna_info["symbol"]
         except Exception:
             raise FileNotFoundError("Needs the file RNA_long_non-coding.txt at directory external_data/HUGO_Gene_names to process lncRNA gene info")
 
-
         # Replacing ENSG Gene ID to the lncRNA gene symbol name
-        lncrna_dict = self.get_lncRNA_gene_name_dict()
+        gencode_lncrna_dict = self.get_GENCODE_lncRNA_gene_name_dict()
+        hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
         lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
-        lncrna_exp.replace({"Gene_ID": lncrna_dict}, inplace=True)
+        lncrna_exp.replace({"Gene_ID": gencode_lncrna_dict}, inplace=True)
+        lncrna_exp.replace({"Gene_ID": hgnc_lncrna_dict}, inplace=True)
+
 
         # Drop NA gene rows
         lncrna_exp.dropna(axis=0, inplace=True)
@@ -146,12 +149,18 @@ class LncRNAExpression(GenomicData):
 
         return lncrna_exp
 
-    def get_lncRNA_gene_name_dict(self):
+
+    def get_GENCODE_lncRNA_gene_name_dict(self):
         GENCODE_LncRNA_names = GTF.dataframe(self.GENCODE_LncRNA_gtf_file_path)
 
         GENCODE_LncRNA_names['gene_id'] = GENCODE_LncRNA_names['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
 
         lncrna_dict = pd.Series(GENCODE_LncRNA_names['gene_name'].values, index=GENCODE_LncRNA_names['gene_id']).to_dict()
+        return lncrna_dict
+
+    def get_HUGO_lncRNA_gene_name_dict(self):
+        lncrna_dict = pd.Series(self.HGNC_lncrna_info['symbol'].values,
+                                index=self.HGNC_lncrna_info['ensembl_gene_id']).to_dict()
         return lncrna_dict
 
     def process_starBase_miRNA_lncRNA_interactions(self, starBase_folder_path):
@@ -182,9 +191,8 @@ class LncRNAExpression(GenomicData):
     def get_genes_info(self):
         gene_info = pd.DataFrame(index=self.get_genes_list())
 
-        gene_info.index.name = "Gene symbol"
-        gene_info = gene_info.join(self.targetScan_genes_info.groupby("Gene symbol").first(), on="Gene symbol",
-                                   how="left")
+        gene_info.index.name = "symbol"
+        gene_info = gene_info.join(self.HGNC_lncrna_info.groupby("symbol").first(), on="symbol", how="left")
 
         return gene_info
 
