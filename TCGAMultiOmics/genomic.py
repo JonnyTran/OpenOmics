@@ -115,7 +115,7 @@ class LncRNAExpression(GenomicData):
         """
         lncrna_exp = df
         try:
-            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t", usecols=['symbol', 'ensembl_gene_id', 'name', 'location', ''])
+            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t", usecols=['symbol', 'ensembl_gene_id', 'name', 'location'])
             self.HGNC_lncrna_info = HGNC_lncrna_info
             self.HGNC_lncrna_info.index = self.HGNC_lncrna_info["symbol"]
         except Exception:
