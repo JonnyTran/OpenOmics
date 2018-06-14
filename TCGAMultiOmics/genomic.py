@@ -186,16 +186,16 @@ class GeneExpression(GenomicData):
         file_path = os.path.join(folder_path, "geneExp.txt")
         super().__init__(cancer_type, file_path)
 
-    def process_gene_info(self, targetScan_gene_info_path, human_only=True):
+    def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
         self.targetScan_gene_info_path = targetScan_gene_info_path
-        self.genes_info = pd.read_table(self.targetScan_gene_info_path)
+        self.targetScan_genes_info = pd.read_table(self.targetScan_gene_info_path, usecols=["Transcript ID", "Gene ID", "Gene symbol", "Gene description"])
 
         if human_only:
-            self.genes_info = self.genes_info[self.genes_info["Species ID"]==9606]
+            self.targetScan_genes_info = self.targetScan_genes_info[self.targetScan_genes_info["Species ID"] == 9606]
 
     def process_protein_coding_genes_info(self, hugo_protein_gene_names_path):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
-        self.protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path)
+        self.protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path, usecols=None)
 
     def process_RegNet_gene_regulatory_network(self, grn_file_path):
         grn_df = pd.read_table(grn_file_path, header=None)
@@ -209,6 +209,16 @@ class GeneExpression(GenomicData):
 
     def get_RegNet_GRN_edgelist(self):
         return self.regnet_grn_network.edges()
+
+    def get_genes_info(self):
+        gene_info = pd.DataFrame(index=self.get_genes_list())
+        gene_info.index.name = "Gene symbol"
+
+        gene_info.join(self.targetScan_gene_info_path.groupby("Gene symbol").first(), on="Gene symbol", how="left")
+
+        gene_info.join()
+
+        return gene_info
 
 
 class SomaticMutation(GenomicData):

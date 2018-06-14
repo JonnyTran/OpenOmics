@@ -73,7 +73,10 @@ class MultiOmicsData:
             self.data["GE"] = self.GE.data
 
             try:
-                self.GE.process_gene_info(targetScan_gene_info_path=os.path.join(external_data_path, "TargetScan", "Gene_info.txt"))
+                self.GE.process_targetScan_gene_info(targetScan_gene_info_path=os.path.join(external_data_path, "TargetScan", "Gene_info.txt"))
+
+                self.GE.process_protein_coding_genes_info(os.path.join(external_data_path, "HUGO_Gene_names", "gene_with_protein_product.txt"))
+
             except FileNotFoundError as e:
                 print(e)
                 print("Could not run GeneExpression.process_gene_info() because of missing TargetScan/Gene_info.txt data in the directory", external_data_path)
