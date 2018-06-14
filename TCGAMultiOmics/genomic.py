@@ -188,16 +188,18 @@ class GeneExpression(GenomicData):
 
     def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
         self.targetScan_gene_info_path = targetScan_gene_info_path
-        self.targetScan_genes_info = pd.read_table(self.targetScan_gene_info_path, usecols=["Transcript ID", "Gene ID", "Species ID", "Gene symbol", "Gene description"])
+        self.targetScan_genes_info = pd.read_table(self.targetScan_gene_info_path, usecols=["Transcript ID", "Gene ID", "Species ID", "Gene symbol", "Gene description", "3P-seq tags"])
+
+        self.targetScan_genes_info["Gene description"] = self.targetScan_genes_info["Gene description"].str.replace(" \[.*\]","")
 
         if human_only:
             self.targetScan_genes_info = self.targetScan_genes_info[self.targetScan_genes_info["Species ID"] == 9606]
-        self.targetScan_genes_info.drop(columns=["Species ID"])
+        self.targetScan_genes_info.drop(columns=["Species ID"], inplace=True)
 
 
     def process_protein_coding_genes_info(self, hugo_protein_gene_names_path):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
-        self.hugo_protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path, usecols=None)
+        self.hugo_protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path, usecols=["symbol", "locus_type", "gene_family", "gene_family_id", "location"])
 
 
     def process_RegNet_gene_regulatory_network(self, grn_file_path):
