@@ -179,6 +179,15 @@ class LncRNAExpression(GenomicData):
     def get_lncRNome_miRNA_binding_sites_edgelist(self):
         return self.lncRNome_miRNA_binding_sites_network.edges()
 
+    def get_genes_info(self):
+        gene_info = pd.DataFrame(index=self.get_genes_list())
+
+        gene_info.index.name = "Gene symbol"
+        gene_info = gene_info.join(self.targetScan_genes_info.groupby("Gene symbol").first(), on="Gene symbol",
+                                   how="left")
+
+        return gene_info
+
 
 
 class GeneExpression(GenomicData):
@@ -262,30 +271,33 @@ class MiRNAExpression(GenomicData):
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
         targetScan_family_df.drop_duplicates(inplace=True)
 
-        targetScan_family_df = targetScan_family_df[['miR family', 'MiRBase ID']]
-        in_family_mirnas_list = targetScan_family_df["MiRBase ID"].tolist()
-        self.mirna_family = list(targetScan_family_df["MiRBase ID"].groupby(targetScan_family_df["miR family"]))
-        self.mirna_family_names = [fam[0] for fam in self.mirna_family]
-        self.mirna_family = {fam[0]: fam[1].tolist() for fam in self.mirna_family}
+        targetScan_family_df = targetScan_family_df[['miR family', 'MiRBase ID', 'Seed+m8', 'Mature sequence', 'Family Conservation?', 'MiRBase Accession']]
 
-        # Assign a unique integer number to miRNAs representing their miRNA family assignment
-        self.mirna_family_assg = []
-        counter = 9999
-        for m in mirna_list:
-            if m in in_family_mirnas_list:
-                for k, v in self.mirna_family.items():
-                    if m in v:
-                        m_family = k
-                        break
-                self.mirna_family_assg.append(self.mirna_family_names.index(m_family))
-            else:
-                if incremental_group_numbering:
-                    while counter in range(0, len(self.mirna_family_names)):
-                        counter += 1
-                    self.mirna_family_assg.append(counter)
-                    counter += 1
-                else:
-                    self.mirna_family_assg.append(counter)
+        self.targetScan_family_df = targetScan_family_df
+
+        # in_family_mirnas_list = targetScan_family_df["MiRBase ID"].tolist()
+        # self.mirna_family = list(targetScan_family_df["MiRBase ID"].groupby(targetScan_family_df["miR family"]))
+        # self.mirna_family_names = [fam[0] for fam in self.mirna_family]
+        # self.mirna_family = {fam[0]: fam[1].tolist() for fam in self.mirna_family}
+        #
+        # # Assign a unique integer number to miRNAs representing their miRNA family assignment
+        # self.mirna_family_assg = []
+        # counter = 9999
+        # for m in mirna_list:
+        #     if m in in_family_mirnas_list:
+        #         for k, v in self.mirna_family.items():
+        #             if m in v:
+        #                 m_family = k
+        #                 break
+        #         self.mirna_family_assg.append(self.mirna_family_names.index(m_family))
+        #     else:
+        #         if incremental_group_numbering:
+        #             while counter in range(0, len(self.mirna_family_names)):
+        #                 counter += 1
+        #             self.mirna_family_assg.append(counter)
+        #             counter += 1
+        #         else:
+        #             self.mirna_family_assg.append(counter)
 
     def process_mirna_target_interactions(self, mirna_list, gene_symbols):
         # Load data frame from file
@@ -299,11 +311,9 @@ class MiRNAExpression(GenomicData):
         except Exception:
             raise FileNotFoundError("expected TargetScan_miR_Family_Info.txt in directory mirna/TargetScan/")
 
-
         # Select only homo sapiens miRNA-target pairs
         targetScan_df = targetScan_df[targetScan_df["Species ID"] == 9606][["miR Family", "Gene Symbol"]]
-        targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606][
-            ['miR family', 'MiRBase ID']]
+        targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606][['miR family', 'MiRBase ID']]
 
         # map miRBase ID names to miR Family
         targetScan_family_df.rename(columns={'miR family': 'miR Family'}, inplace=True)
@@ -330,8 +340,6 @@ class MiRNAExpression(GenomicData):
         targetScan_context_df = targetScan_context_df[targetScan_context_df["Gene Tax ID"] == 9606][
             ["miRNA", "Gene Symbol", "weighted context++ score percentile"]]
 
-        # TODO Select only interactions with high context score
-
         # Use miRBase ID names
         targetScan_context_df.rename(columns={'miRNA': 'MiRBase ID'}, inplace=True)
 
@@ -345,15 +353,6 @@ class MiRNAExpression(GenomicData):
             targetScan_context_df['MiRBase ID'].isin(mirna_list) & targetScan_context_df['Gene Symbol'].isin(
                 gene_symbols)]
 
-    def get_miRNA_family_group_assg(self):
-        if self.mirna_family_assg is None:
-            raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
-        return self.mirna_family_assg
-
-    def get_miRNA_family(self):
-        if self.mirna_family is None:
-            raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
-        return self.mirna_family
 
     def get_miRNA_target_interaction(self):
         if self.targetScan_df is None:
@@ -377,12 +376,13 @@ class MiRNAExpression(GenomicData):
                                                       create_using=nx.DiGraph())
         return mir_target_network.edges(data=True)
 
-    def get_miRNA_family_edgelist(self):
-        edgelist_df = pd.DataFrame()
+    def get_genes_info(self):
+        gene_info = pd.DataFrame(index=self.get_genes_list())
 
-        for miFam in self.mirna_family.keys():
-            self.mirna_family[miFam]
-        #TODO finish this function
+        gene_info.index.name = "MiRBase ID"
+        gene_info = gene_info.join(self.targetScan_family_df, on="MiRBase ID", how="left")
+
+        return gene_info
 
 
 class CopyNumberVariation(GenomicData):
