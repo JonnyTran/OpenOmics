@@ -266,38 +266,17 @@ class MiRNAExpression(GenomicData):
             targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606]
 
         # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
-
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.lower()
         targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
         targetScan_family_df.drop_duplicates(inplace=True)
 
         targetScan_family_df = targetScan_family_df[['miR family', 'MiRBase ID', 'Seed+m8', 'Mature sequence', 'Family Conservation?', 'MiRBase Accession']]
 
-        self.targetScan_family_df = targetScan_family_df
+        targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].astype(str)
 
-        # in_family_mirnas_list = targetScan_family_df["MiRBase ID"].tolist()
-        # self.mirna_family = list(targetScan_family_df["MiRBase ID"].groupby(targetScan_family_df["miR family"]))
-        # self.mirna_family_names = [fam[0] for fam in self.mirna_family]
-        # self.mirna_family = {fam[0]: fam[1].tolist() for fam in self.mirna_family}
-        #
-        # # Assign a unique integer number to miRNAs representing their miRNA family assignment
-        # self.mirna_family_assg = []
-        # counter = 9999
-        # for m in mirna_list:
-        #     if m in in_family_mirnas_list:
-        #         for k, v in self.mirna_family.items():
-        #             if m in v:
-        #                 m_family = k
-        #                 break
-        #         self.mirna_family_assg.append(self.mirna_family_names.index(m_family))
-        #     else:
-        #         if incremental_group_numbering:
-        #             while counter in range(0, len(self.mirna_family_names)):
-        #                 counter += 1
-        #             self.mirna_family_assg.append(counter)
-        #             counter += 1
-        #         else:
-        #             self.mirna_family_assg.append(counter)
+        self.targetScan_family_df = targetScan_family_df
+        self.targetScan_family_df.index = self.targetScan_family_df['MiRBase ID']
+
 
     def process_mirna_target_interactions(self, mirna_list, gene_symbols):
         # Load data frame from file
@@ -380,7 +359,7 @@ class MiRNAExpression(GenomicData):
         gene_info = pd.DataFrame(index=self.get_genes_list())
 
         gene_info.index.name = "MiRBase ID"
-        gene_info = gene_info.join(self.targetScan_family_df, on="MiRBase ID", how="left")
+        gene_info = gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID",how="left")
 
         return gene_info
 
