@@ -202,11 +202,11 @@ class LncRNAExpression(GenomicData):
         self.gene_info.index.name = "genes list"
 
         self.gene_info["Gene Name"] = self.gene_info.index.map(ensembl_id_to_gene_name)
-        print("nonnull gene name", self.gene_info["Gene Name"].notnull().sum())
         self.gene_info["Gene Name"].fillna({"ensembl id": hugo_lncrna_dict}, inplace=True)
-        print("nonnull gene name", self.gene_info["Gene Name"].notnull().sum())
 
-        self.gene_info["transcript id"] = self.gene_info.index.map(ensembl_id_to_transcript_id)
+        self.gene_info["Transcript id"] = self.gene_info.index.map(ensembl_id_to_transcript_id)
+
+        self.gene_info.index = genes_list
 
 
     def process_lncRNome_gene_info(self, lncRNome_folder_path):
@@ -241,8 +241,6 @@ class LncRNAExpression(GenomicData):
 
 
     def get_genes_info(self):
-        self.gene_info.index = self.gene_info["genes list"]
-
         if ~hasattr(self, "genes_info_processed") or self.genes_info_processed == False:
             # self.gene_info = pd.merge(self.gene_info, self.HGNC_lncrna_info.groupby("symbol").first(), how="left", left_on="Gene Name", right_on="symbol")
             self.gene_info.index.name = "symbol"
@@ -260,7 +258,6 @@ class LncRNAExpression(GenomicData):
                                                  how="left")
 
             self.genes_info_processed = True
-
         return self.gene_info
 
 
