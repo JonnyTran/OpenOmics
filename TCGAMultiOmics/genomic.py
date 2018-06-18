@@ -257,6 +257,7 @@ class LncRNAExpression(GenomicData):
             self.gene_info = self.gene_info.join(self.noncode_func_df.groupby("Gene Name").first(), on="Gene Name",
                                                  how="left")
 
+            self.gene_info.index = self.get_genes_list()
             self.genes_info_processed = True
         return self.gene_info
 
