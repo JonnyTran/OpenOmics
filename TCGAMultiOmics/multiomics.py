@@ -111,6 +111,7 @@ class MultiOmicsData:
                 self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
                 self.LNC.process_lncRNome_gene_info(os.path.join(external_data_path, "lncRNome"))
                 self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
+                self.LNC.process_NONCODE_func_annotation(os.path.join(external_data_path, "NONCODE"))
             except FileNotFoundError as e:
                 print(e)
 

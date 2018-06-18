@@ -3,7 +3,8 @@ from TCGAMultiOmics.multiomics import MultiOmicsData
 folder_path = "/home/jonny_admin/PycharmProjects/Bioinformatics_ExternalData/tcga-assembler/LUAD"
 external_data_path = "/home/jonny_admin/PycharmProjects/Bioinformatics_ExternalData/"
 luad_data = MultiOmicsData(cancer_type="LUAD", tcga_data_path=folder_path, external_data_path=external_data_path,
-                           modalities=["GE",
+                           modalities=[
+                               "GE",
                                        "MIR",
                                        "LNC",
                                        # "CNV",

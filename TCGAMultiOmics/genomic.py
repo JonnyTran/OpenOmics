@@ -121,11 +121,16 @@ class LncRNAExpression(GenomicData):
         except Exception:
             raise FileNotFoundError("Needs the file RNA_long_non-coding.txt at directory external_data/HUGO_Gene_names to process lncRNA gene info")
 
+
         # Replacing ENSG Gene ID to the lncRNA gene symbol name
-        gencode_lncrna_dict = self.get_GENCODE_lncRNA_gene_name_dict()
+        ensembl_id_to_gene_name, ensembl_id_to_transcript_id = self.get_GENCODE_lncRNA_gene_name_dict()
         hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
         lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
-        lncrna_exp.replace({"Gene_ID": gencode_lncrna_dict}, inplace=True)
+
+        # Preprocess genes info
+        self.preprocess_genes_info(lncrna_exp['Gene_ID'],     ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hgnc_lncrna_dict)
+
+        lncrna_exp.replace({"Gene_ID":     ensembl_id_to_gene_name}, inplace=True)
         lncrna_exp.replace({"Gene_ID": hgnc_lncrna_dict}, inplace=True)
 
         # Drop NA gene rows
@@ -154,8 +159,11 @@ class LncRNAExpression(GenomicData):
 
         GENCODE_LncRNA_names['gene_id'] = GENCODE_LncRNA_names['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
 
-        lncrna_dict = pd.Series(GENCODE_LncRNA_names['gene_name'].values, index=GENCODE_LncRNA_names['gene_id']).to_dict()
-        return lncrna_dict
+        ensembl_id_to_gene_name = pd.Series(GENCODE_LncRNA_names['gene_name'].values, index=GENCODE_LncRNA_names['gene_id']).to_dict()
+
+        ensembl_id_to_transcript_id = pd.Series(GENCODE_LncRNA_names['transcript_id'].values, index=GENCODE_LncRNA_names['gene_id']).to_dict()
+
+        return ensembl_id_to_gene_name, ensembl_id_to_transcript_id
 
     def get_HUGO_lncRNA_gene_name_dict(self):
         lncrna_dict = pd.Series(self.HGNC_lncrna_info['symbol'].values,
@@ -187,22 +195,64 @@ class LncRNAExpression(GenomicData):
     def get_lncRNome_miRNA_binding_sites_edgelist(self):
         return self.lncRNome_miRNA_binding_sites_network.edges()
 
+    def preprocess_genes_info(self, genes_list, ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hugo_lncrna_dict):
+        self.gene_info = pd.DataFrame(index=genes_list)
+        self.gene_info.index.name = "ensembl id"
+
+        self.gene_info["Gene Name"] = self.gene_info.index.map(ensembl_id_to_gene_name)
+        print("nonnull gene name", self.gene_info["Gene Name"].notnull().sum())
+        self.gene_info["Gene Name"].fillna({"ensembl id": hugo_lncrna_dict}, inplace=True)
+        print("nonnull gene name", self.gene_info["Gene Name"].notnull().sum())
+
+        self.gene_info["transcript id"] = self.gene_info.index.map(ensembl_id_to_transcript_id)
+
+        print(self.gene_info.head(6))
+
     def process_lncRNome_gene_info(self, lncRNome_folder_path):
         self.lnRNome_genes_info_path = os.path.join(lncRNome_folder_path, "general_information.txt")
 
         self.lnRNome_genes_info = pd.read_table(self.lnRNome_genes_info_path, header=0, usecols=["Gene Name", "Transcript Name", "Transcript Type", "Location", "Strand"])
 
 
+    def process_NONCODE_func_annotation(self, noncode_folder_path):
+        self.noncode_source_path = os.path.join(noncode_folder_path, "NONCODEv5_source")
+        self.noncode_transcript2gene_path = os.path.join(noncode_folder_path, "NONCODEv5_Transcript2Gene")
+        self.noncode_func_path = os.path.join(noncode_folder_path, "NONCODEv5_human.func")
+
+        # Import tables
+        source_df = pd.read_table(self.noncode_source_path, header=None)
+        source_df.columns = ["NONCODE Transcript ID", "name type", "Gene ID"]
+
+        transcript2gene_df = pd.read_table(self.noncode_transcript2gene_path, header=None)
+        transcript2gene_df.columns = ["NONCODE Transcript ID", "NONCODE Gene ID"]
+
+        self.noncode_func_df = pd.read_table(self.noncode_func_path, header=None)
+        self.noncode_func_df.columns = ["NONCODE Gene ID", "GO terms"]
+        self.noncode_func_df.index = self.noncode_func_df["NONCODE Gene ID"]
+
+        # Convert to NONCODE transcript ID for the functional annotattion data
+        self.noncode_func_df["NONCODE Transcript ID"] = self.noncode_func_df.index.map(pd.Series(transcript2gene_df['NONCODE Transcript ID'].values, index=transcript2gene_df['NONCODE Gene ID']).to_dict())
+
+        # Convert NONCODE transcript ID to gene names
+        source_df = source_df[source_df["name type"] == "NAME"]
+
+        self.noncode_func_df["Gene Name"] = self.noncode_func_df["NONCODE Transcript ID"].map(pd.Series(source_df['Gene ID'].values,index=source_df['NONCODE Transcript ID']).to_dict())
+
+
     def get_genes_info(self):
-        gene_info = pd.DataFrame(index=self.get_genes_list())
+        self.gene_info = pd.merge(self.gene_info, self.HGNC_lncrna_info.groupby("symbol").first(), how="left", left_on="Gene Name", right_on="symbol")
 
-        gene_info.index.name = "symbol"
-        gene_info = gene_info.join(self.HGNC_lncrna_info.groupby("symbol").first(), on="symbol", how="left")
+        # self.gene_info = self.gene_info.join(self.HGNC_lncrna_info.groupby("symbol").first(), on="symbol", how="left")
 
-        gene_info.index.name = "Gene Name"
-        gene_info = gene_info.join(self.lnRNome_genes_info.groupby("Gene Name").first(), on="Gene Name", how="left")
+        self.gene_info = pd.merge(self.gene_info, self.lnRNome_genes_info.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
+        # self.gene_info.index.name = "Gene Name"
+        # self.gene_info = self.gene_info.join(self.lnRNome_genes_info.groupby("Gene Name").first(), on="Gene Name", how="left")
 
-        return gene_info
+        self.gene_info = pd.merge(self.gene_info, self.noncode_func_df.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
+        # self.gene_info.index = self.gene_info["Gene Name"]
+        # self.gene_info = self.gene_info.join(self.noncode_fa.groupby("Gene ID").first(), on="Gene ID", how="left")
+
+        return self.gene_info
 
 
 
