@@ -1,9 +1,11 @@
 import os
 
+import networkx as nx
 import numpy as np
 import pandas as pd
-import networkx as nx
+
 from TCGAMultiOmics.utils import GTF
+
 
 class GenomicData:
     def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA",
@@ -130,7 +132,7 @@ class LncRNAExpression(GenomicData):
         # Preprocess genes info
         self.preprocess_genes_info(lncrna_exp['Gene_ID'],     ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hgnc_lncrna_dict)
 
-        lncrna_exp.replace({"Gene_ID":     ensembl_id_to_gene_name}, inplace=True)
+        lncrna_exp.replace({"Gene_ID": ensembl_id_to_gene_name}, inplace=True)
         lncrna_exp.replace({"Gene_ID": hgnc_lncrna_dict}, inplace=True)
 
         # Drop NA gene rows
@@ -197,7 +199,7 @@ class LncRNAExpression(GenomicData):
 
     def preprocess_genes_info(self, genes_list, ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hugo_lncrna_dict):
         self.gene_info = pd.DataFrame(index=genes_list)
-        self.gene_info.index.name = "ensembl id"
+        self.gene_info.index.name = "genes list"
 
         self.gene_info["Gene Name"] = self.gene_info.index.map(ensembl_id_to_gene_name)
         print("nonnull gene name", self.gene_info["Gene Name"].notnull().sum())
@@ -206,7 +208,6 @@ class LncRNAExpression(GenomicData):
 
         self.gene_info["transcript id"] = self.gene_info.index.map(ensembl_id_to_transcript_id)
 
-        print(self.gene_info.head(6))
 
     def process_lncRNome_gene_info(self, lncRNome_folder_path):
         self.lnRNome_genes_info_path = os.path.join(lncRNome_folder_path, "general_information.txt")
@@ -240,17 +241,25 @@ class LncRNAExpression(GenomicData):
 
 
     def get_genes_info(self):
-        self.gene_info = pd.merge(self.gene_info, self.HGNC_lncrna_info.groupby("symbol").first(), how="left", left_on="Gene Name", right_on="symbol")
+        self.gene_info.index = self.gene_info["genes list"]
 
-        # self.gene_info = self.gene_info.join(self.HGNC_lncrna_info.groupby("symbol").first(), on="symbol", how="left")
+        if ~hasattr(self, "genes_info_processed") or self.genes_info_processed == False:
+            # self.gene_info = pd.merge(self.gene_info, self.HGNC_lncrna_info.groupby("symbol").first(), how="left", left_on="Gene Name", right_on="symbol")
+            self.gene_info.index.name = "symbol"
+            self.gene_info = self.gene_info.join(self.HGNC_lncrna_info.groupby("symbol").first(), on="symbol",
+                                                 how="left")
 
-        self.gene_info = pd.merge(self.gene_info, self.lnRNome_genes_info.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
-        # self.gene_info.index.name = "Gene Name"
-        # self.gene_info = self.gene_info.join(self.lnRNome_genes_info.groupby("Gene Name").first(), on="Gene Name", how="left")
+            # self.gene_info = pd.merge(self.gene_info, self.lnRNome_genes_info.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
+            self.gene_info.index.name = "Gene Name"
+            self.gene_info = self.gene_info.join(self.lnRNome_genes_info.groupby("Gene Name").first(), on="Gene Name",
+                                                 how="left")
 
-        self.gene_info = pd.merge(self.gene_info, self.noncode_func_df.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
-        # self.gene_info.index = self.gene_info["Gene Name"]
-        # self.gene_info = self.gene_info.join(self.noncode_fa.groupby("Gene ID").first(), on="Gene ID", how="left")
+            # self.gene_info = pd.merge(self.gene_info, self.noncode_func_df.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
+            self.gene_info.index = self.gene_info["Gene Name"]
+            self.gene_info = self.gene_info.join(self.noncode_func_df.groupby("Gene Name").first(), on="Gene Name",
+                                                 how="left")
+
+            self.genes_info_processed = True
 
         return self.gene_info
 
