@@ -187,11 +187,20 @@ class LncRNAExpression(GenomicData):
     def get_lncRNome_miRNA_binding_sites_edgelist(self):
         return self.lncRNome_miRNA_binding_sites_network.edges()
 
+    def process_lncRNome_gene_info(self, lncRNome_folder_path):
+        self.lnRNome_genes_info_path = os.path.join(lncRNome_folder_path, "general_information.txt")
+
+        self.lnRNome_genes_info = pd.read_table(self.lnRNome_genes_info_path, header=0, usecols=["Gene Name", "Transcript Name", "Transcript Type", "Location", "Strand"])
+
+
     def get_genes_info(self):
         gene_info = pd.DataFrame(index=self.get_genes_list())
 
         gene_info.index.name = "symbol"
         gene_info = gene_info.join(self.HGNC_lncrna_info.groupby("symbol").first(), on="symbol", how="left")
+
+        gene_info.index.name = "Gene Name"
+        gene_info = gene_info.join(self.lnRNome_genes_info.groupby("Gene Name").first(), on="Gene Name", how="left")
 
         return gene_info
 
