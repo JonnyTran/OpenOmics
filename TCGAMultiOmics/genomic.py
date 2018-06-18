@@ -320,9 +320,6 @@ class MiRNAExpression(GenomicData):
         targetScan_df['MiRBase ID'] = targetScan_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
         targetScan_df.drop_duplicates(inplace=True)
 
-        # Filter miRNA-target pairs to only miRNA's included in miRNA expression data, same for gene targets
-        self.targetScan_df = targetScan_df[
-            targetScan_df['MiRBase ID'].isin(mirna_list) & targetScan_df['Gene Symbol'].isin(gene_symbols)]
 
     def process_mirna_target_interactions_context_score(self, mirna_list, gene_symbols):
         # Load data frame from file
@@ -342,11 +339,6 @@ class MiRNAExpression(GenomicData):
         targetScan_context_df['MiRBase ID'] = targetScan_context_df['MiRBase ID'].str.lower()
         targetScan_context_df['MiRBase ID'] = targetScan_context_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
         targetScan_context_df.drop_duplicates(inplace=True)
-
-        # Filter miRNA-target pairs to only miRNA's included in miRNA expression data, same for gene targets
-        self.targetScan_context_df = targetScan_context_df[
-            targetScan_context_df['MiRBase ID'].isin(mirna_list) & targetScan_context_df['Gene Symbol'].isin(
-                gene_symbols)]
 
 
     def get_miRNA_target_interaction(self):
@@ -370,6 +362,7 @@ class MiRNAExpression(GenomicData):
                                                       source="MIR", target="GE", edge_attr="weight",
                                                       create_using=nx.DiGraph())
         return mir_target_network.edges(data=True)
+
 
     def get_genes_info(self):
         gene_info = pd.DataFrame(index=self.get_genes_list())
