@@ -1,8 +1,10 @@
-import pandas as pd
 import os
 
+import pandas as pd
+
 from TCGAMultiOmics.clinical import ClinicalData
-from TCGAMultiOmics.genomic import GeneExpression, SomaticMutation, DNAMethylation, MiRNAExpression, CopyNumberVariation, \
+from TCGAMultiOmics.genomic import GeneExpression, SomaticMutation, DNAMethylation, MiRNAExpression, \
+    CopyNumberVariation, \
     ProteinExpression, LncRNAExpression
 
 
@@ -95,9 +97,7 @@ class MultiOmicsData:
             self.data["MIR"] = self.MIR.data
 
             try:
-                self.MIR.process_target_scan(mirna_list=self.MIR.get_genes_list(),
-                                             gene_symbols=self.GE.get_genes_list(),
-                                             targetScan_folder_path=os.path.join(external_data_path, "TargetScan"))
+                self.MIR.process_target_scan(targetScan_folder_path=os.path.join(external_data_path, "TargetScan"))
             except FileNotFoundError as e:
                 print(e)
                 print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data folder in the directory", external_data_path)

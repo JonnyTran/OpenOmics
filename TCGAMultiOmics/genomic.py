@@ -319,17 +319,16 @@ class MiRNAExpression(GenomicData):
         file_path = os.path.join(folder_path, "miRNAExp__RPM.txt")
         super().__init__(cancer_type, file_path)
 
-
-    def process_target_scan(self, mirna_list, gene_symbols, targetScan_folder_path):
+    def process_target_scan(self, targetScan_folder_path):
         self.targetScan_miR_family_info_path = os.path.join(targetScan_folder_path,"miR_Family_Info.txt")
         self.targetScan_predicted_targets_path = os.path.join(targetScan_folder_path, "Predicted_Targets_Info.default_predictions.txt")
         self.targetScan_predicted_targets_context_score_path = os.path.join(targetScan_folder_path, "Predicted_Targets_Context_Scores.default_predictions.txt")
 
-        self.process_targetscan_mirna_family(mirna_list)
-        self.process_mirna_target_interactions(mirna_list, gene_symbols)
-        self.process_mirna_target_interactions_context_score(mirna_list, gene_symbols)
+        self.process_targetscan_mirna_family()
+        self.process_mirna_target_interactions()
+        self.process_mirna_target_interactions_context_score()
 
-    def process_targetscan_mirna_family(self, mirna_list, human_only=True, incremental_group_numbering=False):
+    def process_targetscan_mirna_family(self, human_only=True, incremental_group_numbering=False):
         try:
             targetScan_family_df = pd.read_table(self.targetScan_miR_family_info_path, delimiter='\t')
         except Exception:
@@ -350,8 +349,7 @@ class MiRNAExpression(GenomicData):
         self.targetScan_family_df = targetScan_family_df
         self.targetScan_family_df.index = self.targetScan_family_df['MiRBase ID']
 
-
-    def process_mirna_target_interactions(self, mirna_list, gene_symbols):
+    def process_mirna_target_interactions(self):
         # Load data frame from file
         try:
             targetScan_df = pd.read_table(self.targetScan_predicted_targets_path, delimiter='\t')
@@ -376,9 +374,9 @@ class MiRNAExpression(GenomicData):
         targetScan_df['MiRBase ID'] = targetScan_df['MiRBase ID'].str.lower()
         targetScan_df['MiRBase ID'] = targetScan_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
         targetScan_df.drop_duplicates(inplace=True)
+        self.targetScan_df = targetScan_df
 
-
-    def process_mirna_target_interactions_context_score(self, mirna_list, gene_symbols):
+    def process_mirna_target_interactions_context_score(self):
         # Load data frame from file
         try:
             targetScan_context_df = pd.read_table(self.targetScan_predicted_targets_context_score_path, delimiter='\t')
