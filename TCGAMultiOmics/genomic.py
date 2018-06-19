@@ -419,6 +419,7 @@ class MiRNAExpression(GenomicData):
         gene_info = pd.DataFrame(index=self.get_genes_list())
 
         gene_info.index.name = "MiRBase ID"
+        print(self.targetScan_family_df.columns)
         gene_info = gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID",how="left")
 
         return gene_info
