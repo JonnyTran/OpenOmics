@@ -396,17 +396,13 @@ class MiRNAExpression(GenomicData):
         targetScan_context_df['MiRBase ID'] = targetScan_context_df['MiRBase ID'].str.lower()
         targetScan_context_df['MiRBase ID'] = targetScan_context_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
         targetScan_context_df.drop_duplicates(inplace=True)
+        self.targetScan_context_df = targetScan_context_df
 
 
     def get_miRNA_target_interaction(self):
         if self.targetScan_df is None:
             raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
         return self.targetScan_df
-
-    def get_miRNA_target_interaction_context(self):
-        if self.targetScan_context_df is None:
-            raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
-        return self.targetScan_context_df
 
     def get_miRNA_target_interaction_edgelist(self):
         mirna_target_interactions = self.targetScan_context_df.copy()
