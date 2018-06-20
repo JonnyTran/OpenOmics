@@ -235,9 +235,24 @@ class LncRNAExpression(GenomicData):
         self.noncode_func_df["NONCODE Transcript ID"] = self.noncode_func_df.index.map(pd.Series(transcript2gene_df['NONCODE Transcript ID'].values, index=transcript2gene_df['NONCODE Gene ID']).to_dict())
 
         # Convert NONCODE transcript ID to gene names
-        source_df = source_df[source_df["name type"] == "NAME"]
+        source_gene_names_df = source_df[source_df["name type"] == "NAME"].copy()
 
-        self.noncode_func_df["Gene Name"] = self.noncode_func_df["NONCODE Transcript ID"].map(pd.Series(source_df['Gene ID'].values,index=source_df['NONCODE Transcript ID']).to_dict())
+        self.noncode_func_df["Gene Name"] = self.noncode_func_df["NONCODE Transcript ID"].map(
+            pd.Series(source_gene_names_df['Gene ID'].values,
+                      index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
+
+        # Convert NONCODE transcript ID to gencode transcript ID
+        source_gene_names_df = source_df[source_df["name type"] == "gencode"].copy()
+        self.noncode_func_df["gencode transcript id"] = self.noncode_func_df["NONCODE Transcript ID"].map(
+            pd.Series(source_gene_names_df['Gene ID'].values,
+                      index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
+
+        # Convert NONCODE transcript ID to ensembl transcript ID
+        source_gene_names_df = source_df[source_df["name type"] == "ensembl"].copy()
+        self.noncode_func_df["ensembl transcript id"] = self.noncode_func_df["NONCODE Transcript ID"].map(
+            pd.Series(source_gene_names_df['Gene ID'].values,
+                      index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
+
 
 
     def get_genes_info(self):
