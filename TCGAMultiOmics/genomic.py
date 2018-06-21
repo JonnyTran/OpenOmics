@@ -256,6 +256,7 @@ class LncRNAExpression(GenomicData):
 
 
     def get_genes_info(self):
+        # Only process this once
         if ~hasattr(self, "genes_info_processed") or self.genes_info_processed == False:
             # self.gene_info = pd.merge(self.gene_info, self.HGNC_lncrna_info.groupby("symbol").first(), how="left", left_on="Gene Name", right_on="symbol")
             self.gene_info.index.name = "symbol"
