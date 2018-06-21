@@ -3,6 +3,7 @@ import os
 import networkx as nx
 import numpy as np
 import pandas as pd
+from Bio import SeqIO
 
 from TCGAMultiOmics.utils import GTF
 
@@ -241,6 +242,8 @@ class LncRNAExpression(GenomicData):
             pd.Series(source_gene_names_df['Gene ID'].values,
                       index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
 
+        # TODO Convert using lncpedia ID
+
         # # Convert NONCODE transcript ID to gencode transcript ID
         # source_gene_names_df = source_df[source_df["name type"] == "gencode"].copy()
         # self.noncode_func_df["gencode transcript id"] = self.noncode_func_df["NONCODE Transcript ID"].map(
@@ -253,7 +256,15 @@ class LncRNAExpression(GenomicData):
         #     pd.Series(source_gene_names_df['Gene ID'].values,
         #               index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
 
-
+    def process_GENCODE_lncRNA_sequence_data(self, gencode_folder_path):
+        lncname_keys = []
+        lncname_values = []
+        for record in SeqIO.parse(
+                "/home/jonny_admin/PycharmProjects/Bioinformatics_ExternalData/GENCODE/gencode.v28.lncRNA_transcripts.fa",
+                "fasta"):
+            pass  # TODO
+        #     lncname_keys.append(record.id.split("|")[5])
+        #     lncname_values.append(record.seq)
 
     def get_genes_info(self):
         # Only process this once
