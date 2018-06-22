@@ -103,7 +103,10 @@ class MultiOmicsData:
                 print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data folder in the directory", external_data_path)
 
         if ("LNC" in modalities):
-            self.LNC = LncRNAExpression(cancer_type, os.path.join(tcga_data_path, "lncrna/"), HGNC_lncRNA_names_file_path=os.path.join(external_data_path, "HUGO_Gene_names", "RNA_long_non-coding.txt"),GENCODE_LncRNA_gtf_file_path=os.path.join(external_data_path, "GENCODE", "gencode.v28.long_noncoding_RNAs.gtf"))
+            self.LNC = LncRNAExpression(cancer_type, os.path.join(tcga_data_path, "lncrna/"),
+                                        HGNC_lncRNA_names_file_path=os.path.join(external_data_path, "HUGO_Gene_names",
+                                                                                 "RNA_long_non-coding.txt"),
+                                        GENCODE_folder_path=os.path.join(external_data_path, "GENCODE"))
 
             self.data["LNC"] = self.LNC.data
 

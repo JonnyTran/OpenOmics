@@ -14,4 +14,4 @@ luad_data = MultiOmicsData(cancer_type="LUAD", tcga_data_path=folder_path, exter
 # print(len(luad_data.LNC.get_genes_list()))
 # print(luad_data.LNC.get_genes_list()[1:10])
 # print(luad_data.MIR.get_genes_info())
-print(luad_data.MIR.get_genes_info())
+print(luad_data.LNC.get_genes_info().head(5))

@@ -95,14 +95,15 @@ class GenomicData:
 
 
 class LncRNAExpression(GenomicData):
-    def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_file_path, GENCODE_LncRNA_gtf_file_path):
+    def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path):
         """
         :param folder_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
         :param lncrna_names_file_path: Path to the HGNC_RNA_long_non-coding.txt file to map ensembl gene id to lncRNA names
         """
         file_path = os.path.join(folder_path, "TCGA-rnaexpr.tsv")
         self.HGNC_lncRNA_names_path = HGNC_lncRNA_names_file_path
-        self.GENCODE_LncRNA_gtf_file_path = GENCODE_LncRNA_gtf_file_path
+        self.GENCODE_LncRNA_gtf_file_path = os.path.join(GENCODE_folder_path, "gencode.v28.long_noncoding_RNAs.gtf")
+        self.GENCODE_LncRNA_sequence_file_path = os.path.join(GENCODE_folder_path, "gencode.v28.lncRNA_transcripts.fa")
         super().__init__(cancer_type, file_path)
 
 
@@ -257,15 +258,12 @@ class LncRNAExpression(GenomicData):
         #     pd.Series(source_gene_names_df['Gene ID'].values,
         #               index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
 
-    def process_GENCODE_lncRNA_sequence_data(self, gencode_folder_path):
-        lncname_keys = []
-        lncname_values = []
-        for record in SeqIO.parse(
-                "/home/jonny_admin/PycharmProjects/Bioinformatics_ExternalData/GENCODE/gencode.v28.lncRNA_transcripts.fa",
-                "fasta"):
-            pass  # TODO
-        #     lncname_keys.append(record.id.split("|")[5])
-        #     lncname_values.append(record.seq)
+    def process_GENCODE_lncRNA_sequence_data(self):
+        lnc_seq = {}
+        for record in SeqIO.parse(self.GENCODE_LncRNA_sequence_file_path, "fasta"):
+            lnc_seq[record.id.split("|")[5]] = record.seq
+
+        return lnc_seq
 
     def get_genes_info(self):
         # Only process this once
@@ -284,6 +282,9 @@ class LncRNAExpression(GenomicData):
             self.gene_info.index = self.gene_info["Gene Name"]
             self.gene_info = self.gene_info.join(self.noncode_func_df.groupby("Gene Name").first(), on="Gene Name",
                                                  how="left")
+
+            self.gene_info["Transcript sequence"] = self.gene_info["Gene Name"].map(
+                self.process_GENCODE_lncRNA_sequence_data())
 
             self.gene_info.index = self.get_genes_list()
             self.genes_info_processed = True
