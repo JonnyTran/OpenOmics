@@ -208,6 +208,7 @@ class LncRNAExpression(GenomicData):
         self.gene_info["Transcript id"] = self.gene_info.index.map(ensembl_id_to_transcript_id)
 
         self.gene_info.index = genes_list
+        self.genes_info_processed = False
 
 
     def process_lncRNome_gene_info(self, lncRNome_folder_path):
@@ -268,7 +269,7 @@ class LncRNAExpression(GenomicData):
 
     def get_genes_info(self):
         # Only process this once
-        if ~hasattr(self, "genes_info_processed") or self.genes_info_processed == False:
+        if self.genes_info_processed == False:
             # self.gene_info = pd.merge(self.gene_info, self.HGNC_lncrna_info.groupby("symbol").first(), how="left", left_on="Gene Name", right_on="symbol")
             self.gene_info.index.name = "symbol"
             self.gene_info = self.gene_info.join(self.HGNC_lncrna_info.groupby("symbol").first(), on="symbol",
@@ -446,7 +447,6 @@ class MiRNAExpression(GenomicData):
         gene_info = pd.DataFrame(index=self.get_genes_list())
 
         gene_info.index.name = "MiRBase ID"
-        print(self.targetScan_family_df.columns)
         gene_info = gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID",how="left")
 
         return gene_info

@@ -1,10 +1,9 @@
-import io
+import os
 import os
 import sys
 from shutil import rmtree
 
-from setuptools import find_packages, setup, Command
-
+from setuptools import setup, Command
 
 # Package meta-data.
 NAME = 'TCGAMultiOmics'
@@ -13,10 +12,10 @@ URL = 'https://github.com/JonnyTran/TCGAMultiOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Nhat Tran'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.1'
+VERSION = '0.2'
 
 REQUIRED = [
-    'numpy', 'pandas', 'networkx', 'dask'
+    'numpy', 'pandas', 'networkx', 'dask', 'biopython'
 ]
 
 here = os.path.abspath(os.path.dirname(__file__))
