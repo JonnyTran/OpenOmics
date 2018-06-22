@@ -261,7 +261,7 @@ class LncRNAExpression(GenomicData):
     def process_GENCODE_lncRNA_sequence_data(self):
         lnc_seq = {}
         for record in SeqIO.parse(self.GENCODE_LncRNA_sequence_file_path, "fasta"):
-            lnc_seq[record.id.split("|")[5]] = record.seq
+            lnc_seq[record.id.split("|")[5]] = str(record.seq)
 
         return lnc_seq
 
@@ -438,9 +438,8 @@ class MiRNAExpression(GenomicData):
         mirna_target_interactions.rename(columns={"weighted context++ score percentile": "weight",
                                                   "MiRBase ID": "MIR",
                                                   "Gene Symbol": "GE"}, inplace=True)
-        mir_target_network = nx.from_pandas_dataframe(mirna_target_interactions,
-                                                      source="MIR", target="GE", edge_attr="weight",
-                                                      create_using=nx.DiGraph())
+        mir_target_network = nx.from_pandas_dataframe(mirna_target_interactions, source="MIR", target="GE",
+                                                      edge_attr="weight", create_using=nx.DiGraph())
         return mir_target_network.edges(data=True)
 
 
