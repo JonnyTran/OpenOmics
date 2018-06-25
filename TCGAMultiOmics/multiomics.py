@@ -79,13 +79,15 @@ class MultiOmicsData:
 
                 self.GE.process_protein_coding_genes_info(os.path.join(external_data_path, "HUGO_Gene_names", "gene_with_protein_product.txt"))
 
+                self.GE.process_GENCODE_transcript_data(gencode_folder_path=os.path.join(external_data_path, "GENCODE"))
+
             except FileNotFoundError as e:
                 print(e)
                 print("Could not run GeneExpression.process_gene_info() because of missing TargetScan/Gene_info.txt data in the directory", external_data_path)
 
             try:
-                self.GE.process_RegNet_gene_regulatory_network(grn_file_path=os.path.join(external_data_path, "RegNetwork",
-                                                                               "human.source"))
+                self.GE.process_RegNet_gene_regulatory_network(
+                    grn_file_path=os.path.join(external_data_path, "RegNetwork", "human.source"))
             except FileNotFoundError as e:
                 print(e)
 

@@ -258,7 +258,7 @@ class LncRNAExpression(GenomicData):
         #     pd.Series(source_gene_names_df['Gene ID'].values,
         #               index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
 
-    def process_GENCODE_lncRNA_sequence_data(self):
+    def get_GENCODE_lncRNA_sequence_data(self):
         lnc_seq = {}
         for record in SeqIO.parse(self.GENCODE_LncRNA_sequence_file_path, "fasta"):
             lnc_seq[record.id.split("|")[5]] = str(record.seq)
@@ -284,7 +284,7 @@ class LncRNAExpression(GenomicData):
                                                  how="left")
 
             self.gene_info["Transcript sequence"] = self.gene_info["Gene Name"].map(
-                self.process_GENCODE_lncRNA_sequence_data())
+                self.get_GENCODE_lncRNA_sequence_data())
 
             self.gene_info.index = self.get_genes_list()
             self.genes_info_processed = True
@@ -296,6 +296,9 @@ class GeneExpression(GenomicData):
     def __init__(self, cancer_type, folder_path):
         file_path = os.path.join(folder_path, "geneExp.txt")
         super().__init__(cancer_type, file_path)
+
+    def process_GENCODE_transcript_data(self, gencode_folder_path):
+        self.GENCODE_transcript_sequence_file_path = os.path.join(gencode_folder_path, "gencode.v28.transcripts.fa")
 
     def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
         self.targetScan_gene_info_path = targetScan_gene_info_path
@@ -322,6 +325,14 @@ class GeneExpression(GenomicData):
 
         self.regnet_grn_network = nx.from_pandas_dataframe(grn_df, source=0, target=2, create_using=nx.DiGraph())
 
+    def get_GENCODE_transcript_data(self):
+        transcript_seq = {}
+        gene_type = {}
+        for record in SeqIO.parse(self.GENCODE_transcript_sequence_file_path, "fasta"):
+            transcript_seq[record.id.split("|")[5]] = str(record.seq)
+            gene_type[record.id.split("|")[5]] = record.id.split("|")[7]
+
+        return transcript_seq, gene_type
 
     def get_RegNet_GRN_edgelist(self):
         return self.regnet_grn_network.edges()
@@ -334,6 +345,10 @@ class GeneExpression(GenomicData):
 
         gene_info.index.name = "symbol"
         gene_info = gene_info.join(self.hugo_protein_genes_info.groupby("symbol").first(), on="symbol", how="left")
+
+        transcript_seq, gene_type = self.get_GENCODE_transcript_data()
+        gene_info["locus_type"] = gene_info.index.map(gene_type)
+        gene_info["Transcript sequence"] = gene_info.index.map(transcript_seq)
         return gene_info
 
 
