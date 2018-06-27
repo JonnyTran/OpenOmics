@@ -100,6 +100,10 @@ class MultiOmicsData:
 
             try:
                 self.MIR.process_target_scan(targetScan_folder_path=os.path.join(external_data_path, "TargetScan"))
+
+                self.MIR.process_mirnadisease_associations(
+                    HMDD_miRNAdisease_path=os.path.join(external_data_path, "lncrnadisease"))
+
             except FileNotFoundError as e:
                 print(e)
                 print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data folder in the directory", external_data_path)
@@ -117,6 +121,8 @@ class MultiOmicsData:
                 self.LNC.process_lncRNome_gene_info(os.path.join(external_data_path, "lncRNome"))
                 self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
                 self.LNC.process_NONCODE_func_annotation(os.path.join(external_data_path, "NONCODE"))
+                self.LNC.process_lncrnadisease_associations(
+                    lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
             except FileNotFoundError as e:
                 print(e)
 

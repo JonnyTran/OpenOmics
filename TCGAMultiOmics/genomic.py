@@ -104,7 +104,7 @@ class LncRNAExpression(GenomicData):
         self.HGNC_lncRNA_names_path = HGNC_lncRNA_names_file_path
         self.GENCODE_LncRNA_gtf_file_path = os.path.join(GENCODE_folder_path, "gencode.v28.long_noncoding_RNAs.gtf")
         self.GENCODE_LncRNA_sequence_file_path = os.path.join(GENCODE_folder_path, "gencode.v28.lncRNA_transcripts.fa")
-        super().__init__(cancer_type, file_path)
+        super().__init__(cancer_type, file_path, log2_transform=False)
 
 
     def preprocess_expression_table(self, df, columns):
@@ -217,6 +217,17 @@ class LncRNAExpression(GenomicData):
 
         self.lnRNome_genes_info = pd.read_table(self.lnRNome_genes_info_path, header=0, usecols=["Gene Name", "Transcript Name", "Transcript Type", "Location", "Strand"])
 
+    def process_lncrnadisease_associations(self, lncrnadisease_folder_path):
+        self.lncrnadisease_folder_path = lncrnadisease_folder_path
+        self.lncrnadisease_associations_path = os.path.join(lncrnadisease_folder_path,
+                                                            "lncRNA-disease_association_v2017.txt")
+
+        self.lncrnadisease_info = pd.read_table(self.lncrnadisease_associations_path, header=None, sep="\t")
+        self.lncrnadisease_info.columns = ["LncRNA name", "Disease name", "Dysfunction type", "Description", "Chr",
+                                           "Start", "End", "Strand", "Species", "Alias", "Sequence", "Reference"]
+        self.lncrnadisease_info = self.lncrnadisease_info[self.lncrnadisease_info["Species"] == "Human"]
+
+
 
     def process_NONCODE_func_annotation(self, noncode_folder_path):
         self.noncode_source_path = os.path.join(noncode_folder_path, "NONCODEv5_source")
@@ -243,6 +254,7 @@ class LncRNAExpression(GenomicData):
         self.noncode_func_df["Gene Name"] = self.noncode_func_df["NONCODE Transcript ID"].map(
             pd.Series(source_gene_names_df['Gene ID'].values,
                       index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
+
 
         # TODO Convert using lncpedia ID
 
@@ -283,19 +295,25 @@ class LncRNAExpression(GenomicData):
             self.gene_info = self.gene_info.join(self.noncode_func_df.groupby("Gene Name").first(), on="Gene Name",
                                                  how="left")
 
+            # Merge transcript sequence data
             self.gene_info["Transcript sequence"] = self.gene_info["Gene Name"].map(
                 self.get_GENCODE_lncRNA_sequence_data())
 
+            # Merge lncrnadisease associations database
+            self.gene_info["Disease association"] = self.gene_info["Gene Name"].map(
+                self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
+
             self.gene_info.index = self.get_genes_list()
             self.genes_info_processed = True
+
         return self.gene_info
 
 
 
 class GeneExpression(GenomicData):
-    def __init__(self, cancer_type, folder_path):
+    def __init__(self, cancer_type, folder_path, log2_transform=True):
         file_path = os.path.join(folder_path, "geneExp.txt")
-        super().__init__(cancer_type, file_path)
+        super().__init__(cancer_type, file_path, log2_transform=log2_transform)
 
     def process_GENCODE_transcript_data(self, gencode_folder_path):
         self.GENCODE_transcript_sequence_file_path = os.path.join(gencode_folder_path, "gencode.v28.transcripts.fa")
@@ -327,12 +345,16 @@ class GeneExpression(GenomicData):
 
     def get_GENCODE_transcript_data(self):
         transcript_seq = {}
-        gene_type = {}
+        locus_type_dict = {}
         for record in SeqIO.parse(self.GENCODE_transcript_sequence_file_path, "fasta"):
-            transcript_seq[record.id.split("|")[5]] = str(record.seq)
-            gene_type[record.id.split("|")[5]] = record.id.split("|")[7]
+            gene_name = record.id.split("|")[5]
+            transcript_seq[gene_name] = str(record.seq)
+            if ~(gene_name in locus_type_dict):
+                locus_type_dict[gene_name] = record.id.split("|")[7]
+            else:
+                locus_type_dict[gene_name] = locus_type_dict[gene_name] + "|" + record.id.split("|")[7]
 
-        return transcript_seq, gene_type
+        return transcript_seq, locus_type_dict
 
     def get_RegNet_GRN_edgelist(self):
         return self.regnet_grn_network.edges()
@@ -359,9 +381,9 @@ class SomaticMutation(GenomicData):
 
 
 class MiRNAExpression(GenomicData):
-    def __init__(self, cancer_type, folder_path):
+    def __init__(self, cancer_type, folder_path, log2_transform=True):
         file_path = os.path.join(folder_path, "miRNAExp__RPM.txt")
-        super().__init__(cancer_type, file_path)
+        super().__init__(cancer_type, file_path, log2_transform=log2_transform)
 
     def process_target_scan(self, targetScan_folder_path):
         self.targetScan_miR_family_info_path = os.path.join(targetScan_folder_path,"miR_Family_Info.txt")
@@ -440,6 +462,12 @@ class MiRNAExpression(GenomicData):
         targetScan_context_df.drop_duplicates(inplace=True)
         self.targetScan_context_df = targetScan_context_df
 
+    def process_mirnadisease_associations(self, HMDD_miRNAdisease_path):
+        self.HMDD_miRNAdisease_path = HMDD_miRNAdisease_path
+        self.mirnadisease_association_path = os.path.join(HMDD_miRNAdisease_path, "miRNA_disease.txt")
+
+        self.mirnadisease = pd.read_table(self.mirnadisease_association_path, header=None, sep="\t")
+        self.mirnadisease.columns = ["index", "miRNA name", "Disease name", "Reference", "Description"]
 
     def get_miRNA_target_interaction(self):
         if self.targetScan_df is None:
@@ -464,6 +492,9 @@ class MiRNAExpression(GenomicData):
         gene_info.index.name = "MiRBase ID"
         gene_info = gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID",how="left")
 
+        gene_info["Disease association"] = gene_info.first_valid_index.map(
+            self.mirnadisease.groupby("miRNA name")["Disease name"].apply('|'.join).to_dict())
+
         return gene_info
 
 
@@ -480,9 +511,9 @@ class DNAMethylation(GenomicData):
 
 
 class ProteinExpression(GenomicData):
-    def __init__(self, cancer_type, folder_path):
+    def __init__(self, cancer_type, folder_path, log2_transform=True):
         file_path = os.path.join(folder_path, "protein_RPPA.txt")
-        super().__init__(cancer_type, file_path)
+        super().__init__(cancer_type, file_path, log2_transform=log2_transform)
 
     def process_HPRD_PPI_network(self, ppi_data_file_path):
         HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
