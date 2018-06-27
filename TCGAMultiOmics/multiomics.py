@@ -102,7 +102,7 @@ class MultiOmicsData:
                 self.MIR.process_target_scan(targetScan_folder_path=os.path.join(external_data_path, "TargetScan"))
 
                 self.MIR.process_mirnadisease_associations(
-                    HMDD_miRNAdisease_path=os.path.join(external_data_path, "lncrnadisease"))
+                    HMDD_miRNAdisease_path=os.path.join(external_data_path, "HMDD_miRNAdisease"))
 
             except FileNotFoundError as e:
                 print(e)
