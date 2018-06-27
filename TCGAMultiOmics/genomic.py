@@ -495,7 +495,7 @@ class MiRNAExpression(GenomicData):
         gene_info.index.name = "MiRBase ID"
         gene_info = gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID",how="left")
 
-        gene_info["Disease association"] = gene_info.first_valid_index.map(
+        gene_info["Disease association"] = gene_info.index.map(
             self.mirnadisease.groupby("miRNA name")["Disease name"].apply('|'.join).to_dict())
 
         return gene_info
