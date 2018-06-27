@@ -76,8 +76,9 @@ class GenomicData:
         return np.log2(x + 1)
 
     def drop_genes(self, genes_to_drop):
-        self.data.drop(genes_to_drop, axis=1)
-        self.features.remove(genes_to_drop, inplace=True)
+        self.data.drop(genes_to_drop, axis=1, inplace=True)
+        for gene in genes_to_drop:
+            self.features.remove(gene)
 
     def get_genes_list(self):
         return self.features
