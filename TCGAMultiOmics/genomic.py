@@ -371,6 +371,9 @@ class GeneExpression(GenomicData):
         transcript_seq, gene_type = self.get_GENCODE_transcript_data()
         gene_info["locus_type"] = gene_info.index.map(gene_type)
         gene_info["Transcript sequence"] = gene_info.index.map(transcript_seq)
+
+        gene_info["Disease association"] = None
+
         return gene_info
 
 
