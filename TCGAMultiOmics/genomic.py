@@ -10,7 +10,7 @@ from TCGAMultiOmics.utils import GTF
 
 class GenomicData:
     def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA",
-                 import_from_TCGA_Assembler=True, log2_transform=False):
+                 import_from_TCGA_Assembler=True, log2_transform=True):
         """
 
         :param cancer_type: TCGA cancer cohort code name
@@ -75,6 +75,9 @@ class GenomicData:
     def log2_transform(self, x):
         return np.log2(x + 1)
 
+    def drop_genes(self, genes_to_drop):
+        self.data.drop(genes_to_drop, axis=1)
+        self.features.remove(genes_to_drop, inplace=True)
 
     def get_genes_list(self):
         return self.features
@@ -356,10 +359,23 @@ class GeneExpression(GenomicData):
 
         return transcript_seq, locus_type_dict
 
+    def process_DisGeNET_gene_disease_associations(self, disgenet_folder_path):
+        self.disgenet_folder_path = disgenet_folder_path
+        self.disgenet_curated_gene_disease_file_path = os.path.join(disgenet_folder_path,
+                                                                    "curated_gene_disease_associations.tsv")
+        self.disgenet_all_gene_disease_file_path = os.path.join(disgenet_folder_path,
+                                                                "all_gene_disease_associations.tsv")
+
+        self.disgenet_curated_gene_disease = pd.read_table(self.disgenet_curated_gene_disease_file_path,
+                                                           usecols=["geneSymbol", "diseaseName", "score"])
+        self.disgenet_all_gene_disease = pd.read_table(self.disgenet_all_gene_disease_file_path,
+                                                       usecols=["geneSymbol", "diseaseName", "score"])
+
+
     def get_RegNet_GRN_edgelist(self):
         return self.regnet_grn_network.edges()
 
-    def get_genes_info(self):
+    def get_genes_info(self, curated_gene_disease=True):
         gene_info = pd.DataFrame(index=self.get_genes_list())
 
         gene_info.index.name = "Gene symbol"
@@ -372,7 +388,12 @@ class GeneExpression(GenomicData):
         gene_info["locus_type"] = gene_info.index.map(gene_type)
         gene_info["Transcript sequence"] = gene_info.index.map(transcript_seq)
 
-        gene_info["Disease association"] = None
+        if curated_gene_disease:
+            gene_info["Disease association"] = gene_info.index.map(
+                self.disgenet_curated_gene_disease.groupby("geneSymbol")["diseaseName"].apply('|'.join).to_dict())
+        else:
+            gene_info["Disease association"] = gene_info.index.map(
+                self.disgenet_all_gene_disease.groupby("geneSymbol")["diseaseName"].apply('|'.join).to_dict())
 
         return gene_info
 

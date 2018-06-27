@@ -88,6 +88,9 @@ class MultiOmicsData:
             try:
                 self.GE.process_RegNet_gene_regulatory_network(
                     grn_file_path=os.path.join(external_data_path, "RegNetwork", "human.source"))
+
+                self.GE.process_DisGeNET_gene_disease_associations(
+                    disgenet_folder_path=os.path.join(external_data_path, "DisGeNET"))
             except FileNotFoundError as e:
                 print(e)
 
