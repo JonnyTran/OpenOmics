@@ -231,6 +231,8 @@ class LncRNAExpression(GenomicData):
                                            "Start", "End", "Strand", "Species", "Alias", "Sequence", "Reference"]
         self.lncrnadisease_info = self.lncrnadisease_info[self.lncrnadisease_info["Species"] == "Human"]
 
+        self.lncrnadisease_info["Disease name"] = self.lncrnadisease_info["Disease name"].str.lower()
+
 
 
     def process_NONCODE_func_annotation(self, noncode_folder_path):
@@ -372,6 +374,11 @@ class GeneExpression(GenomicData):
         self.disgenet_all_gene_disease = pd.read_table(self.disgenet_all_gene_disease_file_path,
                                                        usecols=["geneSymbol", "diseaseName", "score"])
 
+        self.disgenet_curated_gene_disease["diseaseName"] = self.disgenet_curated_gene_disease[
+            "diseaseName"].str.lower().str.replace(", ", "|")
+        self.disgenet_all_gene_disease["diseaseName"] = self.disgenet_all_gene_disease[
+            "diseaseName"].str.lower().str.replace(", ", "|")
+
 
     def get_RegNet_GRN_edgelist(self):
         return self.regnet_grn_network.edges()
@@ -493,6 +500,8 @@ class MiRNAExpression(GenomicData):
 
         self.mirnadisease = pd.read_table(self.mirnadisease_association_path, header=None, sep="\t")
         self.mirnadisease.columns = ["index", "miRNA name", "Disease name", "Reference", "Description"]
+
+        self.mirnadisease["Disease name"] = self.mirnadisease["Disease name"].str.lower()
 
     def get_miRNA_target_interaction(self):
         if self.targetScan_df is None:
