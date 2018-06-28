@@ -374,10 +374,11 @@ class GeneExpression(GenomicData):
         self.disgenet_all_gene_disease = pd.read_table(self.disgenet_all_gene_disease_file_path,
                                                        usecols=["geneSymbol", "diseaseName", "score"])
 
-        self.disgenet_curated_gene_disease["diseaseName"] = self.disgenet_curated_gene_disease[
-            "diseaseName"].str.lower().str.replace(", ", "|")
-        self.disgenet_all_gene_disease["diseaseName"] = self.disgenet_all_gene_disease[
-            "diseaseName"].str.lower().str.replace(", ", "|")
+        # TODO Whether to treat commas separated values as multiple diseases
+        # self.disgenet_curated_gene_disease["diseaseName"] = self.disgenet_curated_gene_disease[
+        #     "diseaseName"].str.lower().str.replace(", ", "|")
+        # self.disgenet_all_gene_disease["diseaseName"] = self.disgenet_all_gene_disease[
+        #     "diseaseName"].str.lower().str.replace(", ", "|")
 
 
     def get_RegNet_GRN_edgelist(self):
