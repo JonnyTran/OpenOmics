@@ -13,7 +13,7 @@ from TCGAMultiOmics.genomic import GeneExpression, SomaticMutation, DNAMethylati
 
 class MultiOmicsData:
 
-    def __init__(self, cancer_type, tcga_data_path, external_data_path, modalities=["WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"]):
+    def __init__(self, cancer_type, tcga_data_path, external_data_path, modalities=["WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"], remove_duplicate_genes=True):
         """
         Load all multi-omics TCGA data from a given tcga_data_path with the following folder structure:
 
@@ -147,6 +147,10 @@ class MultiOmicsData:
             all_samples = all_samples.union(self.data[modality].index)
         self.clinical.build_clinical_samples(all_samples)
         self.data["SAMPLES"] = self.clinical.samples
+
+        # Remove duplicate genes between different multi-omics (e.g. between gene expression and lncRNA expressions
+        if remove_duplicate_genes:
+            self.GE.drop_genes(set(self.GE.get_genes_list()) & set(self.LNC.get_genes_list()))
 
         self.print_sample_sizes()
 
