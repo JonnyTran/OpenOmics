@@ -185,7 +185,7 @@ class LncRNAExpression(GenomicData):
         grn_df['name'] = grn_df['name'].str.lower()
         grn_df['name'] = grn_df['name'].str.replace("-3p.*|-5p.*", "")
 
-        self.starBase_miRNA_lncRNA_network = nx.from_pandas_dataframe(grn_df, source='geneName', target='name', create_using=nx.DiGraph())
+        self.starBase_miRNA_lncRNA_network = nx.from_pandas_edgelist(grn_df, source='geneName', target='name', create_using=nx.DiGraph())
 
     def get_starBase_lncRNA_miRNA_interactions_edgelist(self):
         return self.starBase_miRNA_lncRNA_network.edges()
@@ -198,7 +198,7 @@ class LncRNAExpression(GenomicData):
         df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
         df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "")
 
-        self.lncRNome_miRNA_binding_sites_network = nx.from_pandas_dataframe(df, source='Gene Name', target='Binding miRNAs', create_using=nx.DiGraph())
+        self.lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source='Gene Name', target='Binding miRNAs', create_using=nx.DiGraph())
 
     def get_lncRNome_miRNA_binding_sites_edgelist(self):
         return self.lncRNome_miRNA_binding_sites_network.edges()
@@ -347,7 +347,7 @@ class GeneExpression(GenomicData):
         # hsa-miR-* microRNA gene names will be mapped to hsa-mir-*
         grn_df[0] = grn_df[0].map(lambda x: x.lower() if ("hsa-miR" in x) else x)
 
-        self.regnet_grn_network = nx.from_pandas_dataframe(grn_df, source=0, target=2, create_using=nx.DiGraph())
+        self.regnet_grn_network = nx.from_pandas_edgelist(grn_df, source=0, target=2, create_using=nx.DiGraph())
 
     def get_GENCODE_transcript_data(self):
         transcript_seq = {}
@@ -514,7 +514,7 @@ class MiRNAExpression(GenomicData):
         mirna_target_interactions.rename(columns={"weighted context++ score percentile": "weight",
                                                   "MiRBase ID": "MIR",
                                                   "Gene Symbol": "GE"}, inplace=True)
-        mir_target_network = nx.from_pandas_dataframe(mirna_target_interactions, source="MIR", target="GE",
+        mir_target_network = nx.from_pandas_edgelist(mirna_target_interactions, source="MIR", target="GE",
                                                       edge_attr="weight", create_using=nx.DiGraph())
         return mir_target_network.edges(data=True)
 
@@ -550,7 +550,7 @@ class ProteinExpression(GenomicData):
 
     def process_HPRD_PPI_network(self, ppi_data_file_path):
         HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
-        self.HPRD_PPI_network = nx.from_pandas_dataframe(HPRD_PPI, source=0, target=3,
+        self.HPRD_PPI_network = nx.from_pandas_edgelist(HPRD_PPI, source=0, target=3,
                                           create_using=nx.DiGraph())
 
     def get_HPRD_PPI_network_edgelist(self):

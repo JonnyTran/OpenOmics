@@ -15,7 +15,7 @@ REQUIRES_PYTHON = '>=3.6.0'
 VERSION = '0.2'
 
 REQUIRED = [
-    'numpy', 'pandas', 'networkx', 'dask', 'biopython'
+    'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython'
 ]
 
 here = os.path.abspath(os.path.dirname(__file__))
