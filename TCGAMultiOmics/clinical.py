@@ -1,8 +1,15 @@
 import os
+
 import pandas as pd
 
+TUMOR_NORMAL = 'tumor_normal'
 
-# from TCGAMultiOmics.multiomics import MultiOmicsData
+CLINICAL_DRUG_FILENAME = "nationwidechildrens.org_clinical_drug.txt"
+CLINICAL_PATIENT_FILENAME = "nationwidechildrens.org_clinical_patient.txt"
+
+BCR_PATIENT_BARCODE = "bcr_patient_barcode"
+HISTOLOGIC_SUBTYPE = "histologic_subtype"
+PATHOLOGIC_STAGE = "pathologic_stage"
 
 
 class ClinicalData:
@@ -23,16 +30,16 @@ class ClinicalData:
         self.cancer_type = cancer_type
 
         # Import patients
-        self.patient = pd.read_table(os.path.join(folder_path, "nationwidechildrens.org_clinical_patient.txt"),
+        self.patient = pd.read_table(os.path.join(folder_path, "%s" % CLINICAL_PATIENT_FILENAME),
                                      sep="\t",
                                      skiprows=[1, 2],
                                      na_values=["[Not Available]", "[Not Applicable]"],
                                      usecols=ClinicalData.clinical_patient_colsname
                                      )
-        self.patient.index = self.patient["bcr_patient_barcode"]
-        self.patient.rename({"ajcc_pathologic_tumor_stage": "pathologic_stage",
-                             "histologic_diagnosis.1": "histologic_subtype"}, axis='columns', inplace=True)
-        self.patient.replace({'pathologic_stage': ClinicalData.pathologic_stage_map}, inplace=True)
+        self.patient.index = self.patient[BCR_PATIENT_BARCODE]
+        self.patient.rename({"ajcc_pathologic_tumor_stage": ("%s" % PATHOLOGIC_STAGE),
+                             "histologic_diagnosis.1": ("%s" % HISTOLOGIC_SUBTYPE)}, axis=1, inplace=True)
+        self.patient.replace({('%s' % PATHOLOGIC_STAGE): ClinicalData.pathologic_stage_map}, inplace=True)
 
 
         # # Import biospecimen samples (not all samples included in dataset)
@@ -45,16 +52,16 @@ class ClinicalData:
         # self.biospecimen.index = self.biospecimen["bcr_sample_barcode"]
 
         # Import clinical drug
-        self.drugs = pd.read_table(os.path.join(folder_path, "nationwidechildrens.org_clinical_drug.txt"),
+        self.drugs = pd.read_table(os.path.join(folder_path, "%s" % CLINICAL_DRUG_FILENAME),
                                    sep="\t",
                                    skiprows=[1, 2],
                                    na_values=["[Not Available]", "[Unknown]", "[Not Applicable]"],
                                    usecols=ClinicalData.clinical_drug_colsname
                                    )
-        self.drugs.index = self.drugs["bcr_patient_barcode"]
+        self.drugs.index = self.drugs[BCR_PATIENT_BARCODE]
 
         # Save index's
-        self.patient_barcodes = self.patient["bcr_patient_barcode"].tolist()
+        self.patient_barcodes = self.patient[BCR_PATIENT_BARCODE].tolist()
         # self.sample_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()
         # self.drug_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()
 
@@ -62,24 +69,24 @@ class ClinicalData:
         # Build table with samples clinical data from patients
         self.samples = pd.DataFrame(index=all_samples)
 
-        self.samples["bcr_patient_barcode"] = self.samples.index.str[:-4]
+        self.samples[BCR_PATIENT_BARCODE] = self.samples.index.str[:-4]
 
         no_samples = self.samples.shape[0]
 
         # Merge patients clinical data with patient barcode as index
         # target = pd.merge(target, self.patient,
         #                      how="left", left_on="patient_barcode", right_on="patient_barcode")
-        self.samples = self.samples.join(self.patient, on="bcr_patient_barcode", how="left", rsuffix="_")
+        self.samples = self.samples.join(self.patient, on=BCR_PATIENT_BARCODE, how="left", rsuffix="_")
         if self.samples.shape[0] != no_samples:
             raise Exception("Clinical data merging has wrong number of samples")
-        self.samples.drop('bcr_patient_barcode_', axis=1, inplace=True)  # Remove redundant column
+        self.samples.drop(BCR_PATIENT_BARCODE+"_", axis=1, inplace=True)  # Remove redundant column
         # self.samples.dropna(axis=0, subset=["bcr_patient_barcode"], inplace=True) # Remove samples without clinical data
 
-        self.samples = self.samples[self.samples['pathologic_stage'] != "[Discrepancy]"]
-        self.samples.loc[self.samples.index.str.contains("-11A"),
-                         'tumor_normal'] = "Normal"  # Change stage label of normal samples to "Normal"
-        self.samples.loc[self.samples.index.str.contains("-01A"),
-                         'tumor_normal'] = "Tumor"  # Change stage label of normal samples to "Normal"
+        self.samples = self.samples[self.samples[PATHOLOGIC_STAGE] != "[Discrepancy]"]
+        self.samples.loc[self.samples.index.str.contains("-11"),
+                         ('%s' % TUMOR_NORMAL)] = "Normal"  # Change stage label of normal samples to "Normal"
+        self.samples.loc[self.samples.index.str.contains("-01"),
+                         TUMOR_NORMAL] = "Tumor"  # Change stage label of normal samples to "Normal"
 
 
     def get_patient_barcodes(self):
@@ -89,7 +96,3 @@ class ClinicalData:
     #     return self.sample_barcodes
 
 
-if __name__ == '__main__':
-    # table = pd.read_table(ROOT_DIR+"/data/TCGAMultiOmics-assembler/LUAD/clinical/nationwidechildrens.org_clinical_patient_luad.txt", sep="\t")
-    folder_path = "/data/TCGAMultiOmics-assembler/LUAD/clinical/"
-    luad_clinical = ClinicalData(cancer_type="LUAD", folder_path=ROOT_DIR + folder_path)

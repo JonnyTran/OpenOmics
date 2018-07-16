@@ -2,7 +2,8 @@ import os
 
 import pandas as pd
 
-from TCGAMultiOmics.clinical import ClinicalData
+from TCGAMultiOmics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
+    TUMOR_NORMAL
 from TCGAMultiOmics.genomic import GeneExpression, SomaticMutation, DNAMethylation, MiRNAExpression, \
     CopyNumberVariation, \
     ProteinExpression, LncRNAExpression
@@ -13,7 +14,8 @@ from TCGAMultiOmics.genomic import GeneExpression, SomaticMutation, DNAMethylati
 
 class MultiOmicsData:
 
-    def __init__(self, cancer_type, tcga_data_path, external_data_path, modalities=["WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"], remove_duplicate_genes=True):
+    def __init__(self, cancer_type, tcga_data_path, external_data_path, modalities, remove_duplicate_genes=True,
+                 auto_import_clinical=True):
         """
         Load all multi-omics TCGA data from a given tcga_data_path with the following folder structure:
 
@@ -53,7 +55,7 @@ class MultiOmicsData:
         :param cancer_type: TCGA cancer cohort name
         :param tcga_data_path: directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
         :param external_data_path: directory path to the folder containing external databases
-        :param modalities: A list of multi-omics data to import. All available data includes ["WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"]. Clinical data is always automatically imported.
+        :param modalities: A list of multi-omics data to import. All available data includes ["CLI", "WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"]. Clinical data is always automatically imported.
         """
         self.cancer_type = cancer_type
         self.modalities = modalities
@@ -61,15 +63,17 @@ class MultiOmicsData:
 
         # LOADING DATA FROM FILES
         self.data = {}
-        self.clinical = ClinicalData(cancer_type, os.path.join(tcga_data_path, "clinical/"))
-        self.data["PATIENTS"] = self.clinical.patient
-        # self.data["BIOSPECIMENS"] = self.clinical.biospecimen
-        self.data["DRUGS"] = self.clinical.drugs
+        if auto_import_clinical or ("CLI" in modalities):
+            self.clinical = ClinicalData(cancer_type, os.path.join(tcga_data_path, "clinical/"))
+            self.data["PATIENTS"] = self.clinical.patient
+            # self.data["BIOSPECIMENS"] = self.clinical.biospecimen
+            self.data["DRUGS"] = self.clinical.drugs
 
         if ("WSI" in modalities):
             pass
             # self.WSI = WholeSlideImages(cancer_type, folder_path)
             # self.data["WSI"] = self.WSI
+
         if ("GE" in modalities):
             self.GE = GeneExpression(cancer_type, os.path.join(tcga_data_path, "gene_exp/"))
             self.data["GE"] = self.GE.data
@@ -81,11 +85,6 @@ class MultiOmicsData:
 
                 self.GE.process_GENCODE_transcript_data(gencode_folder_path=os.path.join(external_data_path, "GENCODE"))
 
-            except FileNotFoundError as e:
-                print(e)
-                print("Could not run GeneExpression.process_gene_info() because of missing TargetScan/Gene_info.txt data in the directory", external_data_path)
-
-            try:
                 self.GE.process_RegNet_gene_regulatory_network(
                     grn_file_path=os.path.join(external_data_path, "RegNetwork", "human.source"))
 
@@ -94,9 +93,11 @@ class MultiOmicsData:
             except FileNotFoundError as e:
                 print(e)
 
+
         if ("SNP" in modalities):
             self.SNP = SomaticMutation(cancer_type, os.path.join(tcga_data_path, "somatic/"))
             self.data["SNP"] = self.SNP.data
+
         if ("MIR" in modalities):
             self.MIR = MiRNAExpression(cancer_type, os.path.join(tcga_data_path, "mirna/"))
             self.data["MIR"] = self.MIR.data
@@ -150,7 +151,9 @@ class MultiOmicsData:
 
         # Remove duplicate genes between different multi-omics (e.g. between gene expression and lncRNA expressions
         if remove_duplicate_genes:
-            self.GE.drop_genes(set(self.GE.get_genes_list()) & set(self.LNC.get_genes_list()))
+            if "GE" in modalities and "LNC" in modalities:
+                self.GE.drop_genes(set(self.GE.get_genes_list()) & set(self.LNC.get_genes_list()))
+
 
         self.print_sample_sizes()
 
@@ -174,6 +177,10 @@ class MultiOmicsData:
             return self.DNA
         elif item == "PRO":
             return self.PRO
+        elif item == "CLI":
+            return self.clinical.patient
+        elif item == "DRU":
+            return self.clinical.drugs
 
     def match_samples(self, modalities):
         """
@@ -222,13 +229,13 @@ class MultiOmicsData:
 
         # Select only samples with certain cancer stage or subtype
         if pathologic_stages:
-            y = y[y['pathologic_stage'].isin(pathologic_stages)]
+            y = y[y[PATHOLOGIC_STAGE].isin(pathologic_stages)]
         if histological_subtypes:
-            y = y[y['histologic_subtype'].isin(histological_subtypes)]
+            y = y[y[HISTOLOGIC_SUBTYPE].isin(histological_subtypes)]
         if predicted_subtypes:
             y = y[y['predicted_subtype'].isin(predicted_subtypes)]
         if tumor_normal:
-            y = y[y['tumor_normal'].isin(tumor_normal)]
+            y = y[y[TUMOR_NORMAL].isin(tumor_normal)]
         # TODO if normal_matched:
         #     target =
 
@@ -273,14 +280,6 @@ class MultiOmicsData:
         :param dictionary: A dictionary mapping patient's barcode to a subtype
         """
         self.data["PATIENTS"] = self.data["PATIENTS"].assign(
-            predicted_subtype=self.data["PATIENTS"]["bcr_patient_barcode"].map(dictionary))
+            predicted_subtype=self.data["PATIENTS"][BCR_PATIENT_BARCODE].map(dictionary))
 
-    def get_multiomics_interactions(self, modalities=[]):
-        """
-        This function returns a networkx directed graph for a multi-omics interactions network containing the heterogeneous interactions among and between different omics. The number of nodes included in the graph depends on the modalities included
-        :param modalities: a list of multi-omics to fetch, e.g. ["LNC", "MIR", "GE"]
-        :return G: a networkx DiGraph
-        """
-        for modality in self.data.keys():
-            print(modality)
 
