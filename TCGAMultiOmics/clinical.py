@@ -2,14 +2,14 @@ import os
 
 import pandas as pd
 
-TUMOR_NORMAL = 'tumor_normal'
-
 CLINICAL_DRUG_FILENAME = "nationwidechildrens.org_clinical_drug.txt"
 CLINICAL_PATIENT_FILENAME = "nationwidechildrens.org_clinical_patient.txt"
 
 BCR_PATIENT_BARCODE = "bcr_patient_barcode"
 HISTOLOGIC_SUBTYPE = "histologic_subtype"
 PATHOLOGIC_STAGE = "pathologic_stage"
+TUMOR_NORMAL = 'tumor_normal'
+PREDICTED_SUBTYPE = 'predicted_subtype'
 
 
 class ClinicalData:

@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 from TCGAMultiOmics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
-    TUMOR_NORMAL
+    TUMOR_NORMAL, PREDICTED_SUBTYPE
 from TCGAMultiOmics.genomic import GeneExpression, SomaticMutation, DNAMethylation, MiRNAExpression, \
     CopyNumberVariation, \
     ProteinExpression, LncRNAExpression
@@ -233,7 +233,7 @@ class MultiOmicsData:
         if histological_subtypes:
             y = y[y[HISTOLOGIC_SUBTYPE].isin(histological_subtypes)]
         if predicted_subtypes:
-            y = y[y['predicted_subtype'].isin(predicted_subtypes)]
+            y = y[y[PREDICTED_SUBTYPE].isin(predicted_subtypes)]
         if tumor_normal:
             y = y[y[TUMOR_NORMAL].isin(tumor_normal)]
         # TODO if normal_matched:
