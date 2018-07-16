@@ -13,7 +13,7 @@ PREDICTED_SUBTYPE = 'predicted_subtype'
 
 
 class ClinicalData:
-    clinical_patient_colsname = ['bcr_patient_barcode', 'gender', 'race', 'histologic_diagnosis.1',
+    clinical_patient_colsname = ['bcr_patient_barcode', 'gender', 'race', 'histological_type', 'histologic_diagnosis.1',
                                  'ajcc_pathologic_tumor_stage'
                                  ]
 
@@ -34,13 +34,15 @@ class ClinicalData:
                                      sep="\t",
                                      skiprows=[1, 2],
                                      na_values=["[Not Available]", "[Not Applicable]"],
-                                     usecols=ClinicalData.clinical_patient_colsname
+                                     # usecols=ClinicalData.clinical_patient_colsname
                                      )
         self.patient.index = self.patient[BCR_PATIENT_BARCODE]
         self.patient.rename({"ajcc_pathologic_tumor_stage": ("%s" % PATHOLOGIC_STAGE),
+                             "histological_type": ("%s" % HISTOLOGIC_SUBTYPE),
                              "histologic_diagnosis.1": ("%s" % HISTOLOGIC_SUBTYPE)}, axis=1, inplace=True)
         self.patient.replace({('%s' % PATHOLOGIC_STAGE): ClinicalData.pathologic_stage_map}, inplace=True)
 
+        # self.patient.reindex_axis(self.patient.columns.intersection(ClinicalData.clinical_patient_colsname), 1, inplace=True)
 
         # # Import biospecimen samples (not all samples included in dataset)
         # self.biospecimen = pd.read_table(os.path.join(folder_path, "genome.wustl.edu_biospecimen_sample.txt"),
