@@ -85,6 +85,8 @@ class MultiOmicsData:
 
                 self.GE.process_GENCODE_transcript_data(gencode_folder_path=os.path.join(external_data_path, "GENCODE"))
 
+                self.GE.process_biogrid_GRN_edgelist(biogrid_folder_path=os.path.join(external_data_path, "BioGRID"))
+
                 self.GE.process_RegNet_gene_regulatory_network(
                     grn_file_path=os.path.join(external_data_path, "RegNetwork", "human.source"))
 

@@ -341,13 +341,10 @@ class GeneExpression(GenomicData):
 
 
     def process_RegNet_gene_regulatory_network(self, grn_file_path):
-        grn_df = pd.read_table(grn_file_path, header=None)
+        self.regnet_grn_file_path = grn_file_path
 
-        # Since RegNet GRN contains miRNA and TF regulatory interactions
-        # hsa-miR-* microRNA gene names will be mapped to hsa-mir-*
-        grn_df[0] = grn_df[0].map(lambda x: x.lower() if ("hsa-miR" in x) else x)
-
-        self.regnet_grn_network = nx.from_pandas_edgelist(grn_df, source=0, target=2, create_using=nx.DiGraph())
+    def process_biogrid_GRN_edgelist(self, biogrid_folder_path):
+        self.biogrid_interactions_path = os.path.join(biogrid_folder_path, "BIOGRID-ALL-3.4.162.tab2.txt")
 
     def get_GENCODE_transcript_data(self):
         transcript_seq = {}
@@ -379,8 +376,34 @@ class GeneExpression(GenomicData):
         self.disgenet_all_gene_disease["diseaseName"] = self.disgenet_all_gene_disease["diseaseName"].str.lower()
 
 
-    def get_RegNet_GRN_edgelist(self):
-        return self.regnet_grn_network.edges()
+    def get_RegNet_GRN_edgelist(self, regnet_grn_file_path=None):
+        if regnet_grn_file_path is not None:
+            self.regnet_grn_file_path = regnet_grn_file_path
+
+        grn_df = pd.read_table(self.regnet_grn_file_path, header=None)
+
+        # Since RegNet GRN contains miRNA and TF regulatory interactions
+        # hsa-miR-* microRNA gene names will be mapped to hsa-mir-*
+        grn_df[0] = grn_df[0].map(lambda x: x.lower() if ("hsa-miR" in x) else x)
+
+        regnet_grn_network = nx.from_pandas_edgelist(grn_df, source=0, target=2, create_using=nx.DiGraph())
+
+        return regnet_grn_network.edges(data=True)
+
+    def get_BioGRID_GRN_edgelist(self, biogrid_interactions_file_path=None):
+        if biogrid_interactions_file_path is not None:
+            self.biogrid_interactions_path = biogrid_interactions_file_path
+
+        biogrid_df = pd.read_table(self.biogrid_interactions_path, na_values=["-"],
+                                   usecols=['Official Symbol Interactor A',
+                                            'Official Symbol Interactor B', 'Organism Interactor A', 'Score',
+                                            'Throughput', 'Qualifications', 'Modification', 'Phenotypes'])
+
+        biogrid_df = biogrid_df[biogrid_df["Organism Interactor A"] == 9606]
+
+        biogrid_grn = nx.from_pandas_edgelist(biogrid_df, source='Official Symbol Interactor A',
+                                                   target='Official Symbol Interactor B', create_using=nx.DiGraph())
+        return biogrid_grn.edges(data=False) # TODO add biogrid GRN edge data?
 
     def get_genes_info(self, curated_gene_disease=True):
         gene_info = pd.DataFrame(index=self.get_genes_list())
