@@ -136,7 +136,7 @@ class LncRNAExpression(GenomicData):
         lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
 
         # Preprocess genes info
-        self.preprocess_genes_info(lncrna_exp['Gene_ID'],     ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hgnc_lncrna_dict)
+        self.preprocess_genes_info(lncrna_exp['Gene_ID'], ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hgnc_lncrna_dict)
 
         lncrna_exp.replace({"Gene_ID": ensembl_id_to_gene_name}, inplace=True)
         lncrna_exp.replace({"Gene_ID": hgnc_lncrna_dict}, inplace=True)
@@ -213,7 +213,6 @@ class LncRNAExpression(GenomicData):
         self.gene_info["Transcript id"] = self.gene_info.index.map(ensembl_id_to_transcript_id)
 
         self.gene_info.index = genes_list
-        self.genes_info_processed = False
 
 
     def process_lncRNome_gene_info(self, lncRNome_folder_path):
@@ -307,7 +306,9 @@ class LncRNAExpression(GenomicData):
         self.gene_info["Disease association"] = self.gene_info["Gene Name"].map(
             self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
 
-        self.gene_info.index = self.get_genes_list() # Assuming the entries are ordered correctly
+        # self.gene_info.index = self.get_genes_list() # Assuming the entries are ordered correctly
+
+        self.gene_info = self.gene_info[~self.gene_info.index.duplicated(keep='first')] # Remove duplicate genes
 
     def get_genes_info(self):
         return self.gene_info
