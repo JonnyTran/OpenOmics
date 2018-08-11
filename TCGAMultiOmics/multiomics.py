@@ -159,12 +159,13 @@ class MultiOmicsData:
             if "GE" in modalities and "LNC" in modalities:
                 self.GE.drop_genes(set(self.GE.get_genes_list()) & set(self.LNC.get_genes_list()))
 
+        self.print_sample_sizes()
+
         if process_genes_info:
             for modality in modalities:
                 self[modality].process_genes_info()
                 print("Processed genes info for ", modality)
 
-        self.print_sample_sizes()
 
     def __getitem__(self, item):
         """
