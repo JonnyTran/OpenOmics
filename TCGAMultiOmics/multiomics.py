@@ -15,7 +15,7 @@ from TCGAMultiOmics.genomic import GeneExpression, SomaticMutation, DNAMethylati
 class MultiOmicsData:
 
     def __init__(self, cancer_type, tcga_data_path, external_data_path, modalities, remove_duplicate_genes=True,
-                 auto_import_clinical=True):
+                 auto_import_clinical=True, process_genes_info=True):
         """
         Load all multi-omics TCGA data from a given tcga_data_path with the following folder structure:
 
@@ -92,6 +92,8 @@ class MultiOmicsData:
 
                 self.GE.process_DisGeNET_gene_disease_associations(
                     disgenet_folder_path=os.path.join(external_data_path, "DisGeNET"))
+
+
             except FileNotFoundError as e:
                 print(e)
 
@@ -157,6 +159,10 @@ class MultiOmicsData:
             if "GE" in modalities and "LNC" in modalities:
                 self.GE.drop_genes(set(self.GE.get_genes_list()) & set(self.LNC.get_genes_list()))
 
+        if process_genes_info:
+            for modality in modalities:
+                self[modality].process_genes_info()
+                print("Processed genes info for ", modality)
 
         self.print_sample_sizes()
 

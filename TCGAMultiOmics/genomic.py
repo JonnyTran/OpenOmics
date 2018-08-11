@@ -283,35 +283,34 @@ class LncRNAExpression(GenomicData):
 
         return lnc_seq
 
+    def process_genes_info(self):
+        # self.gene_info = pd.merge(self.gene_info, self.HGNC_lncrna_info.groupby("symbol").first(), how="left", left_on="Gene Name", right_on="symbol")
+        self.gene_info.index.name = "symbol"
+        self.gene_info = self.gene_info.join(self.HGNC_lncrna_info.groupby("symbol").first(), on="symbol",
+                                             how="left")
+
+        # self.gene_info = pd.merge(self.gene_info, self.lnRNome_genes_info.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
+        self.gene_info.index.name = "Gene Name"
+        self.gene_info = self.gene_info.join(self.lnRNome_genes_info.groupby("Gene Name").first(), on="Gene Name",
+                                             how="left")
+
+        # self.gene_info = pd.merge(self.gene_info, self.noncode_func_df.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
+        self.gene_info.index = self.gene_info["Gene Name"]
+        self.gene_info = self.gene_info.join(self.noncode_func_df.groupby("Gene Name").first(), on="Gene Name",
+                                             how="left")
+
+        # Merge transcript sequence data
+        self.gene_info["Transcript sequence"] = self.gene_info["Gene Name"].map(
+            self.get_GENCODE_lncRNA_sequence_data())
+
+        # Merge lncrnadisease associations database
+        self.gene_info["Disease association"] = self.gene_info["Gene Name"].map(
+            self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
+
+        self.gene_info.index = self.get_genes_list() # Assuming the entries are ordered correctly
+        print("debug", self.gene_info.index, self.get_genes_list())
+
     def get_genes_info(self):
-        # Only process this once
-        if self.genes_info_processed == False:
-            # self.gene_info = pd.merge(self.gene_info, self.HGNC_lncrna_info.groupby("symbol").first(), how="left", left_on="Gene Name", right_on="symbol")
-            self.gene_info.index.name = "symbol"
-            self.gene_info = self.gene_info.join(self.HGNC_lncrna_info.groupby("symbol").first(), on="symbol",
-                                                 how="left")
-
-            # self.gene_info = pd.merge(self.gene_info, self.lnRNome_genes_info.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
-            self.gene_info.index.name = "Gene Name"
-            self.gene_info = self.gene_info.join(self.lnRNome_genes_info.groupby("Gene Name").first(), on="Gene Name",
-                                                 how="left")
-
-            # self.gene_info = pd.merge(self.gene_info, self.noncode_func_df.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
-            self.gene_info.index = self.gene_info["Gene Name"]
-            self.gene_info = self.gene_info.join(self.noncode_func_df.groupby("Gene Name").first(), on="Gene Name",
-                                                 how="left")
-
-            # Merge transcript sequence data
-            self.gene_info["Transcript sequence"] = self.gene_info["Gene Name"].map(
-                self.get_GENCODE_lncRNA_sequence_data())
-
-            # Merge lncrnadisease associations database
-            self.gene_info["Disease association"] = self.gene_info["Gene Name"].map(
-                self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
-
-            self.gene_info.index = self.get_genes_list()
-            self.genes_info_processed = True
-
         return self.gene_info
 
 
@@ -405,27 +404,28 @@ class GeneExpression(GenomicData):
                                                    target='Official Symbol Interactor B', create_using=nx.DiGraph())
         return biogrid_grn.edges(data=False) # TODO add biogrid GRN edge data?
 
-    def get_genes_info(self, curated_gene_disease=True):
-        gene_info = pd.DataFrame(index=self.get_genes_list())
+    def process_genes_info(self, curated_gene_disease_assocs_only=True):
+        self.gene_info = pd.DataFrame(index=self.get_genes_list())
 
-        gene_info.index.name = "Gene symbol"
-        gene_info = gene_info.join(self.targetScan_genes_info.groupby("Gene symbol").first(), on="Gene symbol", how="left")
+        self.gene_info.index.name = "Gene symbol"
+        self.gene_info = self.gene_info.join(self.targetScan_genes_info.groupby("Gene symbol").first(), on="Gene symbol", how="left")
 
-        gene_info.index.name = "symbol"
-        gene_info = gene_info.join(self.hugo_protein_genes_info.groupby("symbol").first(), on="symbol", how="left")
+        self.gene_info.index.name = "symbol"
+        self.gene_info = self.gene_info.join(self.hugo_protein_genes_info.groupby("symbol").first(), on="symbol", how="left")
 
         transcript_seq, gene_type = self.get_GENCODE_transcript_data()
-        gene_info["locus_type"] = gene_info.index.map(gene_type)
-        gene_info["Transcript sequence"] = gene_info.index.map(transcript_seq)
+        self.gene_info["locus_type"] = self.gene_info.index.map(gene_type)
+        self.gene_info["Transcript sequence"] = self.gene_info.index.map(transcript_seq)
 
-        if curated_gene_disease:
-            gene_info["Disease association"] = gene_info.index.map(
+        if curated_gene_disease_assocs_only:
+            self.gene_info["Disease association"] = self.gene_info.index.map(
                 self.disgenet_curated_gene_disease.groupby("geneSymbol")["diseaseName"].apply('|'.join).to_dict())
         else:
-            gene_info["Disease association"] = gene_info.index.map(
+            self.gene_info["Disease association"] = self.gene_info.index.map(
                 self.disgenet_all_gene_disease.groupby("geneSymbol")["diseaseName"].apply('|'.join).to_dict())
 
-        return gene_info
+    def get_genes_info(self):
+        return self.gene_info
 
 
 class SomaticMutation(GenomicData):
@@ -538,20 +538,23 @@ class MiRNAExpression(GenomicData):
                                                   "MiRBase ID": "MIR",
                                                   "Gene Symbol": "GE"}, inplace=True)
         mir_target_network = nx.from_pandas_edgelist(mirna_target_interactions, source="MIR", target="GE",
-                                                      edge_attr="weight", create_using=nx.DiGraph())
+                                                     edge_attr="weight", create_using=nx.DiGraph())
         return mir_target_network.edges(data=True)
 
 
-    def get_genes_info(self):
-        gene_info = pd.DataFrame(index=self.get_genes_list())
+    def process_genes_info(self):
+        self.gene_info = pd.DataFrame(index=self.get_genes_list())
 
-        gene_info.index.name = "MiRBase ID"
-        gene_info = gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID",how="left")
+        self.gene_info.index.name = "MiRBase ID"
+        self.gene_info = self.gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID",how="left")
 
-        gene_info["Disease association"] = gene_info.index.map(
+        self.gene_info["Disease association"] = self.gene_info.index.map(
             self.mirnadisease.groupby("miRNA name")["Disease name"].apply('|'.join).to_dict())
 
-        return gene_info
+        self.gene_info.rename(columns={'Mature sequence': 'Transcript sequence'}, inplace=True)
+
+    def get_genes_info(self):
+        return self.gene_info
 
 
 class CopyNumberVariation(GenomicData):
