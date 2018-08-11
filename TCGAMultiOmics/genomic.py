@@ -308,7 +308,6 @@ class LncRNAExpression(GenomicData):
             self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
 
         self.gene_info.index = self.get_genes_list() # Assuming the entries are ordered correctly
-        print("debug", self.gene_info.index, self.get_genes_list())
 
     def get_genes_info(self):
         return self.gene_info
