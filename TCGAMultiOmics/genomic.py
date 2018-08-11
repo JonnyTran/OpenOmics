@@ -283,17 +283,14 @@ class LncRNAExpression(GenomicData):
         return lnc_seq
 
     def process_genes_info(self):
-        # self.gene_info = pd.merge(self.gene_info, self.HGNC_lncrna_info.groupby("symbol").first(), how="left", left_on="Gene Name", right_on="symbol")
         self.gene_info.index.name = "symbol"
         self.gene_info = self.gene_info.join(self.HGNC_lncrna_info.groupby("symbol").first(), on="symbol",
                                              how="left")
 
-        # self.gene_info = pd.merge(self.gene_info, self.lnRNome_genes_info.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
         self.gene_info.index.name = "Gene Name"
         self.gene_info = self.gene_info.join(self.lnRNome_genes_info.groupby("Gene Name").first(), on="Gene Name",
                                              how="left")
 
-        # self.gene_info = pd.merge(self.gene_info, self.noncode_func_df.groupby("Gene Name").first(), how="left", left_on="Gene Name", right_on="Gene Name")
         self.gene_info.index = self.gene_info["Gene Name"]
         self.gene_info = self.gene_info.join(self.noncode_func_df.groupby("Gene Name").first(), on="Gene Name",
                                              how="left")
@@ -306,7 +303,7 @@ class LncRNAExpression(GenomicData):
         self.gene_info["Disease association"] = self.gene_info["Gene Name"].map(
             self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
 
-        # self.gene_info.index = self.get_genes_list() # Assuming the entries are ordered correctly
+        self.gene_info.index = self.get_genes_list() # Assuming the entries are ordered correctly
 
         self.gene_info = self.gene_info[~self.gene_info.index.duplicated(keep='first')] # Remove duplicate genes
 
