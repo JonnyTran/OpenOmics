@@ -1,4 +1,5 @@
 import os
+from collections import OrderedDict
 
 import networkx as nx
 import numpy as np
@@ -139,6 +140,9 @@ class LncRNAExpression(GenomicData):
 
         # Preprocess genes info
         self.preprocess_genes_info(lncrna_exp['Gene_ID'], ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hgnc_lncrna_dict)
+
+        self.features = list(OrderedDict.fromkeys(self.features))
+
 
         lncrna_exp.replace({"Gene_ID": ensembl_id_to_gene_name}, inplace=True)
         lncrna_exp.replace({"Gene_ID": hgnc_lncrna_dict}, inplace=True)
