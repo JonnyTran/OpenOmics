@@ -309,6 +309,15 @@ class LncRNAExpression(GenomicData):
 
         self.gene_info = self.gene_info[~self.gene_info.index.duplicated(keep='first')] # Remove duplicate genes
 
+        # Process gene location info
+        self.gene_info["Chromosome"] = self.gene_info["Location"].str.split(":", expand=True)[0]
+        self.gene_info["start"] = self.gene_info["Location"].str.split(":", expand=True)[1].str.split("-", expand=True)[0]
+        self.gene_info["end"] = self.gene_info["Location"].str.split(":", expand=True)[1].str.split("-", expand=True)[1]
+        self.gene_info["bp length"] = self.gene_info["Location"].str.split(":", expand=True)[1].apply(
+            lambda x: int(x.split("-")[1]) - int(x.split("-")[0]) if (type(x) is str) else None)
+
+        self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(lambda x: len(x) if type(x) is str else None)
+
     def get_genes_info(self):
         return self.gene_info
 
@@ -422,6 +431,11 @@ class GeneExpression(GenomicData):
         else:
             self.gene_info["Disease association"] = self.gene_info.index.map(
                 self.disgenet_all_gene_disease.groupby("geneSymbol")["diseaseName"].apply('|'.join).to_dict())
+
+        # Process gene location info
+        self.gene_info["Chromosome"] = "Chromosome " + self.gene_info["location"].str.split("p|q", expand=True)[0]
+        self.gene_info["Chromosome arm"] = self.gene_info["location"].str.extract(r'(?P<arm>[pq])', expand=True)
+        self.gene_info["Chromosome region"] = self.gene_info["location"].str.split("[pq.-]", expand=True)[0]
 
     def get_genes_info(self):
         return self.gene_info
