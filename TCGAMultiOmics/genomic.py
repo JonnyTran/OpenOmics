@@ -318,8 +318,8 @@ class LncRNAExpression(GenomicData):
 
         self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(lambda x: len(x) if type(x) is str else None)
 
-        self.gene_info["start"].astype(np.int)
-        self.gene_info["end"].astype(np.int)
+        self.gene_info["start"].astype(np.float64)
+        self.gene_info["end"].astype(np.float64)
 
     def get_genes_info(self):
         return self.gene_info
