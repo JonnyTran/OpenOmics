@@ -134,6 +134,8 @@ class LncRNAExpression(GenomicData):
         ensembl_id_to_gene_name, ensembl_id_to_transcript_id = self.get_GENCODE_lncRNA_gene_name_dict()
         hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
         lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
+        lncrna_exp = lncrna_exp[~lncrna_exp['Gene_ID'].duplicated(keep='first')] # Remove duplicate genes
+
 
         # Preprocess genes info
         self.preprocess_genes_info(lncrna_exp['Gene_ID'], ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hgnc_lncrna_dict)
