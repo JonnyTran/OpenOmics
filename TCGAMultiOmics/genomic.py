@@ -141,7 +141,6 @@ class LncRNAExpression(GenomicData):
         # Preprocess genes info
         self.preprocess_genes_info(lncrna_exp['Gene_ID'], ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hgnc_lncrna_dict)
 
-        self.features = list(OrderedDict.fromkeys(self.features))
 
 
         lncrna_exp.replace({"Gene_ID": ensembl_id_to_gene_name}, inplace=True)
@@ -309,8 +308,10 @@ class LncRNAExpression(GenomicData):
         self.gene_info["Disease association"] = self.gene_info["Gene Name"].map(
             self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
 
+
         self.gene_info.index = self.get_genes_list() # Assuming the entries are ordered correctly
 
+        self.features = list(OrderedDict.fromkeys(self.features))
         self.gene_info = self.gene_info[~self.gene_info.index.duplicated(keep='first')] # Remove duplicate genes
 
         # Process gene location info
