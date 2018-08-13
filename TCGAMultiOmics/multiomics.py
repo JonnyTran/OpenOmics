@@ -258,7 +258,7 @@ class MultiOmicsData:
         # Build data matrix for each modality, indexed by matched_samples
         X_multiomics = {}
         for modality in modalities:
-            X_multiomics[modality] = self.data[modality].loc[matched_samples, :]
+            X_multiomics[modality] = self.data[modality].loc[matched_samples, self[modality].get_genes_list()]
 
         return X_multiomics, y
 
