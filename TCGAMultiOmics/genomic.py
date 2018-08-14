@@ -445,6 +445,9 @@ class GeneExpression(GenomicData):
         self.gene_info["Chromosome arm"] = self.gene_info["location"].str.extract(r'(?P<arm>[pq])', expand=True)
         self.gene_info["Chromosome region"] = self.gene_info["location"].str.split("[pq.-]", expand=True)[0]
 
+        self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(
+            lambda x: len(x) if type(x) is str else None)
+
     def get_genes_info(self):
         return self.gene_info
 
