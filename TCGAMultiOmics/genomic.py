@@ -603,6 +603,8 @@ class MiRNAExpression(GenomicData):
         self.gene_info["locus_type"] = "RNA, micro"
 
         self.gene_info.rename(columns={'Mature sequence': 'Transcript sequence'}, inplace=True)
+        self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(
+            lambda x: len(x) if type(x) is str else None)
 
     def get_genes_info(self):
         return self.gene_info
