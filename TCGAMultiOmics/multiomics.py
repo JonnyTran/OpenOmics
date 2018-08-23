@@ -112,6 +112,8 @@ class MultiOmicsData:
                 self.MIR.process_mirnadisease_associations(
                     HMDD_miRNAdisease_path=os.path.join(external_data_path, "HMDD_miRNAdisease"))
 
+                self.MIR.process_HUGO_miRNA_gene_info(HUGO_folder_path=os.path.join(external_data_path, "HUGO_Gene_names"))
+
             except FileNotFoundError as e:
                 print(e)
                 print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data folder in the directory", external_data_path)
