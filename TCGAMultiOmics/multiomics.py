@@ -81,7 +81,7 @@ class MultiOmicsData:
             try:
                 self.GE.process_targetScan_gene_info(targetScan_gene_info_path=os.path.join(external_data_path, "TargetScan", "Gene_info.txt"))
 
-                self.GE.process_protein_coding_genes_info(os.path.join(external_data_path, "HUGO_Gene_names", "gene_with_protein_product.txt"))
+                self.GE.process_HUGO_protein_coding_genes_info(os.path.join(external_data_path, "HUGO_Gene_names", "gene_with_protein_product.txt"))
 
                 self.GE.process_GENCODE_transcript_data(gencode_folder_path=os.path.join(external_data_path, "GENCODE"))
 

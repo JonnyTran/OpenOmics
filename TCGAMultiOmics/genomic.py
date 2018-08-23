@@ -125,7 +125,7 @@ class LncRNAExpression(GenomicData):
         """
         lncrna_exp = df
         try:
-            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t", usecols=['symbol', 'ensembl_gene_id', 'name', 'location'])
+            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t", usecols=['symbol', 'locus_type', 'ensembl_gene_id', 'name', 'location'])
             self.HGNC_lncrna_info = HGNC_lncrna_info
             self.HGNC_lncrna_info.index = self.HGNC_lncrna_info["symbol"]
         except Exception:
@@ -324,8 +324,11 @@ class LncRNAExpression(GenomicData):
 
         self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(lambda x: len(x) if type(x) is str else None)
 
+
         self.gene_info["start"].astype(np.float64)
         self.gene_info["end"].astype(np.float64)
+
+        # self.gene_info["locus_type"] = "RNA, long non-coding"
 
     def get_genes_info(self):
         return self.gene_info
@@ -351,7 +354,7 @@ class GeneExpression(GenomicData):
         self.targetScan_genes_info.drop(columns=["Species ID"], inplace=True)
 
 
-    def process_protein_coding_genes_info(self, hugo_protein_gene_names_path):
+    def process_HUGO_protein_coding_genes_info(self, hugo_protein_gene_names_path):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
         self.hugo_protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path, usecols=["symbol", "locus_type", "gene_family", "gene_family_id", "location"])
 
