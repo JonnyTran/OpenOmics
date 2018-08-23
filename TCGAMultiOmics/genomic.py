@@ -328,7 +328,7 @@ class LncRNAExpression(GenomicData):
         self.gene_info["start"].astype(np.float64)
         self.gene_info["end"].astype(np.float64)
 
-        # self.gene_info["locus_type"] = "RNA, long non-coding"
+        self.gene_info["locus_type"] = "RNA, long non-coding"
 
     def get_genes_info(self):
         return self.gene_info
