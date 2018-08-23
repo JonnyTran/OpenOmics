@@ -5,6 +5,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 from Bio import SeqIO
+from pandas import Series
 
 from TCGAMultiOmics.utils import GTF
 
@@ -549,6 +550,25 @@ class MiRNAExpression(GenomicData):
 
         self.mirnadisease["Disease name"] = self.mirnadisease["Disease name"].str.lower()
 
+    def process_HUGO_miRNA_gene_info(self, HUGO_folder_path):
+        self.HUGO_miRNA_gene_info_path = os.path.join(HUGO_folder_path, "RNA_micro.txt")
+
+        df = pd.read_table(self.HUGO_miRNA_gene_info_path,
+                           usecols=["alias_symbol", "ensembl_gene_id", "location"])
+        df = df[df["alias_symbol"].notna()]
+
+        df_1 = pd.concat([Series(data=row["location"], index=row['alias_symbol'].split('|'))
+                          for _, row in df.iterrows()]).reset_index()
+        df_2 = pd.concat([Series(data=row["ensembl_gene_id"], index=row['alias_symbol'].split('|'))
+                          for _, row in df.iterrows()]).reset_index()
+
+        df_1.columns = ["MiRBase ID", "location"]
+        df_2.columns = ["MiRBase ID", "ensembl_gene_id"]
+
+        self.HUGO_miRNA_gene_info_df = pd.merge(df_1, df_2, how="inner", on="MiRBase ID")
+        self.HUGO_miRNA_gene_info_df.index = self.HUGO_miRNA_gene_info_df["MiRBase ID"]
+
+
     def get_miRNA_target_interaction(self):
         if self.targetScan_df is None:
             raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
@@ -572,8 +592,12 @@ class MiRNAExpression(GenomicData):
         self.gene_info.index.name = "MiRBase ID"
         self.gene_info = self.gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID",how="left")
 
+        self.gene_info.join(self.HUGO_miRNA_gene_info_df, on="MiRBase ID")
+
         self.gene_info["Disease association"] = self.gene_info.index.map(
             self.mirnadisease.groupby("miRNA name")["Disease name"].apply('|'.join).to_dict())
+
+        self.gene_info["locus_type"] = "RNA, micro"
 
         self.gene_info.rename(columns={'Mature sequence': 'Transcript sequence'}, inplace=True)
 
