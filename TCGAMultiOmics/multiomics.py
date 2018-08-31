@@ -129,11 +129,11 @@ class MultiOmicsData:
             try:
                 self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
                 self.LNC.process_lncRNome_gene_info(os.path.join(external_data_path, "lncRNome"))
+                self.LNC.process_lncBase_lncRNA_miRNA_interactions(lncBase_folder_path=os.path.join(external_data_path, "lncBase"))
                 self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
                 self.LNC.process_NONCODE_func_annotation(os.path.join(external_data_path, "NONCODE"))
                 self.LNC.process_lncrnadisease_associations(
                     lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
-                self.LNC.process_lncBase_lncRNA_miRNA_interactions(lncBase_folder_path=os.path.join(external_data_path, "lncBase"))
             except FileNotFoundError as e:
                 print(e)
 
