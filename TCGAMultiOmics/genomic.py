@@ -198,9 +198,8 @@ class LncRNAExpression(GenomicData):
 
     def process_lncBase_lncRNA_miRNA_interactions(self, lncBase_folder_path):
         self.lncBase_interactions_file_path = os.path.join(lncBase_folder_path, "LncBasev2_download.csv")
-        print(self.lncBase_interactions_file_path)
-        lncbase_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path)
-        print(lncbase_df.columns)
+        lncbase_df = pd.read_table(self.lncBase_interactions_file_path)
+
         lncbase_df = lncbase_df[lncbase_df["species"] == "Homo sapiens"]
         lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
         lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("-3p.*|-5p.*", "")
