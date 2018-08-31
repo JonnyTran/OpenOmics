@@ -133,6 +133,7 @@ class MultiOmicsData:
                 self.LNC.process_NONCODE_func_annotation(os.path.join(external_data_path, "NONCODE"))
                 self.LNC.process_lncrnadisease_associations(
                     lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
+                self.LNC.process_lncBase_lncRNA_miRNA_interactions(lncBase_folder_path=os.path.join(external_data_path, "lncBase"))
             except FileNotFoundError as e:
                 print(e)
 

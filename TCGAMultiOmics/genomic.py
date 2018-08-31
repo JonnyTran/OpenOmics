@@ -194,7 +194,21 @@ class LncRNAExpression(GenomicData):
         self.starBase_miRNA_lncRNA_network = nx.from_pandas_edgelist(grn_df, source='geneName', target='name', create_using=nx.DiGraph())
 
     def get_starBase_lncRNA_miRNA_interactions_edgelist(self):
-        return self.starBase_miRNA_lncRNA_network.edges()
+        return self.starBase_miRNA_lncRNA_network.edges() # TODO data?
+
+    def process_lncBase_lncRNA_miRNA_interactions(self, lncBase_folder_path):
+        self.lncBase_interactions_file_path = os.path.join(lncBase_folder_path, "LncBasev2_download.csv")
+        lncbase_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path)
+
+        lncbase_df= lncbase_df[lncbase_df["species"] == "Homo sapiens"]
+        lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
+        lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("-3p.*|-5p.*", "")
+
+        self.lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='geneName', target='mirna',
+                                                                     create_using=nx.DiGraph())
+
+    def get_lncBase_lncRNA_miRNA_interactions_edgelist(self):
+        return self.lncBase_lncRNA_miRNA_network.edges()
 
     def process_lncRNome_miRNA_binding_sites(self, lncRNome_folder_path):
         self.lnRNome_miRNA_binding_sites_path = os.path.join(lncRNome_folder_path, "miRNA_binding_sites.txt")
@@ -219,8 +233,6 @@ class LncRNAExpression(GenomicData):
         self.gene_info["Transcript id"] = self.gene_info.index.map(ensembl_id_to_transcript_id)
 
         self.gene_info.index = genes_list
-
-
     def process_lncRNome_gene_info(self, lncRNome_folder_path):
         self.lnRNome_genes_info_path = os.path.join(lncRNome_folder_path, "general_information.txt")
 
