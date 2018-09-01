@@ -191,7 +191,7 @@ class LncRNAExpression(GenomicData):
         grn_df['name'] = grn_df['name'].str.lower()
         grn_df['name'] = grn_df['name'].str.replace("-3p.*|-5p.*", "")
 
-        self.starBase_miRNA_lncRNA_network = nx.from_pandas_edgelist(grn_df, source='geneName', target='name', create_using=nx.DiGraph())
+        self.starBase_miRNA_lncRNA_network = nx.from_pandas_edgelist(grn_df, source='name', target='geneName', create_using=nx.DiGraph())
 
     def get_starBase_lncRNA_miRNA_interactions_edgelist(self):
         return self.starBase_miRNA_lncRNA_network.edges() # TODO data?
