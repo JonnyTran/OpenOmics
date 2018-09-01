@@ -204,7 +204,7 @@ class LncRNAExpression(GenomicData):
         lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
         lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("-3p.*|-5p.*", "")
 
-        self.lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='geneName', target='mirna',
+        self.lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='mirna', target='geneName',
                                                                      create_using=nx.DiGraph())
 
     def get_lncBase_lncRNA_miRNA_interactions_edgelist(self):
@@ -218,7 +218,8 @@ class LncRNAExpression(GenomicData):
         df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
         df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "")
 
-        self.lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source='Gene Name', target='Binding miRNAs', create_using=nx.DiGraph())
+        self.lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source='Binding miRNAs',
+                                                                            target='Gene Name', create_using=nx.DiGraph())
 
     def get_lncRNome_miRNA_binding_sites_edgelist(self):
         return self.lncRNome_miRNA_binding_sites_network.edges()
