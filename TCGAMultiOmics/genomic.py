@@ -206,7 +206,7 @@ class LncRNAExpression(GenomicData):
         lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
         lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("-3p.*|-5p.*", "")
 
-        self.lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='mirna', target='geneName',
+        self.lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='geneName', target='mirna',
                                                                      create_using=nx.DiGraph())
 
     def get_lncBase_lncRNA_miRNA_interactions_edgelist(self):
@@ -220,8 +220,8 @@ class LncRNAExpression(GenomicData):
         df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
         df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "")
 
-        self.lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source='Binding miRNAs',
-                                                                            target='Gene Name', create_using=nx.DiGraph())
+        self.lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source='Gene Name',
+                                                                            target='Binding miRNAs', create_using=nx.DiGraph())
 
     def get_lncRNome_miRNA_binding_sites_edgelist(self):
         return self.lncRNome_miRNA_binding_sites_network.edges()
@@ -273,7 +273,8 @@ class LncRNAExpression(GenomicData):
         self.noncode_func_df.index = self.noncode_func_df["NONCODE Gene ID"]
 
         # Convert to NONCODE transcript ID for the functional annotattion data
-        self.noncode_func_df["NONCODE Transcript ID"] = self.noncode_func_df.index.map(pd.Series(transcript2gene_df['NONCODE Transcript ID'].values, index=transcript2gene_df['NONCODE Gene ID']).to_dict())
+        self.noncode_func_df["NONCODE Transcript ID"] = self.noncode_func_df.index.map(pd.Series(transcript2gene_df['NONCODE Transcript ID'].values,
+                                                                                                 index=transcript2gene_df['NONCODE Gene ID']).to_dict())
 
         # Convert NONCODE transcript ID to gene names
         source_gene_names_df = source_df[source_df["name type"] == "NAME"].copy()
