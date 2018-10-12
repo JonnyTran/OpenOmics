@@ -109,6 +109,8 @@ class MultiOmicsData:
             try:
                 self.MIR.process_target_scan(targetScan_folder_path=os.path.join(external_data_path, "TargetScan"))
 
+                self.MIR.process_miRTarBase_miRNA_target_interactions(miRTarBase_path=os.path.join(external_data_path, "miRTarBase"))
+
                 self.MIR.process_mirnadisease_associations(
                     HMDD_miRNAdisease_path=os.path.join(external_data_path, "HMDD_miRNAdisease"))
 
