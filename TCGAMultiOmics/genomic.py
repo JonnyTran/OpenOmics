@@ -200,17 +200,21 @@ class LncRNAExpression(GenomicData):
 
     def process_lncBase_lncRNA_miRNA_interactions(self, lncBase_folder_path):
         self.lncBase_interactions_file_path = os.path.join(lncBase_folder_path, "LncBasev2_download.csv")
+
+
+    def get_lncBase_lncRNA_miRNA_interactions_edgelist(self, tissue=None):
         lncbase_df = pd.read_table(self.lncBase_interactions_file_path)
 
         lncbase_df = lncbase_df[lncbase_df["species"] == "Homo sapiens"]
         lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
         lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("-3p.*|-5p.*", "")
 
-        self.lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='geneName', target='mirna',
-                                                                     create_using=nx.DiGraph())
+        if tissue is not None:
+            lncbase_df = lncbase_df[lncbase_df["tissue"] == tissue]
 
-    def get_lncBase_lncRNA_miRNA_interactions_edgelist(self):
-        return self.lncBase_lncRNA_miRNA_network.edges()
+        lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='geneName', target='mirna',
+                                                                    create_using=nx.DiGraph())
+        return lncBase_lncRNA_miRNA_network.edges()
 
     def process_lncRNome_miRNA_binding_sites(self, lncRNome_folder_path):
         self.lnRNome_miRNA_binding_sites_path = os.path.join(lncRNome_folder_path, "miRNA_binding_sites.txt")
