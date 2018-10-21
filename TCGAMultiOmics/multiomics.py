@@ -165,8 +165,9 @@ class MultiOmicsData:
 
         if process_genes_info:
             for modality in modalities:
-                self[modality].process_genes_info()
-                print("Processed genes info for ", modality)
+                if hasattr(self[modality], "process_genes_info"):
+                    self[modality].process_genes_info()
+                    print("Processed genes info for ", modality)
 
 
     def __getitem__(self, item):
