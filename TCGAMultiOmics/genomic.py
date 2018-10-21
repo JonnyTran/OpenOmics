@@ -185,16 +185,36 @@ class LncRNAExpression(GenomicData):
         return lncrna_dict
 
     def process_starBase_miRNA_lncRNA_interactions(self, starBase_folder_path):
-        self.starBase_miRNA_lncRNA_file_path = os.path.join(starBase_folder_path, "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
+        self.starBase_miRNA_lncRNA_file_path = os.path.join(starBase_folder_path,
+                                                            "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
         grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=0)
 
         grn_df['name'] = grn_df['name'].str.lower()
         grn_df['name'] = grn_df['name'].str.replace("-3p.*|-5p.*", "")
 
-        self.starBase_miRNA_lncRNA_network = nx.from_pandas_edgelist(grn_df, source='geneName', target='name', create_using=nx.DiGraph())
+        self.starBase_miRNA_lncRNA_network = nx.from_pandas_edgelist(grn_df, source='name', target='geneName',
+                                                                     create_using=nx.DiGraph())
 
     def get_starBase_lncRNA_miRNA_interactions_edgelist(self):
-        return self.starBase_miRNA_lncRNA_network.edges()
+        return self.starBase_miRNA_lncRNA_network.edges() # TODO data?
+
+    def process_lncBase_lncRNA_miRNA_interactions(self, lncBase_folder_path):
+        self.lncBase_interactions_file_path = os.path.join(lncBase_folder_path, "LncBasev2_download.csv")
+
+
+    def get_lncBase_lncRNA_miRNA_interactions_edgelist(self, tissue=None):
+        lncbase_df = pd.read_table(self.lncBase_interactions_file_path)
+
+        lncbase_df = lncbase_df[lncbase_df["species"] == "Homo sapiens"]
+        lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
+        lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("-3p.*|-5p.*", "")
+
+        if tissue is not None:
+            lncbase_df = lncbase_df[lncbase_df["tissue"] == tissue]
+
+        lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='geneName', target='mirna',
+                                                                    create_using=nx.DiGraph())
+        return lncBase_lncRNA_miRNA_network.edges()
 
     def process_lncRNome_miRNA_binding_sites(self, lncRNome_folder_path):
         self.lnRNome_miRNA_binding_sites_path = os.path.join(lncRNome_folder_path, "miRNA_binding_sites.txt")
@@ -204,7 +224,8 @@ class LncRNAExpression(GenomicData):
         df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
         df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "")
 
-        self.lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source='Gene Name', target='Binding miRNAs', create_using=nx.DiGraph())
+        self.lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source='Gene Name',
+                                                                            target='Binding miRNAs', create_using=nx.DiGraph())
 
     def get_lncRNome_miRNA_binding_sites_edgelist(self):
         return self.lncRNome_miRNA_binding_sites_network.edges()
@@ -219,12 +240,11 @@ class LncRNAExpression(GenomicData):
         self.gene_info["Transcript id"] = self.gene_info.index.map(ensembl_id_to_transcript_id)
 
         self.gene_info.index = genes_list
-
-
     def process_lncRNome_gene_info(self, lncRNome_folder_path):
         self.lnRNome_genes_info_path = os.path.join(lncRNome_folder_path, "general_information.txt")
 
-        self.lnRNome_genes_info = pd.read_table(self.lnRNome_genes_info_path, header=0, usecols=["Gene Name", "Transcript Name", "Transcript Type", "Location", "Strand"])
+        self.lnRNome_genes_info = pd.read_table(self.lnRNome_genes_info_path, header=0,
+                                                usecols=["Gene Name", "Transcript Name", "Transcript Type", "Location", "Strand"])
 
     def process_lncrnadisease_associations(self, lncrnadisease_folder_path):
         self.lncrnadisease_folder_path = lncrnadisease_folder_path
@@ -257,7 +277,8 @@ class LncRNAExpression(GenomicData):
         self.noncode_func_df.index = self.noncode_func_df["NONCODE Gene ID"]
 
         # Convert to NONCODE transcript ID for the functional annotattion data
-        self.noncode_func_df["NONCODE Transcript ID"] = self.noncode_func_df.index.map(pd.Series(transcript2gene_df['NONCODE Transcript ID'].values, index=transcript2gene_df['NONCODE Gene ID']).to_dict())
+        self.noncode_func_df["NONCODE Transcript ID"] = self.noncode_func_df.index.map(pd.Series(transcript2gene_df['NONCODE Transcript ID'].values,
+                                                                                                 index=transcript2gene_df['NONCODE Gene ID']).to_dict())
 
         # Convert NONCODE transcript ID to gene names
         source_gene_names_df = source_df[source_df["name type"] == "NAME"].copy()
@@ -473,8 +494,8 @@ class MiRNAExpression(GenomicData):
         self.targetScan_predicted_targets_context_score_path = os.path.join(targetScan_folder_path, "Predicted_Targets_Context_Scores.default_predictions.txt")
 
         self.process_targetscan_mirna_family()
-        self.process_mirna_target_interactions()
-        self.process_mirna_target_interactions_context_score()
+        self.process_targetScan_mirna_target_interactions()
+        self.process_targetScan_mirna_target_interactions_context_score()
 
     def process_targetscan_mirna_family(self, human_only=True, incremental_group_numbering=False):
         try:
@@ -497,7 +518,7 @@ class MiRNAExpression(GenomicData):
         self.targetScan_family_df = targetScan_family_df
         self.targetScan_family_df.index = self.targetScan_family_df['MiRBase ID']
 
-    def process_mirna_target_interactions(self):
+    def process_targetScan_mirna_target_interactions(self):
         # Load data frame from file
         try:
             targetScan_df = pd.read_table(self.targetScan_predicted_targets_path, delimiter='\t')
@@ -524,7 +545,7 @@ class MiRNAExpression(GenomicData):
         targetScan_df.drop_duplicates(inplace=True)
         self.targetScan_df = targetScan_df
 
-    def process_mirna_target_interactions_context_score(self):
+    def process_targetScan_mirna_target_interactions_context_score(self):
         # Load data frame from file
         try:
             targetScan_context_df = pd.read_table(self.targetScan_predicted_targets_context_score_path, delimiter='\t')
@@ -553,6 +574,18 @@ class MiRNAExpression(GenomicData):
 
         self.mirnadisease["Disease name"] = self.mirnadisease["Disease name"].str.lower()
 
+    def process_miRTarBase_miRNA_target_interactions(self, miRTarBase_path):
+        self.miRTarBase_path = miRTarBase_path
+        self.miRTarBase_MTI_path = os.path.join(miRTarBase_path, "miRTarBase_MTI.xlsx")
+
+        table = pd.read_excel(self.miRTarBase_MTI_path)
+        table = table[table["Species (Target Gene)"] == "Homo sapiens"]
+
+        table['miRNA'] = table['miRNA'].str.lower()
+        table['miRNA'] = table['miRNA'].str.replace("-3p.*|-5p.*", "")
+        self.miRTarBase_df = table
+
+
     def process_HUGO_miRNA_gene_info(self, HUGO_folder_path):
         self.HUGO_miRNA_gene_info_path = os.path.join(HUGO_folder_path, "RNA_micro.txt")
 
@@ -572,12 +605,15 @@ class MiRNAExpression(GenomicData):
         self.HUGO_miRNA_gene_info_df.index = self.HUGO_miRNA_gene_info_df["MiRBase ID"]
 
 
-    def get_miRNA_target_interaction(self):
+    def get_targetScan_miRNA_target_interaction(self):
         if self.targetScan_df is None:
             raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
-        return self.targetScan_df
 
-    def get_miRNA_target_interaction_edgelist(self):
+        mir_target_network = nx.from_pandas_edgelist(self.targetScan_df, source="MiRBase ID", target="Gene Symbol",
+                                                     create_using=nx.DiGraph())
+        return mir_target_network.edges(data=True)
+
+    def get_targetScan_miRNA_target_interactions_context_edgelist(self):
         mirna_target_interactions = self.targetScan_context_df.copy()
         mirna_target_interactions["weighted context++ score percentile"] = \
             mirna_target_interactions["weighted context++ score percentile"].apply(func=lambda x: x / 100.0)
@@ -588,6 +624,13 @@ class MiRNAExpression(GenomicData):
                                                      edge_attr="weight", create_using=nx.DiGraph())
         return mir_target_network.edges(data=True)
 
+    def get_miRTarBase_miRNA_target_interaction(self):
+        if self.miRTarBase_df is None:
+            raise Exception("must first run process_miRTarBase_miRNA_target_interactions")
+
+        mir_target_network = nx.from_pandas_edgelist(self.miRTarBase_df, source="miRNA", target="Target Gene",
+                                                     create_using=nx.DiGraph())
+        return mir_target_network.edges(data=True)
 
     def process_genes_info(self):
         self.gene_info = pd.DataFrame(index=self.get_genes_list())
