@@ -206,7 +206,7 @@ class LncRNAExpression(GenomicData):
         self.LncReg_RNA_regulatory_file_path = os.path.join(LncReg_folder_path, "data.xlsx")
 
     def get_LncReg_lncRNA_RNA_regulatory_interactions(self):
-        table = pd.read_table(self.lncBase_interactions_file_path)
+        table = pd.read_excel(self.LncReg_RNA_regulatory_file_path)
 
         table = table[table["species"] == "Homo sapiens"]
         table.loc[table["B_category"] == "miRNA", "B_name_in_paper"] = table[table["B_category"] == "miRNA"][
