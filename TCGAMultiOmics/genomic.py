@@ -187,6 +187,9 @@ class LncRNAExpression(GenomicData):
     def process_starBase_miRNA_lncRNA_interactions(self, starBase_folder_path):
         self.starBase_miRNA_lncRNA_file_path = os.path.join(starBase_folder_path,
                                                             "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
+
+
+    def get_starBase_lncRNA_miRNA_interactions_edgelist(self):
         grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=0)
 
         grn_df['name'] = grn_df['name'].str.lower()
@@ -194,15 +197,31 @@ class LncRNAExpression(GenomicData):
 
         self.starBase_miRNA_lncRNA_network = nx.from_pandas_edgelist(grn_df, source='name', target='geneName',
                                                                      create_using=nx.DiGraph())
+        return self.starBase_miRNA_lncRNA_network.edges()
 
-    def get_starBase_lncRNA_miRNA_interactions_edgelist(self):
-        return self.starBase_miRNA_lncRNA_network.edges() # TODO data?
-
-    def process_lncBase_lncRNA_miRNA_interactions(self, lncBase_folder_path):
+    def process_lncBase_miRNA_lncRNA_interactions(self, lncBase_folder_path):
         self.lncBase_interactions_file_path = os.path.join(lncBase_folder_path, "LncBasev2_download.csv")
 
+    def process_LncReg_lncRNA_RNA_regulatory_interactions(self, LncReg_folder_path):
+        self.LncReg_RNA_regulatory_file_path = os.path.join(LncReg_folder_path, "data.xlsx")
 
-    def get_lncBase_lncRNA_miRNA_interactions_edgelist(self, tissue=None):
+    def get_LncReg_lncRNA_RNA_regulatory_interactions(self):
+        table = pd.read_table(self.lncBase_interactions_file_path)
+
+        table = table[table["species"] == "Homo sapiens"]
+        table.loc[table["B_category"] == "miRNA", "B_name_in_paper"] = table[table["B_category"] == "miRNA"][
+            "B_name_in_paper"].str.replace("-3p.*|-5p.*", "")
+        table.loc[table["B_category"] == "miRNA", "B_name_in_paper"] = table[table["B_category"] == "miRNA"][
+            "B_name_in_paper"].str.replace("MIR", "hsa-mir-")
+        table.loc[table["B_category"] == "miRNA", "B_name_in_paper"] = table[table["B_category"] == "miRNA"][
+            "B_name_in_paper"].str.replace("let-", "hsa-let-")
+
+        LncReg_lncRNA_RNA_network = nx.from_pandas_edgelist(table, source='A_name_in_paper', target='B_name_in_paper',
+                                                               edge_attr=["relationship", "mechanism", "pmid"],
+                                                               create_using=nx.DiGraph())
+        return LncReg_lncRNA_RNA_network.edges()
+
+    def get_lncBase_miRNA_lncRNA_interactions_edgelist(self, tissue=None):
         lncbase_df = pd.read_table(self.lncBase_interactions_file_path)
 
         lncbase_df = lncbase_df[lncbase_df["species"] == "Homo sapiens"]
@@ -212,8 +231,9 @@ class LncRNAExpression(GenomicData):
         if tissue is not None:
             lncbase_df = lncbase_df[lncbase_df["tissue"] == tissue]
 
-        lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='geneName', target='mirna',
-                                                                    create_using=nx.DiGraph())
+        lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='mirna', target='geneName',
+                                                               edge_attr=["tissue", "positive_negative"],
+                                                               create_using=nx.DiGraph())
         return lncBase_lncRNA_miRNA_network.edges()
 
     def process_lncRNome_miRNA_binding_sites(self, lncRNome_folder_path):
@@ -225,7 +245,9 @@ class LncRNAExpression(GenomicData):
         df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "")
 
         self.lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source='Gene Name',
-                                                                            target='Binding miRNAs', create_using=nx.DiGraph())
+                                                                            target='Binding miRNAs',
+                                                                            edge_attr=["miRNA Interaction Site", "Transcript ID"],
+                                                                            create_using=nx.DiGraph())
 
     def get_lncRNome_miRNA_binding_sites_edgelist(self):
         return self.lncRNome_miRNA_binding_sites_network.edges()
