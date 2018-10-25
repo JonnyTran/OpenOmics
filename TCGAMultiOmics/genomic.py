@@ -388,7 +388,9 @@ class GeneExpression(GenomicData):
 
     def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
         self.targetScan_gene_info_path = targetScan_gene_info_path
-        self.targetScan_genes_info = pd.read_table(self.targetScan_gene_info_path, usecols=["Transcript ID", "Gene ID", "Species ID", "Gene symbol", "Gene description", "3P-seq tags"])
+        self.targetScan_genes_info = pd.read_table(self.targetScan_gene_info_path,
+                                                   usecols=["Transcript ID", "Gene ID", "Species ID", "Gene symbol",
+                                                            "Gene description", "3P-seq tags"])
 
         self.targetScan_genes_info["Gene description"] = self.targetScan_genes_info["Gene description"].str.replace(" \[.*\]","")
 
@@ -399,7 +401,9 @@ class GeneExpression(GenomicData):
 
     def process_HUGO_protein_coding_genes_info(self, hugo_protein_gene_names_path):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
-        self.hugo_protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path, usecols=["symbol", "locus_type", "gene_family", "gene_family_id", "location"])
+        self.hugo_protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path,
+                                                     usecols=["symbol", "locus_type", "gene_family", "gene_family_id",
+                                                              "location"])
 
 
     def process_RegNet_gene_regulatory_network(self, grn_file_path):
@@ -598,7 +602,7 @@ class MiRNAExpression(GenomicData):
 
     def process_miRTarBase_miRNA_target_interactions(self, miRTarBase_path):
         self.miRTarBase_path = miRTarBase_path
-        self.miRTarBase_MTI_path = os.path.join(miRTarBase_path, "miRTarBase_MTI.xlsx")
+        self.miRTarBase_MTI_path = os.path.join(self.miRTarBase_path, "miRTarBase_MTI.xlsx")
 
         table = pd.read_excel(self.miRTarBase_MTI_path)
         table = table[table["Species (Target Gene)"] == "Homo sapiens"]
@@ -651,6 +655,7 @@ class MiRNAExpression(GenomicData):
             raise Exception("must first run process_miRTarBase_miRNA_target_interactions")
 
         mir_target_network = nx.from_pandas_edgelist(self.miRTarBase_df, source="miRNA", target="Target Gene",
+                                                     edge_attr=["Support Type"],
                                                      create_using=nx.DiGraph())
         return mir_target_network.edges(data=True)
 
