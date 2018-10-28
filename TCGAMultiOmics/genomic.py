@@ -94,7 +94,7 @@ class GenomicData:
 
     def get_network_edgelist(self):
         if hasattr(self, "network"):
-            return self.network.edges()
+            return self.network.edges(data=True)
         else:
             print(self.__class__.__str__(), "does not have network interaction data yet. (at self.network)")
             return None
@@ -197,10 +197,7 @@ class LncRNAExpression(GenomicData):
 
         self.starBase_miRNA_lncRNA_network = nx.from_pandas_edgelist(grn_df, source='name', target='geneName',
                                                                      create_using=nx.DiGraph())
-        return self.starBase_miRNA_lncRNA_network.edges()
-
-    def process_lncBase_miRNA_lncRNA_interactions(self, lncBase_folder_path):
-        self.lncBase_interactions_file_path = os.path.join(lncBase_folder_path, "LncBasev2_download.csv")
+        return self.starBase_miRNA_lncRNA_network.edges(data=True)
 
     def process_LncReg_lncRNA_RNA_regulatory_interactions(self, LncReg_folder_path):
         self.LncReg_RNA_regulatory_file_path = os.path.join(LncReg_folder_path, "data.xlsx")
@@ -219,7 +216,10 @@ class LncRNAExpression(GenomicData):
         LncReg_lncRNA_RNA_network = nx.from_pandas_edgelist(table, source='A_name_in_paper', target='B_name_in_paper',
                                                                edge_attr=["relationship", "mechanism", "pmid"],
                                                                create_using=nx.DiGraph())
-        return LncReg_lncRNA_RNA_network.edges()
+        return LncReg_lncRNA_RNA_network.edges(data=True)
+
+    def process_lncBase_miRNA_lncRNA_interactions(self, lncBase_folder_path):
+        self.lncBase_interactions_file_path = os.path.join(lncBase_folder_path, "LncBasev2_download.csv")
 
     def get_lncBase_miRNA_lncRNA_interactions_edgelist(self, tissue=None):
         lncbase_df = pd.read_table(self.lncBase_interactions_file_path)
@@ -234,7 +234,7 @@ class LncRNAExpression(GenomicData):
         lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='mirna', target='geneName',
                                                                edge_attr=["tissue", "positive_negative"],
                                                                create_using=nx.DiGraph())
-        return lncBase_lncRNA_miRNA_network.edges()
+        return lncBase_lncRNA_miRNA_network.edges(data=True)
 
     def process_lncRNome_miRNA_binding_sites(self, lncRNome_folder_path):
         self.lnRNome_miRNA_binding_sites_path = os.path.join(lncRNome_folder_path, "miRNA_binding_sites.txt")
@@ -250,7 +250,27 @@ class LncRNAExpression(GenomicData):
                                                                             create_using=nx.DiGraph())
 
     def get_lncRNome_miRNA_binding_sites_edgelist(self):
-        return self.lncRNome_miRNA_binding_sites_network.edges()
+        return self.lncRNome_miRNA_binding_sites_network.edges(data=True)
+
+    def process_NPInter_ncRNA_RNA_regulatory_interactions(self, NPInter_folder_path):
+        self.NPInter_interactions_file_path = os.path.join(NPInter_folder_path, "interaction_NPInter[v3.0].txt")
+
+    def get_NPInter_ncRNA_RNA_regulatory_interaction_edgelist(self):
+        table = pd.read_table(self.NPInter_interactions_file_path,
+                              usecols=["ncType", "ncIdentifier", "ncName", "prType", "prIdentifier",
+                                       "InteractionPartner", "PubMedID", "organism", "tag", "interClass", "interLevel"])
+        table = table[table["organism"] == "Homo sapiens"]
+        table = table[table["interLevel"] == "RNA-RNA"]
+        table = table[table["interClass"].isin(["binding;regulatory", "regulatory"])]
+        table["InteractionPartner"] = table["InteractionPartner"].str.replace("-3p.*|-5p.*", "")
+        table["InteractionPartner"] = table["InteractionPartner"].str.replace("hsa-miR", "hsa-mir")
+
+        self.NPInter_ncRNA_RNA_regulatory_network = nx.from_pandas_edgelist(table, source='ncName',
+                                                                            target='InteractionPartner',
+                                                                            edge_attr=["tag", "interClass"],
+                                                                            create_using=nx.DiGraph())
+        return self.NPInter_ncRNA_RNA_regulatory_network.edges(data=True)
+
 
     def preprocess_genes_info(self, genes_list, ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hugo_lncrna_dict):
         self.gene_info = pd.DataFrame(index=genes_list)
@@ -698,7 +718,7 @@ class ProteinExpression(GenomicData):
                                           create_using=nx.DiGraph())
 
     def get_HPRD_PPI_network_edgelist(self):
-        return self.HPRD_PPI_network.edges()
+        return self.HPRD_PPI_network.edges(data=True)
 
     def process_STRING_PPI_network(self, ppi_data_file_path):
         pass

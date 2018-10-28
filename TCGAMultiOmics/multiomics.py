@@ -133,7 +133,8 @@ class MultiOmicsData:
                 self.LNC.process_lncRNome_gene_info(os.path.join(external_data_path, "lncRNome"))
                 self.LNC.process_lncBase_miRNA_lncRNA_interactions(lncBase_folder_path=os.path.join(external_data_path, "lncBase"))
                 self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
-                self.LNC.process_LncReg_lncRNA_RNA_regulatory_interactions(LncReg_folder_path= os.path.join(external_data_path, "LncReg"))
+                self.LNC.process_LncReg_lncRNA_RNA_regulatory_interactions(LncReg_folder_path=os.path.join(external_data_path, "LncReg"))
+                self.LNC.process_NPInter_ncRNA_RNA_regulatory_interactions(NPInter_folder_path=os.path.join(external_data_path, "NPInter"))
                 self.LNC.process_NONCODE_func_annotation(os.path.join(external_data_path, "NONCODE"))
                 self.LNC.process_lncrnadisease_associations(
                     lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
