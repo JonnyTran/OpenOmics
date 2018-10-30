@@ -93,7 +93,7 @@ class MultiOmicsData:
                 self.GE.process_DisGeNET_gene_disease_associations(
                     disgenet_folder_path=os.path.join(external_data_path, "DisGeNET"))
 
-
+                self.GE.process_starBase_RNA_RNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
             except FileNotFoundError as e:
                 print(e)
 

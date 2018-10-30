@@ -189,7 +189,7 @@ class LncRNAExpression(GenomicData):
                                                             "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
 
 
-    def get_starBase_lncRNA_miRNA_interactions_edgelist(self):
+    def get_starBase_miRNA_lncRNA_interactions_edgelist(self):
         grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=0)
 
         grn_df['name'] = grn_df['name'].str.lower()
@@ -441,6 +441,22 @@ class GeneExpression(GenomicData):
             "diseaseName"].str.lower()
         self.disgenet_all_gene_disease["diseaseName"] = self.disgenet_all_gene_disease["diseaseName"].str.lower()
 
+    def process_starBase_RNA_RNA_interactions(self, starbase_folder_path):
+        self.starbase_rna_rna_interaction_table_path = os.path.join(starbase_folder_path, "starbase_3.0_rna_rna_interactions.csv")
+
+
+    def get_starBase_RNA_RNA_interactions(self):
+        df = pd.read_csv(self.starbase_rna_rna_interaction_table_path, header=0)
+
+        df.loc[df["pairGeneType"]=="miRNA", "pairGeneName"] = df[df["pairGeneType"]=="miRNA"][
+            "pairGeneName"].str.lower()
+        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
+            "pairGeneName"].str.replace("-3p.*|-5p.*", "")
+
+        self.starBase_RNA_RNA_network = nx.from_pandas_edgelist(df, source='geneName', target='pairGeneName',
+                                                                edge_attr=["interactionNum"],
+                                                                     create_using=nx.DiGraph())
+        return self.starBase_RNA_RNA_network.edges(data=True)
 
     def get_RegNet_GRN_edgelist(self, regnet_grn_file_path=None):
         if regnet_grn_file_path is not None:
@@ -466,6 +482,7 @@ class GeneExpression(GenomicData):
                                             'Throughput', 'Qualifications', 'Modification', 'Phenotypes'])
 
         biogrid_df = biogrid_df[biogrid_df["Organism Interactor A"] == 9606]
+        # biogrid_df = biogrid_df[biogrid_df["Throughput"] == "High Throughput"]
 
         biogrid_grn = nx.from_pandas_edgelist(biogrid_df, source='Official Symbol Interactor A',
                                                    target='Official Symbol Interactor B', create_using=nx.DiGraph())
