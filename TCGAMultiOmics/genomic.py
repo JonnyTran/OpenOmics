@@ -199,6 +199,24 @@ class LncRNAExpression(GenomicData):
                                                                      create_using=nx.DiGraph())
         return self.starBase_miRNA_lncRNA_network.edges(data=True)
 
+    def process_starBase_lncRNA_RNA_interactions(self, starBase_folder_path):
+        self.starBase_lncRNA_RNA_interactions_file_path = os.path.join(starBase_folder_path,
+                                                            "starbase_3.0_lncrna_rna_interactions.csv")
+
+    def get_starBase_lncRNA_RNA_interactions(self):
+        df = pd.read_table(self.starBase_lncRNA_RNA_interactions_file_path, header=0)
+
+        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
+            "pairGeneName"].str.lower()
+        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
+            "pairGeneName"].str.replace("-3p.*|-5p.*", "")
+
+
+        self.starBase_lncRNA_RNA_network = nx.from_pandas_edgelist(df, source='geneName', target='pairGeneName',
+                                                                   edge_attr=["interactionNum"],
+                                                                     create_using=nx.DiGraph())
+        return self.starBase_lncRNA_RNA_network.edges(data=True)
+
     def process_LncReg_lncRNA_RNA_regulatory_interactions(self, LncReg_folder_path):
         self.LncReg_RNA_regulatory_file_path = os.path.join(LncReg_folder_path, "data.xlsx")
 
