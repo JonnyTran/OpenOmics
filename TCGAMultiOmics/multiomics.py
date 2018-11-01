@@ -107,6 +107,7 @@ class MultiOmicsData:
             self.data["MIR"] = self.MIR.data
 
             try:
+                self.MIR.process_mirbase_data(mirbase_folder_path=os.path.join(external_data_path, "mirbase"))
                 self.MIR.process_target_scan(targetScan_folder_path=os.path.join(external_data_path, "TargetScan"))
 
                 self.MIR.process_miRTarBase_miRNA_target_interactions(miRTarBase_path=os.path.join(external_data_path, "miRTarBase"))
@@ -115,6 +116,7 @@ class MultiOmicsData:
                     HMDD_miRNAdisease_path=os.path.join(external_data_path, "HMDD_miRNAdisease"))
 
                 self.MIR.process_HUGO_miRNA_gene_info(HUGO_folder_path=os.path.join(external_data_path, "HUGO_Gene_names"))
+                self.MIR.process_RNAcentral_annotation_info(RNAcentral_folder_path=os.path.join(external_data_path, "RNAcentral"))
 
             except FileNotFoundError as e:
                 print(e)
@@ -139,6 +141,8 @@ class MultiOmicsData:
                 self.LNC.process_NONCODE_func_annotation(os.path.join(external_data_path, "NONCODE"))
                 self.LNC.process_lncrnadisease_associations(
                     lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
+                self.LNC.process_RNAcentral_annotation_info(
+                    RNAcentral_folder_path=os.path.join(external_data_path, "RNAcentral"))
             except FileNotFoundError as e:
                 print(e)
 

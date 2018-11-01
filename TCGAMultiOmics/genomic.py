@@ -348,19 +348,14 @@ class LncRNAExpression(GenomicData):
                       index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
 
 
-        # TODO Convert using lncpedia ID
+    def process_RNAcentral_annotation_info(self, RNAcentral_folder_path):
+        self.RNAcentral_annotation_file_path = os.path.join(RNAcentral_folder_path, "rnacentral_rfam_annotations.tsv")
+        self.RNAcentral_gencode_id_file_path = os.path.join(RNAcentral_folder_path, "gencode.tsv")
 
-        # # Convert NONCODE transcript ID to gencode transcript ID
-        # source_gene_names_df = source_df[source_df["name type"] == "gencode"].copy()
-        # self.noncode_func_df["gencode transcript id"] = self.noncode_func_df["NONCODE Transcript ID"].map(
-        #     pd.Series(source_gene_names_df['Gene ID'].values,
-        #               index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
-        #
-        # # Convert NONCODE transcript ID to ensembl transcript ID
-        # source_gene_names_df = source_df[source_df["name type"] == "ensembl"].copy()
-        # self.noncode_func_df["ensembl transcript id"] = self.noncode_func_df["NONCODE Transcript ID"].map(
-        #     pd.Series(source_gene_names_df['Gene ID'].values,
-        #               index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
+        go_terms = pd.read_table(self.RNAcentral_annotation_file_path,
+                                 low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
+        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
+
 
     def get_GENCODE_lncRNA_sequence_data(self):
         lnc_seq = {}
@@ -569,6 +564,11 @@ class MiRNAExpression(GenomicData):
         file_path = os.path.join(folder_path, "miRNAExp__RPM.txt")
         super().__init__(cancer_type, file_path, log2_transform=log2_transform)
 
+    def process_mirbase_data(self, mirbase_folder_path):
+        self.mirbase_aliases_file_path = os.path.join(mirbase_folder_path, "aliases.txt")
+
+
+
     def process_target_scan(self, targetScan_folder_path):
         self.targetScan_miR_family_info_path = os.path.join(targetScan_folder_path,"miR_Family_Info.txt")
         self.targetScan_predicted_targets_path = os.path.join(targetScan_folder_path, "Predicted_Targets_Info.default_predictions.txt")
@@ -685,6 +685,46 @@ class MiRNAExpression(GenomicData):
         self.HUGO_miRNA_gene_info_df = pd.merge(df_1, df_2, how="inner", on="MiRBase ID")
         self.HUGO_miRNA_gene_info_df.index = self.HUGO_miRNA_gene_info_df["MiRBase ID"]
 
+    def process_RNAcentral_annotation_info(self, RNAcentral_folder_path):
+        self.RNAcentral_annotation_file_path = os.path.join(RNAcentral_folder_path, "rnacentral_rfam_annotations.tsv")
+        self.RNAcentral_mirbase_id_file_path = os.path.join(RNAcentral_folder_path, "mirbase.tsv")
+
+        # Add tables for ID look up
+        mirbase_id = pd.read_table(self.RNAcentral_mirbase_id_file_path,
+                                   low_memory=True, header=None,
+                                   names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
+                                          "gene name"],
+                                   index_col="mirbase id")
+        mirbase_id = mirbase_id[mirbase_id["species"] == 9606]
+
+        mirbase_name = pd.read_table(self.mirbase_aliases_file_path,
+                                     low_memory=True, header=None, names=["mirbase id", "miRNA name"], dtype="O")
+        mirbase_name = mirbase_name.join(mirbase_id, on="mirbase id", how="inner")
+
+
+        # filter GO terms and Rfam annotation for miRNAs
+        go_terms = pd.read_table(self.RNAcentral_annotation_file_path,
+                                 low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
+        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
+
+        mir_go_terms = go_terms[go_terms["RNAcentral id"].isin(mirbase_name["RNAcentral id"])].groupby("RNAcentral id")[
+            "GO terms"].apply(lambda x: "|".join(x.unique()))
+        mir_rfam = go_terms[go_terms["RNAcentral id"].isin(mirbase_name["RNAcentral id"])].groupby("RNAcentral id")[
+            "Rfams"].apply(lambda x: "|".join(x.unique()))
+
+        mirbase_name["GO terms"] = mirbase_name["RNAcentral id"].map(mir_go_terms.to_dict())
+        mirbase_name["Rfams"] = mirbase_name["RNAcentral id"].map(mir_rfam.to_dict())
+
+        # Expanding miRNA names in each MirBase Ascension ID
+        s = mirbase_name.apply(lambda x: pd.Series(x['miRNA name'].split(";")[:-1]), axis=1).stack().reset_index(
+            level=1, drop=True)
+        s.name = "miRNA name"
+        mirbase_name = mirbase_name.drop('miRNA name', axis=1).join(s)
+        mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.lower()
+        mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.replace("-3p.*|-5p.*", "")
+
+        self.RNAcentral_annotations = mirbase_name
+
 
     def get_targetScan_miRNA_target_interaction(self):
         if self.targetScan_df is None:
@@ -730,6 +770,13 @@ class MiRNAExpression(GenomicData):
         self.gene_info.rename(columns={'Mature sequence': 'Transcript sequence'}, inplace=True)
         self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(
             lambda x: len(x) if type(x) is str else None)
+
+        self.gene_info["GO Terms"] = self.gene_info["MiRBase ID"].map(
+            pd.Series(self.RNAcentral_annotations['GO terms'].values,
+                      index=self.RNAcentral_annotations['miRNA name']).to_dict())
+        self.gene_info["Rfams"] = self.gene_info["MiRBase ID"].map(
+            pd.Series(self.RNAcentral_annotations['Rfams'].values,
+                      index=self.RNAcentral_annotations['miRNA name']).to_dict())
 
     def get_genes_info(self):
         return self.gene_info
