@@ -393,7 +393,7 @@ class LncRNAExpression(GenomicData):
         gencode_id = pd.read_table(self.RNAcentral_gencode_id_file_path,
                                    low_memory=True, header=None,
                                    names=["RNAcentral id", "database", "external id", "species", "RNA type",
-                                          "gencode symbol"])
+                                          "gene symbol"])
         gencode_id = gencode_id[gencode_id["species"] == 9606]
 
         lnc_go_terms = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
