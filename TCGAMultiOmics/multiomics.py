@@ -126,7 +126,8 @@ class MultiOmicsData:
             self.LNC = LncRNAExpression(cancer_type, os.path.join(tcga_data_path, "lncrna/"),
                                         HGNC_lncRNA_names_file_path=os.path.join(external_data_path, "HUGO_Gene_names",
                                                                                  "RNA_long_non-coding.txt"),
-                                        GENCODE_folder_path=os.path.join(external_data_path, "GENCODE"))
+                                        GENCODE_folder_path=os.path.join(external_data_path, "GENCODE"),
+                                        external_data_path=external_data_path)
 
             self.data["LNC"] = self.LNC.data
 

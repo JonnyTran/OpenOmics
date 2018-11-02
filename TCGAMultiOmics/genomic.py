@@ -101,7 +101,7 @@ class GenomicData:
 
 
 class LncRNAExpression(GenomicData):
-    def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path):
+    def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path, external_data_path):
         """
         :param folder_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
         :param lncrna_names_file_path: Path to the HGNC_RNA_long_non-coding.txt file to map ensembl gene id to lncRNA names
@@ -110,6 +110,7 @@ class LncRNAExpression(GenomicData):
         self.HGNC_lncRNA_names_path = HGNC_lncRNA_names_file_path
         self.GENCODE_LncRNA_gtf_file_path = os.path.join(GENCODE_folder_path, "gencode.v28.long_noncoding_RNAs.gtf")
         self.GENCODE_LncRNA_sequence_file_path = os.path.join(GENCODE_folder_path, "gencode.v28.lncRNA_transcripts.fa")
+        self.external_data_path = external_data_path
         super().__init__(cancer_type, file_path, log2_transform=False)
 
 
@@ -129,6 +130,7 @@ class LncRNAExpression(GenomicData):
         # Preprocess genes info
         GENCODE_LncRNA_info, \
         ensembl_gene_id_to_gene_name = self.get_GENCODE_lncRNA_gene_name_dict()
+        lncipedia_lncrna_dict = self.get_lncipedia_gene_id_to_name_dict()
 
         hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
         ensembl_gene_ids = lncrna_exp['Gene_ID']
@@ -136,11 +138,17 @@ class LncRNAExpression(GenomicData):
                                    ensembl_gene_id_to_gene_name,
                                    hgnc_lncrna_dict)
 
+        # Convert ensembl gene IDs to known gene names
         print("Unmatched lncRNAs", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
+
         lncrna_exp.replace({"Gene_ID": ensembl_gene_id_to_gene_name}, inplace=True)
         print("Unmatched lncRNAs after gencode:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
+
         lncrna_exp.replace({"Gene_ID": hgnc_lncrna_dict}, inplace=True)
         print("Unmatched lncRNAs after HGNC:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
+
+        lncrna_exp.replace({"Gene_ID": lncipedia_lncrna_dict}, inplace=True)
+        print("Unmatched lncRNAs after lncipedia:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
 
         # Drop NA gene rows
         lncrna_exp.dropna(axis=0, inplace=True)
@@ -162,7 +170,16 @@ class LncRNAExpression(GenomicData):
 
         return lncrna_exp
 
-    
+    def get_lncipedia_gene_id_to_name_dict(self):
+        lncipedia_names = GTF.dataframe(
+            os.path.join(self.external_data_path, "LNCipedia/lncipedia_5_0_hg19 (copy).gtf"))
+        lncipedia_names = lncipedia_names[
+            lncipedia_names["gene_alias_1"].notnull() & lncipedia_names["gene_alias_2"].notnull()]
+        lncipedia_names = lncipedia_names[lncipedia_names["gene_alias_1"].str.startswith("ENSG")]
+        lncipedia_names = lncipedia_names[~lncipedia_names["gene_alias_2"].str.startswith("ENSG")]
+        lncipedia_lncrna_dict = pd.Series(lncipedia_names["gene_alias_2"].values,
+                                          index=lncipedia_names["gene_alias_1"]).to_dict()
+        return lncipedia_lncrna_dict
 
     def preprocess_genes_info(self, ensembl_gene_id, GENCODE_LncRNA_info, ensembl_id_to_gene_name, hgnc_lncrna_dict):
         self.gene_info = pd.DataFrame(index=ensembl_gene_id)
