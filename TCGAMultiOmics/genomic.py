@@ -403,6 +403,7 @@ class LncRNAExpression(GenomicData):
 
         gencode_id["GO terms"] = gencode_id["RNAcentral id"].map(lnc_go_terms.to_dict())
         gencode_id["Rfams"] = gencode_id["RNAcentral id"].map(lnc_rfams.to_dict())
+        gencode_id = gencode_id[gencode_id["GO terms"].notnull() | gencode_id["Rfams"].notnull()]
 
         self.RNAcentral_annotations = gencode_id
 
@@ -443,6 +444,13 @@ class LncRNAExpression(GenomicData):
         self.gene_info["Disease association"] = self.gene_info["Gene Name"].map(
             self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
 
+        # Add RNACentral GO term and Rfam family
+        self.gene_info["GO Terms"] = self.gene_info["Gene Name"].map(
+            pd.Series(self.RNAcentral_annotations['GO terms'].values,
+                      index=self.RNAcentral_annotations['gene symbol']).to_dict())
+        self.gene_info["Rfams"] = self.gene_info["Gene Name"].map(
+            pd.Series(self.RNAcentral_annotations['Rfams'].values,
+                      index=self.RNAcentral_annotations['gene symbol']).to_dict())
 
         # Change index of genes info to gene names
         self.gene_info.index = self.get_genes_list() # Assuming the entries are ordered correctly
@@ -450,9 +458,6 @@ class LncRNAExpression(GenomicData):
         self.gene_info = self.gene_info[~self.gene_info.index.duplicated(keep='first')] # Remove duplicate genes
 
         self.gene_info["locus_type"] = "RNA, long non-coding" # Needed to join with MIR and GE gene info tables
-
-
-
 
 
     def get_genes_info(self):
