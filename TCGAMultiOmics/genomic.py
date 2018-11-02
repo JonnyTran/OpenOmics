@@ -108,8 +108,8 @@ class LncRNAExpression(GenomicData):
         """
         file_path = os.path.join(folder_path, "TCGA-rnaexpr.tsv")
         self.HGNC_lncRNA_names_path = HGNC_lncRNA_names_file_path
-        self.GENCODE_LncRNA_gtf_file_path = os.path.join(GENCODE_folder_path, "gencode.v28.long_noncoding_RNAs.gtf")
-        self.GENCODE_LncRNA_sequence_file_path = os.path.join(GENCODE_folder_path, "gencode.v28.lncRNA_transcripts.fa")
+        self.GENCODE_LncRNA_gtf_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.long_noncoding_RNAs.gtf")
+        self.GENCODE_LncRNA_sequence_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.lncRNA_transcripts.fa")
         self.external_data_path = external_data_path
         super().__init__(cancer_type, file_path, log2_transform=False)
 
@@ -489,7 +489,7 @@ class GeneExpression(GenomicData):
         super().__init__(cancer_type, file_path, log2_transform=log2_transform)
 
     def process_GENCODE_transcript_data(self, gencode_folder_path):
-        self.GENCODE_transcript_sequence_file_path = os.path.join(gencode_folder_path, "gencode.v28.transcripts.fa")
+        self.GENCODE_transcript_sequence_file_path = os.path.join(gencode_folder_path, "gencode.v29.transcripts.fa")
 
     def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
         self.targetScan_gene_info_path = targetScan_gene_info_path
