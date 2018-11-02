@@ -125,26 +125,30 @@ class LncRNAExpression(GenomicData):
         """
         lncrna_exp = df
         try:
-            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t", usecols=['symbol', 'locus_type', 'ensembl_gene_id', 'name', 'location'])
+            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t",
+                                             usecols=['symbol', 'locus_type', 'ensembl_gene_id', 'name', 'location'])
             self.HGNC_lncrna_info = HGNC_lncrna_info
-            self.HGNC_lncrna_info.index = self.HGNC_lncrna_info["symbol"]
+            self.HGNC_lncrna_info.index = self.HGNC_lncrna_info["ensembl_gene_id"]
         except Exception:
             raise FileNotFoundError("Needs the file RNA_long_non-coding.txt at directory external_data/HUGO_Gene_names to process lncRNA gene info")
 
 
         # Replacing ENSG Gene ID to the lncRNA gene symbol name
-        ensembl_id_to_gene_name, ensembl_id_to_transcript_id = self.get_GENCODE_lncRNA_gene_name_dict()
-        hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
         lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         lncrna_exp = lncrna_exp[~lncrna_exp['Gene_ID'].duplicated(keep='first')] # Remove duplicate genes
 
 
         # Preprocess genes info
-        self.preprocess_genes_info(lncrna_exp['Gene_ID'], ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hgnc_lncrna_dict)
+        GENCODE_LncRNA_info, \
+        ensembl_gene_id_to_gene_name = self.get_GENCODE_lncRNA_gene_name_dict()
+
+        hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
+        self.preprocess_genes_info(lncrna_exp['Gene_ID'], GENCODE_LncRNA_info,
+                                   ensembl_gene_id_to_gene_name,
+                                   hgnc_lncrna_dict)
 
 
-
-        lncrna_exp.replace({"Gene_ID": ensembl_id_to_gene_name}, inplace=True)
+        lncrna_exp.replace({"Gene_ID": ensembl_gene_id_to_gene_name}, inplace=True)
         lncrna_exp.replace({"Gene_ID": hgnc_lncrna_dict}, inplace=True)
 
         # Drop NA gene rows
@@ -167,17 +171,55 @@ class LncRNAExpression(GenomicData):
 
         return lncrna_exp
 
+    
+
+    def preprocess_genes_info(self, ensembl_gene_id, GENCODE_LncRNA_info, ensembl_id_to_gene_name, hgnc_lncrna_dict):
+        self.gene_info = pd.DataFrame(index=ensembl_gene_id)
+        self.gene_info.index.name = "ensembl_gene_id"
+
+        self.gene_info["Gene Name"] = self.gene_info.index.map(ensembl_id_to_gene_name)
+        self.gene_info["HGNC Gene Name"] = self.gene_info.index.map(hgnc_lncrna_dict)
+
+        self.gene_info["Transcript id"] = self.gene_info.index.map(GENCODE_LncRNA_info[
+            GENCODE_LncRNA_info["transcript_id"].notnull()].groupby('gene_id')["transcript_id"].apply(
+            lambda x: "|".join(x.unique())).to_dict())
+        self.gene_info["Transcript name"] = self.gene_info.index.map(
+            GENCODE_LncRNA_info[
+                GENCODE_LncRNA_info["transcript_name"].notnull()].groupby('gene_id')["transcript_name"].apply(
+                lambda x: "|".join(x.unique())).to_dict())
+
+        self.gene_info["Transcript type"] = self.gene_info.index.map(
+            GENCODE_LncRNA_info[GENCODE_LncRNA_info["transcript_type"].notnull()].groupby('gene_id')["transcript_type"].apply(
+                lambda x: "|".join(x.unique())).to_dict())
+
+        self.gene_info["tag"] = self.gene_info.index.map(
+            GENCODE_LncRNA_info[GENCODE_LncRNA_info["tag"].notnull()].groupby('gene_id')["tag"].apply(
+                lambda x: "|".join(x.unique())).to_dict())
+
+        self.gene_info["Chromosome"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['seqname'].values,
+                                                                               index=GENCODE_LncRNA_info['gene_id']).to_dict())
+        self.gene_info["start"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['start'].values,
+                                                                          index=GENCODE_LncRNA_info[
+                                                                              'gene_id']).to_dict())
+        self.gene_info["end"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['end'].values,
+                                                                     index=GENCODE_LncRNA_info[
+                                                                         'gene_id']).to_dict())
+        self.gene_info["Strand"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['strand'].values,
+                                                                   index=GENCODE_LncRNA_info[
+                                                                       'gene_id']).to_dict())
+        self.gene_info["start"].astype(np.float64)
+        self.gene_info["end"].astype(np.float64)
+
 
     def get_GENCODE_lncRNA_gene_name_dict(self):
-        GENCODE_LncRNA_names = GTF.dataframe(self.GENCODE_LncRNA_gtf_file_path)
+        GENCODE_LncRNA_info = GTF.dataframe(self.GENCODE_LncRNA_gtf_file_path)
 
-        GENCODE_LncRNA_names['gene_id'] = GENCODE_LncRNA_names['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
+        GENCODE_LncRNA_info['gene_id'] = GENCODE_LncRNA_info['gene_id'].str.replace("[.].*", "")  # TODO Removing .# ENGS gene version number at the end
 
-        ensembl_id_to_gene_name = pd.Series(GENCODE_LncRNA_names['gene_name'].values, index=GENCODE_LncRNA_names['gene_id']).to_dict()
+        ensembl_id_to_gene_name = pd.Series(GENCODE_LncRNA_info['gene_name'].values,
+                                            index=GENCODE_LncRNA_info['gene_id']).to_dict()
 
-        ensembl_id_to_transcript_id = pd.Series(GENCODE_LncRNA_names['transcript_id'].values, index=GENCODE_LncRNA_names['gene_id']).to_dict()
-
-        return ensembl_id_to_gene_name, ensembl_id_to_transcript_id
+        return GENCODE_LncRNA_info, ensembl_id_to_gene_name
 
     def get_HUGO_lncRNA_gene_name_dict(self):
         lncrna_dict = pd.Series(self.HGNC_lncrna_info['symbol'].values,
@@ -187,7 +229,6 @@ class LncRNAExpression(GenomicData):
     def process_starBase_miRNA_lncRNA_interactions(self, starBase_folder_path):
         self.starBase_miRNA_lncRNA_file_path = os.path.join(starBase_folder_path,
                                                             "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
-
 
     def get_starBase_miRNA_lncRNA_interactions_edgelist(self):
         grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=0)
@@ -202,6 +243,8 @@ class LncRNAExpression(GenomicData):
     def process_starBase_lncRNA_RNA_interactions(self, starBase_folder_path):
         self.starBase_lncRNA_RNA_interactions_file_path = os.path.join(starBase_folder_path,
                                                             "starbase_3.0_lncrna_rna_interactions.csv")
+
+
 
     def get_starBase_lncRNA_RNA_interactions(self):
         df = pd.read_table(self.starBase_lncRNA_RNA_interactions_file_path, header=0)
@@ -273,6 +316,7 @@ class LncRNAExpression(GenomicData):
     def process_NPInter_ncRNA_RNA_regulatory_interactions(self, NPInter_folder_path):
         self.NPInter_interactions_file_path = os.path.join(NPInter_folder_path, "interaction_NPInter[v3.0].txt")
 
+
     def get_NPInter_ncRNA_RNA_regulatory_interaction_edgelist(self):
         table = pd.read_table(self.NPInter_interactions_file_path,
                               usecols=["ncType", "ncIdentifier", "ncName", "prType", "prIdentifier",
@@ -289,17 +333,6 @@ class LncRNAExpression(GenomicData):
                                                                             create_using=nx.DiGraph())
         return self.NPInter_ncRNA_RNA_regulatory_network.edges(data=True)
 
-
-    def preprocess_genes_info(self, genes_list, ensembl_id_to_gene_name, ensembl_id_to_transcript_id, hugo_lncrna_dict):
-        self.gene_info = pd.DataFrame(index=genes_list)
-        self.gene_info.index.name = "genes list"
-
-        self.gene_info["Gene Name"] = self.gene_info.index.map(ensembl_id_to_gene_name)
-        self.gene_info["Gene Name"].fillna({"ensembl id": hugo_lncrna_dict}, inplace=True)
-
-        self.gene_info["Transcript id"] = self.gene_info.index.map(ensembl_id_to_transcript_id)
-
-        self.gene_info.index = genes_list
     def process_lncRNome_gene_info(self, lncRNome_folder_path):
         self.lnRNome_genes_info_path = os.path.join(lncRNome_folder_path, "general_information.txt")
 
@@ -356,6 +389,22 @@ class LncRNAExpression(GenomicData):
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
 
+        gencode_id = pd.read_table(self.RNAcentral_gencode_id_file_path,
+                                   low_memory=True, header=None,
+                                   names=["RNAcentral id", "database", "external id", "species", "RNA type",
+                                          "gencode symbol"])
+        gencode_id = gencode_id[gencode_id["species"] == 9606]
+
+        lnc_go_terms = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
+            "GO terms"].apply(lambda x: "|".join(x.unique()))
+        lnc_rfams = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
+            "Rfams"].apply(lambda x: "|".join(x.unique()))
+
+        gencode_id["GO terms"] = gencode_id["RNAcentral id"].map(lnc_go_terms.to_dict())
+        gencode_id["Rfams"] = gencode_id["RNAcentral id"].map(lnc_rfams.to_dict())
+
+        self.RNAcentral_annotations = gencode_id
+
 
     def get_GENCODE_lncRNA_sequence_data(self):
         lnc_seq = {}
@@ -365,21 +414,24 @@ class LncRNAExpression(GenomicData):
         return lnc_seq
 
     def process_genes_info(self):
-        self.gene_info.index.name = "symbol"
-        self.gene_info = self.gene_info.join(self.HGNC_lncrna_info.groupby("symbol").first(), on="symbol",
-                                             how="left")
+        # self.gene_info.index.name = "ensembl_gene_id"
+        # self.gene_info = self.gene_info.join(self.HGNC_lncrna_info.groupby("ensembl_gene_id").first(), on="ensembl_gene_id",
+        #                                      how="left")
+        # print(self.gene_info.shape)
+        # # self.gene_info.index.name = "Gene Name"
+        # self.gene_info = pd.merge(self.gene_info, self.lnRNome_genes_info.groupby("Gene Name").first(),
+        #                           left_on="Gene Name", right_on="Gene Name", how="left")
+        # print(self.gene_info.shape)
 
-        self.gene_info.index.name = "Gene Name"
-        self.gene_info = self.gene_info.join(self.lnRNome_genes_info.groupby("Gene Name").first(), on="Gene Name",
-                                             how="left")
+        # self.gene_info.index = self.gene_info["Gene Name"]
+        # self.gene_info = self.gene_info.join(self.noncode_func_df.groupby("Gene Name").first(), on="Gene Name",
+        #                                      how="left") # Also adds GO terms
 
-        self.gene_info.index = self.gene_info["Gene Name"]
-        self.gene_info = self.gene_info.join(self.noncode_func_df.groupby("Gene Name").first(), on="Gene Name",
-                                             how="left")
 
-        # Merge transcript sequence data
-        self.gene_info["Transcript sequence"] = self.gene_info["Gene Name"].map(
+        # Merge GENCODE transcript sequence data
+        self.gene_info["Transcript sequence"] = self.gene_info.index.map(
             self.get_GENCODE_lncRNA_sequence_data())
+        self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(lambda x: len(x) if type(x) is str else None)
 
         # Merge lncrnadisease associations database
         self.gene_info["Disease association"] = self.gene_info["Gene Name"].map(
@@ -391,20 +443,11 @@ class LncRNAExpression(GenomicData):
         self.features = list(OrderedDict.fromkeys(self.features))
         self.gene_info = self.gene_info[~self.gene_info.index.duplicated(keep='first')] # Remove duplicate genes
 
-        # Process gene location info
-        self.gene_info["Chromosome"] = self.gene_info["Location"].str.split(":", expand=True)[0]
-        self.gene_info["start"] = self.gene_info["Location"].str.split(":", expand=True)[1].str.split("-", expand=True)[0]
-        self.gene_info["end"] = self.gene_info["Location"].str.split(":", expand=True)[1].str.split("-", expand=True)[1]
-        self.gene_info["bp length"] = self.gene_info["Location"].str.split(":", expand=True)[1].apply(
-            lambda x: int(x.split("-")[1]) - int(x.split("-")[0]) if (type(x) is str) else None)
-
-        self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(lambda x: len(x) if type(x) is str else None)
+        self.gene_info["locus_type"] = "RNA, long non-coding" # Needed to join with MIR and GE gene info tables
 
 
-        self.gene_info["start"].astype(np.float64)
-        self.gene_info["end"].astype(np.float64)
 
-        self.gene_info["locus_type"] = "RNA, long non-coding"
+
 
     def get_genes_info(self):
         return self.gene_info
