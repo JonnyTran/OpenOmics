@@ -601,6 +601,8 @@ class GeneExpression(GenomicData):
         self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(
             lambda x: len(x) if type(x) is str else None)
 
+        self.gene_info["3P-seq tags"] = self.gene_info["3P-seq tags"].astype("O")
+
     def get_genes_info(self):
         return self.gene_info
 
