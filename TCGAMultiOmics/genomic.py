@@ -124,14 +124,6 @@ class LncRNAExpression(GenomicData):
         :return:
         """
         lncrna_exp = df
-        try:
-            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t",
-                                             usecols=['symbol', 'locus_type', 'ensembl_gene_id', 'name', 'location'])
-            self.HGNC_lncrna_info = HGNC_lncrna_info
-            self.HGNC_lncrna_info.index = self.HGNC_lncrna_info["ensembl_gene_id"]
-        except Exception:
-            raise FileNotFoundError("Needs the file RNA_long_non-coding.txt at directory external_data/HUGO_Gene_names to process lncRNA gene info")
-
 
         # Replacing ENSG Gene ID to the lncRNA gene symbol name
         lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
@@ -221,6 +213,14 @@ class LncRNAExpression(GenomicData):
         return GENCODE_LncRNA_info, ensembl_id_to_gene_name
 
     def get_HUGO_lncRNA_gene_name_dict(self):
+        try:
+            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t",
+                                             usecols=['symbol', 'locus_type', 'ensembl_gene_id', 'name', 'location'])
+            self.HGNC_lncrna_info = HGNC_lncrna_info
+            self.HGNC_lncrna_info.index = self.HGNC_lncrna_info["ensembl_gene_id"]
+        except Exception:
+            raise FileNotFoundError("Needs the file RNA_long_non-coding.txt at directory external_data/HUGO_Gene_names to process lncRNA gene info")
+
         lncrna_dict = pd.Series(self.HGNC_lncrna_info['symbol'].values,
                                 index=self.HGNC_lncrna_info['ensembl_gene_id']).to_dict()
         return lncrna_dict
