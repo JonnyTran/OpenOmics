@@ -215,6 +215,7 @@ class LncRNAExpression(GenomicData):
         GENCODE_LncRNA_info = GTF.dataframe(self.GENCODE_LncRNA_gtf_file_path)
 
         GENCODE_LncRNA_info['gene_id'] = GENCODE_LncRNA_info['gene_id'].str.replace("[.].*", "")  # TODO Removing .# ENGS gene version number at the end
+        GENCODE_LncRNA_info['transcript_id'] = GENCODE_LncRNA_info['transcript_id'].str.replace("[.].*", "")
 
         ensembl_id_to_gene_name = pd.Series(GENCODE_LncRNA_info['gene_name'].values,
                                             index=GENCODE_LncRNA_info['gene_id']).to_dict()
@@ -409,7 +410,12 @@ class LncRNAExpression(GenomicData):
     def get_GENCODE_lncRNA_sequence_data(self):
         lnc_seq = {}
         for record in SeqIO.parse(self.GENCODE_LncRNA_sequence_file_path, "fasta"):
-            lnc_seq[record.id.split("|")[5]] = str(record.seq)
+            gene_name = record.id.split("|")[5]
+            if gene_name not in lnc_seq:
+                lnc_seq[gene_name] = str(record.seq)
+            else:
+                if len(record.seq) < len(lnc_seq[gene_name]):
+                    lnc_seq[gene_name] = str(record.seq)
 
         return lnc_seq
 
@@ -438,8 +444,8 @@ class LncRNAExpression(GenomicData):
             self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
 
 
+        # Change index of genes info to gene names
         self.gene_info.index = self.get_genes_list() # Assuming the entries are ordered correctly
-
         self.features = list(OrderedDict.fromkeys(self.features))
         self.gene_info = self.gene_info[~self.gene_info.index.duplicated(keep='first')] # Remove duplicate genes
 
