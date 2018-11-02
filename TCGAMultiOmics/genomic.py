@@ -200,15 +200,13 @@ class LncRNAExpression(GenomicData):
                                                                                index=GENCODE_LncRNA_info['gene_id']).to_dict())
         self.gene_info["start"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['start'].values,
                                                                           index=GENCODE_LncRNA_info[
-                                                                              'gene_id']).to_dict())
+                                                                              'gene_id']).to_dict()).astype(np.float64)
         self.gene_info["end"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['end'].values,
                                                                      index=GENCODE_LncRNA_info[
-                                                                         'gene_id']).to_dict())
+                                                                         'gene_id']).to_dict()).astype(np.float64)
         self.gene_info["Strand"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['strand'].values,
                                                                    index=GENCODE_LncRNA_info[
                                                                        'gene_id']).to_dict())
-        self.gene_info["start"].astype(np.float64)
-        self.gene_info["end"].astype(np.float64)
 
 
     def get_GENCODE_lncRNA_gene_name_dict(self):
