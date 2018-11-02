@@ -118,16 +118,12 @@ class LncRNAExpression(GenomicData):
         Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
 
         TANRIC LNCRNA expression values are log2 transformed
-
-        :param df:
-        :param columns:
-        :return:
         """
         lncrna_exp = df
 
         # Replacing ENSG Gene ID to the lncRNA gene symbol name
         lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
-        lncrna_exp = lncrna_exp[~lncrna_exp['Gene_ID'].duplicated(keep='first')] # Remove duplicate genes
+        lncrna_exp = lncrna_exp[~lncrna_exp['Gene_ID'].duplicated(keep='first')] # Remove duplicate genes should not be any
 
 
         # Preprocess genes info
@@ -135,13 +131,16 @@ class LncRNAExpression(GenomicData):
         ensembl_gene_id_to_gene_name = self.get_GENCODE_lncRNA_gene_name_dict()
 
         hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
-        self.preprocess_genes_info(lncrna_exp['Gene_ID'], GENCODE_LncRNA_info,
+        ensembl_gene_ids = lncrna_exp['Gene_ID']
+        self.preprocess_genes_info(ensembl_gene_ids, GENCODE_LncRNA_info,
                                    ensembl_gene_id_to_gene_name,
                                    hgnc_lncrna_dict)
 
-
+        print("Unmatched lncRNAs", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
         lncrna_exp.replace({"Gene_ID": ensembl_gene_id_to_gene_name}, inplace=True)
+        print("Unmatched lncRNAs after gencode:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
         lncrna_exp.replace({"Gene_ID": hgnc_lncrna_dict}, inplace=True)
+        print("Unmatched lncRNAs after HGNC:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
 
         # Drop NA gene rows
         lncrna_exp.dropna(axis=0, inplace=True)
@@ -169,6 +168,7 @@ class LncRNAExpression(GenomicData):
         self.gene_info = pd.DataFrame(index=ensembl_gene_id)
         self.gene_info.index.name = "ensembl_gene_id"
 
+        self.gene_info["Gene ID"] = self.gene_info.index
         self.gene_info["Gene Name"] = self.gene_info.index.map(ensembl_id_to_gene_name)
         self.gene_info["HGNC Gene Name"] = self.gene_info.index.map(hgnc_lncrna_dict)
 
@@ -199,6 +199,10 @@ class LncRNAExpression(GenomicData):
         self.gene_info["Strand"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['strand'].values,
                                                                    index=GENCODE_LncRNA_info[
                                                                        'gene_id']).to_dict())
+
+        # Merge GENCODE transcript sequence data
+        self.gene_info["Transcript sequence"] = self.gene_info["Gene Name"].map(
+            self.get_GENCODE_lncRNA_sequence_data())
 
 
     def get_GENCODE_lncRNA_gene_name_dict(self):
@@ -409,12 +413,13 @@ class LncRNAExpression(GenomicData):
     def get_GENCODE_lncRNA_sequence_data(self):
         lnc_seq = {}
         for record in SeqIO.parse(self.GENCODE_LncRNA_sequence_file_path, "fasta"):
+            # gene_id = record.id.split("|")[1]
+            # lnc_seq[gene_id] = str(record.seq)
             gene_name = record.id.split("|")[5]
             if gene_name not in lnc_seq:
-                lnc_seq[gene_name] = str(record.seq)
+                lnc_seq[gene_name] = [str(record.seq), ]
             else:
-                if len(record.seq) < len(lnc_seq[gene_name]):
-                    lnc_seq[gene_name] = str(record.seq)
+                lnc_seq[gene_name].append(str(record.seq))
 
         return lnc_seq
 
@@ -433,10 +438,8 @@ class LncRNAExpression(GenomicData):
         #                                      how="left") # Also adds GO terms
 
 
-        # Merge GENCODE transcript sequence data
-        self.gene_info["Transcript sequence"] = self.gene_info.index.map(
-            self.get_GENCODE_lncRNA_sequence_data())
-        self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(lambda x: len(x) if type(x) is str else None)
+
+        # self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(lambda x: len(x) if type(x) is str else None)
 
         # Merge lncrnadisease associations database
         self.gene_info["Disease association"] = self.gene_info["Gene Name"].map(
