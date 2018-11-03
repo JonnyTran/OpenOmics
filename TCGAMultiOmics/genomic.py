@@ -491,8 +491,6 @@ class LncRNAExpression(GenomicData):
         self.features = list(OrderedDict.fromkeys(self.features))
         self.gene_info = self.gene_info[~self.gene_info.index.duplicated(keep='first')] # Remove duplicate genes
 
-        self.gene_info["locus_type"] = "RNA, long non-coding" # Needed to join with MIR and GE gene info tables
-
 
     def get_genes_info(self):
         return self.gene_info
