@@ -446,13 +446,13 @@ class LncRNAExpression(GenomicData):
     def get_GENCODE_lncRNA_sequence_data(self):
         lnc_seq = {}
         for record in SeqIO.parse(self.GENCODE_LncRNA_sequence_file_path, "fasta"):
-            # gene_id = record.id.split("|")[1]
-            # lnc_seq[gene_id] = str(record.seq)
-            gene_name = record.id.split("|")[5]
-            if gene_name not in lnc_seq:
-                lnc_seq[gene_name] = [str(record.seq), ]
-            else:
-                lnc_seq[gene_name].append(str(record.seq))
+            gene_id = record.id.split("|")[1]
+            lnc_seq[gene_id] = str(record.seq)
+            # gene_name = record.id.split("|")[5]
+            # if gene_name not in lnc_seq:
+            #     lnc_seq[gene_name] = [str(record.seq), ]
+            # else:
+            #     lnc_seq[gene_name].append(str(record.seq))
 
         return lnc_seq
 
