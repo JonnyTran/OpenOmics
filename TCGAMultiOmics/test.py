@@ -1,3 +1,5 @@
+import pandas as pd
+
 from TCGAMultiOmics.multiomics import MultiOmicsData
 
 folder_path = "/home/jonny_admin/PycharmProjects/Bioinformatics_ExternalData/tcga-assembler/LUAD"
@@ -20,3 +22,9 @@ print(LNC.columns)
 print("LNC transcripts matched", LNC["Rfams"].notnull().sum())
 # print(luad_data.MIR.get_genes_info())
 # print(luad_data.GE.get_genes_info().T.apply(lambda x: x.nunique(), axis=1))
+
+table = pd.read_table(luad_data.LNC.lncBase_interactions_file_path)
+print("matching geneName", len(set(LNC.index) & set(table["geneName"])))
+print("matching gene_id", len(set(LNC.index) & set(table["geneId"])))
+
+print(LNC.head())

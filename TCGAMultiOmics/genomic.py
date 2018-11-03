@@ -131,6 +131,7 @@ class LncRNAExpression(GenomicData):
         GENCODE_LncRNA_info, \
         ensembl_gene_id_to_gene_name = self.get_GENCODE_lncRNA_gene_name_dict()
         lncipedia_lncrna_dict = self.get_lncipedia_gene_id_to_name_dict()
+        lncBase_gene_id_to_name_dict = self.get_lncBase_gene_id_to_name_dict()
 
         hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
         ensembl_gene_ids = lncrna_exp['Gene_ID']
@@ -140,6 +141,9 @@ class LncRNAExpression(GenomicData):
 
         # Convert ensembl gene IDs to known gene names
         print("Unmatched lncRNAs", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
+
+        lncrna_exp.replace({"Gene_ID": lncBase_gene_id_to_name_dict}, inplace=True)
+        print("Unmatched lncRNAs after lncBase:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
 
         lncrna_exp.replace({"Gene_ID": ensembl_gene_id_to_gene_name}, inplace=True)
         print("Unmatched lncRNAs after gencode:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
@@ -170,6 +174,12 @@ class LncRNAExpression(GenomicData):
 
         return lncrna_exp
 
+    def get_lncBase_gene_id_to_name_dict(self):
+        table = pd.read_table(os.path.join(self.external_data_path, "lncBase/LncBasev2_download.csv"))
+        lncBase_gene_id_to_name_dict = pd.Series(table["geneName"].values,
+                                          index=table["geneId"]).to_dict()
+        return lncBase_gene_id_to_name_dict
+
     def get_lncipedia_gene_id_to_name_dict(self):
         lncipedia_names = GTF.dataframe(
             os.path.join(self.external_data_path, "LNCipedia/lncipedia_5_0_hg19 (copy).gtf"))
@@ -188,6 +198,7 @@ class LncRNAExpression(GenomicData):
         self.gene_info["Gene ID"] = self.gene_info.index
         self.gene_info["Gene Name"] = self.gene_info.index.map(ensembl_id_to_gene_name)
         self.gene_info["HGNC Gene Name"] = self.gene_info.index.map(hgnc_lncrna_dict)
+
 
         self.gene_info["Transcript id"] = self.gene_info.index.map(GENCODE_LncRNA_info[
             GENCODE_LncRNA_info["transcript_id"].notnull()].groupby('gene_id')["transcript_id"].apply(
@@ -217,6 +228,11 @@ class LncRNAExpression(GenomicData):
                                                                    index=GENCODE_LncRNA_info[
                                                                        'gene_id']).to_dict())
 
+        self.gene_info["locus_type"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['gene_type'].values,
+                                                                     index=GENCODE_LncRNA_info[
+                                                                         'gene_id']).to_dict())
+
+
         # Merge GENCODE transcript sequence data
         self.gene_info["Transcript sequence"] = self.gene_info["Gene Name"].map(
             self.get_GENCODE_lncRNA_sequence_data())
@@ -224,7 +240,7 @@ class LncRNAExpression(GenomicData):
 
     def get_GENCODE_lncRNA_gene_name_dict(self):
         GENCODE_LncRNA_info = GTF.dataframe(self.GENCODE_LncRNA_gtf_file_path)
-
+        print(GENCODE_LncRNA_info.columns)
         GENCODE_LncRNA_info['gene_id'] = GENCODE_LncRNA_info['gene_id'].str.replace("[.].*", "")  # TODO Removing .# ENGS gene version number at the end
         GENCODE_LncRNA_info['transcript_id'] = GENCODE_LncRNA_info['transcript_id'].str.replace("[.].*", "")
 
