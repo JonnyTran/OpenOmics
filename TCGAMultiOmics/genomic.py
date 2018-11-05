@@ -580,6 +580,7 @@ class GeneExpression(GenomicData):
             "pairGeneName"].str.lower()
         df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
             "pairGeneName"].str.replace("-3p.*|-5p.*", "")
+        df = df[df["interactionNum"]>1]
 
         self.starBase_RNA_RNA_network = nx.from_pandas_edgelist(df, source='geneName', target='pairGeneName',
                                                                 edge_attr=["interactionNum"],
