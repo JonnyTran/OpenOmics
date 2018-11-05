@@ -454,7 +454,7 @@ class LncRNAExpression(GenomicData):
             if gene_name not in lnc_seq:
                 lnc_seq[gene_name] = str(record.seq)
             else:
-                if len(lnc_seq[gene_name]) > len(str(record.seq)):
+                if len(lnc_seq[gene_name]) < len(str(record.seq)):
                     lnc_seq[gene_name] = str(record.seq)
 
             # Multiple transcripts each lncRNA gene
