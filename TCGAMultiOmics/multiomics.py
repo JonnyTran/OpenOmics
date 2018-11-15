@@ -69,19 +69,21 @@ class MultiOmicsData:
             # self.data["BIOSPECIMENS"] = self.clinical.biospecimen
             self.data["DRUGS"] = self.clinical.drugs
 
-        if ("WSI" in modalities):
+        if "WSI" in modalities:
             pass
             # self.WSI = WholeSlideImages(cancer_type, folder_path)
             # self.data["WSI"] = self.WSI
 
-        if ("GE" in modalities):
+        if "GE" in modalities:
             self.GE = GeneExpression(cancer_type, os.path.join(tcga_data_path, "gene_exp/"))
             self.data["GE"] = self.GE.data
 
             try:
-                self.GE.process_targetScan_gene_info(targetScan_gene_info_path=os.path.join(external_data_path, "TargetScan", "Gene_info.txt"))
+                self.GE.process_targetScan_gene_info(
+                    targetScan_gene_info_path=os.path.join(external_data_path, "TargetScan", "Gene_info.txt"))
 
-                self.GE.process_HUGO_protein_coding_genes_info(os.path.join(external_data_path, "HUGO_Gene_names", "gene_with_protein_product.txt"))
+                self.GE.process_HUGO_protein_coding_genes_info(
+                    os.path.join(external_data_path, "HUGO_Gene_names", "gene_with_protein_product.txt"))
 
                 self.GE.process_GO_genes_info(os.path.join(external_data_path, "GeneOntology"))
 
@@ -99,12 +101,11 @@ class MultiOmicsData:
             except FileNotFoundError as e:
                 print(e)
 
-
-        if ("SNP" in modalities):
+        if "SNP" in modalities:
             self.SNP = SomaticMutation(cancer_type, os.path.join(tcga_data_path, "somatic/"))
             self.data["SNP"] = self.SNP.data
 
-        if ("MIR" in modalities):
+        if "MIR" in modalities:
             self.MIR = MiRNAExpression(cancer_type, os.path.join(tcga_data_path, "mirna/"))
             self.data["MIR"] = self.MIR.data
 
@@ -112,19 +113,24 @@ class MultiOmicsData:
                 self.MIR.process_mirbase_data(mirbase_folder_path=os.path.join(external_data_path, "mirbase"))
                 self.MIR.process_target_scan(targetScan_folder_path=os.path.join(external_data_path, "TargetScan"))
 
-                self.MIR.process_miRTarBase_miRNA_target_interactions(miRTarBase_path=os.path.join(external_data_path, "miRTarBase"))
+                self.MIR.process_miRTarBase_miRNA_target_interactions(
+                    miRTarBase_path=os.path.join(external_data_path, "miRTarBase"))
 
                 self.MIR.process_mirnadisease_associations(
                     HMDD_miRNAdisease_path=os.path.join(external_data_path, "HMDD_miRNAdisease"))
 
-                self.MIR.process_HUGO_miRNA_gene_info(HUGO_folder_path=os.path.join(external_data_path, "HUGO_Gene_names"))
-                self.MIR.process_RNAcentral_annotation_info(RNAcentral_folder_path=os.path.join(external_data_path, "RNAcentral"))
+                self.MIR.process_HUGO_miRNA_gene_info(
+                    HUGO_folder_path=os.path.join(external_data_path, "HUGO_Gene_names"))
+                self.MIR.process_RNAcentral_annotation_info(
+                    RNAcentral_folder_path=os.path.join(external_data_path, "RNAcentral"))
 
             except FileNotFoundError as e:
                 print(e)
-                print("Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data folder in the directory", external_data_path)
+                print(
+                    "Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data folder in the directory",
+                    external_data_path)
 
-        if ("LNC" in modalities):
+        if "LNC" in modalities:
             self.LNC = LncRNAExpression(cancer_type, os.path.join(tcga_data_path, "lncrna/"),
                                         HGNC_lncRNA_names_file_path=os.path.join(external_data_path, "HUGO_Gene_names",
                                                                                  "RNA_long_non-coding.txt"),
@@ -136,11 +142,14 @@ class MultiOmicsData:
             try:
                 self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
                 self.LNC.process_lncRNome_gene_info(os.path.join(external_data_path, "lncRNome"))
-                self.LNC.process_lncBase_miRNA_lncRNA_interactions(lncBase_folder_path=os.path.join(external_data_path, "lncBase"))
+                self.LNC.process_lncBase_miRNA_lncRNA_interactions(
+                    lncBase_folder_path=os.path.join(external_data_path, "lncBase"))
                 self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
                 self.LNC.process_starBase_lncRNA_RNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
-                self.LNC.process_LncReg_lncRNA_RNA_regulatory_interactions(LncReg_folder_path=os.path.join(external_data_path, "LncReg"))
-                self.LNC.process_NPInter_ncRNA_RNA_regulatory_interactions(NPInter_folder_path=os.path.join(external_data_path, "NPInter"))
+                self.LNC.process_LncReg_lncRNA_RNA_regulatory_interactions(
+                    LncReg_folder_path=os.path.join(external_data_path, "LncReg"))
+                self.LNC.process_NPInter_ncRNA_RNA_regulatory_interactions(
+                    NPInter_folder_path=os.path.join(external_data_path, "NPInter"))
                 self.LNC.process_NONCODE_func_annotation(os.path.join(external_data_path, "NONCODE"))
                 self.LNC.process_lncrnadisease_associations(
                     lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
@@ -149,20 +158,21 @@ class MultiOmicsData:
             except FileNotFoundError as e:
                 print(e)
 
-        if ("DNA" in modalities):
+        if "DNA" in modalities:
             self.DNA = DNAMethylation(cancer_type, os.path.join(tcga_data_path, "dna/"))
             self.data["DNA"] = self.DNA.data
-        if ("CNV" in modalities):
+        if "CNV" in modalities:
             self.CNV = CopyNumberVariation(cancer_type, os.path.join(tcga_data_path, "cnv/"))
             self.data["CNV"] = self.CNV.data
-        if ("PRO" in modalities):
+        if "PRO" in modalities:
             self.PRO = ProteinExpression(cancer_type, os.path.join(tcga_data_path, "protein_rppa/"))
             self.data["PRO"] = self.PRO.data
             self.PRO.process_HPRD_PPI_network(
-                ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI", "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
+                ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
+                                                "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
 
         # Build a table for each samples's clinical data
-        if len(modalities) > 1: # TODO Has to make sure at least one GenomicData present
+        if len(modalities) > 1:  # TODO Has to make sure at least one GenomicData present
             all_samples = pd.Index([])
             for modality in self.modalities:
                 all_samples = all_samples.union(self.data[modality].index)
@@ -181,7 +191,6 @@ class MultiOmicsData:
                 if hasattr(self[modality], "process_genes_info"):
                     self[modality].process_genes_info()
                     print("Processed genes info for ", modality)
-
 
     def __getitem__(self, item):
         """
@@ -223,6 +232,7 @@ class MultiOmicsData:
 
         return matched_samples
 
+    # noinspection PyPep8Naming
     def load_data(self, modalities, target=['pathologic_stage'],
                   pathologic_stages=[], histological_subtypes=[], predicted_subtypes=[], tumor_normal=[],
                   samples_barcode=None):
@@ -239,7 +249,7 @@ class MultiOmicsData:
         :param samples_barcode: A list of sample's barcode. If not None, only fetch data with matching bcr_sample_barcodes provided in this list
         :return: X, y
         """
-        if modalities == 'all' or modalities == None:
+        if modalities == 'all' or modalities is None:
             modalities = self.modalities
         elif modalities:
             modalities = modalities
@@ -278,7 +288,6 @@ class MultiOmicsData:
 
         return X_multiomics, y
 
-
     def get_patients_clinical(self, matched_samples):
         """
         Fetch patient's clinical data for each given samples barcodes in the matched_samples
@@ -286,12 +295,10 @@ class MultiOmicsData:
         """
         return self.data["SAMPLES"].reindex(matched_samples)
 
-
     def print_sample_sizes(self):
         for modality in self.data.keys():
             print(modality, self.data[modality].shape if hasattr(self.data[modality],
-                                                                             'shape') else "Didn't import data")
-
+                                                                 'shape') else "Didn't import data")
 
     def add_subtypes_to_patients_clinical(self, dictionary):
         """
@@ -307,5 +314,3 @@ class MultiOmicsData:
         """
         self.data["PATIENTS"] = self.data["PATIENTS"].assign(
             predicted_subtype=self.data["PATIENTS"][BCR_PATIENT_BARCODE].map(dictionary))
-
-

@@ -105,7 +105,6 @@ class LncRNAExpression(GenomicData):
     def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path, external_data_path):
         """
         :param folder_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
-        :param lncrna_names_file_path: Path to the HGNC_RNA_long_non-coding.txt file to map ensembl gene id to lncRNA names
         """
         file_path = os.path.join(folder_path, "TCGA-rnaexpr.tsv")
         self.HGNC_lncRNA_names_path = HGNC_lncRNA_names_file_path
@@ -694,7 +693,7 @@ class MiRNAExpression(GenomicData):
         self.process_targetScan_mirna_target_interactions()
         self.process_targetScan_mirna_target_interactions_context_score()
 
-    def process_targetscan_mirna_family(self, human_only=True, incremental_group_numbering=False):
+    def process_targetscan_mirna_family(self, human_only=True):
         try:
             targetScan_family_df = pd.read_table(self.targetScan_miR_family_info_path, delimiter='\t')
         except Exception:
