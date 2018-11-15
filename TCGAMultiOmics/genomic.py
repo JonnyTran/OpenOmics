@@ -435,8 +435,6 @@ class LncRNAExpression(GenomicData):
             "GO terms"].apply(lambda x: "|".join(x.unique()))
         lnc_rfams = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
             "Rfams"].apply(lambda x: "|".join(x.unique()))
-        self.gene_info = self.gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID",
-                                             how="left")
 
         gencode_id["GO terms"] = gencode_id["RNAcentral id"].map(lnc_go_terms.to_dict())
         gencode_id["Rfams"] = gencode_id["RNAcentral id"].map(lnc_rfams.to_dict())
