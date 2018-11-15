@@ -142,11 +142,11 @@ class LncRNAExpression(GenomicData):
         # Convert ensembl gene IDs to known gene names
         print("Unmatched lncRNAs", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
 
-        lncrna_exp.replace({"Gene_ID": lncBase_gene_id_to_name_dict}, inplace=True)
-        print("Unmatched lncRNAs after lncBase:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
-
         lncrna_exp.replace({"Gene_ID": ensembl_gene_id_to_gene_name}, inplace=True)
         print("Unmatched lncRNAs after gencode:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
+
+        lncrna_exp.replace({"Gene_ID": lncBase_gene_id_to_name_dict}, inplace=True)
+        print("Unmatched lncRNAs after lncBase:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
 
         lncrna_exp.replace({"Gene_ID": hgnc_lncrna_dict}, inplace=True)
         print("Unmatched lncRNAs after HGNC:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
@@ -240,7 +240,7 @@ class LncRNAExpression(GenomicData):
 
     def get_GENCODE_lncRNA_gene_name_dict(self):
         GENCODE_LncRNA_info = GTF.dataframe(self.GENCODE_LncRNA_gtf_file_path)
-        print(GENCODE_LncRNA_info.columns)
+        # print(GENCODE_LncRNA_info.columns)
         GENCODE_LncRNA_info['gene_id'] = GENCODE_LncRNA_info['gene_id'].str.replace("[.].*", "")  # TODO Removing .# ENGS gene version number at the end
         GENCODE_LncRNA_info['transcript_id'] = GENCODE_LncRNA_info['transcript_id'].str.replace("[.].*", "")
 
@@ -435,6 +435,8 @@ class LncRNAExpression(GenomicData):
             "GO terms"].apply(lambda x: "|".join(x.unique()))
         lnc_rfams = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
             "Rfams"].apply(lambda x: "|".join(x.unique()))
+        self.gene_info = self.gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID",
+                                             how="left")
 
         gencode_id["GO terms"] = gencode_id["RNAcentral id"].map(lnc_go_terms.to_dict())
         gencode_id["Rfams"] = gencode_id["RNAcentral id"].map(lnc_rfams.to_dict())
@@ -856,14 +858,14 @@ class MiRNAExpression(GenomicData):
         self.gene_info = pd.DataFrame(index=self.get_genes_list())
 
         self.gene_info.index.name = "MiRBase ID"
-        self.gene_info = self.gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID",how="left")
+        self.gene_info = self.gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID", how="left")
 
-        self.gene_info = self.gene_info.join(self.HUGO_miRNA_gene_info_df, on="MiRBase ID")
+        self.gene_info = self.gene_info.join(self.HUGO_miRNA_gene_info_df, on="MiRBase ID", how="left")
 
         self.gene_info["Disease association"] = self.gene_info.index.map(
             self.mirnadisease.groupby("miRNA name")["Disease name"].apply('|'.join).to_dict())
 
-        self.gene_info["locus_type"] = "RNA, micro"
+        self.gene_info["locus_type"] = "microRNA"
 
         self.gene_info.rename(columns={'Mature sequence': 'Transcript sequence'}, inplace=True)
         self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(
