@@ -5,6 +5,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 from Bio import SeqIO
+from Bio.UniProt import GOA
 from pandas import Series
 
 from TCGAMultiOmics.utils import GTF
@@ -534,6 +535,19 @@ class GeneExpression(GenomicData):
                                                               "location"])
 
 
+    def process_GO_genes_info(self, gene_ontology_folder_path):
+        self.gene_ontology_file_path = os.path.join(gene_ontology_folder_path, "goa_human.gaf")
+
+
+    def get_GO_genes_info(self):
+        lines = []
+        with open(self.gene_ontology_file_path) as file:
+            l = GOA.gafiterator(file)
+            for line in l:
+                lines.append(line)
+        go_df = pd.DataFrame(lines)
+        return go_df
+
     def process_RegNet_gene_regulatory_network(self, grn_file_path):
         self.regnet_grn_file_path = grn_file_path
 
@@ -629,6 +643,10 @@ class GeneExpression(GenomicData):
         transcript_seq, gene_type = self.get_GENCODE_transcript_data()
         self.gene_info["locus_type"] = self.gene_info.index.map(gene_type)
         self.gene_info["Transcript sequence"] = self.gene_info.index.map(transcript_seq)
+
+        go_df = self.get_GO_genes_info()
+        self.gene_info["GO Terms"] = self.gene_info.index.map(go_df.groupby("DB_Object_Symbol")["GO_ID"].apply(
+            lambda x: "|".join(x.unique())).to_dict())
 
         if curated_gene_disease_assocs_only:
             self.gene_info["Disease association"] = self.gene_info.index.map(

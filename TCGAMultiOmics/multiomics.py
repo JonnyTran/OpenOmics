@@ -83,6 +83,8 @@ class MultiOmicsData:
 
                 self.GE.process_HUGO_protein_coding_genes_info(os.path.join(external_data_path, "HUGO_Gene_names", "gene_with_protein_product.txt"))
 
+                self.GE.process_GO_genes_info(os.path.join(external_data_path, "GeneOntology"))
+
                 self.GE.process_GENCODE_transcript_data(gencode_folder_path=os.path.join(external_data_path, "GENCODE"))
 
                 self.GE.process_biogrid_GRN_edgelist(biogrid_folder_path=os.path.join(external_data_path, "BioGRID"))
