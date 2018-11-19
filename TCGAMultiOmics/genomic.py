@@ -558,7 +558,15 @@ class GeneExpression(GenomicData):
         locus_type_dict = {}
         for record in SeqIO.parse(self.GENCODE_transcript_sequence_file_path, "fasta"):
             gene_name = record.id.split("|")[5]
-            transcript_seq[gene_name] = str(record.seq)
+
+            # Add transcript sequence
+            # transcript_seq[gene_name] = str(record.seq)
+            if gene_name not in transcript_seq:
+                transcript_seq[gene_name] = [str(record.seq), ]
+            else:
+                transcript_seq[gene_name].append(str(record.seq))
+
+            # add locus type
             if ~(gene_name in locus_type_dict):
                 locus_type_dict[gene_name] = record.id.split("|")[7]
             else:
