@@ -451,17 +451,17 @@ class LncRNAExpression(GenomicData):
             # lnc_seq[gene_name] = str(record.seq)
 
             # Select the shortest lncRNA transcript
-            if gene_name not in lnc_seq:
-                lnc_seq[gene_name] = str(record.seq)
-            else:
-                if len(lnc_seq[gene_name]) < len(str(record.seq)):
-                    lnc_seq[gene_name] = str(record.seq)
+            # if gene_name not in lnc_seq:
+            #     lnc_seq[gene_name] = str(record.seq)
+            # else:
+            #     if len(lnc_seq[gene_name]) < len(str(record.seq)):
+            #         lnc_seq[gene_name] = str(record.seq)
 
             # Multiple transcripts each lncRNA gene
-            # if gene_name not in lnc_seq:
-            #     lnc_seq[gene_name] = [str(record.seq), ]
-            # else:
-            #     lnc_seq[gene_name].append(str(record.seq))
+            if gene_name not in lnc_seq:
+                lnc_seq[gene_name] = [str(record.seq), ]
+            else:
+                lnc_seq[gene_name].append(str(record.seq))
 
         return lnc_seq
 
