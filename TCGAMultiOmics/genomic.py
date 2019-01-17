@@ -387,7 +387,22 @@ class LncRNAExpression(GenomicData):
 
         self.lncrnadisease_info["Disease name"] = self.lncrnadisease_info["Disease name"].str.lower()
 
+    def process_lncrna2target_interactions(self, lncrna2target_folder_path):
+        self.lncrna2target_folder_path = lncrna2target_folder_path
+        self.lncrna2target_table_path = os.path.join(self.lncrna2target_folder_path,
+                                                     "lncRNA_target_from_high_throughput_experiments.txt")
 
+
+    def get_lncrna2target_interactions(self):
+        table = pd.read_table(self.lncrna2target_table_path)
+        table = table[table["species_id"] == 9606]
+        table["lncrna_symbol"] = table["lncrna_symbol"].str.replace("linc", "")
+        self.lncrna2target_df = table
+        self.lncrna2target_network = nx.from_pandas_edgelist(self.lncrna2target_df, source='lncrna_symbol',
+                                                                            target='gene_symbol',
+                                                                            edge_attr=["P_Value", "direction"],
+                                                                            create_using=nx.DiGraph())
+        return self.lncrna2target_network.edges(data=True)
 
     def process_NONCODE_func_annotation(self, noncode_folder_path):
         self.noncode_source_path = os.path.join(noncode_folder_path, "NONCODEv5_source")
