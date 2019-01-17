@@ -149,6 +149,7 @@ class MultiOmicsData:
                 self.LNC.process_LncReg_lncRNA_RNA_regulatory_interactions(
                     LncReg_folder_path=os.path.join(external_data_path, "LncReg"))
                 self.LNC.process_lncrna2target_interactions(os.path.join(external_data_path, "lncrna2target"))
+                self.LNC.process_lncRInter_interactions(os.path.join(external_data_path, "lncRInter"))
                 self.LNC.process_NPInter_ncRNA_RNA_regulatory_interactions(
                     NPInter_folder_path=os.path.join(external_data_path, "NPInter"))
                 self.LNC.process_NONCODE_func_annotation(os.path.join(external_data_path, "NONCODE"))

@@ -27,6 +27,6 @@ LNC = luad_data.LNC.get_genes_info()
 # print("matching geneName", len(set(LNC.index) & set(table["geneName"])))
 # print("matching gene_id", len(set(LNC.index) & set(table["geneId"])))
 
-print(luad_data.LNC.get_lncrna2target_interactions())
+print(luad_data.LNC.get_lncRInter_interactions())
 
 print(LNC.head())

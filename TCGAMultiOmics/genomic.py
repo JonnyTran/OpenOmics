@@ -404,6 +404,27 @@ class LncRNAExpression(GenomicData):
                                                                             create_using=nx.DiGraph())
         return self.lncrna2target_network.edges(data=True)
 
+    def process_lncRInter_interactions(self, lncRInter_folder_path):
+        self.lncRInter_folder_path = lncRInter_folder_path
+        self.lncRInter_table_path = os.path.join(lncRInter_folder_path, "human_interactions.txt")
+
+    def get_lncRInter_interactions(self):
+        table = pd.read_table(self.lncRInter_table_path)
+        table = table[table["Organism"] == "Homo sapiens"]
+        table.loc[table["Interacting partner"].str.contains("MIR"), "Interacting partner"] = table.loc[
+            table["Interacting partner"].str.contains("MIR"), "Interacting partner"].str.lower()
+        table["Interacting partner"] = table["Interacting partner"].str.replace("mirlet", "hsa-let-")
+        table["Interacting partner"] = table["Interacting partner"].str.replace("mir", "hsa-mir-")
+        table["Interacting partner"][table["Interacting partner"].str.contains(r"[mir|let]\-[\d]+[a-z]+[\d]+")] = \
+            table["Interacting partner"][table["Interacting partner"].str.contains(r"[mir|let]\-[\d]+[a-z]+[\d]+")].apply(
+            lambda x: x[:-1] + "-" + x[-1])
+        self.lncRInter_df = table
+        self.lncRInter_network = nx.from_pandas_edgelist(self.lncRInter_df, source='lncrna',
+                                                             target='Interacting partner',
+                                                             edge_attr=["Interaction Class", "Interaction Mode", "Tissue", "Phenotype"],
+                                                             create_using=nx.DiGraph())
+        return self.lncRInter_network.edges(data=True)
+
     def process_NONCODE_func_annotation(self, noncode_folder_path):
         self.noncode_source_path = os.path.join(noncode_folder_path, "NONCODEv5_source")
         self.noncode_transcript2gene_path = os.path.join(noncode_folder_path, "NONCODEv5_Transcript2Gene")
