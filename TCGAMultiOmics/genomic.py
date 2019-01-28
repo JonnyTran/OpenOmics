@@ -629,8 +629,30 @@ class GeneExpression(GenomicData):
     def process_starBase_RNA_RNA_interactions(self, starbase_folder_path):
         self.starbase_rna_rna_interaction_table_path = os.path.join(starbase_folder_path, "starbase_3.0_rna_rna_interactions.csv")
 
+    def process_genemania_interactions(self, genemania_folder_path):
+        self.genemania_interaction_table_path = os.path.join(genemania_folder_path,
+                                                              "COMBINED.DEFAULT_NETWORKS.BP_COMBINING.txt")
 
-    def get_starBase_RNA_RNA_interactions(self):
+        self.genemania_identifier_mapping_path = os.path.join(genemania_folder_path,
+                                                              "identifier_mappings.txt")
+
+    def get_genemania_RNA_RNA_interactions(self, data=True):
+        interactions = pd.read_table(self.genemania_interaction_table_path, low_memory=True)
+        identifier= pd.read_table(self.genemania_identifier_mapping_path)
+
+        identifier = identifier[identifier["Source"] == "Gene Name"]
+        identifier_map = pd.Series(identifier["Name"].values, index=identifier["Preferred_Name"]).to_dict()
+
+        interactions.replace(identifier_map, inplace=True)
+
+        self.genemania_RNA_RNA_network = nx.from_pandas_edgelist(interactions, source='Gene_A', target='Gene_B',
+                                                                edge_attr=["Weight"],
+                                                                create_using=nx.DiGraph())
+        return self.starBase_RNA_RNA_network.edges(data=data)
+
+
+
+    def get_starBase_RNA_RNA_interactions(self, data=True):
         df = pd.read_csv(self.starbase_rna_rna_interaction_table_path, header=0)
 
         df.loc[df["pairGeneType"]=="miRNA", "pairGeneName"] = df[df["pairGeneType"]=="miRNA"][
@@ -642,7 +664,7 @@ class GeneExpression(GenomicData):
         self.starBase_RNA_RNA_network = nx.from_pandas_edgelist(df, source='geneName', target='pairGeneName',
                                                                 edge_attr=["interactionNum"],
                                                                      create_using=nx.DiGraph())
-        return self.starBase_RNA_RNA_network.edges(data=True)
+        return self.starBase_RNA_RNA_network.edges(data=data)
 
     def get_RegNet_GRN_edgelist(self, regnet_grn_file_path=None):
         if regnet_grn_file_path is not None:
@@ -818,12 +840,7 @@ class MiRNAExpression(GenomicData):
         self.miRTarBase_path = miRTarBase_path
         self.miRTarBase_MTI_path = os.path.join(self.miRTarBase_path, "miRTarBase_MTI.xlsx")
 
-        table = pd.read_excel(self.miRTarBase_MTI_path)
-        table = table[table["Species (Target Gene)"] == "Homo sapiens"]
 
-        table['miRNA'] = table['miRNA'].str.lower()
-        table['miRNA'] = table['miRNA'].str.replace("-3p.*|-5p.*", "")
-        self.miRTarBase_df = table
 
 
     def process_HUGO_miRNA_gene_info(self, HUGO_folder_path):
@@ -893,7 +910,7 @@ class MiRNAExpression(GenomicData):
                                                      create_using=nx.DiGraph())
         return mir_target_network.edges(data=True)
 
-    def get_targetScan_miRNA_target_interactions_context_edgelist(self):
+    def get_targetScan_miRNA_target_interactions_context_edgelist(self, data=True):
         mirna_target_interactions = self.targetScan_context_df.copy()
         mirna_target_interactions["weighted context++ score percentile"] = \
             mirna_target_interactions["weighted context++ score percentile"].apply(func=lambda x: x / 100.0)
@@ -902,16 +919,23 @@ class MiRNAExpression(GenomicData):
                                                   "Gene Symbol": "GE"}, inplace=True)
         mir_target_network = nx.from_pandas_edgelist(mirna_target_interactions, source="MIR", target="GE",
                                                      edge_attr="weight", create_using=nx.DiGraph())
-        return mir_target_network.edges(data=True)
+        return mir_target_network.edges(data=data)
 
-    def get_miRTarBase_miRNA_target_interaction(self):
+    def get_miRTarBase_miRNA_target_interaction(self, data=True):
+        table = pd.read_excel(self.miRTarBase_MTI_path)
+        table = table[table["Species (Target Gene)"] == "Homo sapiens"]
+
+        table['miRNA'] = table['miRNA'].str.lower()
+        table['miRNA'] = table['miRNA'].str.replace("-3p.*|-5p.*", "")
+        self.miRTarBase_df = table
+
         if self.miRTarBase_df is None:
             raise Exception("must first run process_miRTarBase_miRNA_target_interactions")
 
         mir_target_network = nx.from_pandas_edgelist(self.miRTarBase_df, source="miRNA", target="Target Gene",
                                                      edge_attr=["Support Type"],
                                                      create_using=nx.DiGraph())
-        return mir_target_network.edges(data=True)
+        return mir_target_network.edges(data=data)
 
     def process_genes_info(self):
         self.gene_info = pd.DataFrame(index=self.get_genes_list())

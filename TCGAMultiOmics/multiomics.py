@@ -87,6 +87,8 @@ class MultiOmicsData:
 
                 self.GE.process_GO_genes_info(os.path.join(external_data_path, "GeneOntology"))
 
+                self.GE.process_genemania_interactions(os.path.join(external_data_path, "GeneMania"))
+
                 self.GE.process_GENCODE_transcript_data(gencode_folder_path=os.path.join(external_data_path, "GENCODE"))
 
                 self.GE.process_biogrid_GRN_edgelist(biogrid_folder_path=os.path.join(external_data_path, "BioGRID"))
