@@ -638,28 +638,29 @@ class GeneExpression(GenomicData):
 
     def get_genemania_RNA_RNA_interactions(self, data=True):
         interactions = pd.read_table(self.genemania_interaction_table_path, low_memory=True)
-        identifier= pd.read_table(self.genemania_identifier_mapping_path)
+        identifier = pd.read_table(self.genemania_identifier_mapping_path)
 
+        # Rename ENSG ID's to gene names
         identifier = identifier[identifier["Source"] == "Gene Name"]
         identifier_map = pd.Series(identifier["Name"].values, index=identifier["Preferred_Name"]).to_dict()
-
         interactions.replace(identifier_map, inplace=True)
 
         self.genemania_RNA_RNA_network = nx.from_pandas_edgelist(interactions, source='Gene_A', target='Gene_B',
                                                                 edge_attr=["Weight"],
                                                                 create_using=nx.DiGraph())
-        return self.starBase_RNA_RNA_network.edges(data=data)
+        return self.genemania_RNA_RNA_network.edges(data=data)
 
 
 
-    def get_starBase_RNA_RNA_interactions(self, data=True):
+    def get_starBase_RNA_RNA_interactions(self, data=True, min_interactionNum=1, min_expNum=1):
         df = pd.read_csv(self.starbase_rna_rna_interaction_table_path, header=0)
 
         df.loc[df["pairGeneType"]=="miRNA", "pairGeneName"] = df[df["pairGeneType"]=="miRNA"][
             "pairGeneName"].str.lower()
         df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
             "pairGeneName"].str.replace("-3p.*|-5p.*", "")
-        df = df[df["interactionNum"]>1]
+        df = df[df["interactionNum"] >= min_interactionNum]
+        df = df[df["expNum"] >= min_expNum]
 
         self.starBase_RNA_RNA_network = nx.from_pandas_edgelist(df, source='geneName', target='pairGeneName',
                                                                 edge_attr=["interactionNum"],
