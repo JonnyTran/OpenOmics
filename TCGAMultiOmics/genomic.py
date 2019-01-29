@@ -266,6 +266,22 @@ class LncRNAExpression(GenomicData):
         self.starBase_miRNA_lncRNA_file_path = os.path.join(starBase_folder_path,
                                                             "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
 
+    def process_starBase_lncRNA_RNA_interactions(self, starBase_folder_path):
+        self.starBase_lncRNA_RNA_interactions_file_path = os.path.join(starBase_folder_path,
+                                                            "starbase_3.0_lncrna_rna_interactions.csv")
+
+    def process_LncReg_lncRNA_RNA_regulatory_interactions(self, LncReg_folder_path):
+        self.LncReg_RNA_regulatory_file_path = os.path.join(LncReg_folder_path, "data.xlsx")
+
+    def process_lncBase_miRNA_lncRNA_interactions(self, lncBase_folder_path):
+        self.lncBase_interactions_file_path = os.path.join(lncBase_folder_path, "LncBasev2_download.csv")
+
+    def process_NPInter_ncRNA_RNA_regulatory_interactions(self, NPInter_folder_path):
+        self.NPInter_interactions_file_path = os.path.join(NPInter_folder_path, "interaction_NPInter[v3.0].txt")
+
+    def process_lncRNome_miRNA_binding_sites(self, lncRNome_folder_path):
+        self.lnRNome_miRNA_binding_sites_path = os.path.join(lncRNome_folder_path, "miRNA_binding_sites.txt")
+
     def get_starBase_miRNA_lncRNA_interactions_edgelist(self):
         grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=0)
 
@@ -276,13 +292,7 @@ class LncRNAExpression(GenomicData):
                                                                      create_using=nx.DiGraph())
         return self.starBase_miRNA_lncRNA_network.edges(data=True)
 
-    def process_starBase_lncRNA_RNA_interactions(self, starBase_folder_path):
-        self.starBase_lncRNA_RNA_interactions_file_path = os.path.join(starBase_folder_path,
-                                                            "starbase_3.0_lncrna_rna_interactions.csv")
-
-
-
-    def get_starBase_lncRNA_RNA_interactions(self):
+    def get_starBase_lncRNA_RNA_interactions(self, data=True):
         df = pd.read_table(self.starBase_lncRNA_RNA_interactions_file_path, header=0)
 
         df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
@@ -294,10 +304,7 @@ class LncRNAExpression(GenomicData):
         self.starBase_lncRNA_RNA_network = nx.from_pandas_edgelist(df, source='geneName', target='pairGeneName',
                                                                    edge_attr=["interactionNum"],
                                                                      create_using=nx.DiGraph())
-        return self.starBase_lncRNA_RNA_network.edges(data=True)
-
-    def process_LncReg_lncRNA_RNA_regulatory_interactions(self, LncReg_folder_path):
-        self.LncReg_RNA_regulatory_file_path = os.path.join(LncReg_folder_path, "data.xlsx")
+        return self.starBase_lncRNA_RNA_network.edges(data=data)
 
     def get_LncReg_lncRNA_RNA_regulatory_interactions(self):
         table = pd.read_excel(self.LncReg_RNA_regulatory_file_path)
@@ -315,10 +322,8 @@ class LncRNAExpression(GenomicData):
                                                                create_using=nx.DiGraph())
         return LncReg_lncRNA_RNA_network.edges(data=True)
 
-    def process_lncBase_miRNA_lncRNA_interactions(self, lncBase_folder_path):
-        self.lncBase_interactions_file_path = os.path.join(lncBase_folder_path, "LncBasev2_download.csv")
 
-    def get_lncBase_miRNA_lncRNA_interactions_edgelist(self, tissue=None):
+    def get_lncBase_miRNA_lncRNA_interactions_edgelist(self, tissue=None, data=True):
         lncbase_df = pd.read_table(self.lncBase_interactions_file_path)
 
         lncbase_df = lncbase_df[lncbase_df["species"] == "Homo sapiens"]
@@ -331,11 +336,9 @@ class LncRNAExpression(GenomicData):
         lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='mirna', target='geneName',
                                                                edge_attr=["tissue", "positive_negative"],
                                                                create_using=nx.DiGraph())
-        return lncBase_lncRNA_miRNA_network.edges(data=True)
+        return lncBase_lncRNA_miRNA_network.edges(data=data)
 
-    def process_lncRNome_miRNA_binding_sites(self, lncRNome_folder_path):
-        self.lnRNome_miRNA_binding_sites_path = os.path.join(lncRNome_folder_path, "miRNA_binding_sites.txt")
-
+    def get_lncRNome_miRNA_binding_sites_edgelist(self):
         df = pd.read_table(self.lnRNome_miRNA_binding_sites_path, header=0)
 
         df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
@@ -343,14 +346,10 @@ class LncRNAExpression(GenomicData):
 
         self.lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source='Gene Name',
                                                                             target='Binding miRNAs',
-                                                                            edge_attr=["miRNA Interaction Site", "Transcript ID"],
+                                                                            edge_attr=["miRNA Interaction Site",
+                                                                                       "Transcript ID"],
                                                                             create_using=nx.DiGraph())
-
-    def get_lncRNome_miRNA_binding_sites_edgelist(self):
         return self.lncRNome_miRNA_binding_sites_network.edges(data=True)
-
-    def process_NPInter_ncRNA_RNA_regulatory_interactions(self, NPInter_folder_path):
-        self.NPInter_interactions_file_path = os.path.join(NPInter_folder_path, "interaction_NPInter[v3.0].txt")
 
 
     def get_NPInter_ncRNA_RNA_regulatory_interaction_edgelist(self):
@@ -389,20 +388,33 @@ class LncRNAExpression(GenomicData):
 
     def process_lncrna2target_interactions(self, lncrna2target_folder_path):
         self.lncrna2target_folder_path = lncrna2target_folder_path
-        self.lncrna2target_table_path = os.path.join(self.lncrna2target_folder_path,
-                                                     "lncRNA_target_from_high_throughput_experiments.txt")
+        self.lncrna2target_high_throughput_table_path = os.path.join(self.lncrna2target_folder_path,
+                                                                     "lncRNA_target_from_high_throughput_experiments.txt")
+        self.lncrna2target_low_throughput_table_path = os.path.join(self.lncrna2target_folder_path,
+                                                                    "lncRNA_target_from_low_throughput_experiments.xlsx")
 
 
-    def get_lncrna2target_interactions(self):
-        table = pd.read_table(self.lncrna2target_table_path)
+    def get_lncrna2target_high_throughput_interactions(self, data=True):
+        table = pd.read_table(self.lncrna2target_high_throughput_table_path)
         table = table[table["species_id"] == 9606]
         table["lncrna_symbol"] = table["lncrna_symbol"].str.replace("linc", "")
-        self.lncrna2target_df = table
-        self.lncrna2target_network = nx.from_pandas_edgelist(self.lncrna2target_df, source='lncrna_symbol',
-                                                                            target='gene_symbol',
-                                                                            edge_attr=["P_Value", "direction"],
+        self.lncrna2target_high_throughput_df = table
+        self.lncrna2target_high_throughput_network = nx.from_pandas_edgelist(self.lncrna2target_high_throughput_df, source='lncrna_symbol',
+                                                                             target='gene_symbol',
+                                                                             edge_attr=["P_Value", "direction"],
+                                                                             create_using=nx.DiGraph())
+        return self.lncrna2target_high_throughput_network.edges(data=data)
+
+    def get_lncrna2target_low_throughput_interactions(self, data=True):
+        table = pd.read_excel(self.lncrna2target_low_throughput_table_path)
+        table = table[table["Species"] == "Homo sapiens"]
+        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-")
+        self.lncrna2target_low_throughput_df = table
+        self.lncrna2target_low_throughput_network = nx.from_pandas_edgelist(self.lncrna2target_low_throughput_df,
+                                                                            source='GENCODE_gene_name',
+                                                                            target='Target_official_symbol',
                                                                             create_using=nx.DiGraph())
-        return self.lncrna2target_network.edges(data=True)
+        return self.lncrna2target_low_throughput_network.edges(data=data)
 
     def process_lncRInter_interactions(self, lncRInter_folder_path):
         self.lncRInter_folder_path = lncRInter_folder_path
@@ -502,23 +514,6 @@ class LncRNAExpression(GenomicData):
         return lnc_seq
 
     def process_genes_info(self):
-        # self.gene_info.index.name = "ensembl_gene_id"
-        # self.gene_info = self.gene_info.join(self.HGNC_lncrna_info.groupby("ensembl_gene_id").first(), on="ensembl_gene_id",
-        #                                      how="left")
-        # print(self.gene_info.shape)
-        # # self.gene_info.index.name = "Gene Name"
-        # self.gene_info = pd.merge(self.gene_info, self.lnRNome_genes_info.groupby("Gene Name").first(),
-        #                           left_on="Gene Name", right_on="Gene Name", how="left")
-        # print(self.gene_info.shape)
-
-        # self.gene_info.index = self.gene_info["Gene Name"]
-        # self.gene_info = self.gene_info.join(self.noncode_func_df.groupby("Gene Name").first(), on="Gene Name",
-        #                                      how="left") # Also adds GO terms
-
-
-
-        # self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(lambda x: len(x) if type(x) is str else None)
-
         # Merge lncrnadisease associations database
         self.gene_info["Disease association"] = self.gene_info["Gene Name"].map(
             self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
@@ -840,9 +835,7 @@ class MiRNAExpression(GenomicData):
     def process_miRTarBase_miRNA_target_interactions(self, miRTarBase_path):
         self.miRTarBase_path = miRTarBase_path
         self.miRTarBase_MTI_path = os.path.join(self.miRTarBase_path, "miRTarBase_MTI.xlsx")
-
-
-
+        self.miRTarBase_MTI_old_path = os.path.join(self.miRTarBase_path, "miRTarBase_MTI_v6.xlsx")
 
     def process_HUGO_miRNA_gene_info(self, HUGO_folder_path):
         self.HUGO_miRNA_gene_info_path = os.path.join(HUGO_folder_path, "RNA_micro.txt")
@@ -922,8 +915,12 @@ class MiRNAExpression(GenomicData):
                                                      edge_attr="weight", create_using=nx.DiGraph())
         return mir_target_network.edges(data=data)
 
-    def get_miRTarBase_miRNA_target_interaction(self, data=True):
-        table = pd.read_excel(self.miRTarBase_MTI_path)
+    def get_miRTarBase_miRNA_target_interaction(self, use_latest=True, data=True):
+        if use_latest:
+            table = pd.read_excel(self.miRTarBase_MTI_path)
+        else:
+            table = pd.read_excel(self.miRTarBase_MTI_old_path)
+
         table = table[table["Species (Target Gene)"] == "Homo sapiens"]
 
         table['miRNA'] = table['miRNA'].str.lower()
