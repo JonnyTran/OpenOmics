@@ -361,10 +361,10 @@ class LncRNAExpression(GenomicData):
 
         table = pd.read_table(file_path,
                               usecols=["ncType", "ncIdentifier", "ncName", "prType", "prIdentifier",
-                                       "InteractionPartner", "PubMedID", "organism", "tag", "interClass", "interLevel"])
+                                       "InteractionPartner", "organism", "tag", "interClass", "interLevel"])
         table = table[table["organism"] == "Homo sapiens"]
         table = table[table["interLevel"] == "RNA-RNA"]
-        table = table[table["interClass"].isin(["binding;regulatory", "regulatory"])]
+        # table = table[table["interClass"].isin(["binding;regulatory", "regulatory"])]
         table["InteractionPartner"] = table["InteractionPartner"].str.replace("-3p.*|-5p.*", "")
         table["InteractionPartner"] = table["InteractionPartner"].str.replace("hsa-miR", "hsa-mir")
 
@@ -401,7 +401,7 @@ class LncRNAExpression(GenomicData):
 
 
     def get_lncrna2target_high_throughput_interactions(self, data=True):
-        table = pd.read_table(self.lncrna2target_high_throughput_table_path)
+        table = pd.read_table(self.lncrna2target_high_throughput_table_path, low_memory=True)
         table = table[table["species_id"] == 9606]
         table["lncrna_symbol"] = table["lncrna_symbol"].str.replace("linc", "")
         self.lncrna2target_high_throughput_df = table
