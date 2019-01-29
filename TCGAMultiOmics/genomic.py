@@ -278,6 +278,7 @@ class LncRNAExpression(GenomicData):
 
     def process_NPInter_ncRNA_RNA_regulatory_interactions(self, NPInter_folder_path):
         self.NPInter_interactions_file_path = os.path.join(NPInter_folder_path, "interaction_NPInter[v3.0].txt")
+        self.NPInter_interactions_old_file_path = os.path.join(NPInter_folder_path, "interaction_NPInter[v2.0].txt")
 
     def process_lncRNome_miRNA_binding_sites(self, lncRNome_folder_path):
         self.lnRNome_miRNA_binding_sites_path = os.path.join(lncRNome_folder_path, "miRNA_binding_sites.txt")
@@ -306,7 +307,7 @@ class LncRNAExpression(GenomicData):
                                                                      create_using=nx.DiGraph())
         return self.starBase_lncRNA_RNA_network.edges(data=data)
 
-    def get_LncReg_lncRNA_RNA_regulatory_interactions(self):
+    def get_LncReg_lncRNA_RNA_regulatory_interactions(self, data=True):
         table = pd.read_excel(self.LncReg_RNA_regulatory_file_path)
 
         table = table[table["species"] == "Homo sapiens"]
@@ -320,7 +321,7 @@ class LncRNAExpression(GenomicData):
         LncReg_lncRNA_RNA_network = nx.from_pandas_edgelist(table, source='A_name_in_paper', target='B_name_in_paper',
                                                                edge_attr=["relationship", "mechanism", "pmid"],
                                                                create_using=nx.DiGraph())
-        return LncReg_lncRNA_RNA_network.edges(data=True)
+        return LncReg_lncRNA_RNA_network.edges(data=data)
 
 
     def get_lncBase_miRNA_lncRNA_interactions_edgelist(self, tissue=None, data=True):
@@ -338,7 +339,7 @@ class LncRNAExpression(GenomicData):
                                                                create_using=nx.DiGraph())
         return lncBase_lncRNA_miRNA_network.edges(data=data)
 
-    def get_lncRNome_miRNA_binding_sites_edgelist(self):
+    def get_lncRNome_miRNA_binding_sites_edgelist(self, data=True):
         df = pd.read_table(self.lnRNome_miRNA_binding_sites_path, header=0)
 
         df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
@@ -349,11 +350,16 @@ class LncRNAExpression(GenomicData):
                                                                             edge_attr=["miRNA Interaction Site",
                                                                                        "Transcript ID"],
                                                                             create_using=nx.DiGraph())
-        return self.lncRNome_miRNA_binding_sites_network.edges(data=True)
+        return self.lncRNome_miRNA_binding_sites_network.edges(data=data)
 
 
-    def get_NPInter_ncRNA_RNA_regulatory_interaction_edgelist(self):
-        table = pd.read_table(self.NPInter_interactions_file_path,
+    def get_NPInter_ncRNA_RNA_regulatory_interaction_edgelist(self, use_latest=True, data=True):
+        if use_latest:
+            file_path = self.NPInter_interactions_file_path
+        else:
+            file_path = self.NPInter_interactions_old_file_path
+
+        table = pd.read_table(file_path,
                               usecols=["ncType", "ncIdentifier", "ncName", "prType", "prIdentifier",
                                        "InteractionPartner", "PubMedID", "organism", "tag", "interClass", "interLevel"])
         table = table[table["organism"] == "Homo sapiens"]
@@ -366,7 +372,7 @@ class LncRNAExpression(GenomicData):
                                                                             target='InteractionPartner',
                                                                             edge_attr=["tag", "interClass"],
                                                                             create_using=nx.DiGraph())
-        return self.NPInter_ncRNA_RNA_regulatory_network.edges(data=True)
+        return self.NPInter_ncRNA_RNA_regulatory_network.edges(data=data)
 
     def process_lncRNome_gene_info(self, lncRNome_folder_path):
         self.lnRNome_genes_info_path = os.path.join(lncRNome_folder_path, "general_information.txt")
@@ -420,7 +426,7 @@ class LncRNAExpression(GenomicData):
         self.lncRInter_folder_path = lncRInter_folder_path
         self.lncRInter_table_path = os.path.join(lncRInter_folder_path, "human_interactions.txt")
 
-    def get_lncRInter_interactions(self):
+    def get_lncRInter_interactions(self, data=True):
         table = pd.read_table(self.lncRInter_table_path)
         table = table[table["Organism"] == "Homo sapiens"]
         table.loc[table["Interacting partner"].str.contains("MIR"), "Interacting partner"] = table.loc[
@@ -435,7 +441,7 @@ class LncRNAExpression(GenomicData):
                                                              target='Interacting partner',
                                                              edge_attr=["Interaction Class", "Interaction Mode", "Tissue", "Phenotype"],
                                                              create_using=nx.DiGraph())
-        return self.lncRInter_network.edges(data=True)
+        return self.lncRInter_network.edges(data=data)
 
     def process_NONCODE_func_annotation(self, noncode_folder_path):
         self.noncode_source_path = os.path.join(noncode_folder_path, "NONCODEv5_source")
