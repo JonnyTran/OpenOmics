@@ -513,9 +513,9 @@ class LncRNAExpression(GenomicData):
 
             # Multiple transcripts each lncRNA gene
             if gene_name not in lnc_seq:
-                lnc_seq[gene_name] = [str(record.seq), ]
+                lnc_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
             else:
-                lnc_seq[gene_name].append(str(record.seq))
+                lnc_seq[gene_name].append(str(record.seq).replace("U", "T"))
 
         return lnc_seq
 
@@ -599,9 +599,9 @@ class GeneExpression(GenomicData):
             # Add transcript sequence
             # transcript_seq[gene_name] = str(record.seq)
             if gene_name not in transcript_seq:
-                transcript_seq[gene_name] = [str(record.seq), ]
+                transcript_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
             else:
-                transcript_seq[gene_name].append(str(record.seq))
+                transcript_seq[gene_name].append(str(record.seq).replace("U", "T"))
 
             # add locus type
             if ~(gene_name in locus_type_dict):
