@@ -682,21 +682,22 @@ class GeneExpression(GenomicData):
 
         return regnet_grn_network.edges(data=True)
 
-    def get_BioGRID_GRN_edgelist(self, biogrid_interactions_file_path=None):
+    def get_BioGRID_GRN_edgelist(self, data=True, biogrid_interactions_file_path=None):
         if biogrid_interactions_file_path is not None:
             self.biogrid_interactions_path = biogrid_interactions_file_path
 
         biogrid_df = pd.read_table(self.biogrid_interactions_path, na_values=["-"],
                                    usecols=['Official Symbol Interactor A',
                                             'Official Symbol Interactor B', 'Organism Interactor A', 'Score',
-                                            'Throughput', 'Qualifications', 'Modification', 'Phenotypes'])
+                                            'Throughput', 'Qualifications', 'Modification', 'Phenotypes'],
+                                   low_memory=True)
 
         biogrid_df = biogrid_df[biogrid_df["Organism Interactor A"] == 9606]
         # biogrid_df = biogrid_df[biogrid_df["Throughput"] == "High Throughput"]
 
         biogrid_grn = nx.from_pandas_edgelist(biogrid_df, source='Official Symbol Interactor A',
                                                    target='Official Symbol Interactor B', create_using=nx.DiGraph())
-        return biogrid_grn.edges(data=False) # TODO add biogrid GRN edge data?
+        return biogrid_grn.edges(data=data) # TODO add biogrid GRN edge data?
 
     def process_genes_info(self, curated_gene_disease_assocs_only=True):
         self.gene_info = pd.DataFrame(index=self.get_genes_list())
@@ -749,8 +750,19 @@ class MiRNAExpression(GenomicData):
 
     def process_mirbase_data(self, mirbase_folder_path):
         self.mirbase_aliases_file_path = os.path.join(mirbase_folder_path, "aliases.txt")
+        self.mirbase_mir_seq_file_path = os.path.join(mirbase_folder_path, "hairpin.fa")
 
+    def get_mirbase_hairpin_sequence_data(self):
+        mir_seq = {}
+        for record in SeqIO.parse(self.mirbase_mir_seq_file_path, "fasta"):
+            gene_name = str(record.id)
+            # Multiple transcripts each miRNA gene
+            if gene_name not in mir_seq:
+                mir_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
+            else:
+                mir_seq[gene_name].append(str(record.seq).replace("U", "T"))
 
+        return mir_seq
 
     def process_target_scan(self, targetScan_folder_path):
         self.targetScan_miR_family_info_path = os.path.join(targetScan_folder_path,"miR_Family_Info.txt")
@@ -954,7 +966,9 @@ class MiRNAExpression(GenomicData):
 
         self.gene_info["locus_type"] = "microRNA"
 
-        self.gene_info.rename(columns={'Mature sequence': 'Transcript sequence'}, inplace=True)
+        # self.gene_info.rename(columns={'Mature sequence': 'Transcript sequence'}, inplace=True)
+        self.gene_info["Transcript sequence"] = self.gene_info["MiRBase ID"].map(
+            self.get_mirbase_hairpin_sequence_data())
         self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(
             lambda x: len(x) if type(x) is str else None)
 
