@@ -525,17 +525,17 @@ class LncRNAExpression(GenomicData):
             # lnc_seq[gene_name] = str(record.seq)
 
             # Select the shortest lncRNA transcript
-            # if gene_name not in lnc_seq:
-            #     lnc_seq[gene_name] = str(record.seq)
-            # else:
-            #     if len(lnc_seq[gene_name]) < len(str(record.seq)):
-            #         lnc_seq[gene_name] = str(record.seq)
+            if gene_name not in lnc_seq:
+                lnc_seq[gene_name] = str(record.seq)
+            else:
+                if len(lnc_seq[gene_name]) < len(str(record.seq)):
+                    lnc_seq[gene_name] = str(record.seq)
 
             # Multiple transcripts each lncRNA gene
-            if gene_name not in lnc_seq:
-                lnc_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
-            else:
-                lnc_seq[gene_name].append(str(record.seq).replace("U", "T"))
+            # if gene_name not in lnc_seq:
+            #     lnc_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
+            # else:
+            #     lnc_seq[gene_name].append(str(record.seq).replace("U", "T"))
 
         return lnc_seq
 
@@ -618,10 +618,17 @@ class GeneExpression(GenomicData):
 
             # Add transcript sequence
             # transcript_seq[gene_name] = str(record.seq)
+            # if gene_name not in transcript_seq:
+            #     transcript_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
+            # else:
+            #     transcript_seq[gene_name].append(str(record.seq).replace("U", "T"))
+
+            # Select shortest seq
             if gene_name not in transcript_seq:
-                transcript_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
+                transcript_seq[gene_name] = str(record.seq).replace("U", "T")
             else:
-                transcript_seq[gene_name].append(str(record.seq).replace("U", "T"))
+                if len(transcript_seq[gene_name]) < len(str(record.seq).replace("U", "T")):
+                    transcript_seq[gene_name] = str(record.seq).replace("U", "T")
 
             # add locus type
             if ~(gene_name in locus_type_dict):
@@ -777,10 +784,17 @@ class MiRNAExpression(GenomicData):
         for record in SeqIO.parse(self.mirbase_mir_seq_file_path, "fasta"):
             gene_name = str(record.id)
             # Multiple transcripts each miRNA gene
+            # if gene_name not in mir_seq:
+            #     mir_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
+            # else:
+            #     mir_seq[gene_name].append(str(record.seq).replace("U", "T"))
+
+            # Select shortest seq
             if gene_name not in mir_seq:
-                mir_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
+                mir_seq[gene_name] = str(record.seq).replace("U", "T")
             else:
-                mir_seq[gene_name].append(str(record.seq).replace("U", "T"))
+                if len(mir_seq[gene_name]) < len(str(record.seq).replace("U", "T")):
+                    mir_seq[gene_name] = str(record.seq).replace("U", "T")
 
         return mir_seq
 
