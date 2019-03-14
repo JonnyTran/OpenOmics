@@ -296,7 +296,9 @@ class LncRNAExpression(GenomicData):
         return self.starBase_miRNA_lncRNA_network.edges(data=data)
 
     def get_starBase_lncRNA_RNA_interactions(self, data=True, rename_dict=None):
-        df = pd.read_table(self.starBase_lncRNA_RNA_interactions_file_path, header=0)
+        df = pd.read_table(self.starBase_lncRNA_RNA_interactions_file_path, header=0, sep=",",
+              usecols=["geneID", "geneName", "geneType", "pairGeneID", "pairGeneName",
+                      "pairGeneType", "interactionNum", 'expNum', "FreeEnergy"])
 
         df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
             "pairGeneName"].str.lower()
