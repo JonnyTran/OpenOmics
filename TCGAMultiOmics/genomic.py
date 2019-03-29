@@ -360,6 +360,8 @@ class LncRNAExpression(GenomicData):
         lncbase_df["miTG-score"] = lncbase_df["miTG-score"].astype(float)
         lncbase_df = lncbase_df[lncbase_df["miTG-score"] >= 0.9]
 
+        lncbase_df["geneId"] = lncbase_df["geneId"].str.replace("(\(.+|\))", "")
+        lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("(\(.+|\))", "")
         lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
         lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("-3p.*|-5p.*", "")
 
