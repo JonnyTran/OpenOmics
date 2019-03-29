@@ -357,7 +357,7 @@ class LncRNAExpression(GenomicData):
             records.append(record.id.split(","))
         lncbase_df = pd.DataFrame(records, columns=["Transcript_ID", "geneId", "mirna", "miTG-score"])
 
-        lncbase_df = lncbase_df["miTG-score"].astype(float)
+        lncbase_df["miTG-score"] = lncbase_df["miTG-score"].astype(float)
         lncbase_df = lncbase_df[lncbase_df["miTG-score"] >= 0.9]
 
         lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
