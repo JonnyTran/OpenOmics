@@ -853,6 +853,7 @@ class MiRNAExpression(GenomicData):
 
         self.targetScan_family_df = targetScan_family_df
         self.targetScan_family_df.index = self.targetScan_family_df['MiRBase ID']
+        self.targetScan_family_df.drop('MiRBase ID', axis=1, inplace=True)
 
     def process_targetScan_mirna_target_interactions(self):
         # Load data frame from file
@@ -1015,11 +1016,10 @@ class MiRNAExpression(GenomicData):
 
     def process_genes_info(self):
         self.gene_info = pd.DataFrame(index=self.get_genes_list())
+        self.gene_info.index.name = "MiRBase ID"
 
         self.gene_info = self.gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID", how="left")
-
         self.gene_info = self.gene_info.join(self.HUGO_miRNA_gene_info_df, on="MiRBase ID", how="left")
-        self.gene_info.index.name = "MiRBase ID"
 
         self.gene_info["Disease association"] = self.gene_info.index.map(
             self.mirnadisease.groupby("miRNA name")["Disease name"].apply('|'.join).to_dict())
