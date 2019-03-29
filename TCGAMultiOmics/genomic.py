@@ -275,6 +275,7 @@ class LncRNAExpression(GenomicData):
 
     def process_lncBase_miRNA_lncRNA_interactions(self, lncBase_folder_path):
         self.lncBase_interactions_file_path = os.path.join(lncBase_folder_path, "LncBasev2_download.csv")
+        self.lncBase_predicted_interactions_file_path = os.path.join(lncBase_folder_path, "lncBaseV2_predicted_human_data.csv")
 
     def process_NPInter_ncRNA_RNA_regulatory_interactions(self, NPInter_folder_path):
         self.NPInter_interactions_file_path = os.path.join(NPInter_folder_path, "interaction_NPInter[v3.0].txt")
@@ -342,6 +343,28 @@ class LncRNAExpression(GenomicData):
 
         lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='mirna', target='geneId',
                                                                edge_attr=["tissue", "positive_negative"],
+                                                               create_using=nx.DiGraph())
+        if rename_dict is not None:
+            lncBase_lncRNA_miRNA_network = nx.relabel_nodes(lncBase_lncRNA_miRNA_network, rename_dict)
+
+        return lncBase_lncRNA_miRNA_network.edges(data=data)
+
+    def get_lncBase_miRNA_lncRNA_predicted_interactions_edgelist(self, data=True, rename_dict=None):
+        records = []
+        for record in SeqIO.parse(
+                self.lncBase_predicted_interactions_file_path,
+                "fasta"):
+            records.append(record.id.split(","))
+        lncbase_df = pd.DataFrame(records, columns=["Transcript_ID", "geneId", "mirna", "miTG-score"])
+
+        lncbase_df = lncbase_df["miTG-score"].astype(float)
+        lncbase_df = lncbase_df[lncbase_df["miTG-score"] >= 0.9]
+
+        lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
+        lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("-3p.*|-5p.*", "")
+
+        lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='mirna', target='geneId',
+                                                               edge_attr=["miTG-score"],
                                                                create_using=nx.DiGraph())
         if rename_dict is not None:
             lncBase_lncRNA_miRNA_network = nx.relabel_nodes(lncBase_lncRNA_miRNA_network, rename_dict)
