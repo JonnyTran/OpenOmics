@@ -14,8 +14,9 @@ from TCGAMultiOmics.genomic import GeneExpression, SomaticMutation, DNAMethylati
 
 class MultiOmicsData:
 
-    def __init__(self, cancer_type, tcga_data_path, external_data_path, modalities, remove_duplicate_genes=True,
-                 auto_import_clinical=True, process_genes_info=True):
+    def __init__(self, cancer_type, tcga_data_path, external_data_path, modalities, import_sequences="longest",
+                 replace_U2T=True,
+                 remove_duplicate_genes=True, auto_import_clinical=True, process_genes_info=True):
         """
         Load all multi-omics TCGA data from a given tcga_data_path with the following folder structure:
 
@@ -75,7 +76,8 @@ class MultiOmicsData:
             # self.data["WSI"] = self.WSI
 
         if "GE" in modalities:
-            self.GE = GeneExpression(cancer_type, os.path.join(tcga_data_path, "gene_exp/"))
+            self.GE = GeneExpression(cancer_type, os.path.join(tcga_data_path, "gene_exp/"),
+                                     import_sequences=import_sequences, replace_U2T=replace_U2T)
             self.data["GE"] = self.GE.data
 
             try:
@@ -108,7 +110,8 @@ class MultiOmicsData:
             self.data["SNP"] = self.SNP.data
 
         if "MIR" in modalities:
-            self.MIR = MiRNAExpression(cancer_type, os.path.join(tcga_data_path, "mirna/"))
+            self.MIR = MiRNAExpression(cancer_type, os.path.join(tcga_data_path, "mirna/"),
+                                       import_sequences=import_sequences, replace_U2T=replace_U2T)
             self.data["MIR"] = self.MIR.data
 
             try:
@@ -137,7 +140,8 @@ class MultiOmicsData:
                                         HGNC_lncRNA_names_file_path=os.path.join(external_data_path, "HUGO_Gene_names",
                                                                                  "RNA_long_non-coding.txt"),
                                         GENCODE_folder_path=os.path.join(external_data_path, "GENCODE"),
-                                        external_data_path=external_data_path)
+                                        external_data_path=external_data_path,
+                                        import_sequences=import_sequences, replace_U2T=replace_U2T)
 
             self.data["LNC"] = self.LNC.data
 

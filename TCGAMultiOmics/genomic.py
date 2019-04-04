@@ -12,7 +12,7 @@ from TCGAMultiOmics.utils import GTF
 
 
 class GenomicData:
-    def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA",
+    def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA", import_sequences="longest", replace_U2T=True,
                  import_from_TCGA_Assembler=True, log2_transform=True):
         """
 
@@ -23,6 +23,8 @@ class GenomicData:
         :param log2_transform: Whether to log2 transform the expression values
         """
         self.cancer_type = cancer_type
+        self.import_sequences = import_sequences
+        self.replace_U2T = replace_U2T
 
         if import_from_TCGA_Assembler:
             self.data = self.preprocess_expression_table(pd.read_table(file_path), columns)
@@ -102,7 +104,8 @@ class GenomicData:
 
 
 class LncRNAExpression(GenomicData):
-    def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path, external_data_path):
+    def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path, external_data_path,
+                 import_sequences="longest", replace_U2T=True, ):
         """
         :param folder_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
         """
@@ -111,7 +114,8 @@ class LncRNAExpression(GenomicData):
         self.GENCODE_LncRNA_gtf_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.long_noncoding_RNAs.gtf")
         self.GENCODE_LncRNA_sequence_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.lncRNA_transcripts.fa")
         self.external_data_path = external_data_path
-        super().__init__(cancer_type, file_path, log2_transform=False)
+        super().__init__(cancer_type, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
+                         log2_transform=False)
 
 
     def preprocess_expression_table(self, df, columns):
@@ -235,7 +239,7 @@ class LncRNAExpression(GenomicData):
 
         # Merge GENCODE transcript sequence data
         self.gene_info["Transcript sequence"] = self.gene_info["Gene Name"].map(
-            self.get_GENCODE_lncRNA_sequence_data())
+            self.get_GENCODE_lncRNA_sequence_data(self.import_sequences, self.replace_U2T))
 
 
     def get_GENCODE_lncRNA_gene_name_dict(self):
@@ -543,28 +547,36 @@ class LncRNAExpression(GenomicData):
 
         self.RNAcentral_annotations = gencode_id
 
-
-    def get_GENCODE_lncRNA_sequence_data(self):
-        lnc_seq = {}
+    def get_GENCODE_lncRNA_sequence_data(self, import_sequences, replace_U2T=True):
+        seq_dict = {}
         for record in SeqIO.parse(self.GENCODE_LncRNA_sequence_file_path, "fasta"):
             # gene_id = record.id.split("|")[1]
             gene_name = record.id.split("|")[5]
-            # lnc_seq[gene_name] = str(record.seq)
 
-            # Select the shortest lncRNA transcript
-            if gene_name not in lnc_seq:
-                lnc_seq[gene_name] = str(record.seq)
+            sequence_str = str(record.seq)
+            if replace_U2T:
+                sequence_str = sequence_str.replace("U", "T")
+            if import_sequences == "shortest":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = sequence_str
+                else:
+                    if len(seq_dict[gene_name]) > len(sequence_str):
+                        seq_dict[gene_name] = sequence_str
+            elif import_sequences == "longest":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = sequence_str
+                else:
+                    if len(seq_dict[gene_name]) < len(sequence_str):
+                        seq_dict[gene_name] = sequence_str
+            elif import_sequences == "multi":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = [sequence_str, ]
+                else:
+                    seq_dict[gene_name].append(sequence_str)
             else:
-                if len(lnc_seq[gene_name]) < len(str(record.seq)):
-                    lnc_seq[gene_name] = str(record.seq)
+                seq_dict[gene_name] = sequence_str
 
-            # Multiple transcripts each lncRNA gene
-            # if gene_name not in lnc_seq:
-            #     lnc_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
-            # else:
-            #     lnc_seq[gene_name].append(str(record.seq).replace("U", "T"))
-
-        return lnc_seq
+        return seq_dict
 
     def process_genes_info(self):
         # Merge lncrnadisease associations database
@@ -591,9 +603,10 @@ class LncRNAExpression(GenomicData):
 
 
 class GeneExpression(GenomicData):
-    def __init__(self, cancer_type, folder_path, log2_transform=True):
+    def __init__(self, cancer_type, folder_path, log2_transform=True, import_sequences="longest", replace_U2T=True, ):
         file_path = os.path.join(folder_path, "geneExp.txt")
-        super().__init__(cancer_type, file_path, log2_transform=log2_transform)
+        super().__init__(cancer_type, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
+                         log2_transform=log2_transform)
 
     def process_GENCODE_transcript_data(self, gencode_folder_path):
         self.GENCODE_transcript_sequence_file_path = os.path.join(gencode_folder_path, "gencode.v29.transcripts.fa")
@@ -637,25 +650,34 @@ class GeneExpression(GenomicData):
     def process_biogrid_GRN_edgelist(self, biogrid_folder_path):
         self.biogrid_interactions_path = os.path.join(biogrid_folder_path, "BIOGRID-ALL-3.4.162.tab2.txt")
 
-    def get_GENCODE_transcript_data(self):
-        transcript_seq = {}
+    def get_GENCODE_transcript_data(self, import_sequences, replace_U2T):
+        seq_dict = {}
         locus_type_dict = {}
         for record in SeqIO.parse(self.GENCODE_transcript_sequence_file_path, "fasta"):
             gene_name = record.id.split("|")[5]
+            sequence_str = str(record.seq)
+            if replace_U2T:
+                sequence_str = sequence_str.replace("U", "T")
 
-            # Add transcript sequence
-            # transcript_seq[gene_name] = str(record.seq)
-            # if gene_name not in transcript_seq:
-            #     transcript_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
-            # else:
-            #     transcript_seq[gene_name].append(str(record.seq).replace("U", "T"))
-
-            # Select shortest seq
-            if gene_name not in transcript_seq:
-                transcript_seq[gene_name] = str(record.seq).replace("U", "T")
+            if import_sequences == "shortest":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = sequence_str
+                else:
+                    if len(seq_dict[gene_name]) > len(sequence_str):
+                        seq_dict[gene_name] = sequence_str
+            elif import_sequences == "longest":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = sequence_str
+                else:
+                    if len(seq_dict[gene_name]) < len(sequence_str):
+                        seq_dict[gene_name] = sequence_str
+            elif import_sequences == "multi":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = [sequence_str, ]
+                else:
+                    seq_dict[gene_name].append(sequence_str)
             else:
-                if len(transcript_seq[gene_name]) < len(str(record.seq).replace("U", "T")):
-                    transcript_seq[gene_name] = str(record.seq).replace("U", "T")
+                seq_dict[gene_name] = sequence_str
 
             # add locus type
             if ~(gene_name in locus_type_dict):
@@ -663,7 +685,7 @@ class GeneExpression(GenomicData):
             else:
                 locus_type_dict[gene_name] = locus_type_dict[gene_name] + "|" + record.id.split("|")[7]
 
-        return transcript_seq, locus_type_dict
+        return seq_dict, locus_type_dict
 
     def process_DisGeNET_gene_disease_associations(self, disgenet_folder_path):
         self.disgenet_folder_path = disgenet_folder_path
@@ -762,7 +784,7 @@ class GeneExpression(GenomicData):
         self.gene_info.index.name = "symbol"
         self.gene_info = self.gene_info.join(self.hugo_protein_genes_info.groupby("symbol").first(), on="symbol", how="left")
 
-        transcript_seq, gene_type = self.get_GENCODE_transcript_data()
+        transcript_seq, gene_type = self.get_GENCODE_transcript_data(self.import_sequences, self.replace_U2T)
         self.gene_info["locus_type"] = self.gene_info.index.map(gene_type)
         self.gene_info["Transcript sequence"] = self.gene_info.index.map(transcript_seq)
 
@@ -799,32 +821,44 @@ class SomaticMutation(GenomicData):
 
 
 class MiRNAExpression(GenomicData):
-    def __init__(self, cancer_type, folder_path, log2_transform=True):
+    def __init__(self, cancer_type, folder_path, log2_transform=True, import_sequences="longest", replace_U2T=True, ):
         file_path = os.path.join(folder_path, "miRNAExp__RPM.txt")
-        super().__init__(cancer_type, file_path, log2_transform=log2_transform)
+        super().__init__(cancer_type, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
+                         log2_transform=log2_transform)
 
     def process_mirbase_data(self, mirbase_folder_path):
         self.mirbase_aliases_file_path = os.path.join(mirbase_folder_path, "aliases.txt")
         self.mirbase_mir_seq_file_path = os.path.join(mirbase_folder_path, "hairpin.fa")
 
-    def get_mirbase_hairpin_sequence_data(self):
-        mir_seq = {}
+    def get_mirbase_hairpin_sequence_data(self, import_sequences, replace_U2T=True):
+        seq_dict = {}
         for record in SeqIO.parse(self.mirbase_mir_seq_file_path, "fasta"):
             gene_name = str(record.id)
-            # Multiple transcripts each miRNA gene
-            # if gene_name not in mir_seq:
-            #     mir_seq[gene_name] = [str(record.seq).replace("U", "T"), ]
-            # else:
-            #     mir_seq[gene_name].append(str(record.seq).replace("U", "T"))
+            sequence_str = str(record.seq)
+            if replace_U2T:
+                sequence_str = sequence_str.replace("U", "T")
 
-            # Select shortest seq
-            if gene_name not in mir_seq:
-                mir_seq[gene_name] = str(record.seq).replace("U", "T")
+            if import_sequences == "shortest":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = sequence_str
+                else:
+                    if len(seq_dict[gene_name]) > len(sequence_str):
+                        seq_dict[gene_name] = sequence_str
+            elif import_sequences == "longest":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = sequence_str
+                else:
+                    if len(seq_dict[gene_name]) < len(sequence_str):
+                        seq_dict[gene_name] = sequence_str
+            elif import_sequences == "multi":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = [sequence_str, ]
+                else:
+                    seq_dict[gene_name].append(sequence_str)
             else:
-                if len(mir_seq[gene_name]) < len(str(record.seq).replace("U", "T")):
-                    mir_seq[gene_name] = str(record.seq).replace("U", "T")
+                seq_dict[gene_name] = sequence_str
 
-        return mir_seq
+        return seq_dict
 
     def process_target_scan(self, targetScan_folder_path):
         self.targetScan_miR_family_info_path = os.path.join(targetScan_folder_path,"miR_Family_Info.txt")
@@ -1030,7 +1064,7 @@ class MiRNAExpression(GenomicData):
 
         # self.gene_info.rename(columns={'Mature sequence': 'Transcript sequence'}, inplace=True)
         self.gene_info["Transcript sequence"] = self.gene_info["MiRBase ID"].map(
-            self.get_mirbase_hairpin_sequence_data())
+            self.get_mirbase_hairpin_sequence_data(self.import_sequences, self.replace_U2T))
         self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(
             lambda x: len(x) if type(x) is str else None)
 
@@ -1068,9 +1102,9 @@ class DNAMethylation(GenomicData):
 
 
 class ProteinExpression(GenomicData):
-    def __init__(self, cancer_type, folder_path, log2_transform=True):
+    def __init__(self, cancer_type, folder_path, import_sequences="longest", log2_transform=True):
         file_path = os.path.join(folder_path, "protein_RPPA.txt")
-        super().__init__(cancer_type, file_path, log2_transform=log2_transform)
+        super().__init__(cancer_type, file_path, import_sequences=import_sequences, log2_transform=log2_transform)
 
     def process_HPRD_PPI_network(self, ppi_data_file_path):
         HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
