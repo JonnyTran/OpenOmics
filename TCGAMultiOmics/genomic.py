@@ -408,11 +408,12 @@ class LncRNAExpression(GenomicData):
         # table = table[table["interClass"].isin(["binding;regulatory", "regulatory"])]
         table["InteractionPartner"] = table["InteractionPartner"].str.replace("-3p.*|-5p.*", "")
         table["InteractionPartner"] = table["InteractionPartner"].str.replace("hsa-miR", "hsa-mir")
+        table["InteractionPartner"] = table["InteractionPartner"].str.replace("miR", "hsa-mir")
 
         NPInter_ncRNA_RNA_regulatory_network = nx.from_pandas_edgelist(table, source='ncName',
-                                                                            target='InteractionPartner',
-                                                                            edge_attr=["tag", "interClass"],
-                                                                            create_using=nx.DiGraph())
+                                                                       target='InteractionPartner',
+                                                                       # edge_attr=["tag", "interClass"],
+                                                                       create_using=nx.DiGraph())
         if rename_dict is not None:
             NPInter_ncRNA_RNA_regulatory_network = nx.relabel_nodes(NPInter_ncRNA_RNA_regulatory_network, rename_dict)
         return NPInter_ncRNA_RNA_regulatory_network.edges(data=data)
