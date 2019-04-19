@@ -462,6 +462,8 @@ class LncRNAExpression(GenomicData):
         table = pd.read_excel(self.lncrna2target_low_throughput_table_path)
         table = table[table["Species"] == "Homo sapiens"]
         table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-")
+        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("--", "-")
+        table["Target_official_symbol"].apply(lambda x: x.lower() if "mir" in x.lower() else x.upper())
         table["GENCODE_gene_name"] = table["GENCODE_gene_name"].str.upper()
         self.lncrna2target_low_throughput_df = table
         self.lncrna2target_low_throughput_network = nx.from_pandas_edgelist(self.lncrna2target_low_throughput_df,
