@@ -761,7 +761,7 @@ class GeneExpression(GenomicData):
 
         return regnet_grn_network.edges(data=True)
 
-    def get_BioGRID_GRN_edgelist(self, data=True, biogrid_interactions_file_path=None):
+    def get_BioGRID_GRN_edgelist(self, data=True, biogrid_interactions_file_path=None, rename_dict=None):
         if biogrid_interactions_file_path is not None:
             self.biogrid_interactions_path = biogrid_interactions_file_path
 
@@ -776,6 +776,8 @@ class GeneExpression(GenomicData):
 
         biogrid_grn = nx.from_pandas_edgelist(biogrid_df, source='Official Symbol Interactor A',
                                                    target='Official Symbol Interactor B', create_using=nx.DiGraph())
+        if rename_dict is not None:
+            biogrid_grn = nx.relabel_nodes(biogrid_grn, rename_dict)
         return biogrid_grn.edges(data=data) # TODO add biogrid GRN edge data?
 
     def process_genes_info(self, curated_gene_disease_assocs_only=True):
@@ -1033,7 +1035,7 @@ class MiRNAExpression(GenomicData):
                                                      edge_attr="weight", create_using=nx.DiGraph())
         return mir_target_network.edges(data=data)
 
-    def get_miRTarBase_miRNA_target_interaction(self, use_latest=True, data=True):
+    def get_miRTarBase_miRNA_target_interaction(self, use_latest=True, data=True, rename_dict=None):
         if use_latest:
             table = pd.read_excel(self.miRTarBase_MTI_path)
         else:
@@ -1051,6 +1053,8 @@ class MiRNAExpression(GenomicData):
         mir_target_network = nx.from_pandas_edgelist(self.miRTarBase_df, source="miRNA", target="Target Gene",
                                                      edge_attr=["Support Type"],
                                                      create_using=nx.DiGraph())
+        if rename_dict is not None:
+            mir_target_network = nx.relabel_nodes(mir_target_network, rename_dict)
         return mir_target_network.edges(data=data)
 
     def process_genes_info(self):
