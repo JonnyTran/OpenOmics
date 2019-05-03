@@ -36,11 +36,11 @@ For more information, please refer to <http://unlicense.org/>
 """
 
 
-from collections import defaultdict
 import gzip
-import pandas as pd
 import re
+from collections import defaultdict
 
+import pandas as pd
 
 GTF_HEADER  = ['seqname', 'source', 'feature', 'start', 'end', 'score',
                'strand', 'frame']

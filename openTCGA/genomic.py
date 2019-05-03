@@ -8,7 +8,7 @@ from Bio import SeqIO
 from Bio.UniProt import GOA
 from pandas import Series
 
-from TCGAMultiOmics.utils import GTF
+from openTCGA.utils import GTF
 
 
 class GenomicData:

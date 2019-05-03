@@ -1,14 +1,13 @@
 import os
-import os
 import sys
 from shutil import rmtree
 
 from setuptools import setup, Command
 
 # Package meta-data.
-NAME = 'TCGAMultiOmics'
+NAME = 'openTCGA'
 DESCRIPTION = 'A toolkit to integrate and query the multi-omics TCGA cancer data.'
-URL = 'https://github.com/JonnyTran/TCGAMultiOmics'
+URL = 'https://github.com/JonnyTran/openTCGA'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Nhat Tran'
 REQUIRES_PYTHON = '>=3.6.0'
@@ -61,8 +60,8 @@ class UploadCommand(Command):
 setup(
     name=NAME,
     version=VERSION,
-    packages=["TCGAMultiOmics", "TCGAMultiOmics.utils"],
-    package_dir={NAME: 'TCGAMultiOmics'},
+    packages=["openTCGA", "openTCGA.utils"],
+    package_dir={NAME: 'openTCGA'},
     url=URL,
     license='',
     python_requires=REQUIRES_PYTHON,

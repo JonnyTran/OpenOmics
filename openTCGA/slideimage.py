@@ -1,15 +1,14 @@
 import os
-from definitions import ROOT_DIR
-
-import numpy as np
-
-import large_image
-# import histomicstk as htk
-# import histomicstk.segmentation.positive_pixel_count as ppc
-
-from dask import delayed
 
 import h5py
+import large_image
+import numpy as np
+from dask import delayed
+from definitions import ROOT_DIR
+
+
+# import histomicstk as htk
+# import histomicstk.segmentation.positive_pixel_count as ppc
 
 
 class WholeSlideImages:

@@ -2,14 +2,14 @@ import os
 
 import pandas as pd
 
-from TCGAMultiOmics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
+from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
-from TCGAMultiOmics.genomic import GeneExpression, SomaticMutation, DNAMethylation, MiRNAExpression, \
+from openTCGA.genomic import GeneExpression, SomaticMutation, DNAMethylation, MiRNAExpression, \
     CopyNumberVariation, \
     ProteinExpression, LncRNAExpression
 
 
-# from TCGAMultiOmics.slideimage import WholeSlideImages
+# from openTCGA.slideimage import WholeSlideImages
 
 
 class MultiOmicsData:
@@ -315,7 +315,7 @@ class MultiOmicsData:
 
         add_subtypes_to_patients_clinical(dict(zip(<list of patient barcodes>, <list of corresponding patient's subtypes>)))
 
-        Adding a field to the patients clinical data allows TCGAMultiOmics to query the patients data through the
+        Adding a field to the patients clinical data allows openTCGA to query the patients data through the
         .load_data(predicted_subtypes=[]) parameter,
 
         :param dictionary: A dictionary mapping patient's barcode to a subtype
