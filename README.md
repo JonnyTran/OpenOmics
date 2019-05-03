@@ -5,7 +5,7 @@ By providing a series of data manipulation tools, TCGAMultiOmics facilitates the
 
 Installation via pip (Python >= 3.6.0): 
 
-    pip install git+https://github.com/JonnyTran/TCGAMultiOmics
+    pip install git+https://github.com/JonnyTran/openTCGA
 
 
 The TCGA multi-omics data is downloaded from [TCGA-Assembler](http://www.compgenome.org/TCGA-Assembler/).
