@@ -1,4 +1,4 @@
-# TCGAMultiOmics
+# openTCGA
 
 This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data. 
 By providing a series of data manipulation tools, TCGAMultiOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
