@@ -1,10 +1,15 @@
-# openTCGA 
-[![Documentation Status](https://readthedocs.org/projects/opentcga/badge/?version=latest)](https://opentcga.readthedocs.io/en/latest/?badge=latest)
+.. openTCGA documentation master file, created by
+   sphinx-quickstart on Sat May  4 22:39:31 2019.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
 
-This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data. 
+Welcome to openTCGA's documentation!
+====================================
+
+This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data.
 By providing a series of data manipulation tools, openTCGA facilitates the common coding tasks when preparing data for bioinformatics analysis.
 
-Installation via pip (Python >= 3.6.0): 
+Installation via pip (Python >= 3.6.0):
 
     pip install git+https://github.com/JonnyTran/openTCGA
 
@@ -331,7 +336,7 @@ luad_data.match_samples(modalities=["MIR", "GE"])
 
 ```python
 # This function selects only patients with patholotic stages "Stage I" and "Stage II"
-X_multiomics, y = luad_data.load_data(modalities=["GE", "MIR", "LNC"], target=['pathologic_stage'], 
+X_multiomics, y = luad_data.load_data(modalities=["GE", "MIR", "LNC"], target=['pathologic_stage'],
                                      pathologic_stages=['Stage I', 'Stage II'])
 print(X_multiomics['GE'].shape, X_multiomics['MIR'].shape, X_multiomics['LNC'].shape, y.shape)
 ```
@@ -483,10 +488,10 @@ for omic in ["GE", "MIR"]:
     X_train, X_test, Y_train, Y_test = \
         train_test_split(X_multiomics[omic], y, test_size=0.3, random_state=np.random.randint(0, 10000), stratify=y)
     print(X_train.shape, X_test.shape)
-    
+
 
     X_train = scaler.transform(X_train)
-    
+
     model = LinearSVC(C=1e-2, penalty='l1', class_weight='balanced', dual=False, multi_class="ovr")
 #     model = sklearn.linear_model.LogisticRegression(C=1e-0, penalty='l1', fit_intercept=False, class_weight="balanced")
 #     model = SVC(C=1e0, kernel="rbf", class_weight="balanced", decision_function_shape="ovo")
@@ -503,21 +508,35 @@ for omic in ["GE", "MIR"]:
     NONZERO 0
     Training accuracy 0.6929133858267716
                  precision    recall  f1-score   support
-    
+
         Stage I       0.69      1.00      0.82        75
        Stage II       0.00      0.00      0.00        34
-    
+
     avg / total       0.47      0.69      0.56       109
-    
+
     MIR
     (254, 1870) (109, 1870)
     NONZERO 0
     Training accuracy 0.6929133858267716
                  precision    recall  f1-score   support
-    
+
         Stage I       0.69      1.00      0.82        75
        Stage II       0.00      0.00      0.00        34
-    
-    avg / total       0.47      0.69      0.56       109
-    
 
+    avg / total       0.47      0.69      0.56       109
+
+
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
