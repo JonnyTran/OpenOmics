@@ -11,7 +11,7 @@ URL = 'https://github.com/JonnyTran/openTCGA'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Nhat Tran'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.2'
+VERSION = '0.4'
 
 REQUIRED = [
     'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython'
