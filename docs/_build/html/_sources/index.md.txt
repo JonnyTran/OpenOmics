@@ -1,5 +1,5 @@
 # openTCGA 
-[![Documentation Status](https://readthedocs.org/projects/opentcga/badge/?version=latest)](https://opentcga.readthedocs.io/en/latest/?badge=latest)
+[!(https://readthedocs.org/projects/opentcga/badge/?version=latest)](https://opentcga.readthedocs.io/en/latest/?badge=latest)
 
 This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data. 
 By providing a series of data manipulation tools, openTCGA facilitates the common coding tasks when preparing data for bioinformatics analysis.
