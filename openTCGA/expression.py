@@ -14,7 +14,8 @@ from openTCGA.utils import GTF
 class ExpressionData:
     def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA", import_sequences="longest", replace_U2T=True,
                  import_from_TCGA_Assembler=True, log2_transform=True):
-        """This class handles importing of expression data tables while providing indices to the TCGA samples.
+        """An abstract class that handles importing of expression data tables while providing indices to the TCGA
+        samples and gene name to the expressions.
             Args:
                 cancer_type (str): TCGA cancer cohort code name string
                 file_path (str): Path of the table file to import
