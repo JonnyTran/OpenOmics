@@ -11,30 +11,30 @@ from pandas import Series
 from openTCGA.utils import GTF
 
 
-class GenomicData:
+class ExpressionData:
     def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA", import_sequences="longest", replace_U2T=True,
                  import_from_TCGA_Assembler=True, log2_transform=True):
-        """
-
-        :param cancer_type: TCGA cancer cohort code name
-        :param file_path: Path of the table file to import
-        :param columns: column names to import from the table. Columns names imported are string match, separated by "|"
-        :param import_from_TCGA_Assembler: If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
-        :param log2_transform: Whether to log2 transform the expression values
+        """This class handles importing of expression data tables while providing indices to the TCGA samples.
+            Args:
+                cancer_type (str): TCGA cancer cohort code name string
+                file_path (str): Path of the table file to import
+                columns (str): column names to import from the table. Columns names imported are string match, separated by "|"
+                import_from_TCGA_Assembler (list): ["longest", "shortest", "multi"], If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
+                log2_transform (bool): Whether to log2 transform the expression values
         """
         self.cancer_type = cancer_type
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
 
         if import_from_TCGA_Assembler:
-            self.data = self.preprocess_expression_table(pd.read_table(file_path), columns)
+            self.expression = self.preprocess_expression_table(pd.read_table(file_path), columns)
 
         if log2_transform:
-            self.data = self.data.applymap(self.log2_transform)
+            self.expression = self.expression.applymap(self.log2_transform)
 
         # Save samples and features for this omics data
-        self.samples = self.data.index
-        self.features = self.data.columns.tolist()
+        self.samples = self.expression.index
+        self.features = self.expression.columns.tolist()
         # self.features.remove("bcr_sample_barcode")
 
 
@@ -81,7 +81,7 @@ class GenomicData:
         return np.log2(x + 1)
 
     def drop_genes(self, genes_to_drop):
-        self.data.drop(genes_to_drop, axis=1, inplace=True)
+        self.expression.drop(genes_to_drop, axis=1, inplace=True)
         for gene in genes_to_drop:
             self.features.remove(gene)
 
@@ -103,7 +103,7 @@ class GenomicData:
             return None
 
 
-class LncRNAExpression(GenomicData):
+class LncRNAExpression(ExpressionData):
     def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path, external_data_path,
                  import_sequences="longest", replace_U2T=True, ):
         """
@@ -605,7 +605,7 @@ class LncRNAExpression(GenomicData):
 
 
 
-class GeneExpression(GenomicData):
+class GeneExpression(ExpressionData):
     def __init__(self, cancer_type, folder_path, log2_transform=True, import_sequences="longest", replace_U2T=True, ):
         file_path = os.path.join(folder_path, "geneExp.txt")
         super().__init__(cancer_type, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
@@ -819,13 +819,13 @@ class GeneExpression(GenomicData):
         return self.gene_info
 
 
-class SomaticMutation(GenomicData):
+class SomaticMutation(ExpressionData):
     def __init__(self, cancer_type, folder_path):
         file_path = os.path.join(folder_path, "somaticMutation_geneLevel.txt")
         super().__init__(cancer_type, file_path)
 
 
-class MiRNAExpression(GenomicData):
+class MiRNAExpression(ExpressionData):
     def __init__(self, cancer_type, folder_path, log2_transform=True, import_sequences="longest", replace_U2T=True, ):
         file_path = os.path.join(folder_path, "miRNAExp__RPM.txt")
         super().__init__(cancer_type, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
@@ -1096,19 +1096,19 @@ class MiRNAExpression(GenomicData):
         return self.gene_info
 
 
-class CopyNumberVariation(GenomicData):
+class CopyNumberVariation(ExpressionData):
     def __init__(self, cancer_type, folder_path):
         file_path = os.path.join(folder_path, "copyNumber.txt")
         super().__init__(cancer_type, file_path)
 
 
-class DNAMethylation(GenomicData):
+class DNAMethylation(ExpressionData):
     def __init__(self, cancer_type, folder_path):
         file_path = os.path.join(folder_path, "methylation_450.txt")
         super().__init__(cancer_type, file_path)
 
 
-class ProteinExpression(GenomicData):
+class ProteinExpression(ExpressionData):
     def __init__(self, cancer_type, folder_path, import_sequences="longest", log2_transform=True):
         file_path = os.path.join(folder_path, "protein_RPPA.txt")
         super().__init__(cancer_type, file_path, import_sequences=import_sequences, log2_transform=log2_transform)

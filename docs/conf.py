@@ -24,9 +24,9 @@ copyright = '2019, Jonny Tran'
 author = 'Jonny Tran'
 
 # The short X.Y version
-version = ''
+version = '0.4'
 # The full version, including alpha/beta/rc tags
-release = '0.4'
+release = 'b0.4'
 
 
 # -- General configuration ---------------------------------------------------
@@ -47,6 +47,7 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
+    'sphinx.ext.napoleon',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

@@ -4,7 +4,7 @@ import pandas as pd
 
 from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
-from openTCGA.genomic import GeneExpression, SomaticMutation, DNAMethylation, MiRNAExpression, \
+from openTCGA.expression import GeneExpression, SomaticMutation, DNAMethylation, MiRNAExpression, \
     CopyNumberVariation, \
     ProteinExpression, LncRNAExpression
 # from openTCGA.slideimage import WholeSlideImages
@@ -75,7 +75,7 @@ class MultiOmicsData:
         if "GE" in modalities:
             self.GE = GeneExpression(cancer_type, os.path.join(tcga_data_path, "gene_exp/"),
                                      import_sequences=import_sequences, replace_U2T=replace_U2T)
-            self.data["GE"] = self.GE.data
+            self.data["GE"] = self.GE.expression
 
             try:
                 self.GE.process_targetScan_gene_info(
@@ -104,12 +104,12 @@ class MultiOmicsData:
 
         if "SNP" in modalities:
             self.SNP = SomaticMutation(cancer_type, os.path.join(tcga_data_path, "somatic/"))
-            self.data["SNP"] = self.SNP.data
+            self.data["SNP"] = self.SNP.expression
 
         if "MIR" in modalities:
             self.MIR = MiRNAExpression(cancer_type, os.path.join(tcga_data_path, "mirna/"),
                                        import_sequences=import_sequences, replace_U2T=replace_U2T)
-            self.data["MIR"] = self.MIR.data
+            self.data["MIR"] = self.MIR.expression
 
             try:
                 self.MIR.process_mirbase_data(mirbase_folder_path=os.path.join(external_data_path, "mirbase"))
@@ -140,7 +140,7 @@ class MultiOmicsData:
                                         external_data_path=external_data_path,
                                         import_sequences=import_sequences, replace_U2T=replace_U2T)
 
-            self.data["LNC"] = self.LNC.data
+            self.data["LNC"] = self.LNC.expression
 
             try:
                 self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
@@ -165,13 +165,13 @@ class MultiOmicsData:
 
         if "DNA" in modalities:
             self.DNA = DNAMethylation(cancer_type, os.path.join(tcga_data_path, "dna/"))
-            self.data["DNA"] = self.DNA.data
+            self.data["DNA"] = self.DNA.expression
         if "CNV" in modalities:
             self.CNV = CopyNumberVariation(cancer_type, os.path.join(tcga_data_path, "cnv/"))
-            self.data["CNV"] = self.CNV.data
+            self.data["CNV"] = self.CNV.expression
         if "PRO" in modalities:
             self.PRO = ProteinExpression(cancer_type, os.path.join(tcga_data_path, "protein_rppa/"))
-            self.data["PRO"] = self.PRO.data
+            self.data["PRO"] = self.PRO.expression
             self.PRO.process_HPRD_PPI_network(
                 ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
                                                 "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
