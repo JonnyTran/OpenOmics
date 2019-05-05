@@ -17,6 +17,7 @@ class MultiOmicsData:
                  replace_U2T=True,
                  remove_duplicate_genes=True, auto_import_clinical=True, process_genes_info=True):
         """
+        .. class:: MultiOmicsData
         Load all multi-omics TCGA data from a given tcga_data_path with the following folder structure:
 
             tcga_data_path/
