@@ -819,12 +819,6 @@ class GeneExpression(ExpressionData):
         return self.gene_info
 
 
-class SomaticMutation(ExpressionData):
-    def __init__(self, cancer_type, folder_path):
-        file_path = os.path.join(folder_path, "somaticMutation_geneLevel.txt")
-        super().__init__(cancer_type, file_path)
-
-
 class MiRNAExpression(ExpressionData):
     def __init__(self, cancer_type, folder_path, log2_transform=True, import_sequences="longest", replace_U2T=True, ):
         file_path = os.path.join(folder_path, "miRNAExp__RPM.txt")
@@ -1094,18 +1088,6 @@ class MiRNAExpression(ExpressionData):
 
     def get_genes_info(self):
         return self.gene_info
-
-
-class CopyNumberVariation(ExpressionData):
-    def __init__(self, cancer_type, folder_path):
-        file_path = os.path.join(folder_path, "copyNumber.txt")
-        super().__init__(cancer_type, file_path)
-
-
-class DNAMethylation(ExpressionData):
-    def __init__(self, cancer_type, folder_path):
-        file_path = os.path.join(folder_path, "methylation_450.txt")
-        super().__init__(cancer_type, file_path)
 
 
 class ProteinExpression(ExpressionData):

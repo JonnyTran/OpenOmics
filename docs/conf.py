@@ -16,7 +16,6 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('../openTCGA/'))
 
-
 # -- Project information -----------------------------------------------------
 
 project = 'openTCGA'

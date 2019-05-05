@@ -4,9 +4,11 @@ import pandas as pd
 
 from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
-from openTCGA.expression import GeneExpression, SomaticMutation, DNAMethylation, MiRNAExpression, \
-    CopyNumberVariation, \
+from openTCGA.expression import GeneExpression, MiRNAExpression, \
     ProteinExpression, LncRNAExpression
+from openTCGA.genomic import SomaticMutation, DNAMethylation, CopyNumberVariation
+
+
 # from openTCGA.slideimage import WholeSlideImages
 
 class MultiOmicsData:
