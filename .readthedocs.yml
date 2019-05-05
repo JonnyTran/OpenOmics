@@ -9,5 +9,5 @@ python:
         extra_requirements:
             - docs
       - method: setuptools
-        path: openTCGA
+        path: .
    system_packages: true
