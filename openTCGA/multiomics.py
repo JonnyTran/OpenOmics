@@ -7,10 +7,7 @@ from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE
 from openTCGA.genomic import GeneExpression, SomaticMutation, DNAMethylation, MiRNAExpression, \
     CopyNumberVariation, \
     ProteinExpression, LncRNAExpression
-
-
 # from openTCGA.slideimage import WholeSlideImages
-
 
 class MultiOmicsData:
 
