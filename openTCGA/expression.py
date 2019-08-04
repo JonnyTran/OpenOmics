@@ -12,8 +12,10 @@ from openTCGA.utils import GTF
 
 
 class ExpressionData:
-    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", import_sequences="longest", replace_U2T=True,
-                 transposed_table=True, log2_transform=True):
+    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA",
+                 id_col_name="GeneSymbol",
+                 import_sequences="longest", replace_U2T=True,
+                 transposed_table=True, log2_transform=False):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of expression data tables while providing indices to the TCGA
@@ -29,8 +31,9 @@ class ExpressionData:
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
 
+        table = pd.read_table(file_path)
         if transposed_table:
-            self.expression = self.preprocess_expression_table(pd.read_table(file_path), columns)
+            self.expression = self.preprocess_expression_table(table, columns, id_col_name)
 
         if log2_transform:
             self.expression = self.expression.applymap(self.log2_transform)
@@ -40,10 +43,9 @@ class ExpressionData:
         self.features = self.expression.columns.tolist()
         # self.features.remove("bcr_sample_barcode")
 
-
-    def preprocess_expression_table(self, df, columns):
+    def preprocess_expression_table(self, df, columns, id_col_name):
         """
-        This function preprocesses the table files obtained from TCGA-Assembler
+        This function preprocesses the expression table files where columns are samples and rows are gene/transcripts
         :param df:
         :param columns:
         :return:
@@ -60,19 +62,16 @@ class ExpressionData:
         _, i = np.unique(table.columns, return_index=True)
         table = table.iloc[:, i]
 
-        # Drop NA GeneSymbol rows
+        # Drop NA geneID rows
         table.dropna(axis=0, inplace=True)
 
-        # Remove entries with unknown Gene Symbol
-        table = table[table.GeneSymbol != '?']
+        # Remove entries with unknown geneID
+        table = table[table[id_col_name] != '?']
 
-        # Transpose dataframe to patient rows and GeneSymbol columns
-        table.index = table.GeneSymbol
-        table.drop(['GeneSymbol'], axis=1, inplace=True)
+        # Transpose dataframe to patient rows and geneID columns
+        table.index = table[id_col_name]
+        table.drop([id_col_name], axis=1, inplace=True)
         table = table.T
-
-        # Add column for patients barcode
-        # table['bcr_sample_barcode'] = table.index
 
         # Drop duplicate columns names (Gene symbols with same name)
         _, i = np.unique(table.columns, return_index=True)
