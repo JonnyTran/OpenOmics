@@ -3,6 +3,6 @@ bokeh
 dask
 networkx>=2.1
 numpy
-pandas==0.23.4
+pandas
 scipy
 h5py
