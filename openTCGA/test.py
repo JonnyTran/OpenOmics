@@ -1,4 +1,4 @@
-from openTCGA.multiomic import MultiOmicsData
+from openTCGA.multiomics import MultiOmicsData
 
 folder_path = "/data/datasets/Bioinformatics_ExternalData/tcga-assembler/LUAD"
 external_data_path = "/data/datasets/Bioinformatics_ExternalData/"
