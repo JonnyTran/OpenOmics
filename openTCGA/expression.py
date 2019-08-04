@@ -12,24 +12,24 @@ from openTCGA.utils import GTF
 
 
 class ExpressionData:
-    def __init__(self, cancer_type, file_path, columns="GeneSymbol|TCGA", import_sequences="longest", replace_U2T=True,
-                 import_from_TCGA_Assembler=True, log2_transform=True):
+    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", import_sequences="longest", replace_U2T=True,
+                 transposed_table=True, log2_transform=True):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of expression data tables while providing indices to the TCGA
         samples and gene name to the expressions.
             Args:
-                cancer_type (str): TCGA cancer cohort code name string
+                cohort_name (str): the cohort code name string
                 file_path (str): Path of the table file to import
                 columns (str): column names to import from the table. Columns names imported are string match, separated by "|"
-                import_from_TCGA_Assembler (list): ["longest", "shortest", "multi"], If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
+                transposed_table (list): ["longest", "shortest", "multi"], If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
                 log2_transform (bool): Whether to log2 transform the expression values
         """
-        self.cancer_type = cancer_type
+        self.cohort_name = cohort_name
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
 
-        if import_from_TCGA_Assembler:
+        if transposed_table:
             self.expression = self.preprocess_expression_table(pd.read_table(file_path), columns)
 
         if log2_transform:
@@ -107,7 +107,7 @@ class ExpressionData:
 
 
 class LncRNAExpression(ExpressionData):
-    def __init__(self, cancer_type, folder_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path, external_data_path,
+    def __init__(self, cohort_name, folder_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path, external_data_path,
                  import_sequences="longest", replace_U2T=True, ):
         """
         :param folder_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
@@ -117,7 +117,7 @@ class LncRNAExpression(ExpressionData):
         self.GENCODE_LncRNA_gtf_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.long_noncoding_RNAs.gtf")
         self.GENCODE_LncRNA_sequence_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.lncRNA_transcripts.fa")
         self.external_data_path = external_data_path
-        super().__init__(cancer_type, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
+        super().__init__(cohort_name, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=False)
 
 
@@ -609,9 +609,9 @@ class LncRNAExpression(ExpressionData):
 
 
 class GeneExpression(ExpressionData):
-    def __init__(self, cancer_type, folder_path, log2_transform=True, import_sequences="longest", replace_U2T=True, ):
+    def __init__(self, cohort_name, folder_path, log2_transform=True, import_sequences="longest", replace_U2T=True, ):
         file_path = os.path.join(folder_path, "geneExp.txt")
-        super().__init__(cancer_type, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
+        super().__init__(cohort_name, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
 
     def process_GENCODE_transcript_data(self, gencode_folder_path):
@@ -823,9 +823,9 @@ class GeneExpression(ExpressionData):
 
 
 class MiRNAExpression(ExpressionData):
-    def __init__(self, cancer_type, folder_path, log2_transform=True, import_sequences="longest", replace_U2T=True, ):
+    def __init__(self, cohort_name, folder_path, log2_transform=True, import_sequences="longest", replace_U2T=True, ):
         file_path = os.path.join(folder_path, "miRNAExp__RPM.txt")
-        super().__init__(cancer_type, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
+        super().__init__(cohort_name, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
 
     def process_mirbase_data(self, mirbase_folder_path):
@@ -1094,9 +1094,9 @@ class MiRNAExpression(ExpressionData):
 
 
 class ProteinExpression(ExpressionData):
-    def __init__(self, cancer_type, folder_path, import_sequences="longest", log2_transform=True):
+    def __init__(self, cohort_name, folder_path, import_sequences="longest", log2_transform=True):
         file_path = os.path.join(folder_path, "protein_RPPA.txt")
-        super().__init__(cancer_type, file_path, import_sequences=import_sequences, log2_transform=log2_transform)
+        super().__init__(cohort_name, file_path, import_sequences=import_sequences, log2_transform=log2_transform)
 
     def process_HPRD_PPI_network(self, ppi_data_file_path):
         HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
