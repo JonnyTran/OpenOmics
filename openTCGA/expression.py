@@ -119,8 +119,7 @@ class LncRNAExpression(ExpressionData):
         super().__init__(cohort_name, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=False)
 
-
-    def preprocess_expression_table(self, df, columns):
+    def preprocess_expression_table(self, df, columns, id_col_name):
         """
         Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
 
