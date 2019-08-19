@@ -13,7 +13,7 @@ from openTCGA.utils import GTF
 
 class ExpressionData:
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA",
-                 id_col_name="GeneSymbol",
+                 key="GeneSymbol",
                  import_sequences="longest", replace_U2T=True,
                  transposed_table=True, log2_transform=False):
         """
@@ -33,7 +33,7 @@ class ExpressionData:
 
         table = pd.read_table(file_path)
         if transposed_table:
-            self.expression = self.preprocess_expression_table(table, columns, id_col_name)
+            self.expression = self.preprocess_table(table, columns, key)
 
         if log2_transform:
             self.expression = self.expression.applymap(self.log2_transform)
@@ -43,15 +43,13 @@ class ExpressionData:
         self.features = self.expression.columns.tolist()
         # self.features.remove("bcr_sample_barcode")
 
-    def preprocess_expression_table(self, df, columns, id_col_name):
+    def preprocess_table(self, table:pd.DataFrame, columns:str, key:str):
         """
         This function preprocesses the expression table files where columns are samples and rows are gene/transcripts
         :param df:
         :param columns:
         :return:
         """
-        table = df
-
         # Filter columns
         table = table.filter(regex=columns)
 
@@ -66,11 +64,11 @@ class ExpressionData:
         table.dropna(axis=0, inplace=True)
 
         # Remove entries with unknown geneID
-        table = table[table[id_col_name] != '?']
+        table = table[table[key] != '?']
 
         # Transpose dataframe to patient rows and geneID columns
-        table.index = table[id_col_name]
-        table.drop([id_col_name], axis=1, inplace=True)
+        table.index = table[key]
+        table.drop([key], axis=1, inplace=True)
         table = table.T
 
         # Drop duplicate columns names (Gene symbols with same name)
@@ -119,7 +117,7 @@ class LncRNAExpression(ExpressionData):
         super().__init__(cohort_name, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=False)
 
-    def preprocess_expression_table(self, df, columns, id_col_name):
+    def preprocess_table(self, df, columns, key):
         """
         Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
 

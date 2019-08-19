@@ -1,4 +1,5 @@
 biopython
+large-image
 bokeh
 dask
 networkx>=2.1

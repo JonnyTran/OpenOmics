@@ -4,8 +4,6 @@ import h5py
 import large_image
 import numpy as np
 from dask import delayed
-from definitions import ROOT_DIR
-
 
 # import histomicstk as htk
 # import histomicstk.segmentation.positive_pixel_count as ppc
@@ -15,7 +13,7 @@ class WholeSlideImages:
     def __init__(self, cancer_type, wsi_dir_path, force_preprocess=False):
         self.cancer_type = cancer_type
 
-        fname = os.path.join(ROOT_DIR, "models", "wsi_preprocessed.hdf5")
+        fname = os.path.join(wsi_dir_path, "models", "wsi_preprocessed.hdf5")
         f = h5py.File(fname, "w")
 
         if (not "wsi_preprocessed" in f) or force_preprocess:
@@ -27,7 +25,6 @@ class WholeSlideImages:
 
     def run_preprocess(self, f, wsi_dir_path):
         wsi_preprocessed = f.create_dataset("wsi_preprocessed", (100,), dtype='i')
-
         wsi_file = self.wsi_file_iterator(wsi_dir_path)
 
         i = 2
