@@ -72,7 +72,7 @@ class ClinicalData:
             if os.path.exists(biospecimens_file_path):
                 self.biospecimen = pd.read_table(biospecimens_file_path, sep="\t", skiprows=[1, ],
                                                  na_values="[Not Available]",
-                                                 # usecols=ClinicalData.biospecimen_sample_colsname
+                                                 usecols=ClinicalData.biospecimen_sample_colsname
                                                  )
                 self.biospecimen.index = self.biospecimen["bcr_sample_barcode"]
                 self.sample_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()

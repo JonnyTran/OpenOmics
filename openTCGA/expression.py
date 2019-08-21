@@ -9,7 +9,7 @@ from Bio.UniProt import GOA
 from pandas import Series
 
 from openTCGA.utils import GTF
-
+from openTCGA.annotate import get_ensemble_genes
 
 class ExpressionData:
     def __init__(self, cohort_name, file_path, columns, key,
@@ -132,9 +132,11 @@ class LncRNAExpression(ExpressionData):
         table = table[~table[key].duplicated(keep='first')] # Remove duplicate genes
 
         # Preprocess genes info
-        gencode_LncRNA_info, ensembl_gene_id_to_gene_name = self.get_GENCODE_lncRNA_gene_name_dict()
+        gencode_LncRNA_info, _ = self.get_GENCODE_lncRNA_gene_name_dict()
         lncipedia_lncrna_dict = self.get_lncipedia_gene_id_to_name_dict()
         lncBase_gene_id_to_name_dict = self.get_lncBase_gene_id_to_name_dict()
+        ensemble_genes = get_ensemble_genes()
+        ensembl_gene_id_to_gene_name = ensemble_genes[ensemble_genes["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
 
         hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
         ensembl_gene_ids = table[key]
@@ -146,7 +148,7 @@ class LncRNAExpression(ExpressionData):
         print("Unmatched lncRNAs", table[key].str.startswith("ENSG").sum())
 
         table.replace({key: ensembl_gene_id_to_gene_name}, inplace=True)
-        print("Unmatched lncRNAs after gencode:", table['Gene_ID'].str.startswith("ENSG").sum())
+        print("Unmatched lncRNAs after ensembl:", table['Gene_ID'].str.startswith("ENSG").sum())
 
         table.replace({key: lncBase_gene_id_to_name_dict}, inplace=True)
         print("Unmatched lncRNAs after lncBase:", table['Gene_ID'].str.startswith("ENSG").sum())

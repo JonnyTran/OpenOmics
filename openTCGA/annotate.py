@@ -32,7 +32,7 @@ def query_biomart(host="www.ensembl.org", dataset="hsapiens_gene_ensembl",
                   attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'go_id'],
                   save_filename=None):
     bm = BioMart(host=host)
-
+    print("Querying {} from {}...".format(dataset, host))
     # Start query
     bm.new_query()
     bm.add_dataset_to_xml(dataset)
