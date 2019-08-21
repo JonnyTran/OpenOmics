@@ -31,7 +31,11 @@ class ExpressionData:
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
 
-        table = pd.read_table(file_path)
+        if os.path.isfile(file_path) and os.path.exists(file_path):
+            table = pd.read_table(file_path)
+        else:
+            raise FileNotFoundError(file_path)
+
         if transposed_table:
             self.expression = self.preprocess_table(table, columns, key)
 
@@ -130,14 +134,13 @@ class LncRNAExpression(ExpressionData):
 
 
         # Preprocess genes info
-        GENCODE_LncRNA_info, \
-        ensembl_gene_id_to_gene_name = self.get_GENCODE_lncRNA_gene_name_dict()
+        gencode_LncRNA_info, ensembl_gene_id_to_gene_name = self.get_GENCODE_lncRNA_gene_name_dict()
         lncipedia_lncrna_dict = self.get_lncipedia_gene_id_to_name_dict()
         lncBase_gene_id_to_name_dict = self.get_lncBase_gene_id_to_name_dict()
 
         hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
         ensembl_gene_ids = lncrna_exp['Gene_ID']
-        self.preprocess_genes_info(ensembl_gene_ids, GENCODE_LncRNA_info,
+        self.preprocess_genes_info(ensembl_gene_ids, gencode_LncRNA_info,
                                    ensembl_gene_id_to_gene_name,
                                    hgnc_lncrna_dict)
 

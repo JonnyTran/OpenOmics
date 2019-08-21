@@ -11,8 +11,11 @@ from dask import delayed
 class WholeSlideImages:
     def __init__(self, cohort_name, folder_path, force_preprocess=False):
         self.cancer_type = cohort_name
+        if not os.path.isdir(folder_path) or not os.path.exists(folder_path):
+            raise NotADirectoryError(folder_path)
 
         fname = os.path.join(folder_path, "models", "wsi_preprocessed.hdf5")
+
         f = h5py.File(fname, "w")
 
         if (not "wsi_preprocessed" in f) or force_preprocess:

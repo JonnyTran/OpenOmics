@@ -9,7 +9,6 @@ from openTCGA.genomic import SomaticMutation, DNAMethylation, CopyNumberVariatio
 from openTCGA.slideimage import WholeSlideImages
 
 class MultiOmicsData:
-
     def __init__(self, cohort_name:str, cohort_folder_path:str, external_data_path:str, modalities:list, import_sequences="longest",
                  replace_U2T=True, remove_duplicate_genes=True, auto_import_clinical=True, process_genes_info=True):
         """
