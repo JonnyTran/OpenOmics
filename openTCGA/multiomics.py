@@ -73,8 +73,8 @@ class MultiOmicsData:
             self.data["WSI"] = self.WSI
 
         if "GE" in modalities:
-            GE_file_path = os.path.join(cohort_folder_path, "gene_exp", "geneExp.txt")
-            self.GE = GeneExpression(cohort_name, GE_file_path,
+            table_path_GE = os.path.join(cohort_folder_path, "gene_exp", "geneExp.txt")
+            self.GE = GeneExpression(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", key="GeneSymbol",
                                      import_sequences=import_sequences, replace_U2T=replace_U2T)
             self.data["GE"] = self.GE.expression
 
