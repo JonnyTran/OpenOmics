@@ -4,48 +4,48 @@ import h5py
 import large_image
 import numpy as np
 from dask import delayed
-
 # import histomicstk as htk
 # import histomicstk.segmentation.positive_pixel_count as ppc
 
 
 class WholeSlideImages:
-    def __init__(self, cancer_type, wsi_dir_path, force_preprocess=False):
-        self.cancer_type = cancer_type
+    def __init__(self, cohort_name, folder_path, force_preprocess=False):
+        self.cancer_type = cohort_name
 
-        fname = os.path.join(wsi_dir_path, "models", "wsi_preprocessed.hdf5")
+        fname = os.path.join(folder_path, "models", "wsi_preprocessed.hdf5")
         f = h5py.File(fname, "w")
 
         if (not "wsi_preprocessed" in f) or force_preprocess:
             print("Preprocessing new WSI's")
-            self.run_preprocess(f, wsi_dir_path)
+            self.run_preprocess(f, folder_path)
 
         else:
             print("Already has wsi_preprocessed. Loading data from hdf5 file")
 
-    def run_preprocess(self, f, wsi_dir_path):
+    def run_preprocess(self, f, folder_path):
         wsi_preprocessed = f.create_dataset("wsi_preprocessed", (100,), dtype='i')
-        wsi_file = self.wsi_file_iterator(wsi_dir_path)
+        wsi_file = self.wsi_file_iterator(folder_path)
 
         i = 2
         while True and i > 0:
-            imagePath = os.path.join(wsi_dir_path, wsi_file.__next__())
+            imagePath = os.path.join(folder_path, wsi_file.__next__())
             i = i - 1
             self.preprocess_wsi(f, imagePath)
 
     def preprocess_wsi(self, f, imagePath):
         print(imagePath)
         print(slide_to_tile(imagePath))
+        pass
 
-    def wsi_file_iterator(self, wsi_dir_path):
+    def wsi_file_iterator(self, folder_path):
         has_any_wsi = False
-        for file in os.listdir(wsi_dir_path):
+        for file in os.listdir(folder_path):
             if file.endswith(".svs"):
                 has_any_wsi = True
                 yield file
 
         if not has_any_wsi:
-            raise Exception("Folder " + wsi_dir_path + " doesn't contain any WSI .svs files")
+            raise Exception("Folder " + folder_path + " doesn't contain any WSI .svs files")
 
 
 def slide_to_tile(slide_path, params=None, region=None,

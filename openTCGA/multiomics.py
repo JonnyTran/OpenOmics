@@ -1,5 +1,4 @@
 import os
-
 import pandas as pd
 
 from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
@@ -7,20 +6,16 @@ from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE
 from openTCGA.expression import GeneExpression, MiRNAExpression, \
     ProteinExpression, LncRNAExpression
 from openTCGA.genomic import SomaticMutation, DNAMethylation, CopyNumberVariation
-
-
-# from openTCGA.slideimage import WholeSlideImages
+from openTCGA.slideimage import WholeSlideImages
 
 class MultiOmicsData:
 
-    def __init__(self, cancer_type, tcga_data_path, external_data_path, modalities, import_sequences="longest",
-                 replace_U2T=True,
-                 remove_duplicate_genes=True, auto_import_clinical=True, process_genes_info=True):
+    def __init__(self, cohort_name:str, cohort_folder_path:str, external_data_path:str, modalities:list, import_sequences="longest",
+                 replace_U2T=True, remove_duplicate_genes=True, auto_import_clinical=True, process_genes_info=True):
         """
         .. class:: MultiOmicsData
         Load all multi-omics TCGA data from a given tcga_data_path with the following folder structure:
-
-            tcga_data_path/
+            cohort_folder/
                 clinical/
                     genome.wustl.edu_biospecimen_sample.txt (optional)
                     nationwidechildrens.org_clinical_drug.txt
@@ -37,6 +32,8 @@ class MultiOmicsData:
                     somaticMutation_geneLevel.txt
                 lncrna/
                     TCGA-rnaexpr.tsv
+                wsi/
+                    ...
 
         Load the external data downloaded from various databases. These data will be imported as attribute information to
         the genes, or interactions between the genes.
@@ -53,31 +50,30 @@ class MultiOmicsData:
                     RNA_long_non-coding.txt
                     RNA_micro.txt
 
-        :param cancer_type: TCGA cancer cohort name
-        :param tcga_data_path: directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
+        :param cohort_name: TCGA cancer cohort name
+        :param cohort_folder_path: directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
         :param external_data_path: directory path to the folder containing external databases
         :param modalities: A list of multi-omics data to import. All available data includes ["CLI", "WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"]. Clinical data is always automatically imported.
         """
-        self.cancer_type = cancer_type
+        self.cancer_type = cohort_name
         self.modalities = modalities
         self.external_data_path = external_data_path
 
         # LOADING DATA FROM FILES
         self.data = {}
         if auto_import_clinical or ("CLI" in modalities):
-            self.clinical = ClinicalData(cancer_type, os.path.join(tcga_data_path, "clinical/"))
+            self.clinical = ClinicalData(cohort_name, os.path.join(cohort_folder_path, "clinical/"))
             self.data["PATIENTS"] = self.clinical.patient
             # self.data["BIOSPECIMENS"] = self.clinical.biospecimen
             self.data["DRUGS"] = self.clinical.drugs
 
         if "WSI" in modalities:
-            pass
-            # self.WSI = WholeSlideImages(cancer_type, folder_path)
-            # self.data["WSI"] = self.WSI
+            self.WSI = WholeSlideImages(cohort_name, os.path.join(cohort_folder_path, "wsi/"))
+            self.data["WSI"] = self.WSI
 
         if "GE" in modalities:
-            GE_file_path = os.path.join(tcga_data_path, "gene_exp", "geneExp.txt")
-            self.GE = GeneExpression(cancer_type, GE_file_path,
+            GE_file_path = os.path.join(cohort_folder_path, "gene_exp", "geneExp.txt")
+            self.GE = GeneExpression(cohort_name, GE_file_path,
                                      import_sequences=import_sequences, replace_U2T=replace_U2T)
             self.data["GE"] = self.GE.expression
 
@@ -107,13 +103,13 @@ class MultiOmicsData:
                 print(e)
 
         if "SNP" in modalities:
-            file_path_SNP = os.path.join(tcga_data_path, "somatic/", "somaticMutation_geneLevel.txt")
-            self.SNP = SomaticMutation(cancer_type, file_path_SNP)
+            file_path_SNP = os.path.join(cohort_folder_path, "somatic/", "somaticMutation_geneLevel.txt")
+            self.SNP = SomaticMutation(cohort_name, file_path_SNP)
             self.data["SNP"] = self.SNP.expression
 
         if "MIR" in modalities:
-            file_path_MIR = os.path.join(tcga_data_path, "mirna/", "miRNAExp__RPM.txt")
-            self.MIR = MiRNAExpression(cancer_type, file_path_MIR,
+            file_path_MIR = os.path.join(cohort_folder_path, "mirna/", "miRNAExp__RPM.txt")
+            self.MIR = MiRNAExpression(cohort_name, file_path_MIR,
                                        import_sequences=import_sequences, replace_U2T=replace_U2T)
             self.data["MIR"] = self.MIR.expression
 
@@ -139,8 +135,8 @@ class MultiOmicsData:
                     external_data_path)
 
         if "LNC" in modalities:
-            file_path_LNC = os.path.join(tcga_data_path, "lncrna/", "TCGA-rnaexpr.tsv")
-            self.LNC = LncRNAExpression(cancer_type, file_path_LNC,
+            file_path_LNC = os.path.join(cohort_folder_path, "lncrna/", "TCGA-rnaexpr.tsv")
+            self.LNC = LncRNAExpression(cohort_name, file_path_LNC,
                                         HGNC_lncRNA_names_file_path=os.path.join(external_data_path, "HUGO_Gene_names",
                                                                                  "RNA_long_non-coding.txt"),
                                         GENCODE_folder_path=os.path.join(external_data_path, "GENCODE"),
@@ -170,18 +166,18 @@ class MultiOmicsData:
                 print(e)
 
         if "DNA" in modalities:
-            file_path_DNA = os.path.join(tcga_data_path, "dna/", "methylation_450.txt")
-            self.DNA = DNAMethylation(cancer_type, file_path_DNA)
+            file_path_DNA = os.path.join(cohort_folder_path, "dna/", "methylation_450.txt")
+            self.DNA = DNAMethylation(cohort_name, file_path_DNA)
             self.data["DNA"] = self.DNA.expression
 
         if "CNV" in modalities:
-            file_path_CNV = os.path.join(tcga_data_path, "cnv/", "copyNumber.txt")
-            self.CNV = CopyNumberVariation(cancer_type, file_path_CNV)
+            file_path_CNV = os.path.join(cohort_folder_path, "cnv/", "copyNumber.txt")
+            self.CNV = CopyNumberVariation(cohort_name, file_path_CNV)
             self.data["CNV"] = self.CNV.expression
 
         if "PRO" in modalities:
-            file_path_PRO = os.path.join(tcga_data_path, "protein_rppa/", "protein_RPPA.txt")
-            self.PRO = ProteinExpression(cancer_type, file_path_PRO)
+            file_path_PRO = os.path.join(cohort_folder_path, "protein_rppa/", "protein_RPPA.txt")
+            self.PRO = ProteinExpression(cohort_name, file_path_PRO)
             self.data["PRO"] = self.PRO.expression
             self.PRO.process_HPRD_PPI_network(
                 ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",

@@ -1,17 +1,16 @@
 from openTCGA.multiomics import MultiOmicsData
 
-folder_path = "/Users/jonny/Desktop/PycharmProjects/assn-miRNA-LUAD/data/tcga-assembler/LUAD"
-external_data_path = "/data/datasets/Bioinformatics_ExternalData/"
-luad_data = MultiOmicsData(cancer_type="LUAD", tcga_data_path=folder_path, external_data_path=external_data_path,
-                           process_genes_info=True,
+folder_path = "/Users/jonny/Desktop/PycharmProjects/assn-miRNA-LUAD/data/tcga-assembler/LUAD/"
+external_data_path = "/Users/jonny/Desktop/PycharmProjects/assn-miRNA-LUAD/data/external/"
+luad_data = MultiOmicsData(cohort_name="LUAD", cohort_folder_path=folder_path, external_data_path=external_data_path,
                            modalities=[
-                                       # "GE",
-                                       "MIR",
-                                       # "LNC",
-                                       # "CNV",
-                                       # "SNP",
-                                       # "PRO"
-                                       ])
+                               # "GE",
+                               "MIR",
+                               # "LNC",
+                               # "CNV",
+                               # "SNP",
+                               # "PRO"
+                           ], process_genes_info=True)
 
 # LNC = luad_data.LNC.get_genes_info()
 # print(luad_data.load_data(modalities=["GE", "MIR", "LNC"]))
