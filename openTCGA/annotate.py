@@ -24,14 +24,14 @@ def get_ensemble_genes(filename=None, dataset="hsapiens_gene_ensembl"):
     if os.path.exists(filename):
         df = pd.read_csv(filename, sep="\t")
     else:
-        df = query_ensemble_biomart(filename, dataset=dataset)
+        df = query_biomart(filename, dataset=dataset)
     return df
 
 
-def query_ensemble_biomart(host="www.ensembl.org", dataset="hsapiens_gene_ensembl",
-                           attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'go_id'],
-                           save_filename=None):
-    bm = BioMart(host=host, cache=True)
+def query_biomart(host="www.ensembl.org", dataset="hsapiens_gene_ensembl",
+                  attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'go_id'],
+                  save_filename=None):
+    bm = BioMart(host=host)
 
     # Start query
     bm.new_query()
