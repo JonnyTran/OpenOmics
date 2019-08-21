@@ -31,7 +31,7 @@ class ExpressionData:
         self.replace_U2T = replace_U2T
 
         if os.path.isfile(file_path) and os.path.exists(file_path):
-            table = pd.read_table(file_path, usecols=columns, index_col=key)
+            table = pd.read_table(file_path, index_col=key)
         else:
             raise FileNotFoundError(file_path)
 
