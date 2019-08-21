@@ -108,7 +108,8 @@ class ExpressionData:
 
 class LncRNAExpression(ExpressionData):
     def __init__(self, cohort_name, file_path, columns="Gene_ID|TCGA", key="Gene_ID",
-                 HGNC_lncRNA_names_file_path=None, GENCODE_folder_path=None, external_data_path=None):
+                 HGNC_lncRNA_names_file_path=None, GENCODE_folder_path=None, external_data_path=None,
+                 import_sequences="longest", replace_U2T=True, transposed_table=True, log2_transform=False):
         """
         :param file_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
         """
@@ -116,7 +117,8 @@ class LncRNAExpression(ExpressionData):
         self.GENCODE_LncRNA_gtf_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.long_noncoding_RNAs.gtf")
         self.GENCODE_LncRNA_sequence_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.lncRNA_transcripts.fa")
         self.external_data_path = external_data_path
-        super().__init__(cohort_name, file_path, columns=columns, key=key)
+        super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
+                         log2_transform=log2_transform)
 
     def preprocess_table(self, df, columns, key):
         """
