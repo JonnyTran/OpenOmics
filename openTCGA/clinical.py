@@ -19,7 +19,7 @@ class ClinicalData:
                             'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
                             'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
 
-    biospecimen_sample_colsname = ['bcr_sample_barcode', 'sample_type']
+    # biospecimen_sample_colsname = ['bcr_sample_barcode', 'sample_type']
 
     clinical_drug_colsname = ['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name', 'pharmaceutical_therapy_type',
                               'treatment_best_response']

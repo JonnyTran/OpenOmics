@@ -120,17 +120,16 @@ class LncRNAExpression(ExpressionData):
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
 
-    def preprocess_table(self, df, columns, key):
+    def preprocess_table(self, table:pd.DataFrame, columns:str, key:str):
         """
         Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
 
         TANRIC LNCRNA expression values are log2 transformed
         """
-        lncrna_exp = df
 
         # Replacing ENSG Gene ID to the lncRNA gene symbol name
-        lncrna_exp[key] = lncrna_exp[key].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
-        lncrna_exp = lncrna_exp[~lncrna_exp[key].duplicated(keep='first')] # Remove duplicate genes
+        table[key] = table[key].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
+        table = table[~table[key].duplicated(keep='first')] # Remove duplicate genes
 
         # Preprocess genes info
         gencode_LncRNA_info, ensembl_gene_id_to_gene_name = self.get_GENCODE_lncRNA_gene_name_dict()
@@ -138,32 +137,32 @@ class LncRNAExpression(ExpressionData):
         lncBase_gene_id_to_name_dict = self.get_lncBase_gene_id_to_name_dict()
 
         hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
-        ensembl_gene_ids = lncrna_exp[key]
+        ensembl_gene_ids = table[key]
         self.preprocess_genes_info(ensembl_gene_ids, gencode_LncRNA_info,
                                    ensembl_gene_id_to_gene_name,
                                    hgnc_lncrna_dict)
 
         # Convert ensembl gene IDs to known gene names
-        print("Unmatched lncRNAs", lncrna_exp[key].str.startswith("ENSG").sum())
+        print("Unmatched lncRNAs", table[key].str.startswith("ENSG").sum())
 
-        lncrna_exp.replace({key: ensembl_gene_id_to_gene_name}, inplace=True)
-        print("Unmatched lncRNAs after gencode:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
+        table.replace({key: ensembl_gene_id_to_gene_name}, inplace=True)
+        print("Unmatched lncRNAs after gencode:", table['Gene_ID'].str.startswith("ENSG").sum())
 
-        lncrna_exp.replace({key: lncBase_gene_id_to_name_dict}, inplace=True)
-        print("Unmatched lncRNAs after lncBase:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
+        table.replace({key: lncBase_gene_id_to_name_dict}, inplace=True)
+        print("Unmatched lncRNAs after lncBase:", table['Gene_ID'].str.startswith("ENSG").sum())
 
-        lncrna_exp.replace({key: hgnc_lncrna_dict}, inplace=True)
-        print("Unmatched lncRNAs after HGNC:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
+        table.replace({key: hgnc_lncrna_dict}, inplace=True)
+        print("Unmatched lncRNAs after HGNC:", table['Gene_ID'].str.startswith("ENSG").sum())
 
-        lncrna_exp.replace({key: lncipedia_lncrna_dict}, inplace=True)
-        print("Unmatched lncRNAs after lncipedia:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
+        table.replace({key: lncipedia_lncrna_dict}, inplace=True)
+        print("Unmatched lncRNAs after lncipedia:", table['Gene_ID'].str.startswith("ENSG").sum())
 
         # Drop NA gene rows
-        lncrna_exp.dropna(axis=0, inplace=True)
+        table.dropna(axis=0, inplace=True)
 
         # Transpose matrix to patients rows and genes columns
-        lncrna_exp.index = lncrna_exp[key]
-        lncrna_exp = lncrna_exp.T.iloc[1:, :]
+        table.index = table[key]
+        table = table.T.iloc[1:, :]
 
         # Change index string to bcr_sample_barcode standard
         def change_patient_barcode(s):
@@ -174,9 +173,9 @@ class LncRNAExpression(ExpressionData):
             else:
                 return s
 
-        lncrna_exp.index = lncrna_exp.index.map(change_patient_barcode)
+        table.index = table.index.map(change_patient_barcode)
 
-        return lncrna_exp
+        return table
 
     def get_lncBase_gene_id_to_name_dict(self):
         table = pd.read_table(os.path.join(self.external_data_path, "lncBase/LncBasev2_download.csv"))
