@@ -24,7 +24,7 @@ def get_ensemble_genes(filename=None, dataset="hsapiens_gene_ensembl"):
     if os.path.exists(filename):
         df = pd.read_csv(filename, sep="\t")
     else:
-        df = query_biomart(filename, dataset=dataset)
+        df = query_biomart(dataset=dataset)
     return df
 
 
