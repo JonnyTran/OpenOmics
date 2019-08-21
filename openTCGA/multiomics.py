@@ -76,7 +76,8 @@ class MultiOmicsData:
             # self.data["WSI"] = self.WSI
 
         if "GE" in modalities:
-            self.GE = GeneExpression(cancer_type, os.path.join(tcga_data_path, "gene_exp/"),
+            GE_file_path = os.path.join(tcga_data_path, "gene_exp", "geneExp.txt")
+            self.GE = GeneExpression(cancer_type, GE_file_path,
                                      import_sequences=import_sequences, replace_U2T=replace_U2T)
             self.data["GE"] = self.GE.expression
 
@@ -106,11 +107,13 @@ class MultiOmicsData:
                 print(e)
 
         if "SNP" in modalities:
-            self.SNP = SomaticMutation(cancer_type, os.path.join(tcga_data_path, "somatic/"))
+            file_path_SNP = os.path.join(tcga_data_path, "somatic/", "somaticMutation_geneLevel.txt")
+            self.SNP = SomaticMutation(cancer_type, file_path_SNP)
             self.data["SNP"] = self.SNP.expression
 
         if "MIR" in modalities:
-            self.MIR = MiRNAExpression(cancer_type, os.path.join(tcga_data_path, "mirna/"),
+            file_path_MIR = os.path.join(tcga_data_path, "mirna/", "miRNAExp__RPM.txt")
+            self.MIR = MiRNAExpression(cancer_type, file_path_MIR,
                                        import_sequences=import_sequences, replace_U2T=replace_U2T)
             self.data["MIR"] = self.MIR.expression
 
@@ -136,13 +139,13 @@ class MultiOmicsData:
                     external_data_path)
 
         if "LNC" in modalities:
-            self.LNC = LncRNAExpression(cancer_type, os.path.join(tcga_data_path, "lncrna/"),
+            file_path_LNC = os.path.join(tcga_data_path, "lncrna/", "TCGA-rnaexpr.tsv")
+            self.LNC = LncRNAExpression(cancer_type, file_path_LNC,
                                         HGNC_lncRNA_names_file_path=os.path.join(external_data_path, "HUGO_Gene_names",
                                                                                  "RNA_long_non-coding.txt"),
                                         GENCODE_folder_path=os.path.join(external_data_path, "GENCODE"),
-                                        external_data_path=external_data_path,
-                                        import_sequences=import_sequences, replace_U2T=replace_U2T)
-
+                                        external_data_path=external_data_path, import_sequences=import_sequences,
+                                        replace_U2T=replace_U2T)
             self.data["LNC"] = self.LNC.expression
 
             try:
@@ -167,13 +170,18 @@ class MultiOmicsData:
                 print(e)
 
         if "DNA" in modalities:
-            self.DNA = DNAMethylation(cancer_type, os.path.join(tcga_data_path, "dna/"))
+            file_path_DNA = os.path.join(tcga_data_path, "dna/", "methylation_450.txt")
+            self.DNA = DNAMethylation(cancer_type, file_path_DNA)
             self.data["DNA"] = self.DNA.expression
+
         if "CNV" in modalities:
-            self.CNV = CopyNumberVariation(cancer_type, os.path.join(tcga_data_path, "cnv/"))
+            file_path_CNV = os.path.join(tcga_data_path, "cnv/", "copyNumber.txt")
+            self.CNV = CopyNumberVariation(cancer_type, file_path_CNV)
             self.data["CNV"] = self.CNV.expression
+
         if "PRO" in modalities:
-            self.PRO = ProteinExpression(cancer_type, os.path.join(tcga_data_path, "protein_rppa/"))
+            file_path_PRO = os.path.join(tcga_data_path, "protein_rppa/", "protein_RPPA.txt")
+            self.PRO = ProteinExpression(cancer_type, file_path_PRO)
             self.data["PRO"] = self.PRO.expression
             self.PRO.process_HPRD_PPI_network(
                 ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",

@@ -2,15 +2,11 @@ import os
 
 import pandas as pd
 
-CLINICAL_DRUG_FILENAME = "nationwidechildrens.org_clinical_drug.txt"
-CLINICAL_PATIENT_FILENAME = "nationwidechildrens.org_clinical_patient.txt"
-
 BCR_PATIENT_BARCODE = "bcr_patient_barcode"
 HISTOLOGIC_SUBTYPE = "histologic_subtype"
 PATHOLOGIC_STAGE = "pathologic_stage"
 TUMOR_NORMAL = 'tumor_normal'
 PREDICTED_SUBTYPE = 'predicted_subtype'
-
 
 class ClinicalData:
     clinical_patient_colsname = ['bcr_patient_barcode', 'gender', 'race', 'histological_type', 'histologic_diagnosis.1',
@@ -26,11 +22,13 @@ class ClinicalData:
     clinical_drug_colsname = ['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name', 'pharmaceutical_therapy_type',
                               'treatment_best_response']
 
-    def __init__(self, cancer_type, folder_path):
-        self.cancer_type = cancer_type
+    def __init__(self, cohort_name, folder_path, patients_file="nationwidechildrens.org_clinical_patient.txt",
+                 drugs_file="nationwidechildrens.org_clinical_drug.txt",
+                 biospecimens_file="genome.wustl.edu_biospecimen_sample.txt"):
+        self.cancer_type = cohort_name
 
         # Import patients
-        self.patient = pd.read_table(os.path.join(folder_path, "%s" % CLINICAL_PATIENT_FILENAME),
+        self.patient = pd.read_table(os.path.join(folder_path, patients_file),
                                      sep="\t",
                                      skiprows=[1, 2],
                                      na_values=["[Not Available]", "[Not Applicable]"],
@@ -45,7 +43,7 @@ class ClinicalData:
         # self.patient.reindex_axis(self.patient.columns.intersection(ClinicalData.clinical_patient_colsname), 1, inplace=True)
 
         # # Import biospecimen samples (not all samples included in dataset)
-        # self.biospecimen = pd.read_table(os.path.join(folder_path, "genome.wustl.edu_biospecimen_sample.txt"),
+        # self.biospecimen = pd.read_table(os.path.join(folder_path, biospecimens_file),
         #                                  sep="\t",
         #                                  skiprows=[1, ],
         #                                  na_values="[Not Available]",
@@ -54,7 +52,7 @@ class ClinicalData:
         # self.biospecimen.index = self.biospecimen["bcr_sample_barcode"]
 
         # Import clinical drug
-        self.drugs = pd.read_table(os.path.join(folder_path, "%s" % CLINICAL_DRUG_FILENAME),
+        self.drugs = pd.read_table(os.path.join(folder_path, drugs_file),
                                    sep="\t",
                                    skiprows=[1, 2],
                                    na_values=["[Not Available]", "[Unknown]", "[Not Applicable]"],

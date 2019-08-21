@@ -104,12 +104,11 @@ class ExpressionData:
 
 
 class LncRNAExpression(ExpressionData):
-    def __init__(self, cohort_name, folder_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path, external_data_path,
-                 import_sequences="longest", replace_U2T=True, ):
+    def __init__(self, cohort_name, file_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path, external_data_path,
+                 import_sequences="longest", replace_U2T=True):
         """
-        :param folder_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
+        :param file_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
         """
-        file_path = os.path.join(folder_path, "TCGA-rnaexpr.tsv")
         self.HGNC_lncRNA_names_path = HGNC_lncRNA_names_file_path
         self.GENCODE_LncRNA_gtf_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.long_noncoding_RNAs.gtf")
         self.GENCODE_LncRNA_sequence_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.lncRNA_transcripts.fa")
@@ -605,8 +604,7 @@ class LncRNAExpression(ExpressionData):
 
 
 class GeneExpression(ExpressionData):
-    def __init__(self, cohort_name, folder_path, log2_transform=True, import_sequences="longest", replace_U2T=True, ):
-        file_path = os.path.join(folder_path, "geneExp.txt")
+    def __init__(self, cohort_name, file_path, log2_transform=True, import_sequences="longest", replace_U2T=True):
         super().__init__(cohort_name, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
 
@@ -819,8 +817,7 @@ class GeneExpression(ExpressionData):
 
 
 class MiRNAExpression(ExpressionData):
-    def __init__(self, cohort_name, folder_path, log2_transform=True, import_sequences="longest", replace_U2T=True, ):
-        file_path = os.path.join(folder_path, "miRNAExp__RPM.txt")
+    def __init__(self, cohort_name, file_path, log2_transform=True, import_sequences="longest", replace_U2T=True):
         super().__init__(cohort_name, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
 
@@ -1090,8 +1087,7 @@ class MiRNAExpression(ExpressionData):
 
 
 class ProteinExpression(ExpressionData):
-    def __init__(self, cohort_name, folder_path, import_sequences="longest", log2_transform=True):
-        file_path = os.path.join(folder_path, "protein_RPPA.txt")
+    def __init__(self, cohort_name, file_path, import_sequences="longest", log2_transform=True):
         super().__init__(cohort_name, file_path, import_sequences=import_sequences, log2_transform=log2_transform)
 
     def process_HPRD_PPI_network(self, ppi_data_file_path):

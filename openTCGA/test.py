@@ -1,6 +1,6 @@
 from openTCGA.multiomics import MultiOmicsData
 
-folder_path = "/data/datasets/Bioinformatics_ExternalData/tcga-assembler/LUAD"
+folder_path = "/Users/jonny/Desktop/PycharmProjects/assn-miRNA-LUAD/data/tcga-assembler/LUAD"
 external_data_path = "/data/datasets/Bioinformatics_ExternalData/"
 luad_data = MultiOmicsData(cancer_type="LUAD", tcga_data_path=folder_path, external_data_path=external_data_path,
                            process_genes_info=True,
