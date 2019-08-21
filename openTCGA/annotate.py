@@ -2,8 +2,10 @@ import os
 import requests
 from requests.packages.urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
+from io import StringIO
 from pkg_resources import resource_filename
 from os.path import expanduser
+
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openTCGA")
 

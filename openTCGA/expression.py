@@ -12,8 +12,7 @@ from openTCGA.utils import GTF
 
 
 class ExpressionData:
-    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA",
-                 key="GeneSymbol",
+    def __init__(self, cohort_name, file_path, columns, key,
                  import_sequences="longest", replace_U2T=True,
                  transposed_table=True, log2_transform=False):
         """
@@ -32,7 +31,7 @@ class ExpressionData:
         self.replace_U2T = replace_U2T
 
         if os.path.isfile(file_path) and os.path.exists(file_path):
-            table = pd.read_table(file_path)
+            table = pd.read_table(file_path, usecols=columns, index_col=key)
         else:
             raise FileNotFoundError(file_path)
 
@@ -57,7 +56,7 @@ class ExpressionData:
         # Filter columns
         table = table.filter(regex=columns)
 
-        # Cut TCGA column names to sample barcode
+        # Cut TCGA column names to sample barcode, discarding aliquot info
         table = table.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x, inplace=False)
 
         # Drop duplicate columns names (Gene symbols with same name)
@@ -108,8 +107,8 @@ class ExpressionData:
 
 
 class LncRNAExpression(ExpressionData):
-    def __init__(self, cohort_name, file_path, HGNC_lncRNA_names_file_path, GENCODE_folder_path, external_data_path,
-                 import_sequences="longest", replace_U2T=True):
+    def __init__(self, cohort_name, file_path, columns="Gene_ID|TCGA", key="Gene_ID",
+                 HGNC_lncRNA_names_file_path=None, GENCODE_folder_path=None, external_data_path=None):
         """
         :param file_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
         """
@@ -117,8 +116,7 @@ class LncRNAExpression(ExpressionData):
         self.GENCODE_LncRNA_gtf_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.long_noncoding_RNAs.gtf")
         self.GENCODE_LncRNA_sequence_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.lncRNA_transcripts.fa")
         self.external_data_path = external_data_path
-        super().__init__(cohort_name, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
-                         log2_transform=False)
+        super().__init__(cohort_name, file_path, columns=columns, key=key)
 
     def preprocess_table(self, df, columns, key):
         """
@@ -129,9 +127,8 @@ class LncRNAExpression(ExpressionData):
         lncrna_exp = df
 
         # Replacing ENSG Gene ID to the lncRNA gene symbol name
-        lncrna_exp['Gene_ID'] = lncrna_exp['Gene_ID'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
-        lncrna_exp = lncrna_exp[~lncrna_exp['Gene_ID'].duplicated(keep='first')] # Remove duplicate genes should not be any
-
+        lncrna_exp[key] = lncrna_exp[key].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
+        lncrna_exp = lncrna_exp[~lncrna_exp[key].duplicated(keep='first')] # Remove duplicate genes
 
         # Preprocess genes info
         gencode_LncRNA_info, ensembl_gene_id_to_gene_name = self.get_GENCODE_lncRNA_gene_name_dict()
@@ -139,31 +136,31 @@ class LncRNAExpression(ExpressionData):
         lncBase_gene_id_to_name_dict = self.get_lncBase_gene_id_to_name_dict()
 
         hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
-        ensembl_gene_ids = lncrna_exp['Gene_ID']
+        ensembl_gene_ids = lncrna_exp[key]
         self.preprocess_genes_info(ensembl_gene_ids, gencode_LncRNA_info,
                                    ensembl_gene_id_to_gene_name,
                                    hgnc_lncrna_dict)
 
         # Convert ensembl gene IDs to known gene names
-        print("Unmatched lncRNAs", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
+        print("Unmatched lncRNAs", lncrna_exp[key].str.startswith("ENSG").sum())
 
-        lncrna_exp.replace({"Gene_ID": ensembl_gene_id_to_gene_name}, inplace=True)
+        lncrna_exp.replace({key: ensembl_gene_id_to_gene_name}, inplace=True)
         print("Unmatched lncRNAs after gencode:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
 
-        lncrna_exp.replace({"Gene_ID": lncBase_gene_id_to_name_dict}, inplace=True)
+        lncrna_exp.replace({key: lncBase_gene_id_to_name_dict}, inplace=True)
         print("Unmatched lncRNAs after lncBase:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
 
-        lncrna_exp.replace({"Gene_ID": hgnc_lncrna_dict}, inplace=True)
+        lncrna_exp.replace({key: hgnc_lncrna_dict}, inplace=True)
         print("Unmatched lncRNAs after HGNC:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
 
-        lncrna_exp.replace({"Gene_ID": lncipedia_lncrna_dict}, inplace=True)
+        lncrna_exp.replace({key: lncipedia_lncrna_dict}, inplace=True)
         print("Unmatched lncRNAs after lncipedia:", lncrna_exp['Gene_ID'].str.startswith("ENSG").sum())
 
         # Drop NA gene rows
         lncrna_exp.dropna(axis=0, inplace=True)
 
         # Transpose matrix to patients rows and genes columns
-        lncrna_exp.index = lncrna_exp['Gene_ID']
+        lncrna_exp.index = lncrna_exp[key]
         lncrna_exp = lncrna_exp.T.iloc[1:, :]
 
         # Change index string to bcr_sample_barcode standard
@@ -607,8 +604,9 @@ class LncRNAExpression(ExpressionData):
 
 
 class GeneExpression(ExpressionData):
-    def __init__(self, cohort_name, file_path, log2_transform=True, import_sequences="longest", replace_U2T=True):
-        super().__init__(cohort_name, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
+    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol",
+                 log2_transform=True, import_sequences="longest", replace_U2T=True):
+        super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
 
     def process_GENCODE_transcript_data(self, gencode_folder_path):
