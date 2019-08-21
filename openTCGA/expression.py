@@ -818,8 +818,8 @@ class GeneExpression(ExpressionData):
 
 
 class MiRNAExpression(ExpressionData):
-    def __init__(self, cohort_name, file_path, log2_transform=True, import_sequences="longest", replace_U2T=True):
-        super().__init__(cohort_name, file_path, import_sequences=import_sequences, replace_U2T=replace_U2T,
+    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol", log2_transform=True, import_sequences="longest", replace_U2T=True):
+        super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
 
     def process_mirbase_data(self, mirbase_folder_path):
@@ -1088,8 +1088,8 @@ class MiRNAExpression(ExpressionData):
 
 
 class ProteinExpression(ExpressionData):
-    def __init__(self, cohort_name, file_path, import_sequences="longest", log2_transform=True):
-        super().__init__(cohort_name, file_path, import_sequences=import_sequences, log2_transform=log2_transform)
+    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol", import_sequences="longest", log2_transform=True):
+        super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, log2_transform=log2_transform)
 
     def process_HPRD_PPI_network(self, ppi_data_file_path):
         HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
