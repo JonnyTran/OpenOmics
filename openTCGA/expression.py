@@ -54,7 +54,7 @@ class ExpressionData:
         table = table.filter(regex=columns)
 
         # Cut TCGA column names to sample barcode
-        table.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x, inplace=True)
+        table = table.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x, inplace=False)
 
         # Drop duplicate columns names (Gene symbols with same name)
         _, i = np.unique(table.columns, return_index=True)
