@@ -63,8 +63,10 @@ class MultiOmicsData:
         if auto_import_clinical or ("CLI" in modalities):
             self.clinical = ClinicalData(cohort_name, os.path.join(cohort_folder_path, "clinical/"))
             self.data["PATIENTS"] = self.clinical.patient
-            # self.data["BIOSPECIMENS"] = self.clinical.biospecimen
-            self.data["DRUGS"] = self.clinical.drugs
+            if hasattr(self.clinical, "biospecimen"):
+                self.data["BIOSPECIMENS"] = self.clinical.biospecimen
+            if hasattr(self.clinical, "drugs"):
+                self.data["DRUGS"] = self.clinical.drugs
 
         if "WSI" in modalities:
             self.WSI = WholeSlideImages(cohort_name, os.path.join(cohort_folder_path, "wsi/"))

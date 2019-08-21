@@ -64,7 +64,7 @@ class ClinicalData:
                                            usecols=ClinicalData.clinical_drug_colsname
                                            )
                 self.drugs.index = self.drugs[BCR_PATIENT_BARCODE]
-                self.drug_barcodes = self.drugs["bcr_sample_barcode"].tolist()
+                # self.drug_barcodes = self.drugs["bcr_sample_barcode"].tolist()
             else:
                 print("Drugs clinical data not found at " + drugs_file_path)
 
