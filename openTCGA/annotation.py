@@ -103,7 +103,7 @@ class GENCODE(Database):
 
         for k, v in self.file_resources.items():
             if ~os.path.exists(v):
-                print(FileNotFoundError(self.file_resources.pop(k)), ". Removing {}".format(k))
+                print(FileNotFoundError(v), ". Removing {}".format(k))
 
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
