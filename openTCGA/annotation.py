@@ -45,7 +45,7 @@ class Database:
         return save_filename
 
     @classmethod
-    def retrieve_database(cls, dataset="hsapiens_gene_ensembl", filename=None):
+    def retrieve_database(cls, dataset, filename=None):
         filename = os.path.join(DEFAULT_CACHE_PATH, "{}.background.genes.txt".format(dataset))
         if os.path.exists(filename):
             df = pd.read_csv(filename, sep="\t")
