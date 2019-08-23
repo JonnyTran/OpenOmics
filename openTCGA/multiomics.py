@@ -3,8 +3,8 @@ import pandas as pd
 
 from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
-from openTCGA.expression import GeneExpression, MiRNAExpression, \
-    ProteinExpression, LncRNAExpression
+from openTCGA.expression import GeneSet, MiRNASet, \
+    ProteinSet, LncRNASet
 from openTCGA.genomic import SomaticMutation, DNAMethylation, CopyNumberVariation
 from openTCGA.slideimage import WholeSlideImages
 
@@ -74,8 +74,8 @@ class MultiOmicsData:
 
         if "GE" in modalities:
             table_path_GE = os.path.join(cohort_folder_path, "gene_exp", "geneExp.txt")
-            self.GE = GeneExpression(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", key="GeneSymbol",
-                                     import_sequences=import_sequences, replace_U2T=replace_U2T)
+            self.GE = GeneSet(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", key="GeneSymbol",
+                              import_sequences=import_sequences, replace_U2T=replace_U2T)
             self.data["GE"] = self.GE.expression
 
             try:
@@ -110,8 +110,8 @@ class MultiOmicsData:
 
         if "MIR" in modalities:
             file_path_MIR = os.path.join(cohort_folder_path, "mirna/", "miRNAExp__RPM.txt")
-            self.MIR = MiRNAExpression(cohort_name, file_path_MIR,
-                                       import_sequences=import_sequences, replace_U2T=replace_U2T)
+            self.MIR = MiRNASet(cohort_name, file_path_MIR,
+                                import_sequences=import_sequences, replace_U2T=replace_U2T)
             self.data["MIR"] = self.MIR.expression
 
             try:
@@ -137,12 +137,12 @@ class MultiOmicsData:
 
         if "LNC" in modalities:
             file_path_LNC = os.path.join(cohort_folder_path, "lncrna", "TCGA-rnaexpr.tsv")
-            self.LNC = LncRNAExpression(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", key="Gene_ID",
-                                        HGNC_lncRNA_names_file_path=os.path.join(external_data_path, "HUGO_Gene_names",
+            self.LNC = LncRNASet(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", key="Gene_ID",
+                                 HGNC_lncRNA_names_file_path=os.path.join(external_data_path, "HUGO_Gene_names",
                                                                                  "RNA_long_non-coding.txt"),
-                                        GENCODE_folder_path=os.path.join(external_data_path, "GENCODE"),
-                                        external_data_path=external_data_path, import_sequences=import_sequences,
-                                        replace_U2T=replace_U2T)
+                                 GENCODE_folder_path=os.path.join(external_data_path, "GENCODE"),
+                                 external_data_path=external_data_path, import_sequences=import_sequences,
+                                 replace_U2T=replace_U2T)
             self.data["LNC"] = self.LNC.expression
 
             try:
@@ -178,7 +178,7 @@ class MultiOmicsData:
 
         if "PRO" in modalities:
             file_path_PRO = os.path.join(cohort_folder_path, "protein_rppa/", "protein_RPPA.txt")
-            self.PRO = ProteinExpression(cohort_name, file_path_PRO)
+            self.PRO = ProteinSet(cohort_name, file_path_PRO)
             self.data["PRO"] = self.PRO.expression
             self.PRO.process_HPRD_PPI_network(
                 ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",

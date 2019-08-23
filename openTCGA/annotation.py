@@ -1,12 +1,9 @@
 import os
+from abc import ABCMeta, abstractmethod
 import pandas as pd
-import requests
-from requests.packages.urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
 from io import StringIO
 from os.path import expanduser
 from bioservices import BioMart
-from pkg_resources import resource_filename
 
 from openTCGA.utils.utils import mkdirs
 
@@ -14,25 +11,52 @@ DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openTCGA")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), "Bioinformatics_ExternalData")
 
 
-class Annotator(object):
-    def __init__(self, organism='human',) -> None:
-        super().__init__()
+class Database:
+    __metaclass__ = ABCMeta
+    @abstractmethod
+    def load_annotations(self): raise NotImplementedError
+
+class Annotatable:
+    __metaclass__ = ABCMeta
+    # @classmethod
+    # def version(self): return "1.0"
+    @abstractmethod
+    def annotate(self, database:Database, key, level): raise NotImplementedError
+
+class Annotation:
+    def __init__(self, database:str, key:str, level:str) -> None:
+        pass
+
+class GeneAnnotation(Annotation):
+    pass
+
+class FunctionalAnnotation(Annotation):
+    pass
+
+class SequenceAnnotation(Annotation):
+    pass
+
+class DiseaseAssociation(Annotation):
+    pass
+
+class Interactions(Annotation):
+    pass
 
 
-def get_ensemble_genes(filename=None, dataset="hsapiens_gene_ensembl"):
+
+def retrieve_database(dataset="hsapiens_gene_ensembl", filename=None):
     filename = os.path.join(DEFAULT_CACHE_PATH, "{}.background.genes.txt".format(dataset))
     if os.path.exists(filename):
-        df = pd.read_csv(filename, sep="\t")
+        ensemble_genes = pd.read_csv(filename, sep="\t")
     else:
-        df = query_biomart(dataset=dataset)
-    return df
+        ensemble_genes = query_biomart(dataset=dataset)
 
+    return ensemble_genes
 
 def query_biomart(host="www.ensembl.org", dataset="hsapiens_gene_ensembl",
                   attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'go_id'],
-                  save_filename=None):
+                  cache=True, save_filename=None):
     bm = BioMart(host=host)
-    print("Querying {} from {}...".format(dataset, host))
     # Start query
     bm.new_query()
     bm.add_dataset_to_xml(dataset)
@@ -40,31 +64,20 @@ def query_biomart(host="www.ensembl.org", dataset="hsapiens_gene_ensembl",
         bm.add_attribute_to_xml(at)
     xml_query = bm.get_xml()
 
+    print("Querying {} from {}...".format(dataset, host))
     results = bm.query(xml_query)
     df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", index_col=None)
 
-    if save_filename is None:
-        mkdirs(DEFAULT_CACHE_PATH)
-        save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.background.genes.txt".format(dataset))
-    df.to_csv(save_filename, sep="\t", index=False)
+    if cache:
+        cache_database(dataset, df, save_filename)
     return df
 
 
-def retry(num=5):
-    """"retry connection.
-
-        define max tries num
-        if the backoff_factor is 0.1, then sleep() will sleep for
-        [0.1s, 0.2s, 0.4s, ...] between retries.
-        It will also force a retry if the status code returned is 500, 502, 503 or 504.
-
-    """
-    s = requests.Session()
-    retries = Retry(total=num, backoff_factor=0.1,
-                    status_forcelist=[500, 502, 503, 504])
-    s.mount('http://', HTTPAdapter(max_retries=retries))
-
-    return s
+def cache_database(database, dataframe, save_filename):
+    if save_filename is None:
+        mkdirs(DEFAULT_CACHE_PATH)
+        save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.background.genes.txt".format(database))
+    dataframe.to_csv(save_filename, sep="\t", index=False)
 
 
 # Constants

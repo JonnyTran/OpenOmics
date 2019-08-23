@@ -9,12 +9,12 @@ from Bio.UniProt import GOA
 from pandas import Series
 
 from openTCGA.utils import GTF
-from openTCGA.annotate import get_ensemble_genes
+from openTCGA.annotation import retrieve_database
 
 class ExpressionData:
     def __init__(self, cohort_name, file_path, columns, key,
                  import_sequences="longest", replace_U2T=True,
-                 transposed_table=True, log2_transform=False):
+                 transposed=True, log2_transform=False):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of expression data tables while providing indices to the TCGA
@@ -23,7 +23,7 @@ class ExpressionData:
                 cohort_name (str): the cohort code name string
                 file_path (str): Path of the table file to import
                 columns (str): column names to import from the table. Columns names imported are string match, separated by "|"
-                transposed_table (list): ["longest", "shortest", "multi"], If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
+                transposed (list): ["longest", "shortest", "multi"], If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
                 log2_transform (bool): Whether to log2 transform the expression values
         """
         self.cohort_name = cohort_name
@@ -35,8 +35,7 @@ class ExpressionData:
         else:
             raise FileNotFoundError(file_path)
 
-        if transposed_table:
-            self.expression = self.preprocess_table(table, columns, key)
+        self.expression = self.preprocess_table(table, columns, key, transposed)
 
         if log2_transform:
             self.expression = self.expression.applymap(self.log2_transform)
@@ -46,39 +45,40 @@ class ExpressionData:
         self.features = self.expression.columns.tolist()
         # self.features.remove("bcr_sample_barcode")
 
-    def preprocess_table(self, table:pd.DataFrame, columns:str, key:str):
+    def preprocess_table(self, df:pd.DataFrame, columns:str, key:str, transposed:bool):
         """
         This function preprocesses the expression table files where columns are samples and rows are gene/transcripts
-        :param df:
-        :param columns:
+        :param transposed:
         :return:
         """
         # Filter columns
-        table = table.filter(regex=columns)
+        df = df.filter(regex=columns)
 
         # Cut TCGA column names to sample barcode, discarding aliquot info
-        table = table.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x, inplace=False)
+        df = df.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x, inplace=False)
 
         # Drop duplicate columns names (Gene symbols with same name)
-        _, i = np.unique(table.columns, return_index=True)
-        table = table.iloc[:, i]
+        _, i = np.unique(df.columns, return_index=True)
+        df = df.iloc[:, i]
 
         # Drop NA geneID rows
-        table.dropna(axis=0, inplace=True)
+        df.dropna(axis=0, inplace=True)
 
         # Remove entries with unknown geneID
-        table = table[table[key] != '?']
+        df = df[df[key] != '?']
 
         # Transpose dataframe to patient rows and geneID columns
-        table.index = table[key]
-        table.drop([key], axis=1, inplace=True)
-        table = table.T
+        df.index = df[key]
+        df.drop([key], axis=1, inplace=True)
+
+        if transposed:
+            df = df.T
 
         # Drop duplicate columns names (Gene symbols with same name)
-        _, i = np.unique(table.columns, return_index=True)
-        table = table.iloc[:, i]
+        _, i = np.unique(df.columns, return_index=True)
+        df = df.iloc[:, i]
 
-        return table
+        return df
 
     def log2_transform(self, x):
         return np.log2(x + 1)
@@ -91,7 +91,7 @@ class ExpressionData:
     def get_genes_list(self):
         return self.features
 
-    def get_genes_info(self):
+    def get_annotations(self):
         if hasattr(self, "genes_info"):
             return self.genes_info
 
@@ -106,10 +106,10 @@ class ExpressionData:
             return None
 
 
-class LncRNAExpression(ExpressionData):
+class LncRNASet(ExpressionData):
     def __init__(self, cohort_name, file_path, columns="Gene_ID|TCGA", key="Gene_ID",
                  HGNC_lncRNA_names_file_path=None, GENCODE_folder_path=None, external_data_path=None,
-                 import_sequences="longest", replace_U2T=True, transposed_table=True, log2_transform=False):
+                 import_sequences="longest", replace_U2T=True, transposed=True, log2_transform=False):
         """
         :param file_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
         """
@@ -118,53 +118,50 @@ class LncRNAExpression(ExpressionData):
         self.GENCODE_LncRNA_sequence_file_path = os.path.join(GENCODE_folder_path, "gencode.v29.lncRNA_transcripts.fa")
         self.external_data_path = external_data_path
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
-                         log2_transform=log2_transform)
+                         transposed=transposed, log2_transform=log2_transform)
 
-    def preprocess_table(self, table:pd.DataFrame, columns:str, key:str):
+    def preprocess_table(self, df:pd.DataFrame, columns:str, key:str, transposed):
         """
         Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
 
         TANRIC LNCRNA expression values are log2 transformed
+        :param transposed:
         """
 
         # Replacing ENSG Gene ID to the lncRNA gene symbol name
-        table[key] = table[key].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
-        table = table[~table[key].duplicated(keep='first')] # Remove duplicate genes
+        df[key] = df[key].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
+        df = df[~df[key].duplicated(keep='first')] # Remove duplicate genes
 
         # Preprocess genes info
         gencode_LncRNA_info, _ = self.get_GENCODE_lncRNA_gene_name_dict()
-        lncipedia_lncrna_dict = self.get_lncipedia_gene_id_to_name_dict()
         lncBase_gene_id_to_name_dict = self.get_lncBase_gene_id_to_name_dict()
-        ensemble_genes = get_ensemble_genes()
+        ensemble_genes = retrieve_database()
         ensembl_gene_id_to_gene_name = ensemble_genes[ensemble_genes["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
 
         hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
-        ensembl_gene_ids = table[key]
+        ensembl_gene_ids = df[key]
         self.preprocess_genes_info(ensembl_gene_ids, gencode_LncRNA_info,
                                    ensembl_gene_id_to_gene_name,
                                    hgnc_lncrna_dict)
 
         # Convert ensembl gene IDs to known gene names
-        print("Unmatched lncRNAs", table[key].str.startswith("ENSG").sum())
+        print("Unmatched lncRNAs", df[key].str.startswith("ENSG").sum())
 
-        table.replace({key: ensembl_gene_id_to_gene_name}, inplace=True)
-        print("Unmatched lncRNAs after ensembl:", table['Gene_ID'].str.startswith("ENSG").sum())
+        df.replace({key: ensembl_gene_id_to_gene_name}, inplace=True)
+        print("Unmatched lncRNAs after ensembl:", df['Gene_ID'].str.startswith("ENSG").sum())
 
-        table.replace({key: lncBase_gene_id_to_name_dict}, inplace=True)
-        print("Unmatched lncRNAs after lncBase:", table['Gene_ID'].str.startswith("ENSG").sum())
+        df.replace({key: lncBase_gene_id_to_name_dict}, inplace=True)
+        print("Unmatched lncRNAs after lncBase:", df['Gene_ID'].str.startswith("ENSG").sum())
 
-        table.replace({key: hgnc_lncrna_dict}, inplace=True)
-        print("Unmatched lncRNAs after HGNC:", table['Gene_ID'].str.startswith("ENSG").sum())
-
-        table.replace({key: lncipedia_lncrna_dict}, inplace=True)
-        print("Unmatched lncRNAs after lncipedia:", table['Gene_ID'].str.startswith("ENSG").sum())
+        df.replace({key: hgnc_lncrna_dict}, inplace=True)
+        print("Unmatched lncRNAs after HGNC:", df['Gene_ID'].str.startswith("ENSG").sum())
 
         # Drop NA gene rows
-        table.dropna(axis=0, inplace=True)
+        df.dropna(axis=0, inplace=True)
 
         # Transpose matrix to patients rows and genes columns
-        table.index = table[key]
-        table = table.T.iloc[1:, :]
+        df.index = df[key]
+        df = df.T.iloc[1:, :]
 
         # Change index string to bcr_sample_barcode standard
         def change_patient_barcode(s):
@@ -175,9 +172,9 @@ class LncRNAExpression(ExpressionData):
             else:
                 return s
 
-        table.index = table.index.map(change_patient_barcode)
+        df.index = df.index.map(change_patient_barcode)
 
-        return table
+        return df
 
     def get_lncBase_gene_id_to_name_dict(self):
         table = pd.read_table(os.path.join(self.external_data_path, "lncBase/LncBasev2_download.csv"))
@@ -197,49 +194,49 @@ class LncRNAExpression(ExpressionData):
         return lncipedia_lncrna_dict
 
     def preprocess_genes_info(self, ensembl_gene_id, GENCODE_LncRNA_info, ensembl_id_to_gene_name, hgnc_lncrna_dict):
-        self.gene_info = pd.DataFrame(index=ensembl_gene_id)
-        self.gene_info.index.name = "ensembl_gene_id"
+        self.annotations = pd.DataFrame(index=ensembl_gene_id)
+        self.annotations.index.name = "ensembl_gene_id"
 
-        self.gene_info["Gene ID"] = self.gene_info.index
-        self.gene_info["Gene Name"] = self.gene_info.index.map(ensembl_id_to_gene_name)
-        self.gene_info["HGNC Gene Name"] = self.gene_info.index.map(hgnc_lncrna_dict)
+        self.annotations["Gene ID"] = self.annotations.index
+        self.annotations["Gene Name"] = self.annotations.index.map(ensembl_id_to_gene_name)
+        self.annotations["HGNC Gene Name"] = self.annotations.index.map(hgnc_lncrna_dict)
 
 
-        self.gene_info["Transcript id"] = self.gene_info.index.map(GENCODE_LncRNA_info[
+        self.annotations["Transcript id"] = self.annotations.index.map(GENCODE_LncRNA_info[
             GENCODE_LncRNA_info["transcript_id"].notnull()].groupby('gene_id')["transcript_id"].apply(
             lambda x: "|".join(x.unique())).to_dict())
-        self.gene_info["Transcript name"] = self.gene_info.index.map(
+        self.annotations["Transcript name"] = self.annotations.index.map(
             GENCODE_LncRNA_info[
                 GENCODE_LncRNA_info["transcript_name"].notnull()].groupby('gene_id')["transcript_name"].apply(
                 lambda x: "|".join(x.unique())).to_dict())
 
-        self.gene_info["Transcript type"] = self.gene_info.index.map(
+        self.annotations["Transcript type"] = self.annotations.index.map(
             GENCODE_LncRNA_info[GENCODE_LncRNA_info["transcript_type"].notnull()].groupby('gene_id')["transcript_type"].apply(
                 lambda x: "|".join(x.unique())).to_dict())
 
-        self.gene_info["tag"] = self.gene_info.index.map(
+        self.annotations["tag"] = self.annotations.index.map(
             GENCODE_LncRNA_info[GENCODE_LncRNA_info["tag"].notnull()].groupby('gene_id')["tag"].apply(
                 lambda x: "|".join(x.unique())).to_dict())
 
-        self.gene_info["Chromosome"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['seqname'].values,
-                                                                               index=GENCODE_LncRNA_info['gene_id']).to_dict())
-        self.gene_info["start"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['start'].values,
-                                                                          index=GENCODE_LncRNA_info[
+        self.annotations["Chromosome"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['seqname'].values,
+                                                                              index=GENCODE_LncRNA_info['gene_id']).to_dict())
+        self.annotations["start"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['start'].values,
+                                                                         index=GENCODE_LncRNA_info[
                                                                               'gene_id']).to_dict()).astype(np.float64)
-        self.gene_info["end"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['end'].values,
-                                                                     index=GENCODE_LncRNA_info[
+        self.annotations["end"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['end'].values,
+                                                                       index=GENCODE_LncRNA_info[
                                                                          'gene_id']).to_dict()).astype(np.float64)
-        self.gene_info["Strand"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['strand'].values,
-                                                                   index=GENCODE_LncRNA_info[
+        self.annotations["Strand"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['strand'].values,
+                                                                          index=GENCODE_LncRNA_info[
                                                                        'gene_id']).to_dict())
 
-        self.gene_info["locus_type"] = self.gene_info.index.map(pd.Series(GENCODE_LncRNA_info['gene_type'].values,
-                                                                     index=GENCODE_LncRNA_info[
+        self.annotations["locus_type"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['gene_type'].values,
+                                                                              index=GENCODE_LncRNA_info[
                                                                          'gene_id']).to_dict())
 
 
         # Merge GENCODE transcript sequence data
-        self.gene_info["Transcript sequence"] = self.gene_info["Gene Name"].map(
+        self.annotations["Transcript sequence"] = self.annotations["Gene Name"].map(
             self.get_GENCODE_lncRNA_sequence_data(self.import_sequences, self.replace_U2T))
 
 
@@ -584,29 +581,29 @@ class LncRNAExpression(ExpressionData):
 
     def process_genes_info(self):
         # Merge lncrnadisease associations database
-        self.gene_info["Disease association"] = self.gene_info["Gene Name"].map(
+        self.annotations["Disease association"] = self.annotations["Gene Name"].map(
             self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
 
         # Add RNACentral GO term and Rfam family
-        self.gene_info["GO Terms"] = self.gene_info["Gene Name"].map(
+        self.annotations["GO Terms"] = self.annotations["Gene Name"].map(
             pd.Series(self.RNAcentral_annotations['GO terms'].values,
                       index=self.RNAcentral_annotations['gene symbol']).to_dict())
-        self.gene_info["Rfams"] = self.gene_info["Gene Name"].map(
+        self.annotations["Rfams"] = self.annotations["Gene Name"].map(
             pd.Series(self.RNAcentral_annotations['Rfams'].values,
                       index=self.RNAcentral_annotations['gene symbol']).to_dict())
 
         # Change index of genes info to gene names
-        self.gene_info.index = self.get_genes_list() # Assuming the entries are ordered correctly
+        self.annotations.index = self.get_genes_list() # Assuming the entries are ordered correctly
         self.features = list(OrderedDict.fromkeys(self.features))
-        self.gene_info = self.gene_info[~self.gene_info.index.duplicated(keep='first')] # Remove duplicate genes
+        self.annotations = self.annotations[~self.annotations.index.duplicated(keep='first')] # Remove duplicate genes
 
 
-    def get_genes_info(self):
-        return self.gene_info
+    def get_annotations(self):
+        return self.annotations
 
 
 
-class GeneExpression(ExpressionData):
+class GeneSet(ExpressionData):
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol",
                  log2_transform=True, import_sequences="longest", replace_U2T=True):
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
@@ -816,11 +813,11 @@ class GeneExpression(ExpressionData):
 
         self.gene_info["3P-seq tags"] = self.gene_info["3P-seq tags"].astype("O")
 
-    def get_genes_info(self):
+    def get_annotations(self):
         return self.gene_info
 
 
-class MiRNAExpression(ExpressionData):
+class MiRNASet(ExpressionData):
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol", log2_transform=True, import_sequences="longest", replace_U2T=True):
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
@@ -1086,11 +1083,11 @@ class MiRNAExpression(ExpressionData):
             pd.Series(self.RNAcentral_annotations['Rfams'].values,
                       index=self.RNAcentral_annotations['miRNA name']).to_dict())
 
-    def get_genes_info(self):
+    def get_annotations(self):
         return self.gene_info
 
 
-class ProteinExpression(ExpressionData):
+class ProteinSet(ExpressionData):
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol", import_sequences="longest", log2_transform=True):
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, log2_transform=log2_transform)
 

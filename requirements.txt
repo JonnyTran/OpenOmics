@@ -8,5 +8,5 @@ pandas
 scipy
 h5py
 requests
-pkg_resources
+setuptools
 bioservices
