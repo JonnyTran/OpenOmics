@@ -179,9 +179,24 @@ class Ensemble(Database):
     def __init__(self, import_folder=None) -> None:
         self.df = self.retrieve_database(dataset="hsapiens_gene_ensembl")
 
+    def load_datasets(self, datasets, filename):
+        self.df = self.query_biomart(host="www.ensembl.org", dataset="hsapiens_gene_ensembl",
+                      attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'go_id'],
+                      cache=True, save_filename=None)
+
     def genename(self):
         geneid_to_genename = self.df[self.df["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_genename
+
+    def genomic_annotations(self, modality):
+        geneid_to_transcriptid = self.df[self.df["ensembl_transcript_id"].notnull()].groupby('ensembl_gene_id')[
+            "ensembl_transcript_id"].apply(lambda x: "|".join(x.unique())).to_dict()
+        return geneid_to_transcriptid
+
+    def functional_annotations(self, modality=None):
+        geneid_to_go = self.df[self.df["go_id"].notnull()].groupby('ensembl_gene_id')[
+            "go_id"].apply(lambda x: "|".join(x.unique())).to_dict()
+        return geneid_to_go
 
 # Constants
 DEFAULT_LIBRARIES=["10KImmunomes"
