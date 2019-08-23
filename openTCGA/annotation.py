@@ -109,7 +109,7 @@ class GENCODE(Database):
         self.replace_U2T = replace_U2T
         self.load_datasets()
 
-    def load_datasets(self, datasets, filename):
+    def load_datasets(self, datasets=None, filename=None):
         # Parse lncRNA gtf
         self.GENCODE_LncRNA_info = GTF.dataframe(self.file_resources["long_noncoding_RNAs.gtf"])
         self.GENCODE_LncRNA_info['gene_id'] = self.GENCODE_LncRNA_info['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
