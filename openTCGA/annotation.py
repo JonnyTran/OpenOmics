@@ -117,9 +117,16 @@ class GENCODE(Database):
 
         # Prase lncRNA & mRNA fasta
         self.locus_type_dict = {}
-        for fasta_file in ["transcripts.fa", "lncRNA_transcripts.fa"]:
-            self.seq_dict = {}
-            for record in SeqIO.parse(self.file_resources[fasta_file], "fasta"):
+        self.seq_dict = {}
+
+        for modality in ["GE", "LNC"]:
+            if modality == "GE":
+                fasta_file = self.file_resources["transcripts.fa"]
+            elif modality == "LNC":
+                fasta_file = self.file_resources["lncRNA_transcripts.fa"]
+
+            self.seq_dict[modality] = {}
+            for record in SeqIO.parse(fasta_file, "fasta"):
                 # gene_id = record.id.split("|")[1]
                 gene_name = record.id.split("|")[5]
 
@@ -127,27 +134,27 @@ class GENCODE(Database):
                 if self.replace_U2T:
                     sequence_str = sequence_str.replace("U", "T")
                 if self.import_sequences == "shortest":
-                    if gene_name not in self.seq_dict[fasta_file]:
-                        self.seq_dict[fasta_file][gene_name] = sequence_str
+                    if gene_name not in self.seq_dict[modality]:
+                        self.seq_dict[modality][gene_name] = sequence_str
                     else:
-                        if len(self.seq_dict[fasta_file][gene_name]) > len(sequence_str):
-                            self.seq_dict[fasta_file][gene_name] = sequence_str
+                        if len(self.seq_dict[modality][gene_name]) > len(sequence_str):
+                            self.seq_dict[modality][gene_name] = sequence_str
                 elif self.import_sequences == "longest":
-                    if gene_name not in self.seq_dict[fasta_file]:
-                        self.seq_dict[fasta_file][gene_name] = sequence_str
+                    if gene_name not in self.seq_dict[modality]:
+                        self.seq_dict[modality][gene_name] = sequence_str
                     else:
-                        if len(self.seq_dict[fasta_file][gene_name]) < len(sequence_str):
-                            self.seq_dict[fasta_file][gene_name] = sequence_str
+                        if len(self.seq_dict[modality][gene_name]) < len(sequence_str):
+                            self.seq_dict[modality][gene_name] = sequence_str
                 elif self.import_sequences == "all":
-                    if gene_name not in self.seq_dict[fasta_file]:
-                        self.seq_dict[fasta_file][gene_name] = [sequence_str, ]
+                    if gene_name not in self.seq_dict[modality]:
+                        self.seq_dict[modality][gene_name] = [sequence_str, ]
                     else:
-                        self.seq_dict[fasta_file][gene_name].append(sequence_str)
+                        self.seq_dict[modality][gene_name].append(sequence_str)
                 else:
-                    self.seq_dict[fasta_file][gene_name] = sequence_str
+                    self.seq_dict[modality][gene_name] = sequence_str
 
                 # add locus type for mRNAs
-                if fasta_file == self.file_resources["transcripts.fa"]:
+                if modality == self.file_resources["transcripts.fa"]:
                     if ~(gene_name in self.locus_type_dict):
                         self.locus_type_dict[gene_name] = record.id.split("|")[7]
                     else:
