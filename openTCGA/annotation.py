@@ -102,8 +102,8 @@ class GENCODE(Database):
         self.file_resources["transcripts.fa"] = os.path.join(self.folder_path, "gencode.v29.transcripts.fa")
 
         for k, v in self.file_resources.items():
-            if ~os.path.exists(v):
-                print(FileNotFoundError(v), ". Removing {}".format(k))
+            if not os.path.exists(v):
+                print(FileNotFoundError(v))
 
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
