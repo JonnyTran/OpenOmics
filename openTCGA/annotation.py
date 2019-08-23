@@ -101,7 +101,7 @@ class GENCODE(Database):
         self.file_resources["lncRNA_transcripts.fa"] = os.path.join(self.folder_path, "gencode.v29.lncRNA_transcripts.fa")
         self.file_resources["transcripts.fa"] = os.path.join(self.folder_path, "gencode.v29.transcripts.fa")
 
-        for k, v in self.file_resources:
+        for k, v in self.file_resources.items():
             if ~os.path.exists(v):
                 print(FileNotFoundError(self.file_resources.pop(k)), ". Removing {}".format(k))
 
