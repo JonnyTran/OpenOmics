@@ -160,20 +160,20 @@ class GENCODE(Database):
                     else:
                         self.locus_type_dict[gene_name] = self.locus_type_dict[gene_name] + "|" + record.id.split("|")[7]
 
-    def genomic_annotations(self, modality="LNC"):
+    def genomic_annotations(self, modality):
         if modality == "LNC":
             return self.GENCODE_LncRNA_info
         elif modality == "GE":
             return self.locus_type_dict
 
     def sequences(self, modality):
-        if modality == "LNC":
-            return self.seq_dict[""]
+        return self.seq_dict[modality]
 
-    def genename(self):
-        ensembl_id_to_gene_name = pd.Series(self.GENCODE_LncRNA_info['gene_name'].values,
-                                            index=self.GENCODE_LncRNA_info['gene_id']).to_dict()
-        return ensembl_id_to_gene_name
+    def genename(self, modality):
+        if modality == "LNC":
+            ensembl_id_to_gene_name = pd.Series(self.GENCODE_LncRNA_info['gene_name'].values,
+                                                index=self.GENCODE_LncRNA_info['gene_id']).to_dict()
+            return ensembl_id_to_gene_name
 
 class Ensemble(Database):
     def __init__(self, import_folder=None) -> None:
