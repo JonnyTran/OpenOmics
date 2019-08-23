@@ -83,7 +83,7 @@ class Annotatable:
 
 
 class GENCODE(Database):
-    def __init__(self, import_folder=None, version="v29", sequence=["GE", "LNC", "MIR"], import_sequences="all", replace_U2T=True) -> None:
+    def __init__(self, import_folder=None, version="v29", modalities=["GE", "LNC", "MIR"], import_sequences="all", replace_U2T=True) -> None:
         if import_folder is not None:
             if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
                 raise NotADirectoryError(import_folder)
@@ -131,8 +131,8 @@ class GENCODE(Database):
                 gene_name = record.id.split("|")[5]
 
                 sequence_str = str(record.seq)
-                if self.replace_U2T:
-                    sequence_str = sequence_str.replace("U", "T")
+                if self.replace_U2T: sequence_str = sequence_str.replace("U", "T")
+
                 if self.import_sequences == "shortest":
                     if gene_name not in self.seq_dict[modality]:
                         self.seq_dict[modality][gene_name] = sequence_str
@@ -154,7 +154,7 @@ class GENCODE(Database):
                     self.seq_dict[modality][gene_name] = sequence_str
 
                 # add locus type for mRNAs
-                if modality == self.file_resources["transcripts.fa"]:
+                if modality == "GE":
                     if ~(gene_name in self.locus_type_dict):
                         self.locus_type_dict[gene_name] = record.id.split("|")[7]
                     else:
