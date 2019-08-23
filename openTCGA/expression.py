@@ -9,7 +9,7 @@ from Bio.UniProt import GOA
 from pandas import Series
 
 from openTCGA.utils import GTF
-from openTCGA.annotation import retrieve_database
+from openTCGA.annotation import Database, Annotatable
 
 class ExpressionData:
     def __init__(self, cohort_name, file_path, columns, key,
@@ -106,7 +106,7 @@ class ExpressionData:
             return None
 
 
-class LncRNASet(ExpressionData):
+class LncRNASet(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns="Gene_ID|TCGA", key="Gene_ID",
                  HGNC_lncRNA_names_file_path=None, GENCODE_folder_path=None, external_data_path=None,
                  import_sequences="longest", replace_U2T=True, transposed=True, log2_transform=False):
@@ -135,7 +135,7 @@ class LncRNASet(ExpressionData):
         # Preprocess genes info
         gencode_LncRNA_info, _ = self.get_GENCODE_lncRNA_gene_name_dict()
         lncBase_gene_id_to_name_dict = self.get_lncBase_gene_id_to_name_dict()
-        ensemble_genes = retrieve_database()
+        ensemble_genes = Database.retrieve_database(dataset="hsapiens_gene_ensembl")
         ensembl_gene_id_to_gene_name = ensemble_genes[ensemble_genes["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
 
         hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
@@ -240,16 +240,6 @@ class LncRNASet(ExpressionData):
             self.get_GENCODE_lncRNA_sequence_data(self.import_sequences, self.replace_U2T))
 
 
-    def get_GENCODE_lncRNA_gene_name_dict(self):
-        GENCODE_LncRNA_info = GTF.dataframe(self.GENCODE_LncRNA_gtf_file_path)
-        # print(GENCODE_LncRNA_info.columns)
-        GENCODE_LncRNA_info['gene_id'] = GENCODE_LncRNA_info['gene_id'].str.replace("[.].*", "")  # TODO Removing .# ENGS gene version number at the end
-        GENCODE_LncRNA_info['transcript_id'] = GENCODE_LncRNA_info['transcript_id'].str.replace("[.].*", "")
-
-        ensembl_id_to_gene_name = pd.Series(GENCODE_LncRNA_info['gene_name'].values,
-                                            index=GENCODE_LncRNA_info['gene_id']).to_dict()
-
-        return GENCODE_LncRNA_info, ensembl_id_to_gene_name
 
     def get_HUGO_lncRNA_gene_name_dict(self):
         try:
@@ -603,14 +593,11 @@ class LncRNASet(ExpressionData):
 
 
 
-class GeneSet(ExpressionData):
+class GeneSet(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol",
                  log2_transform=True, import_sequences="longest", replace_U2T=True):
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
-
-    def process_GENCODE_transcript_data(self, gencode_folder_path):
-        self.GENCODE_transcript_sequence_file_path = os.path.join(gencode_folder_path, "gencode.v29.transcripts.fa")
 
     def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
         self.targetScan_gene_info_path = targetScan_gene_info_path
@@ -650,43 +637,6 @@ class GeneSet(ExpressionData):
 
     def process_biogrid_GRN_edgelist(self, biogrid_folder_path):
         self.biogrid_interactions_path = os.path.join(biogrid_folder_path, "BIOGRID-ALL-3.4.162.tab2.txt")
-
-    def get_GENCODE_transcript_data(self, import_sequences, replace_U2T):
-        seq_dict = {}
-        locus_type_dict = {}
-        for record in SeqIO.parse(self.GENCODE_transcript_sequence_file_path, "fasta"):
-            gene_name = record.id.split("|")[5]
-            sequence_str = str(record.seq)
-            if replace_U2T:
-                sequence_str = sequence_str.replace("U", "T")
-
-            if import_sequences == "shortest":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = sequence_str
-                else:
-                    if len(seq_dict[gene_name]) > len(sequence_str):
-                        seq_dict[gene_name] = sequence_str
-            elif import_sequences == "longest":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = sequence_str
-                else:
-                    if len(seq_dict[gene_name]) < len(sequence_str):
-                        seq_dict[gene_name] = sequence_str
-            elif import_sequences == "multi":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = [sequence_str, ]
-                else:
-                    seq_dict[gene_name].append(sequence_str)
-            else:
-                seq_dict[gene_name] = sequence_str
-
-            # add locus type
-            if ~(gene_name in locus_type_dict):
-                locus_type_dict[gene_name] = record.id.split("|")[7]
-            else:
-                locus_type_dict[gene_name] = locus_type_dict[gene_name] + "|" + record.id.split("|")[7]
-
-        return seq_dict, locus_type_dict
 
     def process_DisGeNET_gene_disease_associations(self, disgenet_folder_path):
         self.disgenet_folder_path = disgenet_folder_path
@@ -817,7 +767,7 @@ class GeneSet(ExpressionData):
         return self.gene_info
 
 
-class MiRNASet(ExpressionData):
+class MiRNASet(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol", log2_transform=True, import_sequences="longest", replace_U2T=True):
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
@@ -1087,7 +1037,7 @@ class MiRNASet(ExpressionData):
         return self.gene_info
 
 
-class ProteinSet(ExpressionData):
+class ProteinSet(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol", import_sequences="longest", log2_transform=True):
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, log2_transform=log2_transform)
 
