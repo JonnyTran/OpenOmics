@@ -59,15 +59,15 @@ class Database:
     @abstractmethod
     def genename(self) -> dict: raise NotImplementedError
     @abstractmethod
-    def genomic_annotations(self, modality): raise NotImplementedError
+    def genomic_annotations(self, modality, index): raise NotImplementedError
     @abstractmethod
-    def functional_annotations(self, modality): raise NotImplementedError
+    def functional_annotations(self, modality, index): raise NotImplementedError
     @abstractmethod
-    def sequences(self, modality, *arg) -> dict: raise NotImplementedError
+    def sequences(self, modality, index, *arg) -> dict: raise NotImplementedError
     @abstractmethod
-    def interactions(self, modality): raise NotImplementedError
+    def interactions(self, modality, index): raise NotImplementedError
     @abstractmethod
-    def disease_associations(self): raise NotImplementedError
+    def disease_associations(self, index): raise NotImplementedError
 
 class Annotatable:
     __metaclass__ = ABCMeta
@@ -78,7 +78,7 @@ class Annotatable:
 
 
 class GENCODE(Database):
-    def __init__(self, import_folder=None, version="v29", modalities=["GE", "LNC", "MIR"], import_sequences="shortest", replace_U2T=True) -> None:
+    def __init__(self, import_folder=None, version="v29", modalities=["GE", "LNC"], import_sequences="shortest", replace_U2T=True) -> None:
         if import_folder is not None:
             if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
                 raise NotADirectoryError(import_folder)
@@ -110,13 +110,13 @@ class GENCODE(Database):
         self.GENCODE_LncRNA_info['gene_id'] = self.GENCODE_LncRNA_info['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         self.GENCODE_LncRNA_info['transcript_id'] = self.GENCODE_LncRNA_info['transcript_id'].str.replace("[.].*", "")
 
-    def genomic_annotations(self, modality):
+    def genomic_annotations(self, modality, index):
         if modality == "LNC":
-            return self.GENCODE_LncRNA_info
+            return self.GENCODE_LncRNA_info.set_index(index)
         elif modality == "GE":
             raise NotImplementedError
 
-    def sequences(self, modality, level="gene", index="name"):
+    def sequences(self, modality, index="gene_id"):
         # Prase lncRNA & mRNA fasta
         if modality == "GE":
             fasta_file = self.file_resources["transcripts.fa"]
@@ -129,25 +129,16 @@ class GENCODE(Database):
         for record in SeqIO.parse(fasta_file, "fasta"):
 
             # gene_id = record.id.split("|")[1].split(".")[0]
-            if level == "gene":
-                if index == "id":
-                    key = record.id.split("|")[1].split(".")[0] # gene id
-                elif index == "name":
-                    key = record.id.split("|")[5]  # gene name
-                else:
-                    raise Exception("The index argument must be one of 'name', or 'id'")
-            elif level == "transcript":
-                if index == "id":
-                    key = record.id.split("|")[0].split(".")[0]  # transcript ID
-                elif index == "name":
-                    key = record.id.split("|")[4]  # transcript name
-                else:
-                    raise Exception("The index argument must be one of 'name', or 'id'")
-
-            elif level == "peptide":
-                raise NotImplementedError
+            if index == "gene_id":
+                key = record.id.split("|")[1].split(".")[0] # gene id
+            elif index == "gene_name":
+                key = record.id.split("|")[5]  # gene_name
+            elif index == "transcript_id":
+                key = record.id.split("|")[0].split(".")[0]  # transcript ID
+            elif index == "transcript_name":
+                key = record.id.split("|")[4]  # transcript_name
             else:
-                raise Exception("The level argument must be one of 'gene', 'transcript', or 'peptide'")
+                raise Exception("The level argument must be one of 'gene_id', 'transcript_id', or 'gene_name', or 'transcript_name'")
 
             sequence_str = str(record.seq)
             if self.replace_U2T: sequence_str = sequence_str.replace("U", "T")
