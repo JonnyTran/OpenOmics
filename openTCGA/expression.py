@@ -94,24 +94,8 @@ class ExpressionData:
     def get_genes_list(self):
         return self.features
 
-    def get_annotations(self):
-        if hasattr(self, "annotations"):
-            return self.annotations
-        else:
-            raise Exception("Must run initialize_annotations() first.")
-
-    def initialize_annotations(self, gene_list, index):
-        raise NotImplementedError
-
     def get_samples_list(self):
         return self.samples
-
-    def get_network_edgelist(self):
-        if hasattr(self, "network"):
-            return self.network.edges(data=True)
-        else:
-            print(self.__class__.__str__(), "does not have network interaction data yet. (at self.network)")
-            return None
 
 
 class LncRNAs(ExpressionData, Annotatable):
@@ -165,14 +149,10 @@ class LncRNAs(ExpressionData, Annotatable):
         return df
 
     def annotate_genomics(self, database, index):
-        if ~hasattr(self, "annotations"):
-            raise Exception("Must run initialize_annotations() first.")
         df = database.genomic_annotations(modality=self.get_modality(), index=index)
         self.annotations = self.annotations.join(df, on=index)
 
     def annotate_sequences(self, database, index, **kwargs):
-        if ~hasattr(self, "annotations"):
-            raise Exception("Must run initialize_annotations() first.")
         self.annotations["Transcript sequence"] = self.annotations[index].map(
             database.sequences(modality=self.get_modality(), index=index, **kwargs))
 

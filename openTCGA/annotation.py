@@ -71,6 +71,24 @@ class Database:
 
 class Annotatable:
     __metaclass__ = ABCMeta
+
+    def get_annotations(self):
+        if hasattr(self, "annotations"):
+            return self.annotations
+        else:
+            raise Exception("Must run initialize_annotations() first.")
+
+
+    def get_network_edgelist(self):
+        if hasattr(self, "network"):
+            return self.network.edges(data=True)
+        else:
+            print(self.__class__.__str__(), "does not have network interaction data yet. (at self.network)")
+            return None
+
+    @abstractmethod
+    def initialize_annotations(self, gene_list=None, index=None): raise NotImplementedError
+
     @abstractmethod
     def annotate_genomics(self, database: Database, index): raise NotImplementedError
 
