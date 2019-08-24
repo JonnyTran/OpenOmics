@@ -171,7 +171,9 @@ class GENCODE(Database):
 
 class Ensemble(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl",
-                 attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'go_id'],
+                 attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'rfam', 'go_id',
+                             'chromosome_name', 'start_position', 'end_position', 'strand', 'band',
+                             'transcript_gencode_basic', 'transcript_biotype'],
                  import_folder=None) -> None:
         self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=import_folder)
 
