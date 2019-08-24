@@ -91,10 +91,10 @@ class Annotatable:
     def initialize_annotations(self, gene_list=None, index=None): raise NotImplementedError
 
     @abstractmethod
-    def annotate_genomics(self, database: Database, index, columns=None): raise NotImplementedError
+    def annotate_genomics(self, database: Database, index, columns): raise NotImplementedError
 
     @abstractmethod
-    def annotate_functions(self, database: Database, index, columns=None): raise NotImplementedError
+    def annotate_functions(self, database: Database, index, columns): raise NotImplementedError
 
     @abstractmethod
     def annotate_sequences(self, database: Database, index, **kwargs): raise NotImplementedError

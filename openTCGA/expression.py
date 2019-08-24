@@ -143,8 +143,8 @@ class LncRNAs(ExpressionData, Annotatable):
 
         return df
 
-    def annotate_genomics(self, database, index, columns=None):
-        df = database.get_genomic_annotations(modality=self.get_modality(), index=index, columns=None)
+    def annotate_genomics(self, database, index, columns):
+        df = database.get_genomic_annotations(modality=self.get_modality(), index=index, columns=columns)
 
         self.annotations = pd.merge(self.annotations, df, left_on=index, right_on=index)
 
