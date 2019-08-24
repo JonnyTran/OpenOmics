@@ -57,7 +57,7 @@ class Database:
         raise NotImplementedError
 
     @abstractmethod
-    def genename(self) -> dict: raise NotImplementedError
+    def id_to_name(self, from_index, to_index) -> dict: raise NotImplementedError
     @abstractmethod
     def genomic_annotations(self, modality, index, columns): raise NotImplementedError
     @abstractmethod
@@ -198,7 +198,7 @@ class GENCODE(Database):
 
         return seq_dict
 
-    def genename(self, modality):
+    def id_to_name(self, left_index, right_index):
         if modality == "LNC":
             ensembl_id_to_gene_name = pd.Series(self.GENCODE_LncRNA_info['gene_name'].values,
                                                 index=self.GENCODE_LncRNA_info['gene_id']).to_dict()
@@ -213,20 +213,30 @@ class EnsembleGenes(Database):
                       'chromosome_name', 'transcript_stwart', 'transcript_end', 'transcript_length',
                       'cds_start', 'cds_end', 'cds_length', '5_utr_start', '5_utr_end', '3_utr_start', '3_utr_end',
                       'gene_biotype', 'transcript_biotype']
+
         self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
+        self.df.rename(columns={'ensembl_gene_id': 'gene_id',
+                                'external_gene_name': 'gene_name',
+                                'ensembl_transcript_id': 'transcript_id',
+                                'external_transcript_name': 'transcript_name'},
+                       inplace=True)
 
     def load_datasets(self, datasets, attributes, filename=None):
         return self.retrieve_dataset(datasets, attributes, filename)
 
-    def genename(self):
-        geneid_to_genename = self.df[self.df["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
+    def id_to_name(self, from_index="gene_id", to_index="gene_name"):
+        geneid_to_genename = self.df[self.df[to_index].notnull()].groupby(from_index)[to_index].apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_genename
 
-    def genomic_annotations(self, modality, index, columns):
-        return self.df.set_index(index)
+    def genomic_annotations(self, modality, index, columns=None):
+        if columns is not None:
+            df = self.df.filter(items=columns)
+        else:
+            df = self.df
+        return df.set_index(index)
 
-    def functional_annotations(self, modality=None):
-        geneid_to_go = self.df[self.df["go_id"].notnull()].groupby('ensembl_gene_id')[
+    def functional_annotations(self, modality, index):
+        geneid_to_go = self.df[self.df["go_id"].notnull()].groupby(index)[
             "go_id"].apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_go
 
