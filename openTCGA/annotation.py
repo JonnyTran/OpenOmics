@@ -91,7 +91,15 @@ class Annotatable:
     def initialize_annotations(self, gene_list=None, index=None): raise NotImplementedError
 
     @abstractmethod
-    def annotate_genomics(self, database: Database, index, columns): raise NotImplementedError
+    def annotate_genomics(self, database: Database, index, columns):
+        """
+        Returns a DataFrame indexed by :index:. There must be no duplicates in the index column.
+
+        :param database:
+        :param index:
+        :param columns:
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def annotate_functions(self, database: Database, index, columns): raise NotImplementedError
@@ -240,14 +248,16 @@ class EnsembleGenes(Database):
         if index in self.df.columns:
             df.set_index(index, inplace=True)
 
-        if df.index.duplicated().sum() > 0 and columns is not None:
-            df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
+        df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
 
+        if df.index.duplicated().sum() > 0:
+            raise ValueError("DataFrame must not have duplicates in index")
         return df
 
     def get_functional_annotations(self, modality, index):
-        geneid_to_go = self.df[self.df["go_id"].notnull()].groupby(index)[
-            "go_id"].apply(lambda x: "|".join(x.unique())).to_dict()
+        geneid_to_go = self.df[self.df["go_id"].notnull()]\
+            .groupby(index)["go_id"]\
+            .apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_go
 
 
