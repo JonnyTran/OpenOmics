@@ -167,7 +167,8 @@ class LncRNAs(ExpressionData, Annotatable):
     def annotate_genomics(self, database, index):
         if not hasattr(self, "annotations"):
             raise Exception("Must run initialize_annotations() first.")
-        self.annotations = self.annotations.join(database.genomic_annotations(), on=index)
+        df = database.genomic_annotations(modality=self.get_modality(), index=index)
+        self.annotations = self.annotations.join(df, on=index)
 
     def annotate_sequences(self, database, index, **kwargs):
         if not hasattr(self, "annotations"):
@@ -175,9 +176,13 @@ class LncRNAs(ExpressionData, Annotatable):
         self.annotations["Transcript sequence"] = self.annotations[index].map(
             database.sequences(modality=self.get_modality(), index=index, **kwargs))
 
-    def initialize_annotations(self, gene_list, index):
-        self.annotations = pd.DataFrame(index=self.get_genes_list())
-        self.annotations.index.name = "gene_id"
+    def initialize_annotations(self, gene_list=None, index="gene_id"):
+        if gene_list is None:
+            gene_list = self.get_genes_list()
+
+        self.annotations = pd.DataFrame(index=gene_list)
+        self.annotations.index.name = index
+
         return
         self.annotations["Gene ID"] = self.annotations.index
         self.annotations["Gene Name"] = self.annotations.index.map(ensembl_id_to_gene_name)
