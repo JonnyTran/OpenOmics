@@ -93,7 +93,7 @@ class ExpressionData:
 
     def get_annotations(self):
         if hasattr(self, "genes_info"):
-            return self.genes_info
+            return self.annotations
 
     def get_samples_list(self):
         return self.samples
@@ -106,7 +106,7 @@ class ExpressionData:
             return None
 
 
-class LncRNASet(ExpressionData, Annotatable):
+class LncRNAs(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns="Gene_ID|TCGA", key="Gene_ID",
                  HGNC_lncRNA_names_file_path=None, GENCODE_folder_path=None, external_data_path=None,
                  import_sequences="longest", replace_U2T=True, transposed=True, log2_transform=False):
@@ -152,24 +152,11 @@ class LncRNASet(ExpressionData, Annotatable):
 
         return df
 
-    def get_lncBase_gene_id_to_name_dict(self):
-        table = pd.read_table(os.path.join(self.external_data_path, "lncBase/LncBasev2_download.csv"))
-        lncBase_gene_id_to_name_dict = pd.Series(table["geneName"].values,
-                                          index=table["geneId"]).to_dict()
-        return lncBase_gene_id_to_name_dict
+    def annotate(self, database: Database, index):
+        if not hasattr(self, "annotations"):
+            raise Exception("Must run initialize_annotations() first.")
 
-    def get_lncipedia_gene_id_to_name_dict(self):
-        lncipedia_names = GTF.dataframe(
-            os.path.join(self.external_data_path, "LNCipedia/lncipedia_5_0_hg19 (copy).gtf"))
-        lncipedia_names = lncipedia_names[
-            lncipedia_names["gene_alias_1"].notnull() & lncipedia_names["gene_alias_2"].notnull()]
-        lncipedia_names = lncipedia_names[lncipedia_names["gene_alias_1"].str.startswith("ENSG")]
-        lncipedia_names = lncipedia_names[~lncipedia_names["gene_alias_2"].str.startswith("ENSG")]
-        lncipedia_lncrna_dict = pd.Series(lncipedia_names["gene_alias_2"].values,
-                                          index=lncipedia_names["gene_alias_1"]).to_dict()
-        return lncipedia_lncrna_dict
-
-    def preprocess_genes_info(self, ensembl_gene_id, GENCODE_LncRNA_info, ensembl_id_to_gene_name, hgnc_lncrna_dict):
+    def initialize_annotations(self, ensembl_gene_id, GENCODE_LncRNA_info, ensembl_id_to_gene_name, hgnc_lncrna_dict):
         self.annotations = pd.DataFrame(index=ensembl_gene_id)
         self.annotations.index.name = "ensembl_gene_id"
 
@@ -219,25 +206,42 @@ class LncRNASet(ExpressionData, Annotatable):
                 lambda x: "|".join(x.unique())).to_dict())
 
         self.annotations["Chromosome"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['seqname'].values,
-                                                                              index=GENCODE_LncRNA_info['gene_id']).to_dict())
+                                                                            index=GENCODE_LncRNA_info['gene_id']).to_dict())
         self.annotations["start"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['start'].values,
-                                                                         index=GENCODE_LncRNA_info[
+                                                                       index=GENCODE_LncRNA_info[
                                                                               'gene_id']).to_dict()).astype(np.float64)
         self.annotations["end"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['end'].values,
-                                                                       index=GENCODE_LncRNA_info[
+                                                                     index=GENCODE_LncRNA_info[
                                                                          'gene_id']).to_dict()).astype(np.float64)
         self.annotations["Strand"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['strand'].values,
-                                                                          index=GENCODE_LncRNA_info[
+                                                                        index=GENCODE_LncRNA_info[
                                                                        'gene_id']).to_dict())
 
         self.annotations["locus_type"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['gene_type'].values,
-                                                                              index=GENCODE_LncRNA_info[
+                                                                            index=GENCODE_LncRNA_info[
                                                                          'gene_id']).to_dict())
 
 
         # Merge GENCODE transcript sequence data
         self.annotations["Transcript sequence"] = self.annotations["Gene Name"].map(
             self.get_GENCODE_lncRNA_sequence_data(self.import_sequences, self.replace_U2T))
+
+    def get_lncBase_gene_id_to_name_dict(self):
+        table = pd.read_table(os.path.join(self.external_data_path, "lncBase/LncBasev2_download.csv"))
+        lncBase_gene_id_to_name_dict = pd.Series(table["geneName"].values,
+                                          index=table["geneId"]).to_dict()
+        return lncBase_gene_id_to_name_dict
+
+    def get_lncipedia_gene_id_to_name_dict(self):
+        lncipedia_names = GTF.dataframe(
+            os.path.join(self.external_data_path, "LNCipedia/lncipedia_5_0_hg19 (copy).gtf"))
+        lncipedia_names = lncipedia_names[
+            lncipedia_names["gene_alias_1"].notnull() & lncipedia_names["gene_alias_2"].notnull()]
+        lncipedia_names = lncipedia_names[lncipedia_names["gene_alias_1"].str.startswith("ENSG")]
+        lncipedia_names = lncipedia_names[~lncipedia_names["gene_alias_2"].str.startswith("ENSG")]
+        lncipedia_lncrna_dict = pd.Series(lncipedia_names["gene_alias_2"].values,
+                                          index=lncipedia_names["gene_alias_1"]).to_dict()
+        return lncipedia_lncrna_dict
 
 
 
@@ -594,7 +598,7 @@ class LncRNASet(ExpressionData, Annotatable):
 
 
 
-class GeneSet(ExpressionData, Annotatable):
+class MessengerRNAs(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol",
                  log2_transform=True, import_sequences="longest", replace_U2T=True):
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
@@ -768,7 +772,7 @@ class GeneSet(ExpressionData, Annotatable):
         return self.gene_info
 
 
-class MiRNASet(ExpressionData, Annotatable):
+class MicroRNAs(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol", log2_transform=True, import_sequences="longest", replace_U2T=True):
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
@@ -1038,7 +1042,7 @@ class MiRNASet(ExpressionData, Annotatable):
         return self.gene_info
 
 
-class ProteinSet(ExpressionData, Annotatable):
+class Proteins(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol", import_sequences="longest", log2_transform=True):
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, log2_transform=log2_transform)
 

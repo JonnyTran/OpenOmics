@@ -74,7 +74,7 @@ class Annotatable:
     # @classmethod
     # def version(self): return "1.0"
     @abstractmethod
-    def annotate(self, database:Database, key, level): raise NotImplementedError
+    def annotate(self, database: Database, index): raise NotImplementedError
 
 
 class GENCODE(Database):
