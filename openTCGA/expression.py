@@ -88,12 +88,18 @@ class ExpressionData:
         for gene in genes_to_drop:
             self.features.remove(gene)
 
+    def get_modality(self):
+        raise NotImplementedError
+
     def get_genes_list(self):
         return self.features
 
     def get_annotations(self):
         if hasattr(self, "genes_info"):
             return self.annotations
+
+    def initialize_annotations(self):
+        raise NotImplementedError
 
     def get_samples_list(self):
         return self.samples
@@ -119,6 +125,9 @@ class LncRNAs(ExpressionData, Annotatable):
         self.external_data_path = external_data_path
         super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          transposed=transposed, log2_transform=log2_transform)
+
+    def get_modality(self):
+        return "LNC"
 
     def preprocess_table(self, df:pd.DataFrame, columns:str, key:str, transposed):
         """
@@ -149,16 +158,24 @@ class LncRNAs(ExpressionData, Annotatable):
                 return s
 
         df.index = df.index.map(change_patient_barcode)
+        df.index.name = "gene_id"
 
         return df
 
-    def annotate(self, database: Database, index):
+    def annotate_genomics(self, database, index):
         if not hasattr(self, "annotations"):
             raise Exception("Must run initialize_annotations() first.")
+        self.annotations = self.annotations.join(database.genomic_annotations(), on=index)
+
+    def annotate_sequences(self, database, index, **kwargs):
+        if not hasattr(self, "annotations"):
+            raise Exception("Must run initialize_annotations() first.")
+        self.annotations["Transcript sequence"] = self.annotations[index].map(
+            database.sequences(modality=self.get_modality(), index=index, **kwargs))
 
     def initialize_annotations(self, ensembl_gene_id, GENCODE_LncRNA_info, ensembl_id_to_gene_name, hgnc_lncrna_dict):
-        self.annotations = pd.DataFrame(index=ensembl_gene_id)
-        self.annotations.index.name = "ensembl_gene_id"
+        self.annotations = pd.DataFrame(index=self.get_genes_list())
+        self.annotations.index.name = "gene_id"
 
         self.annotations["Gene ID"] = self.annotations.index
         self.annotations["Gene Name"] = self.annotations.index.map(ensembl_id_to_gene_name)

@@ -71,10 +71,20 @@ class Database:
 
 class Annotatable:
     __metaclass__ = ABCMeta
-    # @classmethod
-    # def version(self): return "1.0"
     @abstractmethod
-    def annotate(self, database: Database, index): raise NotImplementedError
+    def annotate_genomics(self, database: Database, index): raise NotImplementedError
+
+    @abstractmethod
+    def annotate_functions(self, database: Database, index): raise NotImplementedError
+
+    @abstractmethod
+    def annotate_sequences(self, database: Database, index, **kwargs): raise NotImplementedError
+
+    @abstractmethod
+    def annotate_interactions(self, database: Database, index): raise NotImplementedError
+
+    @abstractmethod
+    def annotate_diseases(self, database: Database, index): raise NotImplementedError
 
 
 class GENCODE(Database):
