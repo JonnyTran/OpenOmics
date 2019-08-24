@@ -207,10 +207,10 @@ class GENCODE(Database):
 
 class EnsembleGenes(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
-        self.filename = "{}_{}".format(dataset, self.__class__.__name__)
+        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'external_transcript_name',
                       'rfam', 'go_id',
-                      'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
+                      'chromosome_name', 'transcript_stwart', 'transcript_end', 'transcript_length',
                       'cds_start', 'cds_end', 'cds_length', '5_utr_start', '5_utr_end', '3_utr_start', '3_utr_end',
                       'gene_biotype', 'transcript_biotype']
         self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
@@ -235,7 +235,7 @@ class EnsembleGenes(Database):
 
 class EnsembleGeneSequences(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl") -> None:
-        self.filename = "{}_{}".format(dataset, self.__class__.__name__)
+        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
         self.df = self.load_datasets(datasets=dataset, filename=self.filename, attributes=attributes, )
         
@@ -244,7 +244,7 @@ class EnsembleGeneSequences(Database):
 
 class EnsembleTranscriptSequences(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
-        self.filename = "{}_{}".format(dataset, self.__class__.__name__)
+        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank', 'coding_transcript_flank',
                       '5utr', '3utr']
         self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
@@ -254,7 +254,7 @@ class EnsembleTranscriptSequences(Database):
 
 class EnsembleSNP(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
-        self.filename = "{}_{}".format(dataset, self.__class__.__name__)
+        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         attributes = ['variation_name', 'allele', 'minor_allele', 'mapweight', 'validated', 'allele_string_2076',
                       'clinical_significance',
                       'transcript_location', 'snp_chromosome_strand', 'chromosome_start', 'chromosome_end']
@@ -266,7 +266,7 @@ class EnsembleSNP(Database):
 
 class EnsembleSomaticVariation(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
-        self.filename = "{}_{}".format(dataset, self.__class__.__name__)
+        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
                       'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
                       'somatic_mapweight',
