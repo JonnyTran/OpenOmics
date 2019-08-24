@@ -58,17 +58,17 @@ class Database:
         raise NotImplementedError
 
     @abstractmethod
-    def id_to_name(self, from_index, to_index) -> dict: raise NotImplementedError
+    def get_id2name_dict(self, from_index, to_index) -> dict: raise NotImplementedError
     @abstractmethod
-    def genomic_annotations(self, modality, index, columns): raise NotImplementedError
+    def get_genomic_annotations(self, modality, index, columns): raise NotImplementedError
     @abstractmethod
-    def functional_annotations(self, modality, index): raise NotImplementedError
+    def get_functional_annotations(self, modality, index): raise NotImplementedError
     @abstractmethod
-    def sequences(self, modality, index, *arg) -> dict: raise NotImplementedError
+    def get_sequences(self, modality, index, *arg) -> dict: raise NotImplementedError
     @abstractmethod
-    def interactions(self, modality, index): raise NotImplementedError
+    def get_interactions(self, modality, index): raise NotImplementedError
     @abstractmethod
-    def disease_associations(self, index): raise NotImplementedError
+    def get_disease_assocs(self, index): raise NotImplementedError
 
 class Annotatable:
     __metaclass__ = ABCMeta
@@ -139,7 +139,7 @@ class GENCODE(Database):
         self.GENCODE_LncRNA_info['gene_id'] = self.GENCODE_LncRNA_info['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         self.GENCODE_LncRNA_info['transcript_id'] = self.GENCODE_LncRNA_info['transcript_id'].str.replace("[.].*", "")
 
-    def genomic_annotations(self, modality, index, columns):
+    def get_genomic_annotations(self, modality, index, columns):
         if modality == "LNC":
             df = self.GENCODE_LncRNA_info.set_index(index)
         else:
@@ -150,7 +150,7 @@ class GENCODE(Database):
 
         return df
 
-    def sequences(self, modality, index="gene_id"):
+    def get_sequences(self, modality, index="gene_id"):
         # Parse lncRNA & mRNA fasta
         if modality == "GE":
             fasta_file = self.file_resources["transcripts.fa"]
@@ -199,7 +199,7 @@ class GENCODE(Database):
 
         return seq_dict
 
-    def id_to_name(self, left_index, right_index):
+    def get_id2name_dict(self, left_index, right_index):
         if modality == "LNC":
             ensembl_id_to_gene_name = pd.Series(self.GENCODE_LncRNA_info['gene_name'].values,
                                                 index=self.GENCODE_LncRNA_info['gene_id']).to_dict()
@@ -225,11 +225,11 @@ class EnsembleGenes(Database):
     def load_datasets(self, datasets, attributes, filename=None):
         return self.retrieve_dataset(datasets, attributes, filename)
 
-    def id_to_name(self, from_index="gene_id", to_index="gene_name"):
+    def get_id2name_dict(self, from_index="gene_id", to_index="gene_name"):
         geneid_to_genename = self.df[self.df[to_index].notnull()].groupby(from_index)[to_index].apply(concat_uniques_agg).to_dict()
         return geneid_to_genename
 
-    def genomic_annotations(self, modality, index, columns):
+    def get_genomic_annotations(self, modality, index, columns):
         if columns is not None:
             df = self.df.filter(items=columns)
         else:
@@ -237,18 +237,20 @@ class EnsembleGenes(Database):
 
         df.set_index(index, inplace=True)
 
-        if df.index.duplicated().sum() > 0 and columns is not None:
+        if df.index.duplicated().sum() > 0:
+            if columns is None:
+                columns = self.attributes
             df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
 
         return df
 
-    def functional_annotations(self, modality, index):
+    def get_functional_annotations(self, modality, index):
         geneid_to_go = self.df[self.df["go_id"].notnull()].groupby(index)[
             "go_id"].apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_go
 
 
-class EnsembleGeneSequences(Database):
+class EnsembleGeneSequences(EnsembleGenes):
     def __init__(self, dataset="hsapiens_gene_ensembl") -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
@@ -256,10 +258,7 @@ class EnsembleGeneSequences(Database):
         self.df.rename(columns={'ensembl_gene_id': 'gene_id'},
                        inplace=True)
         
-    def load_datasets(self, datasets, attributes, filename=None):
-        return self.retrieve_dataset(datasets, attributes, filename)
-
-class EnsembleTranscriptSequences(Database):
+class EnsembleTranscriptSequences(EnsembleGenes):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank', 'coding_transcript_flank',
@@ -268,10 +267,7 @@ class EnsembleTranscriptSequences(Database):
         self.df.rename(columns={'ensembl_transcript_id': 'transcript_id'},
                        inplace=True)
 
-    def load_datasets(self, datasets, attributes, filename=None):
-        return self.retrieve_dataset(datasets, attributes, filename)
-
-class EnsembleSNP(Database):
+class EnsembleSNP(EnsembleGenes):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.attributes = ['variation_name', 'allele', 'minor_allele', 'mapweight', 'validated', 'allele_string_2076',
@@ -279,11 +275,7 @@ class EnsembleSNP(Database):
                       'transcript_location', 'snp_chromosome_strand', 'chromosome_start', 'chromosome_end']
         self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, filename=self.filename)
 
-    def load_datasets(self, datasets, attributes, filename=None):
-        return self.retrieve_dataset(datasets, attributes, filename)
-
-
-class EnsembleSomaticVariation(Database):
+class EnsembleSomaticVariation(EnsembleGenes):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
@@ -292,8 +284,6 @@ class EnsembleSomaticVariation(Database):
                       'somatic_chromosome_start', 'somatic_chromosome_end']
         self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, filename=self.filename)
 
-    def load_datasets(self, datasets, attributes, filename=None):
-        return self.retrieve_dataset(datasets, attributes, filename)
 
 # Constants
 DEFAULT_LIBRARIES=["10KImmunomes"
