@@ -53,7 +53,7 @@ class Database:
         return DEFAULT_LIBRARIES
 
     @abstractmethod
-    def load_datasets(self, datasets, filename, *args):
+    def load_datasets(self, datasets, filename, **args):
         raise NotImplementedError
 
     @abstractmethod
@@ -179,10 +179,10 @@ class EnsembleGenes(Database):
                       'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
                       'cds_start', 'cds_end', 'cds_length', '5_utr_start', '5_utr_end', '3_utr_start', '3_utr_end',
                       'gene_biotype', 'transcript_biotype']
-        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
 
-    def load_datasets(self, dataset, attributes, filename=None):
-        return self.retrieve_database(dataset, attributes, filename)
+    def load_datasets(self, datasets, attributes, filename=None):
+        return self.retrieve_database(datasets, attributes, filename)
 
     def genename(self):
         geneid_to_genename = self.df[self.df["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
@@ -203,7 +203,7 @@ class EnsembleGeneSequences(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl") -> None:
         self.filename = "{}_{}".format(dataset, self.__class__.__name__)
         attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
-        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, filename=self.filename, attributes=attributes, )
 
 
 class EnsembleTranscriptSequences(Database):
@@ -211,7 +211,7 @@ class EnsembleTranscriptSequences(Database):
         self.filename = "{}_{}".format(dataset, self.__class__.__name__)
         attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank', 'coding_transcript_flank',
                       '5utr', '3utr']
-        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
 
 
 class EnsembleSNP(Database):
@@ -220,10 +220,10 @@ class EnsembleSNP(Database):
         attributes = ['variation_name', 'allele', 'minor_allele', 'mapweight', 'validated', 'allele_string_2076',
                       'clinical_significance',
                       'transcript_location', 'snp_chromosome_strand', 'chromosome_start', 'chromosome_end']
-        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
 
-    def load_datasets(self, dataset, attributes, filename=None):
-        return self.retrieve_database(dataset, attributes, filename)
+    def load_datasets(self, datasets, attributes, filename=None):
+        return self.retrieve_database(datasets, attributes, filename)
 
 
 class EnsembleSomaticVariation(Database):
@@ -233,10 +233,10 @@ class EnsembleSomaticVariation(Database):
                       'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
                       'somatic_mapweight',
                       'somatic_chromosome_start', 'somatic_chromosome_end']
-        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
 
-    def load_datasets(self, dataset, attributes, filename=None):
-        return self.retrieve_database(dataset, attributes, filename)
+    def load_datasets(self, datasets, attributes, filename=None):
+        return self.retrieve_database(datasets, attributes, filename)
 
 # Constants
 DEFAULT_LIBRARIES=["10KImmunomes"
