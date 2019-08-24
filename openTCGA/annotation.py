@@ -245,7 +245,7 @@ class EnsembleGenes(Database):
         else:
             df = self.df
 
-        if index in self.df.columns:
+        if index != self.df.index.name and index in self.df.columns:
             df.set_index(index, inplace=True)
 
         df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
