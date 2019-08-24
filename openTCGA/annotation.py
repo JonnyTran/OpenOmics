@@ -59,7 +59,7 @@ class Database:
     @abstractmethod
     def genename(self) -> dict: raise NotImplementedError
     @abstractmethod
-    def genomic_annotations(self, modality, index): raise NotImplementedError
+    def genomic_annotations(self, modality, index, columns): raise NotImplementedError
     @abstractmethod
     def functional_annotations(self, modality, index): raise NotImplementedError
     @abstractmethod
@@ -90,10 +90,10 @@ class Annotatable:
     def initialize_annotations(self, gene_list=None, index=None): raise NotImplementedError
 
     @abstractmethod
-    def annotate_genomics(self, database: Database, index): raise NotImplementedError
+    def annotate_genomics(self, database: Database, index, columns=None): raise NotImplementedError
 
     @abstractmethod
-    def annotate_functions(self, database: Database, index): raise NotImplementedError
+    def annotate_functions(self, database: Database, index, columns=None): raise NotImplementedError
 
     @abstractmethod
     def annotate_sequences(self, database: Database, index, **kwargs): raise NotImplementedError
@@ -138,14 +138,19 @@ class GENCODE(Database):
         self.GENCODE_LncRNA_info['gene_id'] = self.GENCODE_LncRNA_info['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         self.GENCODE_LncRNA_info['transcript_id'] = self.GENCODE_LncRNA_info['transcript_id'].str.replace("[.].*", "")
 
-    def genomic_annotations(self, modality, index):
+    def genomic_annotations(self, modality, index, columns):
         if modality == "LNC":
-            return self.GENCODE_LncRNA_info.set_index(index)
-        elif modality == "GE":
+            df = self.GENCODE_LncRNA_info.set_index(index)
+        else:
             raise NotImplementedError
 
+        if columns is not None:
+            df = df.filter(items=columns)
+
+        return df
+
     def sequences(self, modality, index="gene_id"):
-        # Prase lncRNA & mRNA fasta
+        # Parse lncRNA & mRNA fasta
         if modality == "GE":
             fasta_file = self.file_resources["transcripts.fa"]
         elif modality == "LNC":
@@ -155,8 +160,6 @@ class GENCODE(Database):
 
         seq_dict = {}
         for record in SeqIO.parse(fasta_file, "fasta"):
-
-            # gene_id = record.id.split("|")[1].split(".")[0]
             if index == "gene_id":
                 key = record.id.split("|")[1].split(".")[0] # gene id
             elif index == "gene_name":
@@ -169,21 +172,23 @@ class GENCODE(Database):
                 raise Exception("The level argument must be one of 'gene_id', 'transcript_id', or 'gene_name', or 'transcript_name'")
 
             sequence_str = str(record.seq)
-            if self.replace_U2T: sequence_str = sequence_str.replace("U", "T")
+            if self.replace_U2T:
+                sequence_str = sequence_str.replace("U", "T")
 
-            if self.import_sequences == "shortest":
+            # If index by gene, then select transcript sequences either by "shortest", "longest" or "all"
+            if "gene" in index and self.import_sequences == "shortest":
                 if key not in seq_dict:
                     seq_dict[key] = sequence_str
                 else:
                     if len(seq_dict[key]) > len(sequence_str):
                         seq_dict[key] = sequence_str
-            elif self.import_sequences == "longest":
+            elif "gene" in index and self.import_sequences == "longest":
                 if key not in seq_dict:
                     seq_dict[key] = sequence_str
                 else:
                     if len(seq_dict[key]) < len(sequence_str):
                         seq_dict[key] = sequence_str
-            elif self.import_sequences == "all":
+            elif "gene" in index and self.import_sequences == "all":
                 if key not in seq_dict:
                     seq_dict[key] = [sequence_str, ]
                 else:
@@ -217,7 +222,7 @@ class EnsembleGenes(Database):
         geneid_to_genename = self.df[self.df["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_genename
 
-    def genomic_annotations(self, modality):
+    def genomic_annotations(self, modality, columns):
         geneid_to_transcriptid = self.df[self.df["ensembl_transcript_id"].notnull()].groupby('ensembl_gene_id')[
             "ensembl_transcript_id"].apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_transcriptid

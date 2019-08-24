@@ -138,10 +138,6 @@ class MultiOmicsData:
         if "LNC" in modalities:
             file_path_LNC = os.path.join(cohort_folder_path, "lncrna", "TCGA-rnaexpr.tsv")
             self.LNC = LncRNAs(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", key="Gene_ID",
-                               HGNC_lncRNA_names_file_path=os.path.join(external_data_path, "HUGO_Gene_names",
-                                                                                 "RNA_long_non-coding.txt"),
-                               GENCODE_folder_path=os.path.join(external_data_path, "GENCODE"),
-                               external_data_path=external_data_path, import_sequences=import_sequences,
                                replace_U2T=replace_U2T)
             self.data["LNC"] = self.LNC.expression
 
