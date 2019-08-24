@@ -118,14 +118,12 @@ class GENCODE(Database):
 
     def sequences(self, modality, level="gene", index="name"):
         # Prase lncRNA & mRNA fasta
-        seq_dict = {}
-
         if modality == "GE":
             fasta_file = self.file_resources["transcripts.fa"]
         elif modality == "LNC":
             fasta_file = self.file_resources["lncRNA_transcripts.fa"]
         else:
-            raise Exception("The modality argument must be one of 'LNC', 'GE', or 'MIR'")
+            raise Exception("The modality argument must be one of 'LNC', 'GE'")
 
         seq_dict = {}
         for record in SeqIO.parse(fasta_file, "fasta"):

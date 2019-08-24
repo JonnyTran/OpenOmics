@@ -132,30 +132,6 @@ class LncRNASet(ExpressionData, Annotatable):
         df[key] = df[key].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         df = df[~df[key].duplicated(keep='first')] # Remove duplicate genes
 
-        # Preprocess genes info
-        gencode_LncRNA_info, _ = self.get_GENCODE_lncRNA_gene_name_dict()
-        lncBase_gene_id_to_name_dict = self.get_lncBase_gene_id_to_name_dict()
-        ensemble_genes = Database.retrieve_database(dataset="hsapiens_gene_ensembl")
-        ensembl_gene_id_to_gene_name = ensemble_genes[ensemble_genes["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
-
-        hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
-        ensembl_gene_ids = df[key]
-        self.preprocess_genes_info(ensembl_gene_ids, gencode_LncRNA_info,
-                                   ensembl_gene_id_to_gene_name,
-                                   hgnc_lncrna_dict)
-
-        # Convert ensembl gene IDs to known gene names
-        print("Unmatched lncRNAs", df[key].str.startswith("ENSG").sum())
-
-        df.replace({key: ensembl_gene_id_to_gene_name}, inplace=True)
-        print("Unmatched lncRNAs after ensembl:", df['Gene_ID'].str.startswith("ENSG").sum())
-
-        df.replace({key: lncBase_gene_id_to_name_dict}, inplace=True)
-        print("Unmatched lncRNAs after lncBase:", df['Gene_ID'].str.startswith("ENSG").sum())
-
-        df.replace({key: hgnc_lncrna_dict}, inplace=True)
-        print("Unmatched lncRNAs after HGNC:", df['Gene_ID'].str.startswith("ENSG").sum())
-
         # Drop NA gene rows
         df.dropna(axis=0, inplace=True)
 
@@ -201,6 +177,30 @@ class LncRNASet(ExpressionData, Annotatable):
         self.annotations["Gene Name"] = self.annotations.index.map(ensembl_id_to_gene_name)
         self.annotations["HGNC Gene Name"] = self.annotations.index.map(hgnc_lncrna_dict)
 
+        # Preprocess genes info
+        # gencode_LncRNA_info, _ = self.get_GENCODE_lncRNA_gene_name_dict()
+        # lncBase_gene_id_to_name_dict = self.get_lncBase_gene_id_to_name_dict()
+        # ensemble_genes = Database.retrieve_database(dataset="hsapiens_gene_ensembl")
+        # ensembl_gene_id_to_gene_name = ensemble_genes[ensemble_genes["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
+        #
+        # hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
+        # ensembl_gene_ids = df[key]
+        # self.preprocess_genes_info(ensembl_gene_ids, gencode_LncRNA_info,
+        #                            ensembl_gene_id_to_gene_name,
+        #                            hgnc_lncrna_dict)
+
+        # Convert ensembl gene IDs to known gene names
+        # print("Unmatched lncRNAs", df[key].str.startswith("ENSG").sum())
+
+        # df.replace({key: ensembl_gene_id_to_gene_name}, inplace=True)
+        # print("Unmatched lncRNAs after ensembl:", df['Gene_ID'].str.startswith("ENSG").sum())
+        #
+        # df.replace({key: lncBase_gene_id_to_name_dict}, inplace=True)
+        # print("Unmatched lncRNAs after lncBase:", df['Gene_ID'].str.startswith("ENSG").sum())
+        #
+        # df.replace({key: hgnc_lncrna_dict}, inplace=True)
+        # print("Unmatched lncRNAs after HGNC:", df['Gene_ID'].str.startswith("ENSG").sum())
+
 
         self.annotations["Transcript id"] = self.annotations.index.map(GENCODE_LncRNA_info[
             GENCODE_LncRNA_info["transcript_id"].notnull()].groupby('gene_id')["transcript_id"].apply(
@@ -238,6 +238,7 @@ class LncRNASet(ExpressionData, Annotatable):
         # Merge GENCODE transcript sequence data
         self.annotations["Transcript sequence"] = self.annotations["Gene Name"].map(
             self.get_GENCODE_lncRNA_sequence_data(self.import_sequences, self.replace_U2T))
+
 
 
 
