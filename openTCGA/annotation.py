@@ -222,10 +222,8 @@ class EnsembleGenes(Database):
         geneid_to_genename = self.df[self.df["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_genename
 
-    def genomic_annotations(self, modality, columns):
-        geneid_to_transcriptid = self.df[self.df["ensembl_transcript_id"].notnull()].groupby('ensembl_gene_id')[
-            "ensembl_transcript_id"].apply(lambda x: "|".join(x.unique())).to_dict()
-        return geneid_to_transcriptid
+    def genomic_annotations(self, modality, index, columns):
+        return self.df.set_index(index)
 
     def functional_annotations(self, modality=None):
         geneid_to_go = self.df[self.df["go_id"].notnull()].groupby('ensembl_gene_id')[
