@@ -16,12 +16,8 @@ DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openTCGA", "databases")
 
 class Database:
     __metaclass__ = ABCMeta
-    @classmethod
-    def query_biomart(cls, host="www.ensembl.org", dataset="hsapiens_gene_ensembl",
-                      attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'go_id'],
-                      cache=True, save_filename=None):
+    def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None):
         bm = BioMart(host=host)
-        # Start query
         bm.new_query()
         bm.add_dataset_to_xml(dataset)
         for at in attributes:
@@ -33,25 +29,23 @@ class Database:
         df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", index_col=None)
 
         if cache:
-            cls.cache_database(dataset, df, save_filename)
+            self.cache_database(dataset, df, save_filename)
         return df
 
-    @classmethod
-    def cache_database(cls, database, dataframe, save_filename):
+    def cache_database(self, database, dataframe, save_filename):
         if save_filename is None:
             mkdirs(DEFAULT_CACHE_PATH)
-            save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.background.genes.txt".format(database))
+            save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(database))
         dataframe.to_csv(save_filename, sep="\t", index=False)
         return save_filename
 
-    @classmethod
-    def retrieve_database(cls, dataset, filename=None):
-        filename = os.path.join(DEFAULT_CACHE_PATH, "{}.background.genes.txt".format(dataset))
+    def retrieve_database(self, dataset, attributes, filename):
+        filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(dataset))
         if os.path.exists(filename):
             df = pd.read_csv(filename, sep="\t")
         else:
-            df = cls.query_biomart(dataset=dataset)
-
+            df = self.query_biomart(host="www.ensembl.org", dataset=dataset, attributes=attributes,
+                                    cache=True, save_filename=filename)
         return df
 
     @classmethod
@@ -176,13 +170,13 @@ class GENCODE(Database):
             return ensembl_id_to_gene_name
 
 class Ensemble(Database):
-    def __init__(self, import_folder=None) -> None:
-        self.df = self.retrieve_database(dataset="hsapiens_gene_ensembl")
+    def __init__(self, dataset="hsapiens_gene_ensembl",
+                 attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'go_id'],
+                 import_folder=None) -> None:
+        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=import_folder)
 
-    def load_datasets(self, datasets, filename):
-        self.df = self.query_biomart(host="www.ensembl.org", dataset="hsapiens_gene_ensembl",
-                      attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'go_id'],
-                      cache=True, save_filename=None)
+    def load_datasets(self, dataset, attributes, filename=None):
+        return self.retrieve_database(dataset, attributes, filename)
 
     def genename(self):
         geneid_to_genename = self.df[self.df["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
