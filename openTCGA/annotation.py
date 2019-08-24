@@ -134,14 +134,14 @@ class GENCODE(Database):
             if level == "gene":
                 if index == "id":
                     key = record.id.split("|")[1].split(".")[0] # gene id
-                elif index == "gene":
+                elif index == "name":
                     key = record.id.split("|")[5]  # gene name
                 else:
                     raise Exception("The index argument must be one of 'name', or 'id'")
             elif level == "transcript":
                 if index == "id":
                     key = record.id.split("|")[0].split(".")[0]  # transcript ID
-                elif index == "gene":
+                elif index == "name":
                     key = record.id.split("|")[4]  # transcript name
                 else:
                     raise Exception("The index argument must be one of 'name', or 'id'")
