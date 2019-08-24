@@ -110,59 +110,55 @@ class GENCODE(Database):
         self.GENCODE_LncRNA_info['gene_id'] = self.GENCODE_LncRNA_info['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         self.GENCODE_LncRNA_info['transcript_id'] = self.GENCODE_LncRNA_info['transcript_id'].str.replace("[.].*", "")
 
-        # Prase lncRNA & mRNA fasta
-        self.locus_type_dict = {}
-        self.seq_dict = {}
-
-        for modality in ["GE", "LNC"]:
-            if modality == "GE":
-                fasta_file = self.file_resources["transcripts.fa"]
-            elif modality == "LNC":
-                fasta_file = self.file_resources["lncRNA_transcripts.fa"]
-
-            self.seq_dict[modality] = {}
-            for record in SeqIO.parse(fasta_file, "fasta"):
-                # gene_id = record.id.split("|")[1]
-                gene_name = record.id.split("|")[5]
-
-                sequence_str = str(record.seq)
-                if self.replace_U2T: sequence_str = sequence_str.replace("U", "T")
-
-                if self.import_sequences == "shortest":
-                    if gene_name not in self.seq_dict[modality]:
-                        self.seq_dict[modality][gene_name] = sequence_str
-                    else:
-                        if len(self.seq_dict[modality][gene_name]) > len(sequence_str):
-                            self.seq_dict[modality][gene_name] = sequence_str
-                elif self.import_sequences == "longest":
-                    if gene_name not in self.seq_dict[modality]:
-                        self.seq_dict[modality][gene_name] = sequence_str
-                    else:
-                        if len(self.seq_dict[modality][gene_name]) < len(sequence_str):
-                            self.seq_dict[modality][gene_name] = sequence_str
-                elif self.import_sequences == "all":
-                    if gene_name not in self.seq_dict[modality]:
-                        self.seq_dict[modality][gene_name] = [sequence_str, ]
-                    else:
-                        self.seq_dict[modality][gene_name].append(sequence_str)
-                else:
-                    self.seq_dict[modality][gene_name] = sequence_str
-
-                # add locus type for mRNAs
-                if modality == "GE":
-                    if ~(gene_name in self.locus_type_dict):
-                        self.locus_type_dict[gene_name] = record.id.split("|")[7]
-                    else:
-                        self.locus_type_dict[gene_name] = self.locus_type_dict[gene_name] + "|" + record.id.split("|")[7]
-
     def genomic_annotations(self, modality):
         if modality == "LNC":
             return self.GENCODE_LncRNA_info
         elif modality == "GE":
-            return self.locus_type_dict
+            raise NotImplementedError
 
-    def sequences(self, modality):
-        return self.seq_dict[modality]
+    def sequences(self, modality, level="gene"):
+        # Prase lncRNA & mRNA fasta
+        seq_dict = {}
+
+        if modality == "GE":
+            fasta_file = self.file_resources["transcripts.fa"]
+        elif modality == "LNC":
+            fasta_file = self.file_resources["lncRNA_transcripts.fa"]
+
+        seq_dict = {}
+        for record in SeqIO.parse(fasta_file, "fasta"):
+            print(record)
+            return
+            # gene_id = record.id.split("|")[1]
+            if level=="gene":
+                key = record.id.split("|")[5] # gene id
+            elif level=="transcript":
+                key = record.id.split("|")[5]  # transcript name
+
+            sequence_str = str(record.seq)
+            if self.replace_U2T: sequence_str = sequence_str.replace("U", "T")
+
+            if self.import_sequences == "shortest":
+                if key not in seq_dict:
+                    seq_dict[key] = sequence_str
+                else:
+                    if len(seq_dict[key]) > len(sequence_str):
+                        seq_dict[key] = sequence_str
+            elif self.import_sequences == "longest":
+                if key not in seq_dict:
+                    seq_dict[key] = sequence_str
+                else:
+                    if len(seq_dict[key]) < len(sequence_str):
+                        seq_dict[key] = sequence_str
+            elif self.import_sequences == "all":
+                if key not in seq_dict:
+                    seq_dict[key] = [sequence_str, ]
+                else:
+                    seq_dict[key].append(sequence_str)
+            else:
+                seq_dict[key] = sequence_str
+
+        return seq_dict
 
     def genename(self, modality):
         if modality == "LNC":
