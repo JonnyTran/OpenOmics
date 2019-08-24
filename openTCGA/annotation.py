@@ -248,6 +248,7 @@ class EnsembleGenes(Database):
         if index != self.df.index.name and index in self.df.columns:
             df.set_index(index, inplace=True)
 
+        # Groupby index, and Aggregate by all columns by concatenating unique values
         df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
 
         if df.index.duplicated().sum() > 0:
