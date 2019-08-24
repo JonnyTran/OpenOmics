@@ -204,7 +204,9 @@ class EnsembleGeneSequences(Database):
         self.filename = "{}_{}".format(dataset, self.__class__.__name__)
         attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
         self.df = self.load_datasets(datasets=dataset, filename=self.filename, attributes=attributes, )
-
+        
+    def load_datasets(self, datasets, attributes, filename=None):
+        return self.retrieve_database(datasets, attributes, filename)
 
 class EnsembleTranscriptSequences(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
@@ -213,6 +215,8 @@ class EnsembleTranscriptSequences(Database):
                       '5utr', '3utr']
         self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
 
+    def load_datasets(self, datasets, attributes, filename=None):
+        return self.retrieve_database(datasets, attributes, filename)
 
 class EnsembleSNP(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
