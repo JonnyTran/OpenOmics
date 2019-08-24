@@ -116,7 +116,7 @@ class GENCODE(Database):
         elif modality == "GE":
             raise NotImplementedError
 
-    def sequences(self, modality, level="gene"):
+    def sequences(self, modality, level="gene", key="name"):
         # Prase lncRNA & mRNA fasta
         seq_dict = {}
 
@@ -130,19 +130,22 @@ class GENCODE(Database):
         seq_dict = {}
         for record in SeqIO.parse(fasta_file, "fasta"):
 
-            # gene_id = record.id.split("|")[1]
+            # gene_id = record.id.split("|")[1].split(".")[0]
             if level=="gene":
-                key = record.id.split("|")[5] # gene id
+                if key=="id":
+                    key = record.id.split("|")[1].split(".")[0] # gene id
+                elif key=="gene":
+                    key = record.id.split("|")[5]  # gene name
             elif level=="transcript":
-                key = record.id.split("|")[0].split(".")[0]  # transcript ID
+                if key=="id":
+                    key = record.id.split("|")[0].split(".")[0]  # transcript ID
+                elif key=="gene":
+                    key = record.id.split("|")[4]  # transcript name
+
             elif level == "peptide":
                 raise NotImplementedError
             else:
                 raise Exception("The level argument must be one of 'gene', 'transcript', or 'peptide'")
-
-            print(record)
-            print(key)
-            return
 
             sequence_str = str(record.seq)
             if self.replace_U2T: sequence_str = sequence_str.replace("U", "T")
