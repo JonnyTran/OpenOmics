@@ -9,7 +9,7 @@ from bioservices import BioMart
 
 from openTCGA.utils import GTF
 from openTCGA.utils.io import mkdirs
-from openTCGA.utils.dataframe_utils import group_uniques
+from openTCGA.utils.df import concat_uniques_agg
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openTCGA")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openTCGA", "databases")
@@ -226,7 +226,7 @@ class EnsembleGenes(Database):
         return self.retrieve_dataset(datasets, attributes, filename)
 
     def id_to_name(self, from_index="gene_id", to_index="gene_name"):
-        geneid_to_genename = self.df[self.df[to_index].notnull()].groupby(from_index)[to_index].apply(group_uniques).to_dict()
+        geneid_to_genename = self.df[self.df[to_index].notnull()].groupby(from_index)[to_index].apply(concat_uniques_agg).to_dict()
         return geneid_to_genename
 
     def genomic_annotations(self, modality, index, columns):
@@ -236,7 +236,7 @@ class EnsembleGenes(Database):
             df = self.df
 
         df.set_index(index, inplace=True)
-        df = df.groupby(index).agg({k:group_uniques for k in columns})
+        df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
 
         return df
 
@@ -249,8 +249,8 @@ class EnsembleGenes(Database):
 class EnsembleGeneSequences(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl") -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
-        self.df = self.load_datasets(datasets=dataset, filename=self.filename, attributes=attributes, )
+        self.attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
+        self.df = self.load_datasets(datasets=dataset, filename=self.filename, attributes=self.attributes, )
         self.df.rename(columns={'ensembl_gene_id': 'gene_id'},
                        inplace=True)
         
@@ -260,9 +260,9 @@ class EnsembleGeneSequences(Database):
 class EnsembleTranscriptSequences(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank', 'coding_transcript_flank',
+        self.attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank', 'coding_transcript_flank',
                       '5utr', '3utr']
-        self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, filename=self.filename)
         self.df.rename(columns={'ensembl_transcript_id': 'transcript_id'},
                        inplace=True)
 
@@ -272,10 +272,10 @@ class EnsembleTranscriptSequences(Database):
 class EnsembleSNP(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        attributes = ['variation_name', 'allele', 'minor_allele', 'mapweight', 'validated', 'allele_string_2076',
+        self.attributes = ['variation_name', 'allele', 'minor_allele', 'mapweight', 'validated', 'allele_string_2076',
                       'clinical_significance',
                       'transcript_location', 'snp_chromosome_strand', 'chromosome_start', 'chromosome_end']
-        self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, filename=self.filename)
 
     def load_datasets(self, datasets, attributes, filename=None):
         return self.retrieve_dataset(datasets, attributes, filename)
@@ -284,11 +284,11 @@ class EnsembleSNP(Database):
 class EnsembleSomaticVariation(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
+        self.attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
                       'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
                       'somatic_mapweight',
                       'somatic_chromosome_start', 'somatic_chromosome_end']
-        self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, filename=self.filename)
 
     def load_datasets(self, datasets, attributes, filename=None):
         return self.retrieve_dataset(datasets, attributes, filename)
