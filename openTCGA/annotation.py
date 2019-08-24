@@ -124,16 +124,25 @@ class GENCODE(Database):
             fasta_file = self.file_resources["transcripts.fa"]
         elif modality == "LNC":
             fasta_file = self.file_resources["lncRNA_transcripts.fa"]
+        else:
+            raise Exception("The modality argument must be one of 'LNC', 'GE', or 'MIR'")
 
         seq_dict = {}
         for record in SeqIO.parse(fasta_file, "fasta"):
-            print(record)
-            return
+
             # gene_id = record.id.split("|")[1]
             if level=="gene":
-                key = record.id.split("|")[5] # gene id
+                key = record.id.split("|")[5].replace("[.].*", "") # gene id
             elif level=="transcript":
-                key = record.id.split("|")[5]  # transcript name
+                key = record.id.split("|")[0].replace("[.].*", "")  # transcript ID
+            elif level == "peptide":
+                raise NotImplementedError
+            else:
+                raise Exception("The level argument must be one of 'gene', 'transcript', or 'peptide'")
+
+            print(record)
+            print(key)
+            return
 
             sequence_str = str(record.seq)
             if self.replace_U2T: sequence_str = sequence_str.replace("U", "T")
