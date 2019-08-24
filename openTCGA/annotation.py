@@ -241,7 +241,7 @@ class EnsembleGenes(Database):
 
     def get_genomic_annotations(self, modality, index, columns):
         if columns is not None:
-            df = self.df.filter(items=columns)
+            df = self.df.filter(items=columns + [index]) # columns must have index
         else:
             df = self.df
 
