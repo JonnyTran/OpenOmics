@@ -1,14 +1,14 @@
 import os
 from abc import ABCMeta, abstractmethod
-import pandas as pd
 from io import StringIO
 from os.path import expanduser
-from bioservices import BioMart
-from Bio import SeqIO
-from Bio.UniProt import GOA
 
-from openTCGA.utils.io import mkdirs
+import pandas as pd
+from Bio import SeqIO
+from bioservices import BioMart
+
 from openTCGA.utils import GTF
+from openTCGA.utils.io import mkdirs
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openTCGA")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openTCGA", "databases")
@@ -24,7 +24,7 @@ class Database:
             bm.add_attribute_to_xml(at)
         xml_query = bm.get_xml()
 
-        print("Querying {} from {}...".format(dataset, host))
+        print("Querying {} from {} with attributes {}...".format(dataset, host, attributes))
         results = bm.query(xml_query)
         df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", index_col=None)
 
@@ -40,7 +40,7 @@ class Database:
         return save_filename
 
     def retrieve_database(self, dataset, attributes, filename):
-        filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(dataset))
+        filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(filename))
         if os.path.exists(filename):
             df = pd.read_csv(filename, sep="\t")
         else:
@@ -53,7 +53,8 @@ class Database:
         return DEFAULT_LIBRARIES
 
     @abstractmethod
-    def load_datasets(self, datasets, filename): raise NotImplementedError
+    def load_datasets(self, datasets, filename, *args):
+        raise NotImplementedError
 
     @abstractmethod
     def genename(self) -> dict: raise NotImplementedError
@@ -169,13 +170,16 @@ class GENCODE(Database):
                                                 index=self.GENCODE_LncRNA_info['gene_id']).to_dict()
             return ensembl_id_to_gene_name
 
-class Ensemble(Database):
-    def __init__(self, dataset="hsapiens_gene_ensembl",
-                 attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'rfam', 'go_id',
-                             'chromosome_name', 'start_position', 'end_position', 'strand', 'band',
-                             'transcript_gencode_basic', 'transcript_biotype'],
-                 import_folder=None) -> None:
-        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=import_folder)
+
+class EnsembleGenes(Database):
+    def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
+        self.filename = "{}_{}".format(dataset, self.__class__.__name__)
+        attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'external_transcript_name',
+                      'rfam', 'go_id',
+                      'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
+                      'cds_start', 'cds_end', 'cds_length', '5_utr_start', '5_utr_end', '3_utr_start', '3_utr_end',
+                      'gene_biotype', 'transcript_biotype']
+        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=self.filename)
 
     def load_datasets(self, dataset, attributes, filename=None):
         return self.retrieve_database(dataset, attributes, filename)
@@ -193,6 +197,46 @@ class Ensemble(Database):
         geneid_to_go = self.df[self.df["go_id"].notnull()].groupby('ensembl_gene_id')[
             "go_id"].apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_go
+
+
+class EnsembleGeneSequences(Database):
+    def __init__(self, dataset="hsapiens_gene_ensembl") -> None:
+        self.filename = "{}_{}".format(dataset, self.__class__.__name__)
+        attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
+        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=self.filename)
+
+
+class EnsembleTranscriptSequences(Database):
+    def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
+        self.filename = "{}_{}".format(dataset, self.__class__.__name__)
+        attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank', 'coding_transcript_flank',
+                      '5utr', '3utr']
+        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=self.filename)
+
+
+class EnsembleSNP(Database):
+    def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
+        self.filename = "{}_{}".format(dataset, self.__class__.__name__)
+        attributes = ['variation_name', 'allele', 'minor_allele', 'mapweight', 'validated', 'allele_string_2076',
+                      'clinical_significance',
+                      'transcript_location', 'snp_chromosome_strand', 'chromosome_start', 'chromosome_end']
+        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=self.filename)
+
+    def load_datasets(self, dataset, attributes, filename=None):
+        return self.retrieve_database(dataset, attributes, filename)
+
+
+class EnsembleSomaticVariation(Database):
+    def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
+        self.filename = "{}_{}".format(dataset, self.__class__.__name__)
+        attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
+                      'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
+                      'somatic_mapweight',
+                      'somatic_chromosome_start', 'somatic_chromosome_end']
+        self.df = self.load_datasets(dataset=dataset, attributes=attributes, filename=self.filename)
+
+    def load_datasets(self, dataset, attributes, filename=None):
+        return self.retrieve_database(dataset, attributes, filename)
 
 # Constants
 DEFAULT_LIBRARIES=["10KImmunomes"
