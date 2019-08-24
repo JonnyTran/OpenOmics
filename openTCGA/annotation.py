@@ -9,6 +9,7 @@ from bioservices import BioMart
 
 from openTCGA.utils import GTF
 from openTCGA.utils.io import mkdirs
+from openTCGA.utils.dataframe_utils import group_uniques
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openTCGA")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openTCGA", "databases")
@@ -208,13 +209,13 @@ class GENCODE(Database):
 class EnsembleGenes(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'external_transcript_name',
+        self.attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'external_transcript_name',
                       'rfam', 'go_id',
                       'chromosome_name', 'transcript_stwart', 'transcript_end', 'transcript_length',
                       'cds_start', 'cds_end', 'cds_length', '5_utr_start', '5_utr_end', '3_utr_start', '3_utr_end',
                       'gene_biotype', 'transcript_biotype']
 
-        self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, filename=self.filename)
         self.df.rename(columns={'ensembl_gene_id': 'gene_id',
                                 'external_gene_name': 'gene_name',
                                 'ensembl_transcript_id': 'transcript_id',
@@ -225,15 +226,19 @@ class EnsembleGenes(Database):
         return self.retrieve_dataset(datasets, attributes, filename)
 
     def id_to_name(self, from_index="gene_id", to_index="gene_name"):
-        geneid_to_genename = self.df[self.df[to_index].notnull()].groupby(from_index)[to_index].apply(lambda x: "|".join(x.unique())).to_dict()
+        geneid_to_genename = self.df[self.df[to_index].notnull()].groupby(from_index)[to_index].apply(group_uniques).to_dict()
         return geneid_to_genename
 
-    def genomic_annotations(self, modality, index, columns=None):
+    def genomic_annotations(self, modality, index, columns):
         if columns is not None:
             df = self.df.filter(items=columns)
         else:
             df = self.df
-        return df.set_index(index)
+
+        df.set_index(index, inplace=True)
+        df = df.groupby(index).agg({k:group_uniques for k in columns})
+
+        return df
 
     def functional_annotations(self, modality, index):
         geneid_to_go = self.df[self.df["go_id"].notnull()].groupby(index)[
@@ -246,6 +251,8 @@ class EnsembleGeneSequences(Database):
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
         self.df = self.load_datasets(datasets=dataset, filename=self.filename, attributes=attributes, )
+        self.df.rename(columns={'ensembl_gene_id': 'gene_id'},
+                       inplace=True)
         
     def load_datasets(self, datasets, attributes, filename=None):
         return self.retrieve_dataset(datasets, attributes, filename)
@@ -256,6 +263,8 @@ class EnsembleTranscriptSequences(Database):
         attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank', 'coding_transcript_flank',
                       '5utr', '3utr']
         self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
+        self.df.rename(columns={'ensembl_transcript_id': 'transcript_id'},
+                       inplace=True)
 
     def load_datasets(self, datasets, attributes, filename=None):
         return self.retrieve_dataset(datasets, attributes, filename)
