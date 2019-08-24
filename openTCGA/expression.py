@@ -165,13 +165,13 @@ class LncRNAs(ExpressionData, Annotatable):
         return df
 
     def annotate_genomics(self, database, index):
-        if not hasattr(self, "annotations"):
+        if ~hasattr(self, "annotations"):
             raise Exception("Must run initialize_annotations() first.")
         df = database.genomic_annotations(modality=self.get_modality(), index=index)
         self.annotations = self.annotations.join(df, on=index)
 
     def annotate_sequences(self, database, index, **kwargs):
-        if not hasattr(self, "annotations"):
+        if ~hasattr(self, "annotations"):
             raise Exception("Must run initialize_annotations() first.")
         self.annotations["Transcript sequence"] = self.annotations[index].map(
             database.sequences(modality=self.get_modality(), index=index, **kwargs))
