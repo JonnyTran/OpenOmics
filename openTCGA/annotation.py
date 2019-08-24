@@ -226,7 +226,9 @@ class EnsembleGenes(Database):
         return self.retrieve_dataset(datasets, attributes, filename)
 
     def get_id2name_dict(self, from_index="gene_id", to_index="gene_name"):
-        geneid_to_genename = self.df[self.df[to_index].notnull()].groupby(from_index)[to_index].apply(concat_uniques_agg).to_dict()
+        geneid_to_genename = self.df[self.df[to_index].notnull()]\
+            .groupby(from_index)[to_index]\
+            .apply(concat_uniques_agg).to_dict()
         return geneid_to_genename
 
     def get_genomic_annotations(self, modality, index, columns):
@@ -234,7 +236,9 @@ class EnsembleGenes(Database):
             df = self.df.filter(items=columns)
         else:
             df = self.df
-        df.set_index(index, inplace=True)
+
+        if index in self.df.columns:
+            df.set_index(index, inplace=True)
 
         if df.index.duplicated().sum() > 0 and columns is not None:
             df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
