@@ -95,10 +95,12 @@ class ExpressionData:
         return self.features
 
     def get_annotations(self):
-        if hasattr(self, "genes_info"):
+        if hasattr(self, "annotations"):
             return self.annotations
+        else:
+            raise Exception("Must run initialize_annotations() first.")
 
-    def initialize_annotations(self):
+    def initialize_annotations(self, gene_list, index):
         raise NotImplementedError
 
     def get_samples_list(self):
@@ -173,10 +175,10 @@ class LncRNAs(ExpressionData, Annotatable):
         self.annotations["Transcript sequence"] = self.annotations[index].map(
             database.sequences(modality=self.get_modality(), index=index, **kwargs))
 
-    def initialize_annotations(self, ensembl_gene_id, GENCODE_LncRNA_info, ensembl_id_to_gene_name, hgnc_lncrna_dict):
+    def initialize_annotations(self, gene_list, index):
         self.annotations = pd.DataFrame(index=self.get_genes_list())
         self.annotations.index.name = "gene_id"
-
+        return
         self.annotations["Gene ID"] = self.annotations.index
         self.annotations["Gene Name"] = self.annotations.index.map(ensembl_id_to_gene_name)
         self.annotations["HGNC Gene Name"] = self.annotations.index.map(hgnc_lncrna_dict)
