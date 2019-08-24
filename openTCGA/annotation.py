@@ -78,7 +78,7 @@ class Annotatable:
 
 
 class GENCODE(Database):
-    def __init__(self, import_folder=None, version="v29", modalities=["GE", "LNC", "MIR"], import_sequences="all", replace_U2T=True) -> None:
+    def __init__(self, import_folder=None, version="v29", modalities=["GE", "LNC", "MIR"], import_sequences="shortest", replace_U2T=True) -> None:
         if import_folder is not None:
             if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
                 raise NotADirectoryError(import_folder)
