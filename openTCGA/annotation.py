@@ -236,7 +236,9 @@ class EnsembleGenes(Database):
             df = self.df
 
         df.set_index(index, inplace=True)
-        df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
+
+        if df.index.duplicated().sum() > 0 and columns is not None:
+            df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
 
         return df
 
