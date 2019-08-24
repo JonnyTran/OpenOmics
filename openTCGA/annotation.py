@@ -29,20 +29,20 @@ class Database:
         df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", index_col=None)
 
         if cache:
-            self.cache_database(dataset, df, save_filename)
+            self.cache_dataset(dataset, df, save_filename)
         return df
 
-    def cache_database(self, database, dataframe, save_filename):
+    def cache_dataset(self, dataset, dataframe, save_filename):
         if save_filename is None:
             mkdirs(DEFAULT_CACHE_PATH)
-            save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(database))
+            save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(dataset))
         dataframe.to_csv(save_filename, sep="\t", index=False)
         return save_filename
 
-    def retrieve_database(self, dataset, attributes, filename):
+    def retrieve_dataset(self, dataset, attributes, filename):
         filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(filename))
         if os.path.exists(filename):
-            df = pd.read_csv(filename, sep="\t")
+            df = pd.read_csv(filename, sep="\t", low_memory=False)
         else:
             df = self.query_biomart(host="www.ensembl.org", dataset=dataset, attributes=attributes,
                                     cache=True, save_filename=filename)
@@ -216,7 +216,7 @@ class EnsembleGenes(Database):
         self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
 
     def load_datasets(self, datasets, attributes, filename=None):
-        return self.retrieve_database(datasets, attributes, filename)
+        return self.retrieve_dataset(datasets, attributes, filename)
 
     def genename(self):
         geneid_to_genename = self.df[self.df["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
@@ -240,7 +240,7 @@ class EnsembleGeneSequences(Database):
         self.df = self.load_datasets(datasets=dataset, filename=self.filename, attributes=attributes, )
         
     def load_datasets(self, datasets, attributes, filename=None):
-        return self.retrieve_database(datasets, attributes, filename)
+        return self.retrieve_dataset(datasets, attributes, filename)
 
 class EnsembleTranscriptSequences(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
@@ -250,7 +250,7 @@ class EnsembleTranscriptSequences(Database):
         self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
 
     def load_datasets(self, datasets, attributes, filename=None):
-        return self.retrieve_database(datasets, attributes, filename)
+        return self.retrieve_dataset(datasets, attributes, filename)
 
 class EnsembleSNP(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
@@ -261,7 +261,7 @@ class EnsembleSNP(Database):
         self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
 
     def load_datasets(self, datasets, attributes, filename=None):
-        return self.retrieve_database(datasets, attributes, filename)
+        return self.retrieve_dataset(datasets, attributes, filename)
 
 
 class EnsembleSomaticVariation(Database):
@@ -274,7 +274,7 @@ class EnsembleSomaticVariation(Database):
         self.df = self.load_datasets(datasets=dataset, attributes=attributes, filename=self.filename)
 
     def load_datasets(self, datasets, attributes, filename=None):
-        return self.retrieve_database(datasets, attributes, filename)
+        return self.retrieve_dataset(datasets, attributes, filename)
 
 # Constants
 DEFAULT_LIBRARIES=["10KImmunomes"
