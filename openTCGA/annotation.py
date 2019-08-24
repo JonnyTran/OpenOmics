@@ -132,9 +132,9 @@ class GENCODE(Database):
 
             # gene_id = record.id.split("|")[1]
             if level=="gene":
-                key = record.id.split("|")[5].replace("[.].*", "") # gene id
+                key = record.id.split("|")[5] # gene id
             elif level=="transcript":
-                key = record.id.split("|")[0].replace("[.].*", "")  # transcript ID
+                key = record.id.split("|")[0].split(".")[0]  # transcript ID
             elif level == "peptide":
                 raise NotImplementedError
             else:
