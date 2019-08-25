@@ -186,6 +186,7 @@ class GENCODE(Database):
 
 
 class BioMartManager:
+
     def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None):
         bm = BioMart(host=host)
         bm.new_query()
@@ -209,25 +210,27 @@ class BioMartManager:
         dataframe.to_csv(save_filename, sep="\t", index=False)
         return save_filename
 
-    def retrieve_dataset(self, dataset, attributes, filename):
+    def retrieve_dataset(self, host, dataset, attributes, filename):
         filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(filename))
         if os.path.exists(filename):
             df = pd.read_csv(filename, sep="\t", low_memory=True)
         else:
-            df = self.query_biomart(host="www.ensembl.org", dataset=dataset, attributes=attributes,
+            df = self.query_biomart(host=host, dataset=dataset, attributes=attributes,
                                     cache=True, save_filename=filename)
         return df
 
 
 class EnsembleGenes(Database, BioMartManager):
-    def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
+    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
+        self.host = host
         self.attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'external_transcript_name',
                            'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
                            'gene_biotype', 'transcript_biotype',
                            'rfam', 'go_id',]
 
-        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, host=self.host,
+                                     filename=self.filename)
         self.df.rename(columns={'ensembl_gene_id': 'gene_id',
                                 'external_gene_name': 'gene_name',
                                 'ensembl_transcript_id': 'transcript_id',
@@ -235,8 +238,8 @@ class EnsembleGenes(Database, BioMartManager):
                        inplace=True)
         print(self.df.columns.tolist())
 
-    def load_datasets(self, datasets, attributes, filename=None) -> pd.DataFrame:
-        return self.retrieve_dataset(datasets, attributes, filename)
+    def load_datasets(self, datasets, attributes, host, filename=None) -> pd.DataFrame:
+        return self.retrieve_dataset(host, datasets, attributes, filename)
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
         geneid_to_genename = self.df[self.df[to_index].notnull()]\
@@ -252,38 +255,45 @@ class EnsembleGenes(Database, BioMartManager):
 
 
 class EnsembleGeneSequences(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl") -> None:
+    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
+        self.host = host
         self.attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
-        self.df = self.load_datasets(datasets=dataset, filename=self.filename, attributes=self.attributes, )
+        self.df = self.load_datasets(datasets=dataset, filename=self.filename, host=self.host,
+                                     attributes=self.attributes, )
         self.df.rename(columns={'ensembl_gene_id': 'gene_id'},
                        inplace=True)
         
 class EnsembleTranscriptSequences(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
+    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
+        self.host = host
         self.attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank', 'coding_transcript_flank',
                       '5utr', '3utr']
-        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, host=self.host,
+                                     filename=self.filename)
         self.df.rename(columns={'ensembl_transcript_id': 'transcript_id'},
                        inplace=True)
 
 class EnsembleSNP(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
+    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        self.attributes = ['variation_name', 'allele', 'minor_allele', 'mapweight', 'validated', 'allele_string_2076',
-                      'clinical_significance',
+        self.host = host
+        self.attributes = ['variation_name', 'allele', 'minor_allele',
                       'transcript_location', 'snp_chromosome_strand', 'chromosome_start', 'chromosome_end']
-        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, host=self.host,
+                                     filename=self.filename)
 
 class EnsembleSomaticVariation(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
+    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
+        self.host = host
         self.attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
                       'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
                       'somatic_mapweight',
                       'somatic_chromosome_start', 'somatic_chromosome_end']
-        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, filename=self.filename)
+        self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, host=self.host,
+                                     filename=self.filename)
 
 
 # Constants

@@ -1,4 +1,5 @@
 import os
+
 import pandas as pd
 
 from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
@@ -6,7 +7,8 @@ from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE
 from openTCGA.expression import MessengerRNAs, MicroRNAs, \
     Proteins, LncRNAs
 from openTCGA.genomic import SomaticMutation, DNAMethylation, CopyNumberVariation
-from openTCGA.slideimage import WholeSlideImages
+from openTCGA.image import WholeSlideImages
+
 
 class MultiOmicsData:
     def __init__(self, cohort_name:str, cohort_folder_path:str, external_data_path:str, modalities:list, import_sequences="longest",
