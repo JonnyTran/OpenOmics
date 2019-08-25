@@ -218,10 +218,9 @@ class EnsembleGenes(Database):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'external_transcript_name',
-                      'rfam', 'go_id',
-                      'chromosome_name', 'transcript_stwart', 'transcript_end', 'transcript_length',
-                      'cds_start', 'cds_end', 'cds_length', '5_utr_start', '5_utr_end', '3_utr_start', '3_utr_end',
-                      'gene_biotype', 'transcript_biotype']
+                           'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
+                           'gene_biotype', 'transcript_biotype',
+                           'rfam', 'go_id',]
 
         self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, filename=self.filename)
         self.df.rename(columns={'ensembl_gene_id': 'gene_id',
