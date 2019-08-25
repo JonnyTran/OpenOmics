@@ -17,58 +17,45 @@ DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openTCGA", "databases")
 
 class Database:
     __metaclass__ = ABCMeta
-    def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None):
-        bm = BioMart(host=host)
-        bm.new_query()
-        bm.add_dataset_to_xml(dataset)
-        for at in attributes:
-            bm.add_attribute_to_xml(at)
-        xml_query = bm.get_xml()
+    def __init__(self, import_folder, *args): raise NotImplementedError
 
-        print("Querying {} from {} with attributes {}...".format(dataset, host, attributes))
-        results = bm.query(xml_query)
-        df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", index_col=None)
-
-        if cache:
-            self.cache_dataset(dataset, df, save_filename)
-        return df
-
-    def cache_dataset(self, dataset, dataframe, save_filename):
-        if save_filename is None:
-            mkdirs(DEFAULT_CACHE_PATH)
-            save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(dataset))
-        dataframe.to_csv(save_filename, sep="\t", index=False)
-        return save_filename
-
-    def retrieve_dataset(self, dataset, attributes, filename):
-        filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(filename))
-        if os.path.exists(filename):
-            df = pd.read_csv(filename, sep="\t", low_memory=False)
-        else:
-            df = self.query_biomart(host="www.ensembl.org", dataset=dataset, attributes=attributes,
-                                    cache=True, save_filename=filename)
-        return df
+    def database_name(self):
+        return self.__class__.__name__
 
     @classmethod
     def list_databases(cls,):
         return DEFAULT_LIBRARIES
+
+    def get_genomic_annotations(self, modality, index, columns):
+        if columns is not None:
+            df = self.df.filter(items=columns + [index]) # columns must have index
+        else:
+            df = self.df
+
+        if index != self.df.index.name and index in self.df.columns:
+            df.set_index(index, inplace=True)
+
+        # Groupby index, and Aggregate by all columns by concatenating unique values
+        df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
+
+        if df.index.duplicated().sum() > 0:
+            raise ValueError("DataFrame must not have duplicates in index")
+        return df
 
     @abstractmethod
     def load_datasets(self, datasets, filename, **args):
         raise NotImplementedError
 
     @abstractmethod
-    def get_id2name_dict(self, from_index, to_index) -> dict: raise NotImplementedError
-    @abstractmethod
-    def get_genomic_annotations(self, modality, index, columns): raise NotImplementedError
+    def get_rename_dict(self, from_index, to_index) -> dict: raise NotImplementedError
+
     @abstractmethod
     def get_functional_annotations(self, modality, index): raise NotImplementedError
     @abstractmethod
-    def get_sequences(self, modality, index, *arg) -> dict: raise NotImplementedError
-    @abstractmethod
-    def get_interactions(self, modality, index): raise NotImplementedError
+    def get_sequences(self, modality, index, *args) -> dict: raise NotImplementedError
     @abstractmethod
     def get_disease_assocs(self, index): raise NotImplementedError
+
 
 class Annotatable:
     __metaclass__ = ABCMeta
@@ -115,18 +102,10 @@ class Annotatable:
 
 
 class GENCODE(Database):
-    def __init__(self, import_folder=None, version="v29", modalities=["GE", "LNC"], import_sequences="shortest", replace_U2T=True) -> None:
-        if import_folder is not None:
-            if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
-                raise NotADirectoryError(import_folder)
-            self.folder_path = import_folder
-        else:
-            self.folder_path = os.path.join(DEFAULT_LIBRARY_PATH, "GENCODE")
-
-            if os.path.exists(self.folder_path):
-                print("Default library path + GENCODE doesn't exist, importing GENCODE datasets")
-                # TODO import GENCODE database
-                print(os.listdir(self.folder_path))
+    def __init__(self, import_folder, version="v29", modalities=["GE", "LNC"], import_sequences="shortest", replace_U2T=True) -> None:
+        if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
+            raise NotADirectoryError(import_folder)
+        self.folder_path = import_folder
 
         self.file_resources = {}
         self.file_resources["long_noncoding_RNAs.gtf"] = os.path.join(self.folder_path, "gencode.v29.long_noncoding_RNAs.gtf")
@@ -143,20 +122,9 @@ class GENCODE(Database):
 
     def load_datasets(self, datasets=None, filename=None):
         # Parse lncRNA gtf
-        self.GENCODE_LncRNA_info = GTF.dataframe(self.file_resources["long_noncoding_RNAs.gtf"])
-        self.GENCODE_LncRNA_info['gene_id'] = self.GENCODE_LncRNA_info['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
-        self.GENCODE_LncRNA_info['transcript_id'] = self.GENCODE_LncRNA_info['transcript_id'].str.replace("[.].*", "")
-
-    def get_genomic_annotations(self, modality, index, columns):
-        if modality == "LNC":
-            df = self.GENCODE_LncRNA_info.set_index(index)
-        else:
-            raise NotImplementedError
-
-        if columns is not None:
-            df = df.filter(items=columns)
-
-        return df
+        self.df = GTF.dataframe(self.file_resources["long_noncoding_RNAs.gtf"])
+        self.df['gene_id'] = self.df['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
+        self.df['transcript_id'] = self.df['transcript_id'].str.replace("[.].*", "")
 
     def get_sequences(self, modality, index="gene_id"):
         # Parse lncRNA & mRNA fasta
@@ -207,14 +175,47 @@ class GENCODE(Database):
 
         return seq_dict
 
-    def get_id2name_dict(self, left_index, right_index):
-        if modality == "LNC":
-            ensembl_id_to_gene_name = pd.Series(self.GENCODE_LncRNA_info['gene_name'].values,
-                                                index=self.GENCODE_LncRNA_info['gene_id']).to_dict()
-            return ensembl_id_to_gene_name
+    def get_rename_dict(self, from_index, to_index):
+        ensembl_id_to_gene_name = pd.Series(self.df['gene_name'].values,
+                                            index=self.df['gene_id']).to_dict()
+        return ensembl_id_to_gene_name
 
 
-class EnsembleGenes(Database):
+class BioMartManager:
+    def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None):
+        bm = BioMart(host=host)
+        bm.new_query()
+        bm.add_dataset_to_xml(dataset)
+        for at in attributes:
+            bm.add_attribute_to_xml(at)
+        xml_query = bm.get_xml()
+
+        print("Querying {} from {} with attributes {}...".format(dataset, host, attributes))
+        results = bm.query(xml_query)
+        df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", index_col=None)
+
+        if cache:
+            self.cache_dataset(dataset, df, save_filename)
+        return df
+
+    def cache_dataset(self, dataset, dataframe, save_filename):
+        if save_filename is None:
+            mkdirs(DEFAULT_CACHE_PATH)
+            save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(dataset))
+        dataframe.to_csv(save_filename, sep="\t", index=False)
+        return save_filename
+
+    def retrieve_dataset(self, dataset, attributes, filename):
+        filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(filename))
+        if os.path.exists(filename):
+            df = pd.read_csv(filename, sep="\t", low_memory=True)
+        else:
+            df = self.query_biomart(host="www.ensembl.org", dataset=dataset, attributes=attributes,
+                                    cache=True, save_filename=filename)
+        return df
+
+
+class EnsembleGenes(Database, BioMartManager):
     def __init__(self, dataset="hsapiens_gene_ensembl", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'external_transcript_name',
@@ -228,31 +229,16 @@ class EnsembleGenes(Database):
                                 'ensembl_transcript_id': 'transcript_id',
                                 'external_transcript_name': 'transcript_name'},
                        inplace=True)
+        print(self.df.columns)
 
-    def load_datasets(self, datasets, attributes, filename=None):
+    def load_datasets(self, datasets, attributes, filename=None) -> pd.DataFrame:
         return self.retrieve_dataset(datasets, attributes, filename)
 
-    def get_id2name_dict(self, from_index="gene_id", to_index="gene_name"):
+    def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
         geneid_to_genename = self.df[self.df[to_index].notnull()]\
             .groupby(from_index)[to_index]\
             .apply(concat_uniques_agg).to_dict()
         return geneid_to_genename
-
-    def get_genomic_annotations(self, modality, index, columns):
-        if columns is not None:
-            df = self.df.filter(items=columns + [index]) # columns must have index
-        else:
-            df = self.df
-
-        if index != self.df.index.name and index in self.df.columns:
-            df.set_index(index, inplace=True)
-
-        # Groupby index, and Aggregate by all columns by concatenating unique values
-        df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
-
-        if df.index.duplicated().sum() > 0:
-            raise ValueError("DataFrame must not have duplicates in index")
-        return df
 
     def get_functional_annotations(self, modality, index):
         geneid_to_go = self.df[self.df["go_id"].notnull()]\

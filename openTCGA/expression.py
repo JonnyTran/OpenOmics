@@ -159,78 +159,6 @@ class LncRNAs(ExpressionData, Annotatable):
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-        return
-        self.annotations["Gene ID"] = self.annotations.index
-        self.annotations["Gene Name"] = self.annotations.index.map(ensembl_id_to_gene_name)
-        self.annotations["HGNC Gene Name"] = self.annotations.index.map(hgnc_lncrna_dict)
-
-        # Preprocess genes info
-        # gencode_LncRNA_info, _ = self.get_GENCODE_lncRNA_gene_name_dict()
-        # lncBase_gene_id_to_name_dict = self.get_lncBase_gene_id_to_name_dict()
-        # ensemble_genes = Database.retrieve_database(dataset="hsapiens_gene_ensembl")
-        # ensembl_gene_id_to_gene_name = ensemble_genes[ensemble_genes["external_gene_name"].notnull()].groupby('ensembl_gene_id')["external_gene_name"].apply(lambda x: "|".join(x.unique())).to_dict()
-        #
-        # hgnc_lncrna_dict = self.get_HUGO_lncRNA_gene_name_dict()
-        # ensembl_gene_ids = df[key]
-        # self.preprocess_genes_info(ensembl_gene_ids, gencode_LncRNA_info,
-        #                            ensembl_gene_id_to_gene_name,
-        #                            hgnc_lncrna_dict)
-
-        # Convert ensembl gene IDs to known gene names
-        # print("Unmatched lncRNAs", df[key].str.startswith("ENSG").sum())
-
-        # df.replace({key: ensembl_gene_id_to_gene_name}, inplace=True)
-        # print("Unmatched lncRNAs after ensembl:", df['Gene_ID'].str.startswith("ENSG").sum())
-        #
-        # df.replace({key: lncBase_gene_id_to_name_dict}, inplace=True)
-        # print("Unmatched lncRNAs after lncBase:", df['Gene_ID'].str.startswith("ENSG").sum())
-        #
-        # df.replace({key: hgnc_lncrna_dict}, inplace=True)
-        # print("Unmatched lncRNAs after HGNC:", df['Gene_ID'].str.startswith("ENSG").sum())
-
-
-        self.annotations["Transcript id"] = self.annotations.index.map(GENCODE_LncRNA_info[
-            GENCODE_LncRNA_info["transcript_id"].notnull()].groupby('gene_id')["transcript_id"].apply(
-            lambda x: "|".join(x.unique())).to_dict())
-        self.annotations["Transcript name"] = self.annotations.index.map(
-            GENCODE_LncRNA_info[
-                GENCODE_LncRNA_info["transcript_name"].notnull()].groupby('gene_id')["transcript_name"].apply(
-                lambda x: "|".join(x.unique())).to_dict())
-
-        self.annotations["Transcript type"] = self.annotations.index.map(
-            GENCODE_LncRNA_info[GENCODE_LncRNA_info["transcript_type"].notnull()].groupby('gene_id')["transcript_type"].apply(
-                lambda x: "|".join(x.unique())).to_dict())
-
-        self.annotations["tag"] = self.annotations.index.map(
-            GENCODE_LncRNA_info[GENCODE_LncRNA_info["tag"].notnull()].groupby('gene_id')["tag"].apply(
-                lambda x: "|".join(x.unique())).to_dict())
-
-        self.annotations["Chromosome"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['seqname'].values,
-                                                                            index=GENCODE_LncRNA_info['gene_id']).to_dict())
-        self.annotations["start"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['start'].values,
-                                                                       index=GENCODE_LncRNA_info[
-                                                                              'gene_id']).to_dict()).astype(np.float64)
-        self.annotations["end"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['end'].values,
-                                                                     index=GENCODE_LncRNA_info[
-                                                                         'gene_id']).to_dict()).astype(np.float64)
-        self.annotations["Strand"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['strand'].values,
-                                                                        index=GENCODE_LncRNA_info[
-                                                                       'gene_id']).to_dict())
-
-        self.annotations["locus_type"] = self.annotations.index.map(pd.Series(GENCODE_LncRNA_info['gene_type'].values,
-                                                                            index=GENCODE_LncRNA_info[
-                                                                         'gene_id']).to_dict())
-
-
-        # Merge GENCODE transcript sequence data
-        self.annotations["Transcript sequence"] = self.annotations["Gene Name"].map(
-            self.get_GENCODE_lncRNA_sequence_data(self.import_sequences, self.replace_U2T))
-
-    def get_lncBase_gene_id_to_name_dict(self):
-        table = pd.read_table(os.path.join(self.external_data_path, "lncBase/LncBasev2_download.csv"))
-        lncBase_gene_id_to_name_dict = pd.Series(table["geneName"].values,
-                                          index=table["geneId"]).to_dict()
-        return lncBase_gene_id_to_name_dict
 
     def get_lncipedia_gene_id_to_name_dict(self):
         lncipedia_names = GTF.dataframe(
@@ -242,8 +170,6 @@ class LncRNAs(ExpressionData, Annotatable):
         lncipedia_lncrna_dict = pd.Series(lncipedia_names["gene_alias_2"].values,
                                           index=lncipedia_names["gene_alias_1"]).to_dict()
         return lncipedia_lncrna_dict
-
-
 
 
     def get_HUGO_lncRNA_gene_name_dict(self):
