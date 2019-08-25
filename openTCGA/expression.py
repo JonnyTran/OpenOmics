@@ -1,15 +1,12 @@
-import os
 from collections import OrderedDict
 
 import networkx as nx
 import numpy as np
-import pandas as pd
-from Bio import SeqIO
 from Bio.UniProt import GOA
 from pandas import Series
 
-from openTCGA.utils import GTF
 from openTCGA.annotation import *
+
 
 class ExpressionData:
     def __init__(self, cohort_name, file_path, columns, key,
@@ -143,21 +140,6 @@ class LncRNAs(ExpressionData, Annotatable):
 
         return df
 
-    def annotate_genomics(self, database, index, columns):
-        df = database.get_genomic_annotations(modality=self.get_modality(), index=index, columns=columns)
-
-        self.annotations = pd.merge(self.annotations, df, left_on=index, right_on=index)
-
-    def annotate_sequences(self, database, index, **kwargs):
-        self.annotations["Transcript sequence"] = self.annotations.index.map(
-            database.get_sequences(modality=self.get_modality(), index=index, **kwargs))
-
-    def initialize_annotations(self, gene_list=None, index="gene_id"):
-        if gene_list is None:
-            gene_list = self.get_genes_list()
-
-        self.annotations = pd.DataFrame(index=gene_list)
-        self.annotations.index.name = index
 
 
     def get_lncipedia_gene_id_to_name_dict(self):

@@ -8,8 +8,8 @@ from Bio import SeqIO
 from bioservices import BioMart
 
 from openTCGA.utils import GTF
-from openTCGA.utils.io import mkdirs
 from openTCGA.utils.df import concat_uniques_agg
+from openTCGA.utils.io import mkdirs
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openTCGA")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openTCGA", "databases")
@@ -26,11 +26,12 @@ class Database:
     def list_databases(cls,):
         return DEFAULT_LIBRARIES
 
-    def get_genomic_annotations(self, modality, index, columns):
+    def get_genomic_annotations(self, index, columns) -> pd.DataFrame:
         if columns is not None:
             df = self.df.filter(items=columns + [index]) # columns must have index
         else:
-            df = self.df
+            raise Exception("The column argument must be a list such that it's subset of the following columns in the dataframe",
+                            self.df.columns.tolist())
 
         if index != self.df.index.name and index in self.df.columns:
             df.set_index(index, inplace=True)
@@ -50,9 +51,11 @@ class Database:
     def get_rename_dict(self, from_index, to_index) -> dict: raise NotImplementedError
 
     @abstractmethod
-    def get_functional_annotations(self, modality, index): raise NotImplementedError
+    def get_functional_annotations(self, modality, index) -> pd.DataFrame: raise NotImplementedError
+
     @abstractmethod
     def get_sequences(self, modality, index, *args) -> dict: raise NotImplementedError
+
     @abstractmethod
     def get_disease_assocs(self, index): raise NotImplementedError
 
@@ -102,7 +105,7 @@ class Annotatable:
 
 
 class GENCODE(Database):
-    def __init__(self, import_folder, version="v29", modalities=["GE", "LNC"], import_sequences="shortest", replace_U2T=True) -> None:
+    def __init__(self, import_folder, version="v29", import_sequences="shortest", replace_U2T=True) -> None:
         if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
             raise NotADirectoryError(import_folder)
         self.folder_path = import_folder
@@ -125,6 +128,7 @@ class GENCODE(Database):
         self.df = GTF.dataframe(self.file_resources["long_noncoding_RNAs.gtf"])
         self.df['gene_id'] = self.df['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         self.df['transcript_id'] = self.df['transcript_id'].str.replace("[.].*", "")
+        print(self.df.columns.tolist())
 
     def get_sequences(self, modality, index="gene_id"):
         # Parse lncRNA & mRNA fasta
@@ -229,7 +233,7 @@ class EnsembleGenes(Database, BioMartManager):
                                 'ensembl_transcript_id': 'transcript_id',
                                 'external_transcript_name': 'transcript_name'},
                        inplace=True)
-        print(self.df.columns)
+        print(self.df.columns.tolist())
 
     def load_datasets(self, datasets, attributes, filename=None) -> pd.DataFrame:
         return self.retrieve_dataset(datasets, attributes, filename)
