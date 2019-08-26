@@ -112,9 +112,8 @@ class RNAcentral(Database):
 
         self.file_resources = {}
         self.file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(self.folder_path,
-                                                                      "gencode.rnacentral_rfam_annotations.tsv")
-        self.file_resources["gencode.tsv"] = os.path.join(self.folder_path,
-                                                                    "gencode.tsv")
+                                                                      "rnacentral_rfam_annotations.tsv")
+        self.file_resources["gencode.tsv"] = os.path.join(self.folder_path, "gencode.tsv")
         self.load_datasets()
         print(self.df.columns.tolist())
 
