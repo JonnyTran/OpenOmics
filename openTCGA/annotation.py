@@ -77,8 +77,9 @@ class Annotatable:
             print(self.__class__.__str__(), "does not have network interaction data yet. (at self.network)")
             return None
 
-    @abstractmethod
-    def initialize_annotations(self, gene_list=None, index=None): raise NotImplementedError
+    def initialize_annotations(self, gene_list=None, index=None):
+        self.annotations = pd.DataFrame(index=gene_list)
+        self.annotations.index.name = index
 
     @abstractmethod
     def annotate_genomics(self, database: Database, index, columns):
