@@ -118,7 +118,7 @@ class RNAcentral(Database):
         self.load_datasets()
         print(self.df.columns.tolist())
 
-    def load_datasets(self, datasets, filename, **args):
+    def load_datasets(self, datasets=None, filename=None, **args):
         go_terms = pd.read_table(self.file_resources["rnacentral_rfam_annotations.tsv"],
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
