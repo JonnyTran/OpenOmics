@@ -104,6 +104,50 @@ class Annotatable:
     def annotate_diseases(self, database: Database, index): raise NotImplementedError
 
 
+class RNAcentral(Database):
+    def __init__(self, import_folder, *args):
+        if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
+            raise NotADirectoryError(import_folder)
+        self.folder_path = import_folder
+
+        self.file_resources = {}
+        self.file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(self.folder_path,
+                                                                      "gencode.rnacentral_rfam_annotations.tsv")
+        self.file_resources["gencode.tsv"] = os.path.join(self.folder_path,
+                                                                    "gencode.tsv")
+        self.load_datasets()
+        print(self.df.columns.tolist())
+
+    def load_datasets(self, datasets, filename, **args):
+        go_terms = pd.read_table(self.file_resources["rnacentral_rfam_annotations.tsv"],
+                                 low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
+        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
+
+        gencode_id = pd.read_table(self.file_resources["gencode.tsv"],
+                                   low_memory=True, header=None,
+                                   names=["RNAcentral id", "database", "external id", "species", "RNA type",
+                                          "gene symbol"])
+        gencode_id = gencode_id[gencode_id["species"] == 9606]
+
+        lnc_go_terms = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
+            "GO terms"].apply(lambda x: "|".join(x.unique()))
+        lnc_rfams = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
+            "Rfams"].apply(lambda x: "|".join(x.unique()))
+
+        gencode_id["GO terms"] = gencode_id["RNAcentral id"].map(lnc_go_terms.to_dict())
+        gencode_id["Rfams"] = gencode_id["RNAcentral id"].map(lnc_rfams.to_dict())
+        gencode_id = gencode_id[gencode_id["GO terms"].notnull() | gencode_id["Rfams"].notnull()]
+
+        gencode_id.set_index("gene symbol")
+        gencode_id.index.name = "gene_name"
+
+        self.df = gencode_id
+
+    def get_functional_annotations(self, modality, index, columns=["Gene Name"]):
+        pass
+
+
+
 class GENCODE(Database):
     def __init__(self, import_folder, version="v29", import_sequences="shortest", replace_U2T=True) -> None:
         if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
@@ -221,6 +265,11 @@ class BioMartManager:
 
 
 class EnsembleGenes(Database, BioMartManager):
+    COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
+                           'external_gene_name': 'gene_name',
+                           'ensembl_transcript_id': 'transcript_id',
+                           'external_transcript_name': 'transcript_name'}
+
     def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=None) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
@@ -231,10 +280,8 @@ class EnsembleGenes(Database, BioMartManager):
 
         self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, host=self.host,
                                      filename=self.filename)
-        self.df.rename(columns={'ensembl_gene_id': 'gene_id',
-                                'external_gene_name': 'gene_name',
-                                'ensembl_transcript_id': 'transcript_id',
-                                'external_transcript_name': 'transcript_name'},
+
+        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
                        inplace=True)
         print(self.df.columns.tolist())
 
@@ -261,7 +308,7 @@ class EnsembleGeneSequences(EnsembleGenes):
         self.attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
         self.df = self.load_datasets(datasets=dataset, filename=self.filename, host=self.host,
                                      attributes=self.attributes, )
-        self.df.rename(columns={'ensembl_gene_id': 'gene_id'},
+        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
                        inplace=True)
         
 class EnsembleTranscriptSequences(EnsembleGenes):
@@ -272,7 +319,7 @@ class EnsembleTranscriptSequences(EnsembleGenes):
                       '5utr', '3utr']
         self.df = self.load_datasets(datasets=dataset, attributes=self.attributes, host=self.host,
                                      filename=self.filename)
-        self.df.rename(columns={'ensembl_transcript_id': 'transcript_id'},
+        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
                        inplace=True)
 
 class EnsembleSNP(EnsembleGenes):
