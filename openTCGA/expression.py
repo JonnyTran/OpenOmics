@@ -627,6 +627,9 @@ class MicroRNAs(ExpressionData, Annotatable):
         super().__init__(cohort_name, file_path, columns=columns, index=index, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
 
+    def get_modality(self):
+        return "MIR"
+
     def process_mirbase_data(self, mirbase_folder_path):
         self.mirbase_aliases_file_path = os.path.join(mirbase_folder_path, "aliases.txt")
         self.mirbase_mir_seq_file_path = os.path.join(mirbase_folder_path, "hairpin.fa")
