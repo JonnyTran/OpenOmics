@@ -29,7 +29,7 @@ class Database:
         self.df = self.load_data(file_resources, **kwargs)
         if column_rename_dict is not None:
             self.df.rename(columns=column_rename_dict, inplace=True)
-        print(self.df.columns.tolist())
+        print("{}: {}".format(self.name, self.df.columns.tolist()))
 
     def name(self):
         return self.__class__.__name__
@@ -39,7 +39,10 @@ class Database:
 
     def get_genomic_annotations(self, index, columns) -> pd.DataFrame:
         if columns is not None:
-            df = self.df.filter(items=columns + [index]) # columns must have index
+            if index not in columns:
+                df = self.df.filter(items=columns + [index]) # columns must have index
+            else:
+                df = self.df.filter(items=columns)
         else:
             raise Exception("The column argument must be a list such that it's subset of the following columns in the dataframe",
                             self.df.columns.tolist())
@@ -94,8 +97,12 @@ class Annotatable:
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_genomics(self, database:Database, index, columns):
-        self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
+    def annotate_genomics(self, database:Database, index, columns, left_index=None):
+        if left_index is None:
+            self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
+        else:
+            self.annotations = pd.merge(self.annotations, database.get_genomic_annotations(index, columns), how="left",
+                                        left_on=left_index, right_on=index)
 
     def annotate_sequences(self, database: Database, index, **kwargs):
         self.annotations["Transcript sequence"] = self.annotations.index.map(database.get_sequences(modality=self.get_modality(), index=index))
