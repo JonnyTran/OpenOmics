@@ -30,7 +30,7 @@ class Database:
         self.df = self.load_data(file_resources, **kwargs)
         if column_rename_dict is not None:
             self.df.rename(columns=column_rename_dict, inplace=True)
-        print("{}: {}".format(self.name, self.df.columns.tolist()))
+        print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
     def name(self):
         return self.__class__.__name__
@@ -249,7 +249,7 @@ class BioMartManager:
 
         print("Querying {} from {} with attributes {}...".format(dataset, host, attributes))
         results = bm.query(xml_query)
-        df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", index_col=None)
+        df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", index_col=None, low_memory=True)
 
         if cache:
             self.cache_dataset(dataset, df, save_filename)
