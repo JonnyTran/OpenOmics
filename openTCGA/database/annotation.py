@@ -147,8 +147,7 @@ class Annotatable:
         else:
             old_index = self.annotations.index.name
             self.annotations.set_index(left_index, inplace=True)
-            self.annotations = pd.merge(self.annotations, database.get_genomic_annotations(index, columns), how="left",
-                                        left_on=left_index, right_on=index, left_index=True)
+            self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
             self.annotations.set_index(old_index, inplace=True)
 
     def annotate_sequences(self, database: Database, index, **kwargs):
