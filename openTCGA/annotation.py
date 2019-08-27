@@ -26,6 +26,7 @@ class Database:
                     raise FileNotFoundError(filepath)
 
         self.import_folder = import_folder
+        self.file_resources = file_resources
         self.df = self.load_data(file_resources, **kwargs)
         if column_rename_dict is not None:
             self.df.rename(columns=column_rename_dict, inplace=True)
