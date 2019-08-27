@@ -444,7 +444,7 @@ class LncRNA(ExpressionData, Annotatable):
 
 
 class MessengerRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns, index=True, log2_transform=False):
+    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", index="GeneSymbol", log2_transform=False):
         super().__init__(cohort_name, file_path, columns=columns, index=index, log2_transform=log2_transform)
 
     def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
@@ -616,7 +616,7 @@ class MessengerRNA(ExpressionData, Annotatable):
 
 
 class MicroRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns, index, transposed=True, log2_transform=False):
+    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", index="GeneSymbol", transposed=True, log2_transform=False):
         super().__init__(cohort_name, file_path, columns=columns, index=index, log2_transform=log2_transform)
 
     def get_name(self):
