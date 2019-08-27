@@ -64,7 +64,7 @@ class Database:
     def get_functional_annotations(self, index) -> pd.DataFrame: raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, index, *args) -> dict: raise NotImplementedError
+    def get_sequences(self, modality, index, *args) -> dict: raise NotImplementedError
 
     @abstractmethod
     def get_disease_assocs(self, index): raise NotImplementedError

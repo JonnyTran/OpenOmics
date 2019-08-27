@@ -509,7 +509,7 @@ class LncRNAs(ExpressionData, Annotatable):
         self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
 
     def annotate_sequences(self, database: Database, index):
-        self.annotations["Transcript sequence"] = self.annotations.index.map(database.get_sequences(index))
+        self.annotations["Transcript sequence"] = self.annotations.index.map(database.get_sequences(modality="LNC", index=index))
 
     def get_annotations(self):
         return self.annotations
