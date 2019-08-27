@@ -308,10 +308,10 @@ class MirBase(Database):
         mirbase_name = mirbase_name.join(mirbase_id, on="mirbase id", how="inner")
 
         # # Expanding miRNA names in each MirBase Ascension ID
-        # s = mirbase_name.apply(lambda x: pd.Series(x['miRNA name'].split(";")[:-1]), axis=1).stack().reset_index(
-        #     level=1, drop=True)
-        # s.name = "miRNA name"
-        # mirbase_name = mirbase_name.drop('miRNA name', axis=1).join(s)
+        s = mirbase_name.apply(lambda x: pd.Series(x['gene_name'].split(";")[:-1]), axis=1).stack().reset_index(
+            level=1, drop=True)
+        s.name = "gene_name"
+        mirbase_name = mirbase_name.drop('gene_name', axis=1).join(s)
 
         # mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.lower()
         # mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.replace("-3p.*|-5p.*", "")
