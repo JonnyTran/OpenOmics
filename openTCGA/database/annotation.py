@@ -104,11 +104,19 @@ class Database:
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def get_functional_annotations(self, index) -> pd.DataFrame: raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, omic, index, *args) -> dict: raise NotImplementedError
+    def get_sequences(self, omic, index, *args) -> dict:
+        """
+        Returns a dictionary where keys are
+        Args:
+            omic (str): {"lncRNA", "microRNA", "messengerRNA"}
+            index (str): {"gene_id", "gene_name", "transcript_id", "transcript_name"}
+                The index
+            *args:
+                optional arguments that may be passed to Database.get_sequences() method.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def get_disease_assocs(self, index): raise NotImplementedError
@@ -131,7 +139,6 @@ class Annotatable:
         self.annotations.index.name = index
 
     def annotate_genomics(self, database:Database, index, columns, left_index=None):
-        self.annotations= pd.DataFrame()
         if left_index is None:
             self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
         else:
@@ -405,7 +412,7 @@ class EnsembleGenes(Database, BioMartManager):
 
         self.df.rename(columns=self.COLUMNS_RENAME_DICT,
                        inplace=True)
-        print(self.df.columns.tolist())
+        print(self.name(), self.df.columns.tolist())
 
     def load_data(self, datasets, attributes, host, filename=None) -> pd.DataFrame:
         return self.retrieve_dataset(host, datasets, attributes, filename)
