@@ -125,11 +125,11 @@ class RNAcentral(Database):
 
         if file_resources is None:
             file_resources = {}
-            file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(self.import_folder,
+            file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(import_folder,
                                                                           "rnacentral_rfam_annotations.tsv")
-            file_resources["gencode.tsv"] = os.path.join(self.import_folder, "gencode.tsv")
-        super().__init__(import_folder, file_resources, self.COLUMNS_RENAME_DICT)
+            file_resources["gencode.tsv"] = os.path.join(import_folder, "gencode.tsv")
 
+        super().__init__(import_folder, file_resources, self.COLUMNS_RENAME_DICT)
 
     def load_data(self, file_resources, organism=None):
         go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
@@ -274,7 +274,7 @@ class EnsembleGenes(Database, BioMartManager):
                            'external_transcript_name': 'transcript_name',
                            'rfam': 'Rfams'}
 
-    def __init__(self, dataset, host, filename=False) -> None:
+    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=False) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
         self.attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'external_transcript_name',
