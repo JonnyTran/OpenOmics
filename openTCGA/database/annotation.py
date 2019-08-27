@@ -146,6 +146,7 @@ class Annotatable:
             self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
         else:
             old_index = self.annotations.index.name
+            self.annotations = self.annotations.reset_index()
             self.annotations.set_index(left_index, inplace=True)
             self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
             self.annotations.set_index(old_index, inplace=True)
