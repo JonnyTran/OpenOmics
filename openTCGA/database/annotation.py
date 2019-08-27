@@ -298,7 +298,7 @@ class MirBase(Database):
     def load_data(self, file_resources, **kwargs) -> pd.DataFrame:
         mirbase_id = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
                                    names=["RNAcentral id", "database", "mirbase id", "species", "RNA type", "gene name"],
-                                   dtype="O",
+                                   # dtype="O",
                                    index_col="mirbase id")
         if self.species is not None:
             mirbase_id = mirbase_id[mirbase_id["species"] == self.species]
