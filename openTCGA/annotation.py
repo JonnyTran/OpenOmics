@@ -17,7 +17,18 @@ DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openTCGA", "databases")
 
 class Database:
     def __init__(self, import_folder, file_resources, column_rename_dict=None, **kwargs):
-
+        """
+        This is an abstract class used to instantiate a database given a folder containing various
+        file resources. When creating a Database class, the load_data function is called where
+        the file resources are load as a DataFrame and performs necessary processings. This class
+        provides an interface for RNA classes to annotate various genomic annotations, functional
+        annotations, sequences, and disease associations.
+        Args:
+            import_folder: The folder path containing the data files
+            file_resources: A dictionary where keys are file name and value are file paths
+            column_rename_dict: A dictionary to rename columns in the data table
+            **kwargs: Additional arguments that may be passed to load_data function
+        """
         if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
             raise NotADirectoryError(import_folder)
         else:
@@ -38,7 +49,19 @@ class Database:
     def list_databases(self):
         return DEFAULT_LIBRARIES
 
-    def get_genomic_annotations(self, index, columns) -> pd.DataFrame:
+    def get_genomic_annotations(self, index:str, columns:list) -> pd.DataFrame:
+        """
+        Returns the Database's DataFrame such that it's indexed by :param index:. Then a groupby
+
+        operation aggregates
+        Args:
+            index: The index column name of the Dataframe
+            columns:
+
+        Returns:
+            df (DataFrame): A dataframe to be used for annotation
+
+        """
         if columns is not None:
             if index not in columns:
                 df = self.df.filter(items=columns + [index]) # columns must have index
@@ -59,10 +82,29 @@ class Database:
         return df
 
     @abstractmethod
-    def load_data(self, file_resources, **kwargs) -> pd.DataFrame: raise NotImplementedError
+    def load_data(self, file_resources, **kwargs) -> pd.DataFrame:
+        """
+        Handles data preprocessing given the file_resources input, and returns a DataFrame
+
+        Args:
+            file_resources (dict): A dict with file name keys and file path values.
+            **kwargs: Optional
+        """
+        raise NotImplementedError
 
     @abstractmethod
-    def get_rename_dict(self, from_index, to_index) -> dict: raise NotImplementedError
+    def get_rename_dict(self, from_index, to_index) -> dict:
+        """
+        Used to retrieve a lookup dictionary to convert from one index to another, e.g., gene_id to gene_name
+
+        Args:
+            from_index: an index on the DataFrame for key
+            to_index: an index on the DataFrame for value
+
+        Returns
+            rename_dict (dict): a rename dict
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def get_functional_annotations(self, index) -> pd.DataFrame: raise NotImplementedError
@@ -136,7 +178,7 @@ class RNAcentral(Database):
 
         super().__init__(import_folder, file_resources, self.COLUMNS_RENAME_DICT)
 
-    def load_data(self, file_resources, organism=None):
+    def load_data(self, file_resources, organism=9606):
         go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]

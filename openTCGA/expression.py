@@ -424,62 +424,6 @@ class LncRNAs(ExpressionData, Annotatable):
                       index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
 
 
-    def process_RNAcentral_annotation_info(self, RNAcentral_folder_path):
-        self.RNAcentral_annotation_file_path = os.path.join(RNAcentral_folder_path, "rnacentral_rfam_annotations.tsv")
-        self.RNAcentral_gencode_id_file_path = os.path.join(RNAcentral_folder_path, "gencode.tsv")
-
-        go_terms = pd.read_table(self.RNAcentral_annotation_file_path,
-                                 low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
-        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
-
-        gencode_id = pd.read_table(self.RNAcentral_gencode_id_file_path,
-                                   low_memory=True, header=None,
-                                   names=["RNAcentral id", "database", "external id", "species", "RNA type",
-                                          "gene symbol"])
-        gencode_id = gencode_id[gencode_id["species"] == 9606]
-
-        lnc_go_terms = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
-            "GO terms"].apply(lambda x: "|".join(x.unique()))
-        lnc_rfams = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
-            "Rfams"].apply(lambda x: "|".join(x.unique()))
-
-        gencode_id["GO terms"] = gencode_id["RNAcentral id"].map(lnc_go_terms.to_dict())
-        gencode_id["Rfams"] = gencode_id["RNAcentral id"].map(lnc_rfams.to_dict())
-        gencode_id = gencode_id[gencode_id["GO terms"].notnull() | gencode_id["Rfams"].notnull()]
-
-        self.RNAcentral_annotations = gencode_id
-
-    def get_GENCODE_lncRNA_sequence_data(self, import_sequences, replace_U2T=True):
-        seq_dict = {}
-        for record in SeqIO.parse(self.GENCODE_LncRNA_sequence_file_path, "fasta"):
-            # gene_id = record.id.split("|")[1]
-            gene_name = record.id.split("|")[5]
-
-            sequence_str = str(record.seq)
-            if replace_U2T:
-                sequence_str = sequence_str.replace("U", "T")
-            if import_sequences == "shortest":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = sequence_str
-                else:
-                    if len(seq_dict[gene_name]) > len(sequence_str):
-                        seq_dict[gene_name] = sequence_str
-            elif import_sequences == "longest":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = sequence_str
-                else:
-                    if len(seq_dict[gene_name]) < len(sequence_str):
-                        seq_dict[gene_name] = sequence_str
-            elif import_sequences == "multi":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = [sequence_str, ]
-                else:
-                    seq_dict[gene_name].append(sequence_str)
-            else:
-                seq_dict[gene_name] = sequence_str
-
-        return seq_dict
-
     def process_genes_info(self):
         # Merge lncrnadisease associations database
         self.annotations["Disease association"] = self.annotations["Gene Name"].map(
