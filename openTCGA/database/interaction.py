@@ -1,6 +1,6 @@
 import networkx as nx
 
-from openTCGA.annotation import *
+from openTCGA.database.annotation import *
 
 
 class Interactions(Database):

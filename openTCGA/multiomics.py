@@ -78,7 +78,7 @@ class MultiOmicsData:
             table_path_GE = os.path.join(cohort_folder_path, "gene_exp", "geneExp.txt")
             self.GE = MessengerRNAs(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", key="GeneSymbol",
                                     import_sequences=import_sequences, replace_U2T=replace_U2T)
-            self.data["GE"] = self.GE.expression
+            self.data["GE"] = self.GE.expressions
 
             try:
                 self.GE.process_targetScan_gene_info(
@@ -108,13 +108,13 @@ class MultiOmicsData:
         if "SNP" in modalities:
             file_path_SNP = os.path.join(cohort_folder_path, "somatic/", "somaticMutation_geneLevel.txt")
             self.SNP = SomaticMutation(cohort_name, file_path_SNP)
-            self.data["SNP"] = self.SNP.expression
+            self.data["SNP"] = self.SNP.expressions
 
         if "MIR" in modalities:
             file_path_MIR = os.path.join(cohort_folder_path, "mirna/", "miRNAExp__RPM.txt")
             self.MIR = MicroRNAs(cohort_name, file_path_MIR,
                                  import_sequences=import_sequences, replace_U2T=replace_U2T)
-            self.data["MIR"] = self.MIR.expression
+            self.data["MIR"] = self.MIR.expressions
 
             try:
                 self.MIR.process_mirbase_data(mirbase_folder_path=os.path.join(external_data_path, "mirbase"))
@@ -141,7 +141,7 @@ class MultiOmicsData:
             file_path_LNC = os.path.join(cohort_folder_path, "lncrna", "TCGA-rnaexpr.tsv")
             self.LNC = LncRNAs(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", key="Gene_ID",
                                replace_U2T=replace_U2T)
-            self.data["LNC"] = self.LNC.expression
+            self.data["LNC"] = self.LNC.expressions
 
             try:
                 self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
@@ -167,17 +167,17 @@ class MultiOmicsData:
         if "DNA" in modalities:
             file_path_DNA = os.path.join(cohort_folder_path, "dna/", "methylation_450.txt")
             self.DNA = DNAMethylation(cohort_name, file_path_DNA)
-            self.data["DNA"] = self.DNA.expression
+            self.data["DNA"] = self.DNA.expressions
 
         if "CNV" in modalities:
             file_path_CNV = os.path.join(cohort_folder_path, "cnv/", "copyNumber.txt")
             self.CNV = CopyNumberVariation(cohort_name, file_path_CNV)
-            self.data["CNV"] = self.CNV.expression
+            self.data["CNV"] = self.CNV.expressions
 
         if "PRO" in modalities:
             file_path_PRO = os.path.join(cohort_folder_path, "protein_rppa/", "protein_RPPA.txt")
             self.PRO = Proteins(cohort_name, file_path_PRO)
-            self.data["PRO"] = self.PRO.expression
+            self.data["PRO"] = self.PRO.expressions
             self.PRO.process_HPRD_PPI_network(
                 ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
                                                 "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))

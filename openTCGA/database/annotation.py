@@ -203,7 +203,6 @@ class RNAcentral(Database):
         return gencode_id
 
 
-
 class GENCODE(Database):
     def __init__(self, import_folder, file_resources=None, column_rename_dict=None, import_sequences="all", replace_U2T=True) -> None:
         if file_resources is None:
@@ -280,6 +279,54 @@ class GENCODE(Database):
         return ensembl_id_to_gene_name
 
 
+class MirBase(Database):
+
+    def __init__(self, import_folder, file_resources, column_rename_dict=None, import_sequences="all", replace_U2T=True):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["aliases.txt"] = os.path.join(import_folder, "aliases.txt")
+            file_resources["hairpin.fa"] = os.path.join(import_folder, "hairpin.fa")
+
+        self.import_sequences = import_sequences
+        self.replace_U2T = replace_U2T
+        super().__init__(import_folder, file_resources, column_rename_dict)
+
+    def load_data(self, file_resources, **kwargs) -> pd.DataFrame:
+        self.df = pd.read_table(file_resources["aliases.txt"],
+                                low_memory=True, header=None, names=["mirbase id", "gene_name"], dtype="O")
+
+    def get_sequences(self, modality=None, index="gene_name", *args) -> dict:
+        seq_dict = {}
+        for record in SeqIO.parse(self.file_resources["hairpin.fa"], "fasta"):
+            gene_name = str(record.id)
+            sequence_str = str(record.seq)
+
+            if self.replace_U2T:
+                sequence_str = sequence_str.replace("U", "T")
+
+            if self.import_sequences == "shortest":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = sequence_str
+                else:
+                    if len(seq_dict[gene_name]) > len(sequence_str):
+                        seq_dict[gene_name] = sequence_str
+            elif self.import_sequences == "longest":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = sequence_str
+                else:
+                    if len(seq_dict[gene_name]) < len(sequence_str):
+                        seq_dict[gene_name] = sequence_str
+            elif self.import_sequences == "multi":
+                if gene_name not in seq_dict:
+                    seq_dict[gene_name] = [sequence_str, ]
+                else:
+                    seq_dict[gene_name].append(sequence_str)
+            else:
+                seq_dict[gene_name] = sequence_str
+
+        return seq_dict
+
+
 class BioMartManager:
 
     def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None):
@@ -351,7 +398,6 @@ class EnsembleGenes(Database, BioMartManager):
             .groupby(index)["go_id"]\
             .apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_go
-
 
 class EnsembleGeneSequences(EnsembleGenes):
     def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=None) -> None:

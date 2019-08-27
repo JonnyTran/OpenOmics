@@ -5,7 +5,7 @@ import numpy as np
 from Bio.UniProt import GOA
 from pandas import Series
 
-from openTCGA.annotation import *
+from openTCGA.database.annotation import *
 
 
 class ExpressionData:
@@ -32,14 +32,14 @@ class ExpressionData:
         else:
             raise FileNotFoundError(file_path)
 
-        self.expression = self.preprocess_table(table, columns, key, transposed)
+        self.expressions = self.preprocess_table(table, columns, key, transposed)
 
         if log2_transform:
-            self.expression = self.expression.applymap(self.log2_transform)
+            self.expressions = self.expressions.applymap(self.log2_transform)
 
         # Save samples and features for this omics data
-        self.samples = self.expression.index
-        self.features = self.expression.columns.tolist()
+        self.samples = self.expressions.index
+        self.features = self.expressions.columns.tolist()
         # self.features.remove("bcr_sample_barcode")
 
     def preprocess_table(self, df:pd.DataFrame, columns:str, key:str, transposed:bool):
@@ -81,7 +81,7 @@ class ExpressionData:
         return np.log2(x + 1)
 
     def drop_genes(self, genes_to_drop):
-        self.expression.drop(genes_to_drop, axis=1, inplace=True)
+        self.expressions.drop(genes_to_drop, axis=1, inplace=True)
         for gene in genes_to_drop:
             self.features.remove(gene)
 
@@ -632,35 +632,6 @@ class MicroRNAs(ExpressionData, Annotatable):
         self.mirbase_aliases_file_path = os.path.join(mirbase_folder_path, "aliases.txt")
         self.mirbase_mir_seq_file_path = os.path.join(mirbase_folder_path, "hairpin.fa")
 
-    def get_mirbase_hairpin_sequence_data(self, import_sequences, replace_U2T=True):
-        seq_dict = {}
-        for record in SeqIO.parse(self.mirbase_mir_seq_file_path, "fasta"):
-            gene_name = str(record.id)
-            sequence_str = str(record.seq)
-            if replace_U2T:
-                sequence_str = sequence_str.replace("U", "T")
-
-            if import_sequences == "shortest":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = sequence_str
-                else:
-                    if len(seq_dict[gene_name]) > len(sequence_str):
-                        seq_dict[gene_name] = sequence_str
-            elif import_sequences == "longest":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = sequence_str
-                else:
-                    if len(seq_dict[gene_name]) < len(sequence_str):
-                        seq_dict[gene_name] = sequence_str
-            elif import_sequences == "multi":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = [sequence_str, ]
-                else:
-                    seq_dict[gene_name].append(sequence_str)
-            else:
-                seq_dict[gene_name] = sequence_str
-
-        return seq_dict
 
     def process_target_scan(self, targetScan_folder_path):
         self.targetScan_miR_family_info_path = os.path.join(targetScan_folder_path,"miR_Family_Info.txt")
