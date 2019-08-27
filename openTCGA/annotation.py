@@ -63,12 +63,13 @@ class Database:
 
         """
         if columns is not None:
-            if index not in columns:
-                df = self.df.filter(items=columns + [index]) # columns must have index
+            if index in columns:
+                raise Exception("The columns list must not contain the index")
+
             else:
-                df = self.df.filter(items=columns)
+                df = self.df.filter(items=columns + [index])
         else:
-            raise Exception("The column argument must be a list such that it's subset of the following columns in the dataframe",
+            raise Exception("The columns argument must be a list such that it's subset of the following columns in the dataframe",
                             self.df.columns.tolist())
 
         if index != self.df.index.name and index in self.df.columns:
