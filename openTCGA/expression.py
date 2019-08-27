@@ -630,11 +630,6 @@ class MicroRNAs(ExpressionData, Annotatable):
     def get_modality(self):
         return "MIR"
 
-    def process_mirbase_data(self, mirbase_folder_path):
-        self.mirbase_aliases_file_path = os.path.join(mirbase_folder_path, "aliases.txt")
-        self.mirbase_mir_seq_file_path = os.path.join(mirbase_folder_path, "hairpin.fa")
-
-
     def process_target_scan(self, targetScan_folder_path):
         self.targetScan_miR_family_info_path = os.path.join(targetScan_folder_path,"miR_Family_Info.txt")
         self.targetScan_predicted_targets_path = os.path.join(targetScan_folder_path, "Predicted_Targets_Info.default_predictions.txt")

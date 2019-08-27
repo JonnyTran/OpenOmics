@@ -18,11 +18,7 @@ DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openTCGA", "databases")
 class Database:
     def __init__(self, import_folder, file_resources, column_rename_dict=None, **kwargs):
         """
-        This is an abstract class used to instantiate a database given a folder containing various
-        file resources. When creating a Database class, the load_data function is called where
-        the file resources are load as a DataFrame and performs necessary processings. This class
-        provides an interface for RNA classes to annotate various genomic annotations, functional
-        annotations, sequences, and disease associations.
+        This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
             import_folder: The folder path containing the data files
             file_resources: A dictionary where keys are file name and value are file paths
@@ -51,12 +47,13 @@ class Database:
 
     def get_genomic_annotations(self, index:str, columns:list) -> pd.DataFrame:
         """
-        Returns the Database's DataFrame such that it's indexed by :param index:. Then a groupby
+        Returns the Database's DataFrame such that it's indexed by :param index:, which then applies a groupby operation
+        and aggregates all other columns by
 
         operation aggregates
         Args:
-            index: The index column name of the Dataframe
-            columns:
+            index (str): The index column name of the Dataframe
+            columns (list): a list of column names
 
         Returns:
             df (DataFrame): A dataframe to be used for annotation
