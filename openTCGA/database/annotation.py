@@ -146,7 +146,7 @@ class Annotatable:
             self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
         else:
             self.annotations = pd.merge(self.annotations, database.get_genomic_annotations(index, columns), how="left",
-                                        left_on=left_index, right_on=index)
+                                        left_on=left_index, right_on=index, left_index=True)
 
     def annotate_sequences(self, database: Database, index, **kwargs):
         self.annotations["Transcript sequence"] = self.annotations.index.map(database.get_sequences(modality=self.get_modality(), index=index))
@@ -168,8 +168,8 @@ class RNAcentral(Database):
                            'external id': 'transcript_id',
                            'GO terms': 'go_id'}
 
-    def __init__(self, import_folder, file_resources=None, column_rename_dict=None, organism=9606):
-        self.organism = organism
+    def __init__(self, import_folder, file_resources=None, column_rename_dict=None, species="9606"):
+        self.species = species
 
         if file_resources is None:
             file_resources = {}
@@ -179,7 +179,7 @@ class RNAcentral(Database):
 
         super().__init__(import_folder, file_resources, self.COLUMNS_RENAME_DICT)
 
-    def load_data(self, file_resources, organism=9606):
+    def load_data(self, file_resources):
         go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
@@ -188,8 +188,10 @@ class RNAcentral(Database):
                                    low_memory=True, header=None,
                                    names=["RNAcentral id", "database", "external id", "species", "RNA type",
                                           "gene symbol"])
-        if organism is not None:
-            gencode_id = gencode_id[gencode_id["species"] == organism]
+
+        gencode_id["species"] = gencode_id["species"].astype("O")
+        if self.species is not None:
+            gencode_id = gencode_id[gencode_id["species"] == self.species]
 
         lnc_go_terms = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
             "GO terms"].apply(lambda x: "|".join(x.unique()))
@@ -282,7 +284,7 @@ class GENCODE(Database):
 class MirBase(Database):
 
     def __init__(self, import_folder, RNAcentral_folder, file_resources=None, column_rename_dict=None,
-                 import_sequences="all", replace_U2T=True, species=9606):
+                 import_sequences="all", replace_U2T=True, species="9606"):
         if file_resources is None:
             file_resources = {}
             file_resources["aliases.txt"] = os.path.join(import_folder, "aliases.txt")
@@ -300,6 +302,8 @@ class MirBase(Database):
                                    names=["RNAcentral id", "database", "mirbase id", "species", "RNA type", "gene name"],
                                    # dtype="O",
                                    index_col="mirbase id")
+
+        mirbase_id["species"] = mirbase_id["species"].astype("O")
         if self.species is not None:
             mirbase_id = mirbase_id[mirbase_id["species"] == self.species]
 
