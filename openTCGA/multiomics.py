@@ -180,12 +180,13 @@ class MultiOmicsData:
                                                 "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
 
         # Build a table for each samples's clinical data
-        if len(modalities) > 1:  # TODO Has to make sure at least one GenomicData present
-            all_samples = pd.Index([])
-            for modality in self.modalities:
-                all_samples = all_samples.union(self.data[modality].index)
-            self.clinical.build_clinical_samples(all_samples)
-            self.data["SAMPLES"] = self.clinical.samples
+        if auto_import_clinical:
+            if len(modalities) > 1:  # TODO Has to make sure at least one GenomicData present
+                all_samples = pd.Index([])
+                for modality in self.modalities:
+                    all_samples = all_samples.union(self.data[modality].index)
+                self.clinical.build_clinical_samples(all_samples)
+                self.data["SAMPLES"] = self.clinical.samples
 
         # Remove duplicate genes between different multi-omics (e.g. between gene expression and lncRNA expressions
         if remove_duplicate_genes:
