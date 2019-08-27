@@ -281,7 +281,8 @@ class GENCODE(Database):
 
 class MirBase(Database):
 
-    def __init__(self, import_folder, RNAcentral_folder, file_resources=None, column_rename_dict=None, import_sequences="all", replace_U2T=True):
+    def __init__(self, import_folder, RNAcentral_folder, file_resources=None, column_rename_dict=None,
+                 import_sequences="all", replace_U2T=True, species=9606):
         if file_resources is None:
             file_resources = {}
             file_resources["aliases.txt"] = os.path.join(import_folder, "aliases.txt")
@@ -291,18 +292,19 @@ class MirBase(Database):
 
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
+        self.species = species
         super().__init__(import_folder, file_resources, column_rename_dict)
 
     def load_data(self, file_resources, **kwargs) -> pd.DataFrame:
-        mirbase_id = pd.read_table(file_resources["rnacentral.mirbase.tsv"],
-                                   low_memory=True, header=None,
+        mirbase_id = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
                                    names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
                                           "gene name"],
                                    index_col="mirbase id")
-        mirbase_id = mirbase_id[mirbase_id["species"] == 9606]
+        if self.species is not None:
+            mirbase_id = mirbase_id[mirbase_id["species"] == self.species]
 
-        mirbase_name = pd.read_table(file_resources["aliases.txt"],
-                                low_memory=True, header=None, names=["mirbase id", "gene_name"], dtype="O")
+        mirbase_name = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
+                                     names=["mirbase id", "gene_name"], dtype="O")
         mirbase_name = mirbase_name.join(mirbase_id, on="mirbase id", how="inner")
 
         # Expanding miRNA names in each MirBase Ascension ID
@@ -310,6 +312,7 @@ class MirBase(Database):
             level=1, drop=True)
         s.name = "miRNA name"
         mirbase_name = mirbase_name.drop('miRNA name', axis=1).join(s)
+
         mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.lower()
         mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.replace("-3p.*|-5p.*", "")
 
