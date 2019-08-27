@@ -138,14 +138,17 @@ class Annotatable:
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_genomics(self, database:Database, index, columns, left_index=None):
-        if left_index is None:
+    def annotate_genomics(self, database: Database, index, columns, left_on=None):
+        if left_on is None:
             self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
         else:
             old_index = self.annotations.index.name
             self.annotations = self.annotations.reset_index()
-            self.annotations.set_index(left_index, inplace=True)
-            self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=left_index,
+            self.annotations.set_index(left_on, inplace=True)
+            self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns)\
+                                                        .reset_index()\
+                                                        .set_index(left_on),
+                                                     on=left_on,
                                                      rsuffix=database.name())
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(old_index, inplace=True)
