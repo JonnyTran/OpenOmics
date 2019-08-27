@@ -4,17 +4,16 @@ import pandas as pd
 
 from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
-from openTCGA.expression import MessengerRNAs, MicroRNAs, \
-    Proteins, LncRNAs
+from openTCGA.expression import MessengerRNA, MicroRNA, Protein, LncRNA
 from openTCGA.genomic import SomaticMutation, DNAMethylation, CopyNumberVariation
-from openTCGA.image import WholeSlideImages
+from openTCGA.image import WholeSlideImage
 
 
 class MultiOmicsData:
-    def __init__(self, cohort_name:str, cohort_folder_path:str, external_data_path:str, omics:list, import_sequences="longest",
-                 replace_U2T=True, remove_duplicate_genes=True, auto_import_clinical=True, process_genes_info=True):
+    def __init__(self, cohort_name: str, cohort_folder_path: str, external_data_path: str, omics: list,
+                 remove_duplicate_genes=True, auto_import_clinical=True, process_annotations=True):
+
         """
-        .. class:: MultiOmicsData
         Load all multi-omics TCGA data from a given tcga_data_path with the following folder structure:
             cohort_folder/
                 clinical/
@@ -50,11 +49,15 @@ class MultiOmicsData:
                     gene_with_protein_product.txt
                     RNA_long_non-coding.txt
                     RNA_micro.txt
-
-        :param cohort_name: TCGA cancer cohort name
-        :param cohort_folder_path: directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
-        :param external_data_path: directory path to the folder containing external databases
-        :param omics: A list of multi-omics data to import. All available data includes ["CLI", "WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"]. Clinical data is always automatically imported.
+        Args:
+            cohort_name: the clinical cohort name
+            cohort_folder_path: directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
+            external_data_path: directory path to the folder containing external databases
+            omics (list): {"CLI", "WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"} 
+                A list of multi-omics data to import.
+            remove_duplicate_genes:
+            auto_import_clinical: 
+            process_annotations: 
         """
         self.cancer_type = cohort_name
         self.omics = omics
@@ -71,13 +74,12 @@ class MultiOmicsData:
                 self.data["DRUGS"] = self.clinical.drugs
 
         if "WSI" in omics:
-            self.WSI = WholeSlideImages(cohort_name, os.path.join(cohort_folder_path, "wsi/"))
+            self.WSI = WholeSlideImage(cohort_name, os.path.join(cohort_folder_path, "wsi/"))
             self.data["WSI"] = self.WSI
 
         if "GE" in omics:
             table_path_GE = os.path.join(cohort_folder_path, "gene_exp", "geneExp.txt")
-            self.GE = MessengerRNAs(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", index="GeneSymbol",
-                                    import_sequences=import_sequences, replace_U2T=replace_U2T)
+            self.GE = MessengerRNA(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", index="GeneSymbol")
             self.data["GE"] = self.GE.expressions
 
             try:
@@ -110,8 +112,7 @@ class MultiOmicsData:
 
         if "MIR" in omics:
             file_path_MIR = os.path.join(cohort_folder_path, "mirna/", "miRNAExp__RPM.txt")
-            self.MIR = MicroRNAs(cohort_name, file_path_MIR,
-                                 import_sequences=import_sequences, replace_U2T=replace_U2T)
+            self.MIR = MicroRNA(cohort_name, file_path_MIR)
             self.data["MIR"] = self.MIR.expressions
 
             try:
@@ -136,8 +137,7 @@ class MultiOmicsData:
 
         if "LNC" in omics:
             file_path_LNC = os.path.join(cohort_folder_path, "lncrna", "TCGA-rnaexpr.tsv")
-            self.LNC = LncRNAs(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", index="Gene_ID",
-                               replace_U2T=replace_U2T)
+            self.LNC = LncRNA(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", index="Gene_ID")
             self.data["LNC"] = self.LNC.expressions
 
             try:
@@ -173,7 +173,7 @@ class MultiOmicsData:
 
         if "PRO" in omics:
             file_path_PRO = os.path.join(cohort_folder_path, "protein_rppa/", "protein_RPPA.txt")
-            self.PRO = Proteins(cohort_name, file_path_PRO)
+            self.PRO = Protein(cohort_name, file_path_PRO)
             self.data["PRO"] = self.PRO.expressions
             self.PRO.process_HPRD_PPI_network(
                 ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
@@ -195,7 +195,7 @@ class MultiOmicsData:
 
         self.print_sample_sizes()
 
-        if process_genes_info:
+        if process_annotations:
             for omic in omics:
                 if hasattr(self[omic], "process_genes_info"):
                     self[omic].process_genes_info()

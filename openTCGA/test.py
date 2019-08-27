@@ -10,7 +10,7 @@ luad_data = MultiOmicsData(cohort_name="LUAD", cohort_folder_path=folder_path, e
                                # "CNV",
                                # "SNP",
                                # "PRO"
-                           ], process_genes_info=True)
+                           ], process_annotations=True)
 
 # LNC = luad_data.LNC.get_genes_info()
 # print(luad_data.load_data(modalities=["GE", "MIR", "LNC"]))

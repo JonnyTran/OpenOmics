@@ -10,7 +10,7 @@ from dask import delayed
 # import histomicstk.segmentation.positive_pixel_count as ppc
 
 
-class WholeSlideImages:
+class WholeSlideImage:
     def __init__(self, cohort_name, folder_path, force_preprocess=False):
         self.cancer_type = cohort_name
         if not os.path.isdir(folder_path) or not os.path.exists(folder_path):
@@ -121,4 +121,4 @@ def _combine(results):
 
 
 if __name__ == '__main__':
-    wsi = WholeSlideImages("LUAD", "/media/jonny_admin/540GB/Research/TCGA_LUAD-WSI/", force_preprocess=True)
+    wsi = WholeSlideImage("LUAD", "/media/jonny_admin/540GB/Research/TCGA_LUAD-WSI/", force_preprocess=True)

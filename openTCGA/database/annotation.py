@@ -123,14 +123,6 @@ class Annotatable:
         else:
             raise Exception("Must run initialize_annotations() first.")
 
-
-    def get_network_edgelist(self):
-        if hasattr(self, "network"):
-            return self.network.edges(data=True)
-        else:
-            print(self.__class__.__str__(), "does not have network interaction data yet. (at self.network)")
-            return None
-
     def initialize_annotations(self, gene_list, index):
         if gene_list is None:
             gene_list = self.get_genes_list()
@@ -139,19 +131,21 @@ class Annotatable:
         self.annotations.index.name = index
 
     def annotate_genomics(self, database:Database, index, columns, left_index=None):
+        self.annotations= pd.DataFrame()
         if left_index is None:
             self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
         else:
             old_index = self.annotations.index.name
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(left_index, inplace=True)
-            self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=left_index)
+            self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=left_index,
+                                                     rsuffix=database.name())
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(old_index, inplace=True)
 
-    def annotate_sequences(self, database: Database, index, **kwargs):
+    def annotate_sequences(self, database: Database, index, omic, **kwargs):
         self.annotations["Transcript sequence"] = self.annotations.index.map(
-            database.get_sequences(omic=self.get_name(), index=index))
+            database.get_sequences(omic=omic, index=index))
 
 
     @abstractmethod

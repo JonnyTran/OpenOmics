@@ -6,6 +6,14 @@ from openTCGA.database.annotation import *
 class Interactions(Database):
     __metaclass__ = ABCMeta
 
+    def get_network_edgelist(self):
+        if hasattr(self, "network"):
+            return self.network.edges(data=True)
+        else:
+            print(self.__class__.__str__(), "does not have network interaction data yet. (at self.network)")
+            return None
+
+
     @abstractmethod
     def get_interactions(self, source_index, target_index, edge_attr,  *args): raise NotImplementedError
 

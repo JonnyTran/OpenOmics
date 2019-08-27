@@ -9,9 +9,7 @@ from openTCGA.database.annotation import *
 
 
 class ExpressionData:
-    def __init__(self, cohort_name, file_path, columns, index,
-                 import_sequences="longest", replace_U2T=True,
-                 transposed=True, log2_transform=False):
+    def __init__(self, cohort_name, file_path, columns, index, transposed=True, log2_transform=False):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of expression data tables while providing indices to the TCGA
@@ -24,8 +22,6 @@ class ExpressionData:
                 log2_transform (bool): Whether to log2 transform the expression values
         """
         self.cohort_name = cohort_name
-        self.import_sequences = import_sequences
-        self.replace_U2T = replace_U2T
 
         if os.path.isfile(file_path) and os.path.exists(file_path):
             table = pd.read_table(file_path)
@@ -95,14 +91,13 @@ class ExpressionData:
         return self.samples
 
 
-class LncRNAs(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns="Gene_ID|TCGA", index="Gene_ID",
-                 import_sequences="longest", replace_U2T=True, transposed=True, log2_transform=False):
+class LncRNA(ExpressionData, Annotatable):
+    def __init__(self, cohort_name, file_path, columns, index, transposed=True, log2_transform=False):
         """
         :param file_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
         """
-        super().__init__(cohort_name, file_path, columns=columns, index=index, import_sequences=import_sequences, replace_U2T=replace_U2T,
-                         transposed=transposed, log2_transform=log2_transform)
+        super().__init__(cohort_name, file_path, columns=columns, index=index, transposed=transposed,
+                         log2_transform=log2_transform)
 
     def get_name(self):
         return "LNC"
@@ -448,11 +443,9 @@ class LncRNAs(ExpressionData, Annotatable):
 
 
 
-class MessengerRNAs(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", index="GeneSymbol",
-                 log2_transform=True, import_sequences="longest", replace_U2T=True):
-        super().__init__(cohort_name, file_path, columns=columns, index=index, import_sequences=import_sequences, replace_U2T=replace_U2T,
-                         log2_transform=log2_transform)
+class MessengerRNA(ExpressionData, Annotatable):
+    def __init__(self, cohort_name, file_path, columns, index=True, log2_transform=False):
+        super().__init__(cohort_name, file_path, columns=columns, index=index, log2_transform=log2_transform)
 
     def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
         self.targetScan_gene_info_path = targetScan_gene_info_path
@@ -622,10 +615,9 @@ class MessengerRNAs(ExpressionData, Annotatable):
         return self.gene_info
 
 
-class MicroRNAs(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", index="GeneSymbol", log2_transform=True, import_sequences="longest", replace_U2T=True):
-        super().__init__(cohort_name, file_path, columns=columns, index=index, import_sequences=import_sequences, replace_U2T=replace_U2T,
-                         log2_transform=log2_transform)
+class MicroRNA(ExpressionData, Annotatable):
+    def __init__(self, cohort_name, file_path, columns, index, transposed=True, log2_transform=False):
+        super().__init__(cohort_name, file_path, columns=columns, index=index, log2_transform=log2_transform)
 
     def get_name(self):
         return "MIR"
@@ -819,9 +811,9 @@ class MicroRNAs(ExpressionData, Annotatable):
         return self.gene_info
 
 
-class Proteins(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", index="GeneSymbol", import_sequences="longest", log2_transform=True):
-        super().__init__(cohort_name, file_path, columns=columns, index=index, import_sequences=import_sequences, log2_transform=log2_transform)
+class Protein(ExpressionData, Annotatable):
+    def __init__(self, cohort_name, file_path, columns, index=True, log2_transform=False):
+        super().__init__(cohort_name, file_path, columns=columns, index=index, log2_transform=log2_transform)
 
     def process_HPRD_PPI_network(self, ppi_data_file_path):
         HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
