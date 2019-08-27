@@ -48,7 +48,7 @@ class Database:
     def get_genomic_annotations(self, index:str, columns:list) -> pd.DataFrame:
         """
         Returns the Database's DataFrame such that it's indexed by :param index:, which then applies a groupby operation
-        and aggregates all other columns by
+        and aggregates all other columns by concatenating all unique values.
 
         operation aggregates
         Args:
@@ -104,7 +104,6 @@ class Database:
         """
         raise NotImplementedError
 
-
     @abstractmethod
     def get_sequences(self, omic, index, *args) -> dict:
         """
@@ -118,8 +117,6 @@ class Database:
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def get_disease_assocs(self, index): raise NotImplementedError
 
 
 class Annotatable:
@@ -138,17 +135,27 @@ class Annotatable:
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_genomics(self, database: Database, index, columns, left_on=None):
-        if left_on is None:
-            self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
+    def annotate_genomics(self, database: Database, index, columns):
+        """
+        Performs a left outer join between the annotations and Database's DataFrame, on the index key. The index argument must be column present in both DataFrames.
+
+        Args:
+            database (openTCGA.annotation.Database): Database which contains annotations
+            index (str): The column name which exists in both the annotations and Database's DataFrame
+            columns (list): a list of column name to join to the annotations
+        """
+        if index == self.annotations.index.name:
+            self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns),
+                                                     on=index,
+                                                     rsuffix=database.name())
         else:
             old_index = self.annotations.index.name
             self.annotations = self.annotations.reset_index()
-            self.annotations.set_index(left_on, inplace=True)
+            self.annotations.set_index(index, inplace=True)
             self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns)\
                                                         .reset_index()\
-                                                        .set_index(left_on),
-                                                     on=left_on,
+                                                        .set_index(index),
+                                                     on=index,
                                                      rsuffix=database.name())
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(old_index, inplace=True)
@@ -157,9 +164,6 @@ class Annotatable:
         self.annotations["Transcript sequence"] = self.annotations.index.map(
             database.get_sequences(omic=omic, index=index))
 
-
-    @abstractmethod
-    def annotate_functions(self, database: Database, index, columns): raise NotImplementedError
 
     @abstractmethod
     def annotate_interactions(self, database: Database, index): raise NotImplementedError
