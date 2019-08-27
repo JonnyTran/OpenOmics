@@ -9,7 +9,7 @@ from openTCGA.database.annotation import *
 
 
 class ExpressionData:
-    def __init__(self, cohort_name, file_path, columns, key,
+    def __init__(self, cohort_name, file_path, columns, index,
                  import_sequences="longest", replace_U2T=True,
                  transposed=True, log2_transform=False):
         """
@@ -32,7 +32,7 @@ class ExpressionData:
         else:
             raise FileNotFoundError(file_path)
 
-        self.expressions = self.preprocess_table(table, columns, key, transposed)
+        self.expressions = self.preprocess_table(table, columns, index, transposed)
 
         if log2_transform:
             self.expressions = self.expressions.applymap(self.log2_transform)
@@ -96,12 +96,12 @@ class ExpressionData:
 
 
 class LncRNAs(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns="Gene_ID|TCGA", key="Gene_ID",
+    def __init__(self, cohort_name, file_path, columns="Gene_ID|TCGA", index="Gene_ID",
                  import_sequences="longest", replace_U2T=True, transposed=True, log2_transform=False):
         """
         :param file_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
         """
-        super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
+        super().__init__(cohort_name, file_path, columns=columns, index=index, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          transposed=transposed, log2_transform=log2_transform)
 
     def get_modality(self):
@@ -443,16 +443,15 @@ class LncRNAs(ExpressionData, Annotatable):
         self.annotations = self.annotations[~self.annotations.index.duplicated(keep='first')] # Remove duplicate genes
 
 
-
     def get_annotations(self):
         return self.annotations
 
 
 
 class MessengerRNAs(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol",
+    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", index="GeneSymbol",
                  log2_transform=True, import_sequences="longest", replace_U2T=True):
-        super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
+        super().__init__(cohort_name, file_path, columns=columns, index=index, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
 
     def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
@@ -624,8 +623,8 @@ class MessengerRNAs(ExpressionData, Annotatable):
 
 
 class MicroRNAs(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol", log2_transform=True, import_sequences="longest", replace_U2T=True):
-        super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, replace_U2T=replace_U2T,
+    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", index="GeneSymbol", log2_transform=True, import_sequences="longest", replace_U2T=True):
+        super().__init__(cohort_name, file_path, columns=columns, index=index, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
 
     def process_mirbase_data(self, mirbase_folder_path):
@@ -743,46 +742,6 @@ class MicroRNAs(ExpressionData, Annotatable):
         self.HUGO_miRNA_gene_info_df = pd.merge(df_1, df_2, how="inner", on="MiRBase ID")
         self.HUGO_miRNA_gene_info_df.index = self.HUGO_miRNA_gene_info_df["MiRBase ID"]
 
-    def process_RNAcentral_annotation_info(self, RNAcentral_folder_path):
-        self.RNAcentral_annotation_file_path = os.path.join(RNAcentral_folder_path, "rnacentral_rfam_annotations.tsv")
-        self.RNAcentral_mirbase_id_file_path = os.path.join(RNAcentral_folder_path, "mirbase.tsv")
-
-        # Add tables for ID look up
-        mirbase_id = pd.read_table(self.RNAcentral_mirbase_id_file_path,
-                                   low_memory=True, header=None,
-                                   names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
-                                          "gene name"],
-                                   index_col="mirbase id")
-        mirbase_id = mirbase_id[mirbase_id["species"] == 9606]
-
-        mirbase_name = pd.read_table(self.mirbase_aliases_file_path,
-                                     low_memory=True, header=None, names=["mirbase id", "miRNA name"], dtype="O")
-        mirbase_name = mirbase_name.join(mirbase_id, on="mirbase id", how="inner")
-
-
-        # filter GO terms and Rfam annotation for miRNAs
-        go_terms = pd.read_table(self.RNAcentral_annotation_file_path,
-                                 low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
-        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
-
-        mir_go_terms = go_terms[go_terms["RNAcentral id"].isin(mirbase_name["RNAcentral id"])].groupby("RNAcentral id")[
-            "GO terms"].apply(lambda x: "|".join(x.unique()))
-        mir_rfam = go_terms[go_terms["RNAcentral id"].isin(mirbase_name["RNAcentral id"])].groupby("RNAcentral id")[
-            "Rfams"].apply(lambda x: "|".join(x.unique()))
-
-        mirbase_name["GO terms"] = mirbase_name["RNAcentral id"].map(mir_go_terms.to_dict())
-        mirbase_name["Rfams"] = mirbase_name["RNAcentral id"].map(mir_rfam.to_dict())
-
-        # Expanding miRNA names in each MirBase Ascension ID
-        s = mirbase_name.apply(lambda x: pd.Series(x['miRNA name'].split(";")[:-1]), axis=1).stack().reset_index(
-            level=1, drop=True)
-        s.name = "miRNA name"
-        mirbase_name = mirbase_name.drop('miRNA name', axis=1).join(s)
-        mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.lower()
-        mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.replace("-3p.*|-5p.*", "")
-
-        self.RNAcentral_annotations = mirbase_name
-
 
     def get_targetScan_miRNA_target_interaction(self):
         if self.targetScan_df is None:
@@ -838,8 +797,6 @@ class MicroRNAs(ExpressionData, Annotatable):
         self.gene_info["locus_type"] = "microRNA"
 
         # self.gene_info.rename(columns={'Mature sequence': 'Transcript sequence'}, inplace=True)
-        self.gene_info["Transcript sequence"] = self.gene_info["MiRBase ID"].map(
-            self.get_mirbase_hairpin_sequence_data(self.import_sequences, self.replace_U2T))
         self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(
             lambda x: len(x) if type(x) is str else None)
 
@@ -865,8 +822,8 @@ class MicroRNAs(ExpressionData, Annotatable):
 
 
 class Proteins(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", key="GeneSymbol", import_sequences="longest", log2_transform=True):
-        super().__init__(cohort_name, file_path, columns=columns, key=key, import_sequences=import_sequences, log2_transform=log2_transform)
+    def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", index="GeneSymbol", import_sequences="longest", log2_transform=True):
+        super().__init__(cohort_name, file_path, columns=columns, index=index, import_sequences=import_sequences, log2_transform=log2_transform)
 
     def process_HPRD_PPI_network(self, ppi_data_file_path):
         HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)

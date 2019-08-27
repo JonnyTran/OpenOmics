@@ -76,7 +76,7 @@ class MultiOmicsData:
 
         if "GE" in modalities:
             table_path_GE = os.path.join(cohort_folder_path, "gene_exp", "geneExp.txt")
-            self.GE = MessengerRNAs(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", key="GeneSymbol",
+            self.GE = MessengerRNAs(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", index="GeneSymbol",
                                     import_sequences=import_sequences, replace_U2T=replace_U2T)
             self.data["GE"] = self.GE.expressions
 
@@ -139,7 +139,7 @@ class MultiOmicsData:
 
         if "LNC" in modalities:
             file_path_LNC = os.path.join(cohort_folder_path, "lncrna", "TCGA-rnaexpr.tsv")
-            self.LNC = LncRNAs(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", key="Gene_ID",
+            self.LNC = LncRNAs(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", index="Gene_ID",
                                replace_U2T=replace_U2T)
             self.data["LNC"] = self.LNC.expressions
 

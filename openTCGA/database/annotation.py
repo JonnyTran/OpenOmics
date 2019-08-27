@@ -145,8 +145,11 @@ class Annotatable:
         if left_index is None:
             self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
         else:
+            old_index = self.annotations.index.name
+            self.annotations.set_index(left_index, inplace=True)
             self.annotations = pd.merge(self.annotations, database.get_genomic_annotations(index, columns), how="left",
                                         left_on=left_index, right_on=index, left_index=True)
+            self.annotations.set_index(old_index, inplace=True)
 
     def annotate_sequences(self, database: Database, index, **kwargs):
         self.annotations["Transcript sequence"] = self.annotations.index.map(database.get_sequences(modality=self.get_modality(), index=index))
