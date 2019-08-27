@@ -168,7 +168,7 @@ class RNAcentral(Database):
                            'external id': 'transcript_id',
                            'GO terms': 'go_id'}
 
-    def __init__(self, import_folder, file_resources=None, column_rename_dict=None, species="9606"):
+    def __init__(self, import_folder, file_resources=None, column_rename_dict=None, species=9606):
         self.species = species
 
         if file_resources is None:
@@ -284,7 +284,7 @@ class GENCODE(Database):
 class MirBase(Database):
 
     def __init__(self, import_folder, RNAcentral_folder, file_resources=None, column_rename_dict=None,
-                 import_sequences="all", replace_U2T=True, species="9606"):
+                 import_sequences="all", replace_U2T=True, species=9606):
         if file_resources is None:
             file_resources = {}
             file_resources["aliases.txt"] = os.path.join(import_folder, "aliases.txt")
@@ -304,8 +304,8 @@ class MirBase(Database):
                                    index_col="mirbase id")
         #
         rnacentral_mirbase["species"] = rnacentral_mirbase["species"].astype("O")
-        # if self.species is not None:
-            # rna_central_mirbase = rna_central_mirbase[rna_central_mirbase["species"] == str(self.species)]
+        if self.species is not None:
+            rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species"] == self.species]
 
         mirbase_aliases = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
                                      names=["mirbase id", "gene_name"], dtype="O")
