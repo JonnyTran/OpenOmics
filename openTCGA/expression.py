@@ -140,8 +140,6 @@ class LncRNAs(ExpressionData, Annotatable):
 
         return df
 
-
-
     def get_lncipedia_gene_id_to_name_dict(self):
         lncipedia_names = GTF.dataframe(
             os.path.join(self.external_data_path, "LNCipedia/lncipedia_5_0_hg19 (copy).gtf"))
@@ -507,6 +505,11 @@ class LncRNAs(ExpressionData, Annotatable):
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
+    def annotate_genomics(self, database:Database, index, columns):
+        self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
+
+    def annotate_sequences(self, database: Database, index):
+        self.annotations["Transcript sequence"] = self.annotations.index.map(database.get_sequences(index))
 
     def get_annotations(self):
         return self.annotations

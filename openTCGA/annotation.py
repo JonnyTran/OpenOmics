@@ -17,7 +17,7 @@ DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openTCGA", "databases")
 
 class Database:
     def __init__(self, import_folder, file_resources, column_rename_dict=None, **kwargs):
-        # Check data
+
         if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
             raise NotADirectoryError(import_folder)
         else:
@@ -61,10 +61,10 @@ class Database:
     def get_rename_dict(self, from_index, to_index) -> dict: raise NotImplementedError
 
     @abstractmethod
-    def get_functional_annotations(self, modality, index) -> pd.DataFrame: raise NotImplementedError
+    def get_functional_annotations(self, index) -> pd.DataFrame: raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, modality, index, *args) -> dict: raise NotImplementedError
+    def get_sequences(self, index, *args) -> dict: raise NotImplementedError
 
     @abstractmethod
     def get_disease_assocs(self, index): raise NotImplementedError
@@ -153,9 +153,6 @@ class RNAcentral(Database):
         gencode_id = gencode_id[gencode_id["GO terms"].notnull() | gencode_id["Rfams"].notnull()]
 
         return gencode_id
-
-    def get_functional_annotations(self, modality, index, columns=["Gene Name"]):
-        pass
 
 
 
