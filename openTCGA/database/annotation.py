@@ -64,8 +64,8 @@ class Database:
         """
         if columns is not None:
             if index in columns:
-                raise Exception("The columns list must not contain the index")
-
+                df = self.df.filter(items=columns)
+                columns.pop(columns.index(index))
             else:
                 df = self.df.filter(items=columns + [index])
         else:
@@ -297,8 +297,8 @@ class MirBase(Database):
 
     def load_data(self, file_resources, **kwargs) -> pd.DataFrame:
         mirbase_id = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
-                                   names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
-                                          "gene name"],
+                                   names=["RNAcentral id", "database", "mirbase id", "species", "RNA type", "gene name"],
+                                   usecols=["RNAcentral id", "database", "mirbase id", "species", "RNA type"],
                                    index_col="mirbase id")
         if self.species is not None:
             mirbase_id = mirbase_id[mirbase_id["species"] == self.species]
