@@ -3,7 +3,7 @@ from openTCGA.multiomics import MultiOmicsData
 folder_path = "/Users/jonny/Desktop/PycharmProjects/assn-miRNA-LUAD/data/tcga-assembler/LUAD/"
 external_data_path = "/Users/jonny/Desktop/PycharmProjects/assn-miRNA-LUAD/data/external/"
 luad_data = MultiOmicsData(cohort_name="LUAD", cohort_folder_path=folder_path, external_data_path=external_data_path,
-                           modalities=[
+                           omics=[
                                # "GE",
                                "MIR",
                                # "LNC",

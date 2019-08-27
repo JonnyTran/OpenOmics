@@ -1,7 +1,7 @@
 
 
 def concat_uniques_agg(x):
-    agg = x.dropna()
+    agg = x.dropna().astype(str)
     if not agg.empty:
         return "|".join(agg.unique())
     else:

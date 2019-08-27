@@ -11,7 +11,7 @@ from openTCGA.image import WholeSlideImages
 
 
 class MultiOmicsData:
-    def __init__(self, cohort_name:str, cohort_folder_path:str, external_data_path:str, modalities:list, import_sequences="longest",
+    def __init__(self, cohort_name:str, cohort_folder_path:str, external_data_path:str, omics:list, import_sequences="longest",
                  replace_U2T=True, remove_duplicate_genes=True, auto_import_clinical=True, process_genes_info=True):
         """
         .. class:: MultiOmicsData
@@ -54,15 +54,15 @@ class MultiOmicsData:
         :param cohort_name: TCGA cancer cohort name
         :param cohort_folder_path: directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
         :param external_data_path: directory path to the folder containing external databases
-        :param modalities: A list of multi-omics data to import. All available data includes ["CLI", "WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"]. Clinical data is always automatically imported.
+        :param omics: A list of multi-omics data to import. All available data includes ["CLI", "WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"]. Clinical data is always automatically imported.
         """
         self.cancer_type = cohort_name
-        self.modalities = modalities
+        self.omics = omics
         self.external_data_path = external_data_path
 
         # LOADING DATA FROM FILES
         self.data = {}
-        if auto_import_clinical or ("CLI" in modalities):
+        if auto_import_clinical or ("CLI" in omics):
             self.clinical = ClinicalData(cohort_name, os.path.join(cohort_folder_path, "clinical/"))
             self.data["PATIENTS"] = self.clinical.patient
             if hasattr(self.clinical, "biospecimen"):
@@ -70,11 +70,11 @@ class MultiOmicsData:
             if hasattr(self.clinical, "drugs"):
                 self.data["DRUGS"] = self.clinical.drugs
 
-        if "WSI" in modalities:
+        if "WSI" in omics:
             self.WSI = WholeSlideImages(cohort_name, os.path.join(cohort_folder_path, "wsi/"))
             self.data["WSI"] = self.WSI
 
-        if "GE" in modalities:
+        if "GE" in omics:
             table_path_GE = os.path.join(cohort_folder_path, "gene_exp", "geneExp.txt")
             self.GE = MessengerRNAs(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", index="GeneSymbol",
                                     import_sequences=import_sequences, replace_U2T=replace_U2T)
@@ -103,12 +103,12 @@ class MultiOmicsData:
             except FileNotFoundError as e:
                 print(e)
 
-        if "SNP" in modalities:
+        if "SNP" in omics:
             file_path_SNP = os.path.join(cohort_folder_path, "somatic/", "somaticMutation_geneLevel.txt")
             self.SNP = SomaticMutation(cohort_name, file_path_SNP)
             self.data["SNP"] = self.SNP.expressions
 
-        if "MIR" in modalities:
+        if "MIR" in omics:
             file_path_MIR = os.path.join(cohort_folder_path, "mirna/", "miRNAExp__RPM.txt")
             self.MIR = MicroRNAs(cohort_name, file_path_MIR,
                                  import_sequences=import_sequences, replace_U2T=replace_U2T)
@@ -134,7 +134,7 @@ class MultiOmicsData:
                     "Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data folder in the directory",
                     external_data_path)
 
-        if "LNC" in modalities:
+        if "LNC" in omics:
             file_path_LNC = os.path.join(cohort_folder_path, "lncrna", "TCGA-rnaexpr.tsv")
             self.LNC = LncRNAs(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", index="Gene_ID",
                                replace_U2T=replace_U2T)
@@ -161,17 +161,17 @@ class MultiOmicsData:
             except FileNotFoundError as e:
                 print(e)
 
-        if "DNA" in modalities:
+        if "DNA" in omics:
             file_path_DNA = os.path.join(cohort_folder_path, "dna/", "methylation_450.txt")
             self.DNA = DNAMethylation(cohort_name, file_path_DNA)
             self.data["DNA"] = self.DNA.expressions
 
-        if "CNV" in modalities:
+        if "CNV" in omics:
             file_path_CNV = os.path.join(cohort_folder_path, "cnv/", "copyNumber.txt")
             self.CNV = CopyNumberVariation(cohort_name, file_path_CNV)
             self.data["CNV"] = self.CNV.expressions
 
-        if "PRO" in modalities:
+        if "PRO" in omics:
             file_path_PRO = os.path.join(cohort_folder_path, "protein_rppa/", "protein_RPPA.txt")
             self.PRO = Proteins(cohort_name, file_path_PRO)
             self.data["PRO"] = self.PRO.expressions
@@ -181,25 +181,25 @@ class MultiOmicsData:
 
         # Build a table for each samples's clinical data
         if auto_import_clinical:
-            if len(modalities) > 1:  # TODO Has to make sure at least one GenomicData present
+            if len(omics) > 1:  # TODO Has to make sure at least one GenomicData present
                 all_samples = pd.Index([])
-                for modality in self.modalities:
-                    all_samples = all_samples.union(self.data[modality].index)
+                for omic in self.omics:
+                    all_samples = all_samples.union(self.data[omic].index)
                 self.clinical.build_clinical_samples(all_samples)
                 self.data["SAMPLES"] = self.clinical.samples
 
         # Remove duplicate genes between different multi-omics (e.g. between gene expression and lncRNA expressions
         if remove_duplicate_genes:
-            if "GE" in modalities and "LNC" in modalities:
+            if "GE" in omics and "LNC" in omics:
                 self.GE.drop_genes(set(self.GE.get_genes_list()) & set(self.LNC.get_genes_list()))
 
         self.print_sample_sizes()
 
         if process_genes_info:
-            for modality in modalities:
-                if hasattr(self[modality], "process_genes_info"):
-                    self[modality].process_genes_info()
-                    print("Processed genes info for ", modality)
+            for omic in omics:
+                if hasattr(self[omic], "process_genes_info"):
+                    self[omic].process_genes_info()
+                    print("Processed genes info for ", omic)
 
     def __getitem__(self, item):
         """
@@ -226,29 +226,29 @@ class MultiOmicsData:
         elif item == "DRU":
             return self.clinical.drugs
 
-    def match_samples(self, modalities):
+    def match_samples(self, omics):
         """
         Return the index of bcr_sample_barcodes of the intersection of samples from all modalities
 
-        :param modalities: An array of modalities
+        :param omics: An array of modalities
         :return: An pandas Index list
         """
         # TODO check that for single modalities, this fetch all patients
-        matched_samples = self.data[modalities[0]].index.copy()
+        matched_samples = self.data[omics[0]].index.copy()
 
-        for modality in modalities:
-            matched_samples = matched_samples.join(self.data[modality].index, how="inner")
+        for omic in omics:
+            matched_samples = matched_samples.join(self.data[omic].index, how="inner")
 
         return matched_samples
 
     # noinspection PyPep8Naming
-    def load_data(self, modalities, target=['pathologic_stage'],
+    def load_data(self, omics, target=['pathologic_stage'],
                   pathologic_stages=[], histological_subtypes=[], predicted_subtypes=[], tumor_normal=[],
                   samples_barcode=None):
         """
         Query and fetch the multi-omics dataset based on requested . The data matrices are row index-ed by sample barcode.
 
-        :param modalities: A list of the data modalities to load. Default "all" to select all modalities
+        :param omics: A list of the data modalities to load. Default "all" to select all modalities
         :param target: The clinical data field to include in the
         :param pathologic_stages: List. Only fetch samples having certain stages in their corresponding patient's clinical
         data. For instance, ["Stage I", "Stage II"] will only fetch samples from Stage I and Stage II patients. Default is [] which fetches all pathologic stages.
@@ -258,14 +258,14 @@ class MultiOmicsData:
         :param samples_barcode: A list of sample's barcode. If not None, only fetch data with matching bcr_sample_barcodes provided in this list
         :return: X, y
         """
-        if modalities == 'all' or modalities is None:
-            modalities = self.modalities
-        elif modalities:
-            modalities = modalities
+        if omics == 'all' or omics is None:
+            omics = self.omics
+        elif omics:
+            omics = omics
         else:
             raise Exception("Need to specify which multi-omics to retrieve")
 
-        matched_samples = self.match_samples(modalities)
+        matched_samples = self.match_samples(omics)
         if not (samples_barcode is None):
             matched_samples = samples_barcode
 
@@ -290,10 +290,10 @@ class MultiOmicsData:
 
         matched_samples = y.index
 
-        # Build data matrix for each modality, indexed by matched_samples
+        # Build data matrix for each omic, indexed by matched_samples
         X_multiomics = {}
-        for modality in modalities:
-            X_multiomics[modality] = self.data[modality].loc[matched_samples, self[modality].get_genes_list()]
+        for omic in omics:
+            X_multiomics[omic] = self.data[omic].loc[matched_samples, self[omic].get_genes_list()]
 
         return X_multiomics, y
 
@@ -305,8 +305,8 @@ class MultiOmicsData:
         return self.data["SAMPLES"].reindex(matched_samples)
 
     def print_sample_sizes(self):
-        for modality in self.data.keys():
-            print(modality, self.data[modality].shape if hasattr(self.data[modality],
+        for omic in self.data.keys():
+            print(omic, self.data[omic].shape if hasattr(self.data[omic],
                                                                  'shape') else "Didn't import data")
 
     def add_subtypes_to_patients_clinical(self, dictionary):

@@ -108,7 +108,7 @@ class Database:
     def get_functional_annotations(self, index) -> pd.DataFrame: raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, modality, index, *args) -> dict: raise NotImplementedError
+    def get_sequences(self, omic, index, *args) -> dict: raise NotImplementedError
 
     @abstractmethod
     def get_disease_assocs(self, index): raise NotImplementedError
@@ -150,7 +150,8 @@ class Annotatable:
             self.annotations.set_index(old_index, inplace=True)
 
     def annotate_sequences(self, database: Database, index, **kwargs):
-        self.annotations["Transcript sequence"] = self.annotations.index.map(database.get_sequences(modality=self.get_modality(), index=index))
+        self.annotations["Transcript sequence"] = self.annotations.index.map(
+            database.get_sequences(omic=self.get_name(), index=index))
 
 
     @abstractmethod
@@ -227,14 +228,14 @@ class GENCODE(Database):
         df['transcript_id'] = df['transcript_id'].str.replace("[.].*", "")
         return df
 
-    def get_sequences(self, modality, index="gene_id"):
+    def get_sequences(self, omic, index):
         # Parse lncRNA & mRNA fasta
-        if modality == "GE":
+        if omic == "GE":
             fasta_file = self.file_resources["transcripts.fa"]
-        elif modality == "LNC":
+        elif omic == "LNC":
             fasta_file = self.file_resources["lncRNA_transcripts.fa"]
         else:
-            raise Exception("The modality argument must be one of 'LNC', 'GE'")
+            raise Exception("The omic argument must be one of 'LNC', 'GE'")
 
         seq_dict = {}
         for record in SeqIO.parse(fasta_file, "fasta"):
@@ -323,7 +324,7 @@ class MirBase(Database):
 
         return mirbase_aliases
 
-    def get_sequences(self, modality=None, index="gene_name", *args) -> dict:
+    def get_sequences(self, omic, index, *args) -> dict:
         seq_dict = {}
         for record in SeqIO.parse(self.file_resources["hairpin.fa"], "fasta"):
             gene_name = str(record.id)
@@ -421,7 +422,7 @@ class EnsembleGenes(Database, BioMartManager):
             .apply(concat_uniques_agg).to_dict()
         return geneid_to_genename
 
-    def get_functional_annotations(self, modality, index):
+    def get_functional_annotations(self, omic, index):
         geneid_to_go = self.df[self.df["go_id"].notnull()]\
             .groupby(index)["go_id"]\
             .apply(lambda x: "|".join(x.unique())).to_dict()

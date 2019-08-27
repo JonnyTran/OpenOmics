@@ -85,7 +85,7 @@ class ExpressionData:
         for gene in genes_to_drop:
             self.features.remove(gene)
 
-    def get_modality(self):
+    def get_name(self):
         raise NotImplementedError
 
     def get_genes_list(self):
@@ -104,7 +104,7 @@ class LncRNAs(ExpressionData, Annotatable):
         super().__init__(cohort_name, file_path, columns=columns, index=index, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          transposed=transposed, log2_transform=log2_transform)
 
-    def get_modality(self):
+    def get_name(self):
         return "LNC"
 
     def preprocess_table(self, df:pd.DataFrame, columns:str, key:str, transposed):
@@ -627,7 +627,7 @@ class MicroRNAs(ExpressionData, Annotatable):
         super().__init__(cohort_name, file_path, columns=columns, index=index, import_sequences=import_sequences, replace_U2T=replace_U2T,
                          log2_transform=log2_transform)
 
-    def get_modality(self):
+    def get_name(self):
         return "MIR"
 
     def process_target_scan(self, targetScan_folder_path):
