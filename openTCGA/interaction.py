@@ -11,7 +11,7 @@ class Interactions(Database):
 
 
 class LncBase(Interactions, Database):
-    def __init__(self, import_folder) -> None:
+    def __init__(self, import_folder, file_resources, column_rename_dict) -> None:
         if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
             raise NotADirectoryError(import_folder)
         self.folder_path = import_folder
