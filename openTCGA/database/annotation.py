@@ -302,10 +302,10 @@ class MirBase(Database):
                                    names=["RNAcentral id", "database", "mirbase id", "species", "RNA type", "gene name"],
                                    # dtype="O",
                                    index_col="mirbase id")
-
-        mirbase_id["species"] = mirbase_id["species"].astype("O")
-        if self.species is not None:
-            mirbase_id = mirbase_id[mirbase_id["species"] == self.species]
+        #
+        # mirbase_id["species"] = mirbase_id["species"].astype("O")
+        # if self.species is not None:
+        #     mirbase_id = mirbase_id[mirbase_id["species"] == self.species]
 
         mirbase_name = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
                                      names=["mirbase id", "gene_name"], dtype="O")
