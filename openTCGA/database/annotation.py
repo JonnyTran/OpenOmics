@@ -281,19 +281,39 @@ class GENCODE(Database):
 
 class MirBase(Database):
 
-    def __init__(self, import_folder, file_resources, column_rename_dict=None, import_sequences="all", replace_U2T=True):
+    def __init__(self, import_folder, RNAcentral_folder, file_resources=None, column_rename_dict=None, import_sequences="all", replace_U2T=True):
         if file_resources is None:
             file_resources = {}
             file_resources["aliases.txt"] = os.path.join(import_folder, "aliases.txt")
             file_resources["hairpin.fa"] = os.path.join(import_folder, "hairpin.fa")
+            file_resources["rnacentral.mirbase.tsv"] = os.path.join(RNAcentral_folder, "mirbase.tsv")
+            file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(RNAcentral_folder, "rnacentral_rfam_annotations.tsv")
 
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
         super().__init__(import_folder, file_resources, column_rename_dict)
 
     def load_data(self, file_resources, **kwargs) -> pd.DataFrame:
-        return pd.read_table(file_resources["aliases.txt"],
+        mirbase_id = pd.read_table(file_resources["rnacentral.mirbase.tsv"],
+                                   low_memory=True, header=None,
+                                   names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
+                                          "gene name"],
+                                   index_col="mirbase id")
+        mirbase_id = mirbase_id[mirbase_id["species"] == 9606]
+
+        mirbase_name = pd.read_table(file_resources["aliases.txt"],
                                 low_memory=True, header=None, names=["mirbase id", "gene_name"], dtype="O")
+        mirbase_name = mirbase_name.join(mirbase_id, on="mirbase id", how="inner")
+
+        # Expanding miRNA names in each MirBase Ascension ID
+        s = mirbase_name.apply(lambda x: pd.Series(x['miRNA name'].split(";")[:-1]), axis=1).stack().reset_index(
+            level=1, drop=True)
+        s.name = "miRNA name"
+        mirbase_name = mirbase_name.drop('miRNA name', axis=1).join(s)
+        mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.lower()
+        mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.replace("-3p.*|-5p.*", "")
+
+        return mirbase_name
 
     def get_sequences(self, modality=None, index="gene_name", *args) -> dict:
         seq_dict = {}
