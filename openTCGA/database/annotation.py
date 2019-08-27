@@ -292,7 +292,7 @@ class MirBase(Database):
         super().__init__(import_folder, file_resources, column_rename_dict)
 
     def load_data(self, file_resources, **kwargs) -> pd.DataFrame:
-        self.df = pd.read_table(file_resources["aliases.txt"],
+        return pd.read_table(file_resources["aliases.txt"],
                                 low_memory=True, header=None, names=["mirbase id", "gene_name"], dtype="O")
 
     def get_sequences(self, modality=None, index="gene_name", *args) -> dict:
