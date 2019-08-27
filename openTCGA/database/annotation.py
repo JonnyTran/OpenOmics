@@ -298,29 +298,29 @@ class MirBase(Database):
         super().__init__(import_folder, file_resources, column_rename_dict)
 
     def load_data(self, file_resources, **kwargs) -> pd.DataFrame:
-        mirbase_id = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
+        rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
                                    names=["RNAcentral id", "database", "mirbase id", "species", "RNA type", "gene name"],
                                    # dtype="O",
                                    index_col="mirbase id")
         #
-        mirbase_id["species"] = mirbase_id["species"].astype("O")
-        if self.species is not None:
-            mirbase_id = mirbase_id[mirbase_id["species"] == str(self.species)]
+        rnacentral_mirbase["species"] = rnacentral_mirbase["species"].astype("O")
+        # if self.species is not None:
+            # rna_central_mirbase = rna_central_mirbase[rna_central_mirbase["species"] == str(self.species)]
 
-        mirbase_name = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
+        mirbase_aliases = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
                                      names=["mirbase id", "gene_name"], dtype="O")
-        mirbase_name = mirbase_name.join(mirbase_id, on="mirbase id", how="inner")
+        mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, on="mirbase id", how="inner")
 
         # # Expanding miRNA names in each MirBase Ascension ID
-        s = mirbase_name.apply(lambda x: pd.Series(x['gene_name'].split(";")[:-1]), axis=1).stack().reset_index(
+        mirna_names = mirbase_aliases.apply(lambda x: pd.Series(x['gene_name'].split(";")[:-1]), axis=1).stack().reset_index(
             level=1, drop=True)
-        s.name = "gene_name"
-        mirbase_name = mirbase_name.drop('gene_name', axis=1).join(s)
+        mirna_names.name = "gene_name"
+        mirbase_aliases = mirbase_aliases.drop('gene_name', axis=1).join(mirna_names)
 
         # mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.lower()
         # mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.replace("-3p.*|-5p.*", "")
 
-        return mirbase_name
+        return mirbase_aliases
 
     def get_sequences(self, modality=None, index="gene_name", *args) -> dict:
         seq_dict = {}
