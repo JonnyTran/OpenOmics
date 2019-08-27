@@ -498,18 +498,7 @@ class LncRNAs(ExpressionData, Annotatable):
         self.features = list(OrderedDict.fromkeys(self.features))
         self.annotations = self.annotations[~self.annotations.index.duplicated(keep='first')] # Remove duplicate genes
 
-    def initialize_annotations(self, gene_list, index):
-        if gene_list is None:
-            gene_list = self.get_genes_list()
 
-        self.annotations = pd.DataFrame(index=gene_list)
-        self.annotations.index.name = index
-
-    def annotate_genomics(self, database:Database, index, columns):
-        self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
-
-    def annotate_sequences(self, database: Database, index):
-        self.annotations["Transcript sequence"] = self.annotations.index.map(database.get_sequences(modality="LNC", index=index))
 
     def get_annotations(self):
         return self.annotations

@@ -87,25 +87,22 @@ class Annotatable:
             print(self.__class__.__str__(), "does not have network interaction data yet. (at self.network)")
             return None
 
-    @abstractmethod
-    def initialize_annotations(self, gene_list=None, index=None): raise NotImplementedError
+    def initialize_annotations(self, gene_list, index):
+        if gene_list is None:
+            gene_list = self.get_genes_list()
 
-    @abstractmethod
-    def annotate_genomics(self, database: Database, index, columns):
-        """
-        Returns a DataFrame indexed by :index:. There must be no duplicates in the index column.
+        self.annotations = pd.DataFrame(index=gene_list)
+        self.annotations.index.name = index
 
-        :param database:
-        :param index:
-        :param columns:
-        """
-        raise NotImplementedError
+    def annotate_genomics(self, database:Database, index, columns):
+        self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns), on=index)
+
+    def annotate_sequences(self, database: Database, index, **kwargs):
+        self.annotations["Transcript sequence"] = self.annotations.index.map(database.get_sequences(modality=self.get_modality(), index=index))
+
 
     @abstractmethod
     def annotate_functions(self, database: Database, index, columns): raise NotImplementedError
-
-    @abstractmethod
-    def annotate_sequences(self, database: Database, index, **kwargs): raise NotImplementedError
 
     @abstractmethod
     def annotate_interactions(self, database: Database, index): raise NotImplementedError
