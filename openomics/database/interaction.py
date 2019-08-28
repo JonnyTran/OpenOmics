@@ -82,15 +82,16 @@ class LncBase(Interactions, Dataset):
     def load_network(self, file_resources, source_index="mirna", target_index="gene_id",
                      edge_attr=["tissue", "positive_negative"], directed=True,
                      organism="Homo sapiens", tissue=None):
-        lncbase_df = pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
-        lncbase_df.replace({"species": {"Homo Sapiens": "Homo sapiens", "Mus Musculus": "Mus musculus"}}, inplace=True)
+        df = pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
+        print(self.name(), df.columns.tolist())
+        df.replace({"species": {"Homo Sapiens": "Homo sapiens", "Mus Musculus": "Mus musculus"}}, inplace=True)
 
         if organism is not None:
-            lncbase_df = lncbase_df[lncbase_df["species"].str.lower() == organism.lower()]
+            df = df[df["species"].str.lower() == organism.lower()]
         if tissue is not None:
-            lncbase_df = lncbase_df[lncbase_df["tissue"].str.lower() == tissue.lower()]
+            df = df[df["tissue"].str.lower() == tissue.lower()]
 
-        lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source=source_index, target=target_index,
+        lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(df, source=source_index, target=target_index,
                                                                edge_attr=edge_attr,
                                                                create_using=nx.DiGraph() if directed else nx.Graph())
         return lncBase_lncRNA_miRNA_network
@@ -127,14 +128,16 @@ class MiRTarBase(Interactions):
 
     def load_network(self, source_index="miRNA", target_index="Target Gene", edge_attr=["Support Type"], directed=True,
                      rename_dict=None, species="Homo sapiens"):
-        table = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
+        df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"], low_memory=True)
+        print(self.name(), df.columns.tolist())
+
         if species:
-            table = table[table["Species (Target Gene)"].str.lower() == species.lower()]
+            df = df[df["Species (Target Gene)"].str.lower() == species.lower()]
 
         if self.strip_mirna_name:
-            table['miRNA'] = table['miRNA'].str.lower()
-            table['miRNA'] = table['miRNA'].str.replace("-3p.*|-5p.*", "")
-        mir_target_network = nx.from_pandas_edgelist(table, source=source_index, target=target_index,
+            df['miRNA'] = df['miRNA'].str.lower()
+            df['miRNA'] = df['miRNA'].str.replace("-3p.*|-5p.*", "")
+        mir_target_network = nx.from_pandas_edgelist(df, source=source_index, target=target_index,
                                                      edge_attr=edge_attr,
                                                      create_using=nx.DiGraph() if directed else nx.Graph())
         return mir_target_network
@@ -158,6 +161,8 @@ class TargetScan(Interactions, Dataset):
                      edge_attr=["tissue", "positive_negative"], directed=True, species=9606):
         self.df = self.process_miR_family_info_table(file_resources, species)
         interactions_df = self.process_interactions_table(file_resources, self.df, species)
+        print(self.name(), interactions_df.columns.tolist())
+
         mir_target_network = nx.from_pandas_edgelist(interactions_df, source=source_index, target=target_index,
                                                      create_using=nx.DiGraph() if directed else nx.Graph())
         return mir_target_network
