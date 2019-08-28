@@ -10,3 +10,4 @@ h5py
 requests
 setuptools
 bioservices
+itsdangerous

@@ -1,3 +1,4 @@
 # OS Generated
 .DS_Store*
 .idea/*
+*.ipynb
