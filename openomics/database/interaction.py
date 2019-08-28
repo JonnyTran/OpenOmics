@@ -172,6 +172,16 @@ class TargetScan(Interactions, Dataset):
         return miR_Family_Info_df
 
     def process_interactions_table(self, file_resources, targetScan_family_df, species):
+        """
+        This functions joins the interactions data table between miR Family and targets, and
+        Args:
+            file_resources:
+            targetScan_family_df:
+            species:
+
+        Returns:
+
+        """
         # Load data frame from file
         interactions_df = pd.read_table(file_resources["Predicted_Targets_Info.default_predictions.txt"],
                                         delimiter='\t', low_memory=True)
@@ -185,7 +195,7 @@ class TargetScan(Interactions, Dataset):
 
         # map miRBase ID names to miR Family
         targetScan_family_df.rename(columns={'miR family': 'miR Family'}, inplace=True)
-        interactions_df = pd.merge(interactions_df, targetScan_family_df, how='inner', on="miR Family")
+        interactions_df = pd.merge(interactions_df, targetScan_family_df, how='left', on="miR Family")
         print(interactions_df.info())
         interactions_df = interactions_df[["MiRBase ID", "Gene Symbol"]]
 
