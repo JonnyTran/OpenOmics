@@ -16,13 +16,16 @@ DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
 
 class Database:
-    def __init__(self, import_folder, file_resources, column_rename_dict=None, **kwargs):
+    def __init__(self, import_folder, file_resources=None, col_rename=None, **kwargs):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
-            import_folder: The folder path containing the data files
-            file_resources: A dictionary where keys are file name and value are file paths
-            column_rename_dict: A dictionary to rename columns in the data table
+            import_folder (str):
+                The folder path containing the data files
+            file_resources (dict): default None,
+                Used to list required files for preprocessing of the database. A dictionary where keys are required filenames and value are file paths. If None, then the class constructor should automatically build the required file resources dict.
+            col_rename (dict): default None,
+                A dictionary to rename columns in the data table. If None, then automatically load defaults.
             **kwargs: Additional arguments that may be passed to load_data function
         """
         if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
@@ -35,8 +38,8 @@ class Database:
         self.import_folder = import_folder
         self.file_resources = file_resources
         self.df = self.load_data(file_resources, **kwargs)
-        if column_rename_dict is not None:
-            self.df.rename(columns=column_rename_dict, inplace=True)
+        if col_rename is not None:
+            self.df.rename(columns=col_rename, inplace=True)
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
     def name(self):
@@ -80,7 +83,7 @@ class Database:
         return df
 
     @abstractmethod
-    def load_data(self, file_resources: dict, *args) -> pd.DataFrame:
+    def load_data(self, file_resources: dict, **kwargs) -> pd.DataFrame:
         """
         Handles data preprocessing given the file_resources input, and returns a DataFrame.
 
@@ -181,7 +184,7 @@ class RNAcentral(Database):
                            'external id': 'transcript_id',
                            'GO terms': 'go_id'}
 
-    def __init__(self, import_folder, file_resources=None, column_rename_dict=None, species=9606):
+    def __init__(self, import_folder, file_resources=None, col_rename=None, species=9606):
         self.species = species
 
         if file_resources is None:
@@ -190,7 +193,10 @@ class RNAcentral(Database):
                                                                           "rnacentral_rfam_annotations.tsv")
             file_resources["gencode.tsv"] = os.path.join(import_folder, "gencode.tsv")
 
-        super().__init__(import_folder, file_resources, self.COLUMNS_RENAME_DICT)
+        if col_rename is None:
+            col_rename = self.COLUMNS_RENAME_DICT
+
+        super().__init__(import_folder, file_resources, col_rename)
 
     def load_data(self, file_resources):
         go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
@@ -219,7 +225,8 @@ class RNAcentral(Database):
 
 
 class GENCODE(Database):
-    def __init__(self, import_folder, file_resources=None, column_rename_dict=None, import_sequences="all", replace_U2T=True) -> None:
+    def __init__(self, import_folder, file_resources=None, col_rename=None, import_sequences="all",
+                 replace_U2T=True) -> None:
         if file_resources is None:
             file_resources = {}
             file_resources["long_noncoding_RNAs.gtf"] = os.path.join(import_folder, "gencode.v29.long_noncoding_RNAs.gtf")
@@ -229,7 +236,7 @@ class GENCODE(Database):
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
 
-        super().__init__(import_folder, file_resources, column_rename_dict=None)
+        super().__init__(import_folder, file_resources, col_rename=col_rename)
 
 
     def load_data(self, file_resources):
@@ -296,8 +303,20 @@ class GENCODE(Database):
 
 class MirBase(Database):
 
-    def __init__(self, import_folder, RNAcentral_folder, file_resources=None, column_rename_dict=None,
-                 import_sequences="all", replace_U2T=True, species=9606):
+    def __init__(self, import_folder, RNAcentral_folder, file_resources=None, col_rename=None,
+                 species=9606, import_sequences="all", replace_U2T=True):
+        """
+
+        Args:
+            import_folder:
+            RNAcentral_folder:
+            file_resources:
+            col_rename:
+            species:
+            import_sequences (str): {"longest", "shortest", "all"}
+                Whether to select the longest, shortest, or a list of all transcript sequences when aggregating transcript sequences by gene_id or gene_name.
+            replace_U2T:
+        """
         if file_resources is None:
             file_resources = {}
             file_resources["aliases.txt"] = os.path.join(import_folder, "aliases.txt")
@@ -308,7 +327,7 @@ class MirBase(Database):
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
         self.species = species
-        super().__init__(import_folder, file_resources, column_rename_dict)
+        super().__init__(import_folder, file_resources, col_rename)
 
     def load_data(self, file_resources, **kwargs) -> pd.DataFrame:
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
@@ -356,7 +375,7 @@ class MirBase(Database):
                 else:
                     if len(seq_dict[gene_name]) < len(sequence_str):
                         seq_dict[gene_name] = sequence_str
-            elif self.import_sequences == "multi":
+            elif self.import_sequences == "all":
                 if gene_name not in seq_dict:
                     seq_dict[gene_name] = [sequence_str, ]
                 else:
@@ -403,7 +422,7 @@ class BioMartManager:
         return df
 
 
-class EnsembleGenes(Database, BioMartManager):
+class EnsembleGenes(BioMartManager, Database):
     COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
                            'external_gene_name': 'gene_name',
                            'ensembl_transcript_id': 'transcript_id',
@@ -441,7 +460,7 @@ class EnsembleGenes(Database, BioMartManager):
         return geneid_to_go
 
 class EnsembleGeneSequences(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=None) -> None:
+    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=False) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
         self.attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
@@ -451,7 +470,7 @@ class EnsembleGeneSequences(EnsembleGenes):
                        inplace=True)
         
 class EnsembleTranscriptSequences(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=None) -> None:
+    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=False) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
         self.attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank', 'coding_transcript_flank',
@@ -462,7 +481,7 @@ class EnsembleTranscriptSequences(EnsembleGenes):
                        inplace=True)
 
 class EnsembleSNP(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=None) -> None:
+    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=False) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
         self.attributes = ['variation_name', 'allele', 'minor_allele',
@@ -471,7 +490,7 @@ class EnsembleSNP(EnsembleGenes):
                                      filename=self.filename)
 
 class EnsembleSomaticVariation(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=None) -> None:
+    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=False) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
         self.attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',

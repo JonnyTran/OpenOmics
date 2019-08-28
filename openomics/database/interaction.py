@@ -19,12 +19,18 @@ class Interactions(Database):
 
 
 class LncBase(Interactions, Database):
-    def __init__(self, import_folder, file_resources, column_rename_dict=None) -> None:
+    COLUMNS_RENAME_DICT = {"geneId": "gene_id",
+                           "geneName": "gene_name"}
+
+    def __init__(self, import_folder, file_resources=None, col_rename=None) -> None:
         if file_resources is None:
             file_resources = {}
             file_resources["LncBasev2_download.csv"] = os.path.join(import_folder, "LncBasev2_download.csv")
 
-        super().__init__(import_folder, file_resources, column_rename_dict)
+        if col_rename is None:
+            col_rename = self.COLUMNS_RENAME_DICT
+
+        super().__init__(import_folder, file_resources, col_rename)
 
     def load_data(self, file_resources) -> pd.DataFrame:
         return pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
@@ -34,7 +40,7 @@ class LncBase(Interactions, Database):
                                                  index=self.df["geneId"]).to_dict()
         return gene_id_to_gene_name_dict
 
-    def get_interactions(self, source_index="mirna", target_index="geneId", edge_attr=["tissue", "positive_negative"],
+    def get_interactions(self, source_index="mirna", target_index="gene_id", edge_attr=["tissue", "positive_negative"],
                          organism="Homo sapiens", tissue=None, rename_dict=None, ):
         lncbase_df = self.df
 
