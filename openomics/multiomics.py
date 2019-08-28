@@ -1,6 +1,7 @@
 import os
 
 import pandas as pd
+
 from openomics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
 from openomics.expression import MessengerRNA, MicroRNA, Protein, LncRNA, ExpressionData
@@ -339,7 +340,7 @@ class MultiOmicsData:
 
         add_subtypes_to_patients_clinical(dict(zip(<list of patient barcodes>, <list of corresponding patient's subtypes>)))
 
-        Adding a field to the patients clinical data allows open-omics to query the patients data through the
+        Adding a field to the patients clinical data allows openomics to query the patients data through the
         .load_data(predicted_subtypes=[]) parameter,
 
         :param dictionary: A dictionary mapping patient's barcode to a subtype

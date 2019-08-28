@@ -1,5 +1,5 @@
 # open-omics 
-[![Documentation Status](https://readthedocs.org/projects/open-omics/badge/?version=latest)](https://open-omics.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/openTCGA/badge/?version=latest)](https://openTCGA.readthedocs.io/en/latest/?badge=latest)
 
 This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data. 
 By providing a series of data manipulation tools, open-omics facilitates the common coding tasks when preparing data for bioinformatics analysis.
@@ -52,7 +52,7 @@ The microRNA and lncRNA data requires additional external databases, e.g. Target
 
 
 ```python
-from open-omics.multiomics import MultiOmicsData
+from openomics.multiomics import MultiOmicsData
 ```
 
 ## Import TCGA LUAD data downloaded from TCGA-Assembler
