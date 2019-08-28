@@ -9,7 +9,7 @@ from openTCGA.image import WholeSlideImage
 
 
 class MultiOmicsData:
-    def __init__(self, cohort_name: str, cohort_folder: str, omics: list, remove_duplicate_genes=True,
+    def __init__(self, cohort_name: str, cohort_folder: str, omics:list=None, remove_duplicate_genes=True,
                  import_clinical=True):
 
         """
