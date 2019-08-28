@@ -9,20 +9,20 @@ from openTCGA.database.annotation import *
 
 
 class ExpressionData:
-    def __init__(self, cohort_name, level, file_path, columns, index, transposed=True, log2_transform=False):
+    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of expression data tables while providing indices to the TCGA
         samples and gene name to the expressions.
             Args:
                 cohort_name (str): the cohort code name string
-                level (str): {"gene_id", "transcript_id", "peptide_id", "gene_name", "trascript_name", "peptide_name"}
+                index (str): {"gene_id", "transcript_id", "peptide_id", "gene_name", "trascript_name", "peptide_name"}
                     Chooses the level of the gene/transcript/peptide of the genes list in this expression data. The expression DataFrame's index will be renamed to this.
                 file_path (str):
                     Path of the table file to import.
                 columns (str): a regex string
                     A regex string to import column names from the table. Columns names imported are string match, separated by "|".
-                index (str):
+                genes_col_name (str):
                     Index column name of expression data which is used to index the genes list
                 transposed (bool): default True
                     If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
@@ -36,10 +36,9 @@ class ExpressionData:
         else:
             raise FileNotFoundError(file_path)
 
-        self.level = level
         self.index = index
-        self.expressions = self.preprocess_table(table, columns, index, transposed)
-        self.expressions.index.name = self.level
+        self.expressions = self.preprocess_table(table, columns, genes_col_name, transposed)
+        self.expressions.index.name = self.index
 
         if log2_transform:
             self.expressions = self.expressions.applymap(self.log2_transform)
@@ -104,15 +103,15 @@ class ExpressionData:
 
 
 class LncRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, level, file_path, columns, index, transposed=True, log2_transform=False):
+    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
         """
         :param file_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
 
         Args:
             level:
         """
-        super().__init__(cohort_name, None, file_path, columns=columns, index=index, transposed=transposed,
-                         log2_transform=log2_transform)
+        super().__init__(cohort_name, None, file_path, columns=columns, genes_col_name=genes_col_name,
+                         transposed=transposed, log2_transform=log2_transform)
 
     @classmethod
     def name(self):
@@ -460,8 +459,9 @@ class LncRNA(ExpressionData, Annotatable):
 
 
 class MessengerRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, level, file_path, columns, index, transposed=True, log2_transform=False):
-        super().__init__(cohort_name, level, file_path, columns=columns, index=index, transposed=transposed, log2_transform=log2_transform)
+    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
+        super().__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
+                         transposed=transposed, log2_transform=log2_transform)
 
     @classmethod
     def name(self):
@@ -636,8 +636,9 @@ class MessengerRNA(ExpressionData, Annotatable):
 
 
 class MicroRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, level, file_path, columns, index, transposed=True, log2_transform=False):
-        super().__init__(cohort_name, level, file_path, columns=columns, index=index, transposed=transposed, log2_transform=log2_transform)
+    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
+        super().__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
+                         transposed=transposed, log2_transform=log2_transform)
 
     @classmethod
     def name(self):
@@ -833,8 +834,9 @@ class MicroRNA(ExpressionData, Annotatable):
 
 
 class Protein(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, level, file_path, columns, index, transposed=True, log2_transform=False):
-        super().__init__(cohort_name, level, file_path, columns=columns, index=index, transposed=transposed, log2_transform=log2_transform)
+    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
+        super().__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
+                         transposed=transposed, log2_transform=log2_transform)
 
     @classmethod
     def name(self):
