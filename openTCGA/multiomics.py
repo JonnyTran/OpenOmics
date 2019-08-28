@@ -201,7 +201,7 @@ class MultiOmicsData:
         if initialize_annotations:
             omic.initialize_annotations(None, omic.index)
 
-        print(omic, self.data[omic].shape if hasattr(self.data[omic], 'shape') else ": None")
+        print(omic, self.data[omic.name()].shape if hasattr(self.data[omic.name()], 'shape') else ": None")
 
     def build_samples(self):
         if len(self.omics_list) > 1:  # make sure at least one ExpressionData present
