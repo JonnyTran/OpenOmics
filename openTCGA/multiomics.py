@@ -5,6 +5,7 @@ import pandas as pd
 from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
 from openTCGA.expression import MessengerRNA, MicroRNA, Protein, LncRNA, ExpressionData
+from openTCGA.genomic import SomaticMutation, CopyNumberVariation, DNAMethylation
 from openTCGA.image import WholeSlideImage
 
 
@@ -48,20 +49,17 @@ class MultiOmicsData:
         self.cancer_type = cohort_name
         self.omics_list = omics if omics is not None else []
 
-        # LOADING DATA FROM FILES
+        # This is a data dictionary accessor to retrieve DataFrame's
         self.data = {}
 
         if import_clinical or (ClinicalData.name() in omics):
-            self.clinical = ClinicalData(cohort_name, os.path.join(cohort_folder, "clinical/"))
+            self.clinical = ClinicalData(cohort_name, folder_path=os.path.join(cohort_folder, "clinical/"))
+
             self.data["PATIENTS"] = self.clinical.patient
             if hasattr(self.clinical, "biospecimen"):
                 self.data["BIOSPECIMENS"] = self.clinical.biospecimen
             if hasattr(self.clinical, "drugs"):
                 self.data["DRUGS"] = self.clinical.drugs
-
-        # if "WSI" in omics:
-        #     self.WSI = WholeSlideImage(cohort_name, os.path.join(cohort_folder, "wsi/"))
-        #     self.data["WSI"] = self.WSI
 
         # if "GE" in omics:
         #     table_path_GE = os.path.join(cohort_folder, "gene_exp", "geneExp.txt")
@@ -173,17 +171,23 @@ class MultiOmicsData:
         self.print_sample_sizes()
 
     def remote_duplate_genes(self):
+        """
+        Removes duplicate genes between any omics such that the index across all omics has no duplicates.
+        """
         for omic_A in self.omics_list:
             for omic_B in self.omics_list:
                 if omic_A != omic_B:
                     self.omic_A.drop_genes(set(self.omic_A.get_genes_list()) & set(self.omic_B.get_genes_list()))
 
-    def add_omic(self, omic:ExpressionData):
+    def add_omic(self, omic:ExpressionData, initialize_annotations=True):
         """
         Adds an omic object to the Multiomics such that the samples in omic matches the samples existing in the other omics.
 
         Args:
-            omic (openTCGA.expression.ExpressionData): The omic to add, e.g., MessengerRNA, MicroRNA, LncRNA, etc.
+            omic (openTCGA.expression.ExpressionData):
+                The omic to add, e.g., MessengerRNA, MicroRNA, LncRNA, etc.
+            initialize_annotations (bool): default True.
+                If true, initializes the annotations dataframe in the omic object
         """
         self.__setattr__(omic.name(), omic)
 
@@ -192,6 +196,12 @@ class MultiOmicsData:
 
         # dictionary as data accessor to the expression data
         self.data[omic.name()] = omic.expressions
+
+        # Initialize annotations
+        if initialize_annotations:
+            omic.initialize_annotations(None, omic.index)
+
+        print(omic, self.data[omic].shape if hasattr(self.data[omic], 'shape') else ": None")
 
     def build_samples(self):
         if len(self.omics_list) > 1:  # make sure at least one ExpressionData present
@@ -204,9 +214,10 @@ class MultiOmicsData:
 
     def __getitem__(self, item:str):
         """
-        This function allows the MultiOmicData class objects to access individual omics by a dictionary lookup
+        This function allows the MultiOmicData class objects to access individual omics by a dictionary lookup, e.g.
+
         Args:
-            item (str): a string of
+            item (str): a string of the class name
         """
         if item.lower() == MessengerRNA.name().lower():
             return self.__getattribute__(MessengerRNA.name())
@@ -217,17 +228,21 @@ class MultiOmicsData:
         elif item.lower() == LncRNA.name().lower():
             return self.__getattribute__(LncRNA.name())
 
-        elif item.lower() == WholeSlideImage.name():
+        elif item.lower() == WholeSlideImage.name().lower():
             return self.__getattribute__(WholeSlideImage.name())
 
-        elif item.lower() == "SNP":
-            return self.SNP
-        elif item.lower() == "CNV":
-            return self.CNV
-        elif item.lower() == "DNA":
-            return self.DNA
+        elif item.lower() == SomaticMutation.name().lower():
+            return self.__getattribute__(SomaticMutation.name())
+
+        elif item.lower() == CopyNumberVariation.name().lower():
+            return self.__getattribute__(CopyNumberVariation.name())
+
+        elif item.lower() == DNAMethylation.name().lower():
+            return self.__getattribute__(DNAMethylation.name())
+
         elif item.lower() == Protein.name().lower():
             return self.__getattribute__(Protein.name())
+
         elif item.lower() == "CLI":
             return self.clinical.patient
         elif item.lower() == "DRU":

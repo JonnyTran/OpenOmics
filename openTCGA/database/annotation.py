@@ -45,7 +45,7 @@ class Database:
     def list_databases(self):
         return DEFAULT_LIBRARIES
 
-    def get_genomic_annotations(self, index:str, columns:list) -> pd.DataFrame:
+    def get_annotations(self, index:str, columns:list) -> pd.DataFrame:
         """
         Returns the Database's DataFrame such that it's indexed by :param index:, which then applies a groupby operation
         and aggregates all other columns by concatenating all unique values.
@@ -145,20 +145,23 @@ class Annotatable:
             columns (list): a list of column name to join to the annotations
         """
         if index == self.annotations.index.name:
-            self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns),
-                                                     on=index,
-                                                     rsuffix=database.name())
+            self.annotations = self.annotations.join(database.get_annotations(index, columns),
+                                                     on=index, rsuffix="_")
         else:
             old_index = self.annotations.index.name
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(index, inplace=True)
-            self.annotations = self.annotations.join(database.get_genomic_annotations(index, columns)\
-                                                        .reset_index()\
-                                                        .set_index(index),
-                                                     on=index,
-                                                     rsuffix=database.name())
+            self.annotations = self.annotations.join(database.get_annotations(index, columns),
+                                                     on=index, rsuffix="_")
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(old_index, inplace=True)
+
+        # Merge columns if the database DataFrame has overlapping columns with existing column
+        duplicate_columns = [col for col in self.annotations.columns if col[-1] == "_"]
+        for col in duplicate_columns:
+            self.annotations[col.strip("_")].fillna(self.annotations[col], inplace=True, axis=0)
+            # self.annotations.drop(columns=col, inplace=True)
+
 
     def annotate_sequences(self, database: Database, index, omic, **kwargs):
         self.annotations["Transcript sequence"] = self.annotations.index.map(

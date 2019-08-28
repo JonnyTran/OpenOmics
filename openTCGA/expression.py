@@ -28,6 +28,7 @@ class ExpressionData:
         else:
             raise FileNotFoundError(file_path)
 
+        self.index = index
         self.expressions = self.preprocess_table(table, columns, index, transposed)
 
         if log2_transform:

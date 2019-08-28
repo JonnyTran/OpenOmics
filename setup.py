@@ -11,10 +11,10 @@ URL = 'https://github.com/JonnyTran/openTCGA'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Nhat Tran'
 REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.4'
+VERSION = '0.6'
 
 REQUIRED = [
-    'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'h5py'
+    'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py'
 ]
 
 here = os.path.abspath(os.path.dirname(__file__))
