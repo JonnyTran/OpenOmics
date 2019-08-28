@@ -171,37 +171,37 @@ class TargetScan(Interactions, Dataset):
         miR_Family_Info_df.set_index("MiRBase ID", inplace=True)
         return miR_Family_Info_df
 
-    def process_interactions_table(self, file_resources, targetScan_family_df, species):
+    def process_interactions_table(self, file_resources, family_to_miR_df, species):
         """
         This functions joins the interactions data table between miR Family and targets, and
         Args:
             file_resources:
-            targetScan_family_df:
+            family_to_miR_df:
             species:
 
         Returns:
 
         """
         # Load data frame from file
-        interactions_df = pd.read_table(file_resources["Predicted_Targets_Info.default_predictions.txt"],
-                                        delimiter='\t', low_memory=True)
+        family_interactions_df = pd.read_table(file_resources["Predicted_Targets_Info.default_predictions.txt"],
+                                               delimiter='\t', low_memory=True)
 
         # Select only homo sapiens miRNA-target pairs
         if species:
-            interactions_df = interactions_df[interactions_df["Species ID"] == species]
+            family_interactions_df = family_interactions_df[family_interactions_df["Species ID"] == species]
 
-        interactions_df = interactions_df.filter(items=["miR Family", "Gene Symbol"], axis="columns")
-        targetScan_family_df = targetScan_family_df.filter(items=['miR family', 'MiRBase ID'], axis="columns")
+        family_interactions_df = family_interactions_df.filter(items=["miR Family", "Gene Symbol"], axis="columns")
+        family_to_miR_df = family_to_miR_df.filter(items=['miR family', 'MiRBase ID'], axis="columns")
+        family_to_miR_df.rename(columns={'miR family': 'miR Family'}, inplace=True)
 
         # map miRBase ID names to miR Family
-        targetScan_family_df.rename(columns={'miR family': 'miR Family'}, inplace=True)
-        interactions_df = pd.merge(interactions_df, targetScan_family_df, how='left', on="miR Family")
-        print(interactions_df.info())
-        interactions_df = interactions_df[["MiRBase ID", "Gene Symbol"]]
+        family_interactions_df = pd.merge(family_interactions_df, family_to_miR_df, how='right', on="miR Family")
+        print(family_interactions_df.info())
+        family_interactions_df = family_interactions_df[["MiRBase ID", "Gene Symbol"]]
 
         # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
         if self.rnaseq_miRNA_rename:
-            interactions_df['MiRBase ID'] = interactions_df['MiRBase ID'].str.lower()
-            interactions_df['MiRBase ID'] = interactions_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
+            family_interactions_df['MiRBase ID'] = family_interactions_df['MiRBase ID'].str.lower()
+            family_interactions_df['MiRBase ID'] = family_interactions_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
 
-        return interactions_df
+        return family_interactions_df
