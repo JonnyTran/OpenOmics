@@ -175,7 +175,6 @@ class TargetScan(Interactions, Dataset):
                                                               'Family Conservation?', 'MiRBase Accession'],
                                                        axis="columns")
         miR_Family_Info_df['MiRBase ID'] = miR_Family_Info_df['MiRBase ID'].astype(str)
-        miR_Family_Info_df.set_index("MiRBase ID", inplace=True)
         return miR_Family_Info_df
 
     def process_interactions_table(self, file_resources, family_to_miR_df, species):
