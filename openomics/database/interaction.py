@@ -19,12 +19,15 @@ class Interactions(Database):
 
 
 class LncBase(Interactions, Database):
-    def __init__(self, import_folder, file_resources, column_rename_dict) -> None:
-        if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
-            raise NotADirectoryError(import_folder)
-        self.folder_path = import_folder
-        self.df = pd.read_table(os.path.join(import_folder, "LncBasev2_download.csv"))
-        print(self.df.columns.tolist())
+    def __init__(self, import_folder, file_resources, column_rename_dict=None) -> None:
+        if file_resources is None:
+            file_resources = {}
+            file_resources["LncBasev2_download.csv"] = os.path.join(import_folder, "LncBasev2_download.csv")
+
+        super().__init__(import_folder, file_resources, column_rename_dict)
+
+    def load_data(self, file_resources) -> pd.DataFrame:
+        return pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
 
     def get_rename_dict(self, from_index, to_index):
         gene_id_to_gene_name_dict = pd.Series(self.df["geneName"].values,

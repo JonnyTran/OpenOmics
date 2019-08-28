@@ -80,12 +80,12 @@ class Database:
         return df
 
     @abstractmethod
-    def load_data(self, file_resources, **kwargs) -> pd.DataFrame:
+    def load_data(self, file_resources: dict, *args) -> pd.DataFrame:
         """
-        Handles data preprocessing given the file_resources input, and returns a DataFrame
+        Handles data preprocessing given the file_resources input, and returns a DataFrame.
 
         Args:
-            file_resources (dict): A dict with file name keys and file path values.
+            file_resources (dict): A dict with keys as filenames and values as full file path.
             **kwargs: Optional
         """
         raise NotImplementedError
@@ -368,6 +368,7 @@ class MirBase(Database):
 
 
 class BioMartManager:
+    __class__ = ABCMeta
 
     def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None):
         bm = BioMart(host=host)

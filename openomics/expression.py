@@ -806,28 +806,6 @@ class MicroRNA(ExpressionData, Annotatable):
         self.gene_info["Disease association"] = self.gene_info.index.map(
             self.mirnadisease.groupby("miRNA name")["Disease name"].apply('|'.join).to_dict())
 
-        self.gene_info["locus_type"] = "microRNA"
-
-        # self.gene_info.rename(columns={'Mature sequence': 'Transcript sequence'}, inplace=True)
-        self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(
-            lambda x: len(x) if type(x) is str else None)
-
-        # Process gene location info
-        self.gene_info["Chromosome"] = "chr" + self.gene_info["location"].str.split("p|q", expand=True)[0]
-        self.gene_info["Chromosome arm"] = self.gene_info["location"].str.extract(r'(?P<arm>[pq])', expand=True)
-        self.gene_info["Chromosome region"] = self.gene_info["location"].str.split("[pq.-]", expand=True)[1]
-        self.gene_info["Chromosome band"] = self.gene_info["location"].str.split("[pq.-]", expand=True)[2]
-
-        self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(
-            lambda x: len(x) if type(x) is str else None)
-
-        # Process Annotation data
-        self.gene_info["GO Terms"] = self.gene_info["MiRBase ID"].map(
-            pd.Series(self.RNAcentral_annotations['GO terms'].values,
-                      index=self.RNAcentral_annotations['miRNA name']).to_dict())
-        self.gene_info["Rfams"] = self.gene_info["MiRBase ID"].map(
-            pd.Series(self.RNAcentral_annotations['Rfams'].values,
-                      index=self.RNAcentral_annotations['miRNA name']).to_dict())
 
     def get_annotations(self):
         return self.gene_info
