@@ -131,7 +131,7 @@ class MiRTarBase(Interactions):
 
 
 class TargetScan(Interactions, Dataset):
-    def __init__(self, import_folder, file_resources=None, source_index="mirna", target_index="gene_id",
+    def __init__(self, import_folder, file_resources=None, source_index="MiRBase ID", target_index="Gene Symbol",
                  edge_attr=["tissue", "positive_negative"], rename_dict=None, species=9606):
 
         if file_resources is None:
@@ -143,11 +143,11 @@ class TargetScan(Interactions, Dataset):
         super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict,
                          species=species)
 
-    def load_network(self, file_resources, source_index="mirna", target_index="gene_id",
+    def load_network(self, file_resources, source_index="MiRBase ID", target_index="Gene Symbol",
                      edge_attr=["tissue", "positive_negative"], species=9606):
         self.df = self.process_miR_family_info(file_resources, species)
         interactions_df = self.process_targetScan_mirna_target_interactions(file_resources, self.df, species)
-        mir_target_network = nx.from_pandas_edgelist(interactions_df, source="MiRBase ID", target="Gene Symbol",
+        mir_target_network = nx.from_pandas_edgelist(interactions_df, source=source_index, target=target_index,
                                                      create_using=nx.DiGraph())
         return mir_target_network
 
