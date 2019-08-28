@@ -7,8 +7,7 @@ class Interactions(Dataset):
     __metaclass__ = ABCMeta
 
     def __init__(self, import_folder, file_resources, source_index, target_index, edge_attr=None, directed=True,
-                 rename_dict=None,
-                 **kwargs):
+                 rename_dict=None, **kwargs):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
@@ -67,7 +66,7 @@ class LncBase(Interactions, Dataset):
             file_resources = {}
             file_resources["LncBasev2_download.csv"] = os.path.join(import_folder, "LncBasev2_download.csv")
 
-        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict, directed,
+        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, directed, rename_dict,
                          organism=organism, tissue=tissue)
 
     def get_rename_dict(self, from_index="geneId", to_index="geneName"):
@@ -119,7 +118,7 @@ class MiRTarBase(Interactions):
             file_resources = {}
             file_resources["miRTarBase_MTI.xlsx"] = os.path.join(import_folder, "miRTarBase_MTI.xlsx")
 
-        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict, directed,
+        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, directed, rename_dict,
                          species=species)
 
     def load_network(self, source_index="miRNA", target_index="Target Gene", edge_attr=["Support Type"], directed=True,
@@ -148,11 +147,11 @@ class TargetScan(Interactions, Dataset):
             file_resources["Predicted_Targets_Info.default_predictions.txt"] = os.path.join(import_folder,
                                                                                             "Predicted_Targets_Info.default_predictions.txt")
 
-        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict, directed,
+        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, directed, rename_dict,
                          species=species)
 
-    def load_network(self, file_resources, source_index="MiRBase ID", target_index="Gene Symbol", directed=True,
-                     edge_attr=["tissue", "positive_negative"], species=9606):
+    def load_network(self, file_resources, source_index="MiRBase ID", target_index="Gene Symbol",
+                     edge_attr=["tissue", "positive_negative"], directed=True, species=9606):
         self.df = self.process_miR_family_info_table(file_resources, species)
         interactions_df = self.process_interactions_table(file_resources, self.df, species)
         mir_target_network = nx.from_pandas_edgelist(interactions_df, source=source_index, target=target_index,
