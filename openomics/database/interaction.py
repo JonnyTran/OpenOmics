@@ -32,6 +32,8 @@ class Interactions(Dataset):
         self.import_folder = import_folder
         self.file_resources = file_resources
         self.network = self.load_network(file_resources, source_index, target_index, edge_attr, **kwargs)
+        if self.network is None:
+            raise Exception("Make sure load_network() returns a Networkx Graph")
         if rename_dict is not None:
             self.network = nx.relabel_nodes(self.network, rename_dict)
         print("{}: {}".format(self.name(), nx.info(self.network)))
@@ -49,10 +51,7 @@ class Interactions(Dataset):
 
 
 class LncBase(Interactions, Dataset):
-    COLUMNS_RENAME_DICT = {"geneId": "gene_id",
-                           "geneName": "gene_name"}
-
-    def __init__(self, import_folder, file_resources=None, source_index="mirna", target_index="gene_id",
+    def __init__(self, import_folder, file_resources=None, source_index="mirna", target_index="geneId",
                  edge_attr=["tissue", "positive_negative"],
                  rename_dict=None, organism="Homo sapiens", tissue=None) -> None:
         """
@@ -67,8 +66,8 @@ class LncBase(Interactions, Dataset):
             file_resources = {}
             file_resources["LncBasev2_download.csv"] = os.path.join(import_folder, "LncBasev2_download.csv")
 
-        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict, organism,
-                         tissue)
+        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict,
+                         organism=organism, tissue=tissue)
 
     def get_rename_dict(self, from_index="geneId", to_index="geneName"):
         lncbase_df = pd.read_table(self.file_resources["LncBasev2_download.csv"], low_memory=True)
@@ -89,7 +88,7 @@ class LncBase(Interactions, Dataset):
         lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source=source_index, target=target_index,
                                                                edge_attr=edge_attr,
                                                                create_using=nx.DiGraph())
-        self.network = lncBase_lncRNA_miRNA_network
+        return lncBase_lncRNA_miRNA_network
 
 
 class lncRInter(Interactions, Dataset):
@@ -109,19 +108,17 @@ class NPInter(Interactions, Dataset):
 
 
 class MiRTarBase(Interactions):
-    def __init__(self, import_folder, file_resources=None, col_rename=None):
+    def __init__(self, import_folder, file_resources=None, source_index="miRNA", target_index="Target Gene",
+                 edge_attr=["Support Type"], rename_dict=None, species="Homo sapiens"):
         if file_resources is None:
             file_resources = {}
             file_resources["miRTarBase_MTI.xlsx"] = os.path.join(import_folder, "miRTarBase_MTI.xlsx")
 
-        if col_rename is None:
-            col_rename = self.COLUMNS_RENAME_DICT
-
-        super().__init__(import_folder, file_resources, col_rename)
+        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict,
+                         species=species)
 
     def load_network(self, source_index="miRNA", target_index="Target Gene", edge_attr=["Support Type"],
-                     rename_dict=None,
-                     species="Homo sapiens"):
+                     rename_dict=None, species="Homo sapiens"):
         table = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
         if species:
             table = table[table["Species (Target Gene)"].str.lower() == species.lower()]
@@ -130,8 +127,7 @@ class MiRTarBase(Interactions):
         mir_target_network = nx.from_pandas_edgelist(table, source=source_index, target=target_index,
                                                      edge_attr=edge_attr,
                                                      create_using=nx.DiGraph())
-
-        self.network = mir_target_network
+        return mir_target_network
 
 
 class TargetScan(Interactions, Dataset):
@@ -144,7 +140,8 @@ class TargetScan(Interactions, Dataset):
             file_resources["Predicted_Targets_Info.default_predictions.txt"] = os.path.join(import_folder,
                                                                                             "Predicted_Targets_Info.default_predictions.txt")
 
-        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict, species)
+        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict,
+                         species=species)
 
     def load_network(self, file_resources, source_index="mirna", target_index="gene_id",
                      edge_attr=["tissue", "positive_negative"], species=9606):
