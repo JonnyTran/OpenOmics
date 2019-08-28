@@ -137,7 +137,7 @@ class MiRTarBase(Interactions):
         if self.strip_mirna_name:
             df['miRNA'] = df['miRNA'].str.lower()
             df['miRNA'] = df['miRNA'].str.replace("-3p.*|-5p.*", "")
-
+        print(self.name(), df.info())
         mir_target_network = nx.from_pandas_edgelist(df, source=source_index, target=target_index,
                                                      edge_attr=edge_attr,
                                                      create_using=nx.DiGraph() if directed else nx.Graph())
