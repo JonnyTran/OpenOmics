@@ -110,7 +110,7 @@ class LncRNA(ExpressionData, Annotatable):
         Args:
             level:
         """
-        super().__init__(cohort_name, None, file_path, columns=columns, genes_col_name=genes_col_name,
+        super().__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
                          transposed=transposed, log2_transform=log2_transform)
 
     @classmethod
