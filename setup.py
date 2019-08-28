@@ -5,9 +5,9 @@ from shutil import rmtree
 from setuptools import setup, Command
 
 # Package meta-data.
-NAME = 'openTCGA'
-DESCRIPTION = 'A toolkit to integrate and query the multi-omics TCGA cancer data.'
-URL = 'https://github.com/JonnyTran/openTCGA'
+NAME = 'openomics'
+DESCRIPTION = 'A toolkit to integrate, query, analyze, and visualize the multi-omics, clinical, and annotation data.'
+URL = 'https://github.com/JonnyTran/openomics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Nhat Tran'
 REQUIRES_PYTHON = '>=3.6.0'
@@ -60,8 +60,8 @@ class UploadCommand(Command):
 setup(
     name=NAME,
     version=VERSION,
-    packages=["openTCGA", "openTCGA.utils"],
-    package_dir={NAME: 'openTCGA'},
+    packages=["openomics", "openomics.utils", "openomics.utils"],
+    package_dir={NAME: 'openomics'},
     url=URL,
     license='',
     python_requires=REQUIRES_PYTHON,

@@ -2,11 +2,11 @@ import os
 
 import pandas as pd
 
-from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
+from openomics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
-from openTCGA.expression import MessengerRNA, MicroRNA, Protein, LncRNA, ExpressionData
-from openTCGA.genomic import SomaticMutation, CopyNumberVariation, DNAMethylation
-from openTCGA.image import WholeSlideImage
+from openomics.expression import MessengerRNA, MicroRNA, Protein, LncRNA, ExpressionData
+from openomics.genomic import SomaticMutation, CopyNumberVariation, DNAMethylation
+from openomics.image import WholeSlideImage
 
 
 class MultiOmicsData:
@@ -184,7 +184,7 @@ class MultiOmicsData:
         Adds an omic object to the Multiomics such that the samples in omic matches the samples existing in the other omics.
 
         Args:
-            omic (openTCGA.expression.ExpressionData):
+            omic (openomics.expression.ExpressionData):
                 The omic to add, e.g., MessengerRNA, MicroRNA, LncRNA, etc.
             initialize_annotations (bool): default True.
                 If true, initializes the annotations dataframe in the omic object
@@ -340,7 +340,7 @@ class MultiOmicsData:
 
         add_subtypes_to_patients_clinical(dict(zip(<list of patient barcodes>, <list of corresponding patient's subtypes>)))
 
-        Adding a field to the patients clinical data allows openTCGA to query the patients data through the
+        Adding a field to the patients clinical data allows openomics to query the patients data through the
         .load_data(predicted_subtypes=[]) parameter,
 
         :param dictionary: A dictionary mapping patient's barcode to a subtype

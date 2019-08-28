@@ -1,4 +1,4 @@
-from openTCGA.multiomics import MultiOmicsData
+from openomics.multiomics import MultiOmicsData
 
 folder_path = "/Users/jonny/Desktop/PycharmProjects/assn-miRNA-LUAD/data/tcga-assembler/LUAD/"
 external_data_path = "/Users/jonny/Desktop/PycharmProjects/assn-miRNA-LUAD/data/external/"

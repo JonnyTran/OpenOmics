@@ -1,5 +1,5 @@
 
-from openTCGA.database.annotation import *
+from openomics.database.annotation import *
 
 class DiseaseAssociation(Database):
 

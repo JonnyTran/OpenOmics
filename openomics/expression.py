@@ -5,7 +5,7 @@ import numpy as np
 from Bio.UniProt import GOA
 from pandas import Series
 
-from openTCGA.database.annotation import *
+from openomics.database.annotation import *
 
 
 class ExpressionData:

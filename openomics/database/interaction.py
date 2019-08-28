@@ -1,6 +1,6 @@
 import networkx as nx
 
-from openTCGA.database.annotation import *
+from openomics.database.annotation import *
 
 
 class Interactions(Database):

@@ -1,5 +1,5 @@
-from openTCGA.database.annotation import Annotatable
-from openTCGA.expression import ExpressionData
+from openomics.database.annotation import Annotatable
+from openomics.expression import ExpressionData
 
 
 class SomaticMutation(ExpressionData, Annotatable):
