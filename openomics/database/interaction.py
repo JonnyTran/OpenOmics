@@ -132,8 +132,8 @@ class MiRTarBase(Interactions):
 
 class TargetScan(Interactions, Dataset):
     def __init__(self, import_folder, file_resources=None, source_index="MiRBase ID", target_index="Gene Symbol",
-                 edge_attr=["tissue", "positive_negative"], rename_dict=None, species=9606):
-
+                 edge_attr=["tissue", "positive_negative"], rename_dict=None, species=9606, rnaseq_miRNA_rename=False):
+        self.rnaseq_miRNA_rename = rnaseq_miRNA_rename
         if file_resources is None:
             file_resources = {}
             file_resources["miR_Family_Info.txt"] = os.path.join(import_folder, "miR_Family_Info.txt")
@@ -145,28 +145,32 @@ class TargetScan(Interactions, Dataset):
 
     def load_network(self, file_resources, source_index="MiRBase ID", target_index="Gene Symbol",
                      edge_attr=["tissue", "positive_negative"], species=9606):
-        self.df = self.process_miR_family_info(file_resources, species)
-        interactions_df = self.process_targetScan_mirna_target_interactions(file_resources, self.df, species)
+        self.df = self.process_miR_family_info_table(file_resources, species)
+        interactions_df = self.process_interactions_table(file_resources, self.df, species)
         mir_target_network = nx.from_pandas_edgelist(interactions_df, source=source_index, target=target_index,
                                                      create_using=nx.DiGraph())
         return mir_target_network
 
-    def process_miR_family_info(self, file_resources, species):
+    def process_miR_family_info_table(self, file_resources, species):
         miR_Family_Info_df = pd.read_table(file_resources["miR_Family_Info.txt"], delimiter='\t')
         print(miR_Family_Info_df.columns)
         if species:
             miR_Family_Info_df = miR_Family_Info_df[miR_Family_Info_df['Species ID'] == species]
+
         # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
-        miR_Family_Info_df['MiRBase ID'] = miR_Family_Info_df['MiRBase ID'].str.lower()
-        miR_Family_Info_df['MiRBase ID'] = miR_Family_Info_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
+        if self.rnaseq_miRNA_rename:
+            miR_Family_Info_df['MiRBase ID'] = miR_Family_Info_df['MiRBase ID'].str.lower()
+            miR_Family_Info_df['MiRBase ID'] = miR_Family_Info_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
+
         miR_Family_Info_df.drop_duplicates(inplace=True)
-        miR_Family_Info_df = miR_Family_Info_df[
-            ['miR family', 'MiRBase ID', 'Seed+m8', 'Mature sequence', 'Family Conservation?', 'MiRBase Accession']]
+        miR_Family_Info_df = miR_Family_Info_df.filter(items=['miR family', 'MiRBase ID', 'Seed+m8', 'Mature sequence',
+                                                              'Family Conservation?', 'MiRBase Accession'],
+                                                       axis="columns")
         miR_Family_Info_df['MiRBase ID'] = miR_Family_Info_df['MiRBase ID'].astype(str)
         miR_Family_Info_df.set_index("MiRBase ID", inplace=True)
         return miR_Family_Info_df
 
-    def process_targetScan_mirna_target_interactions(self, file_resources, targetScan_family_df, species):
+    def process_interactions_table(self, file_resources, targetScan_family_df, species):
         # Load data frame from file
         interactions_df = pd.read_table(file_resources["Predicted_Targets_Info.default_predictions.txt"],
                                         delimiter='\t', low_memory=True)
@@ -174,7 +178,6 @@ class TargetScan(Interactions, Dataset):
         # Select only homo sapiens miRNA-target pairs
         if species:
             interactions_df = interactions_df[interactions_df["Species ID"] == species]
-            targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == species]
 
         interactions_df = interactions_df.filter(items=["miR Family", "Gene Symbol"], axis="columns")
         targetScan_family_df = targetScan_family_df.filter(items=['miR family', 'MiRBase ID'], axis="columns")
@@ -185,7 +188,8 @@ class TargetScan(Interactions, Dataset):
         interactions_df = interactions_df[["MiRBase ID", "Gene Symbol"]]
 
         # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
-        interactions_df['MiRBase ID'] = interactions_df['MiRBase ID'].str.lower()
-        interactions_df['MiRBase ID'] = interactions_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
-        interactions_df.drop_duplicates(inplace=True)
+        if self.rnaseq_miRNA_rename:
+            interactions_df['MiRBase ID'] = interactions_df['MiRBase ID'].str.lower()
+            interactions_df['MiRBase ID'] = interactions_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
+
         return interactions_df
