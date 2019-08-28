@@ -467,19 +467,6 @@ class MessengerRNA(ExpressionData, Annotatable):
     def name(self):
         return "GE"
 
-    def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
-        self.targetScan_gene_info_path = targetScan_gene_info_path
-        self.targetScan_genes_info = pd.read_table(self.targetScan_gene_info_path,
-                                                   usecols=["Transcript ID", "Gene ID", "Species ID", "Gene symbol",
-                                                            "Gene description", "3P-seq tags"])
-
-        self.targetScan_genes_info["Gene description"] = self.targetScan_genes_info["Gene description"].str.replace(" \[.*\]","")
-
-        if human_only:
-            self.targetScan_genes_info = self.targetScan_genes_info[self.targetScan_genes_info["Species ID"] == 9606]
-        self.targetScan_genes_info.drop(columns=["Species ID"], inplace=True)
-
-
     def process_HUGO_protein_coding_genes_info(self, hugo_protein_gene_names_path):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
         self.hugo_protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path,
@@ -644,84 +631,6 @@ class MicroRNA(ExpressionData, Annotatable):
     def name(self):
         return "MIR"
 
-    def process_target_scan(self, targetScan_folder_path):
-        self.targetScan_miR_family_info_path = os.path.join(targetScan_folder_path,"miR_Family_Info.txt")
-        self.targetScan_predicted_targets_path = os.path.join(targetScan_folder_path, "Predicted_Targets_Info.default_predictions.txt")
-        self.targetScan_predicted_targets_context_score_path = os.path.join(targetScan_folder_path, "Predicted_Targets_Context_Scores.default_predictions.txt")
-
-        self.process_targetscan_mirna_family()
-        self.process_targetScan_mirna_target_interactions()
-        self.process_targetScan_mirna_target_interactions_context_score()
-
-    def process_targetscan_mirna_family(self, human_only=True):
-        try:
-            targetScan_family_df = pd.read_table(self.targetScan_miR_family_info_path, delimiter='\t')
-        except Exception:
-            raise FileNotFoundError("expected TargetScan_miR_Family_Info.txt in directory mirna/TargetScan/")
-
-        if human_only:
-            targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606]
-
-        # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
-        targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.lower()
-        targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
-        targetScan_family_df.drop_duplicates(inplace=True)
-
-        targetScan_family_df = targetScan_family_df[['miR family', 'MiRBase ID', 'Seed+m8', 'Mature sequence', 'Family Conservation?', 'MiRBase Accession']]
-
-        targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].astype(str)
-
-        self.targetScan_family_df = targetScan_family_df
-        self.targetScan_family_df.index = self.targetScan_family_df['MiRBase ID']
-        self.targetScan_family_df.drop('MiRBase ID', axis=1, inplace=True)
-
-    def process_targetScan_mirna_target_interactions(self):
-        # Load data frame from file
-        try:
-            targetScan_df = pd.read_table(self.targetScan_predicted_targets_path, delimiter='\t')
-        except Exception:
-            raise FileNotFoundError("expected TargetScan_Predicted_Targets_Info_default_predictions.txt in directory mirna/TargetScan/")
-
-        try:
-            targetScan_family_df = pd.read_table(self.targetScan_miR_family_info_path, delimiter='\t')
-        except Exception:
-            raise FileNotFoundError("expected TargetScan_miR_Family_Info.txt in directory mirna/TargetScan/")
-
-        # Select only homo sapiens miRNA-target pairs
-        targetScan_df = targetScan_df[targetScan_df["Species ID"] == 9606][["miR Family", "Gene Symbol"]]
-        targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606][['miR family', 'MiRBase ID']]
-
-        # map miRBase ID names to miR Family
-        targetScan_family_df.rename(columns={'miR family': 'miR Family'}, inplace=True)
-        targetScan_df = pd.merge(targetScan_df, targetScan_family_df, how='inner', on="miR Family")
-        targetScan_df = targetScan_df[["MiRBase ID", "Gene Symbol"]]
-
-        # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
-        targetScan_df['MiRBase ID'] = targetScan_df['MiRBase ID'].str.lower()
-        targetScan_df['MiRBase ID'] = targetScan_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
-        targetScan_df.drop_duplicates(inplace=True)
-        self.targetScan_df = targetScan_df
-
-    def process_targetScan_mirna_target_interactions_context_score(self):
-        # Load data frame from file
-        try:
-            targetScan_context_df = pd.read_table(self.targetScan_predicted_targets_context_score_path, delimiter='\t')
-        except Exception:
-            raise FileNotFoundError("Expected TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt in directory mirna/TargetScan/")
-
-        # Select only homo sapiens miRNA-target pairs
-        targetScan_context_df = targetScan_context_df[targetScan_context_df["Gene Tax ID"] == 9606][
-            ["miRNA", "Gene Symbol", "weighted context++ score percentile"]]
-
-        # Use miRBase ID names
-        targetScan_context_df.rename(columns={'miRNA': 'MiRBase ID'}, inplace=True)
-
-        # Standardize miRNA names
-        targetScan_context_df['MiRBase ID'] = targetScan_context_df['MiRBase ID'].str.lower()
-        targetScan_context_df['MiRBase ID'] = targetScan_context_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
-        targetScan_context_df.drop_duplicates(inplace=True)
-        self.targetScan_context_df = targetScan_context_df
-
     def process_mirnadisease_associations(self, HMDD_miRNAdisease_path):
         self.HMDD_miRNAdisease_path = HMDD_miRNAdisease_path
         self.mirnadisease_association_path = os.path.join(HMDD_miRNAdisease_path, "miRNA_disease.txt")
@@ -730,11 +639,6 @@ class MicroRNA(ExpressionData, Annotatable):
         self.mirnadisease.columns = ["index", "miRNA name", "Disease name", "Reference", "Description"]
 
         self.mirnadisease["Disease name"] = self.mirnadisease["Disease name"].str.lower()
-
-    def process_miRTarBase_miRNA_target_interactions(self, miRTarBase_path):
-        self.miRTarBase_path = miRTarBase_path
-        self.miRTarBase_MTI_path = os.path.join(self.miRTarBase_path, "miRTarBase_MTI.xlsx")
-        self.miRTarBase_MTI_old_path = os.path.join(self.miRTarBase_path, "miRTarBase_MTI_v6.xlsx")
 
     def process_HUGO_miRNA_gene_info(self, HUGO_folder_path):
         self.HUGO_miRNA_gene_info_path = os.path.join(HUGO_folder_path, "RNA_micro.txt")
@@ -755,24 +659,6 @@ class MicroRNA(ExpressionData, Annotatable):
         self.HUGO_miRNA_gene_info_df.index = self.HUGO_miRNA_gene_info_df["MiRBase ID"]
 
 
-    def get_targetScan_miRNA_target_interaction(self):
-        if self.targetScan_df is None:
-            raise Exception("must first run process_target_scan(mirna_list, gene_symbols)")
-
-        mir_target_network = nx.from_pandas_edgelist(self.targetScan_df, source="MiRBase ID", target="Gene Symbol",
-                                                     create_using=nx.DiGraph())
-        return mir_target_network.edges(data=True)
-
-    def get_targetScan_miRNA_target_interactions_context_edgelist(self, data=True):
-        mirna_target_interactions = self.targetScan_context_df.copy()
-        mirna_target_interactions["weighted context++ score percentile"] = \
-            mirna_target_interactions["weighted context++ score percentile"].apply(func=lambda x: x / 100.0)
-        mirna_target_interactions.rename(columns={"weighted context++ score percentile": "weight",
-                                                  "MiRBase ID": "MIR",
-                                                  "Gene Symbol": "GE"}, inplace=True)
-        mir_target_network = nx.from_pandas_edgelist(mirna_target_interactions, source="MIR", target="GE",
-                                                     edge_attr="weight", create_using=nx.DiGraph())
-        return mir_target_network.edges(data=data)
 
     def get_miRTarBase_miRNA_target_interaction(self, use_latest=True, data=True, rename_dict=None):
         if use_latest:

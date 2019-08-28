@@ -15,7 +15,9 @@ DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
 
-class Database:
+class Dataset:
+    COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field
+
     def __init__(self, import_folder, file_resources=None, col_rename=None, **kwargs):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
@@ -138,7 +140,7 @@ class Annotatable:
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_genomics(self, database: Database, index, columns):
+    def annotate_genomics(self, database: Dataset, index, columns):
         """
         Performs a left outer join between the annotations and Database's DataFrame, on the index key. The index argument must be column present in both DataFrames.
 
@@ -165,20 +167,21 @@ class Annotatable:
             self.annotations[col.strip("_")].fillna(self.annotations[col], inplace=True, axis=0)
             # self.annotations.drop(columns=col, inplace=True)
 
-
-    def annotate_sequences(self, database: Database, index, omic, **kwargs):
+    def annotate_sequences(self, database: Dataset, index, omic, **kwargs):
         self.annotations["Transcript sequence"] = self.annotations.index.map(
             database.get_sequences(omic=omic, index=index))
 
 
     @abstractmethod
-    def annotate_interactions(self, database: Database, index): raise NotImplementedError
+    def annotate_interactions(self, database: Dataset, index):
+        raise NotImplementedError
 
     @abstractmethod
-    def annotate_diseases(self, database: Database, index): raise NotImplementedError
+    def annotate_diseases(self, database: Dataset, index):
+        raise NotImplementedError
 
 
-class RNAcentral(Database):
+class RNAcentral(Dataset):
     COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
                            'gene symbol': 'gene_name',
                            'external id': 'transcript_id',
@@ -224,7 +227,7 @@ class RNAcentral(Database):
         return gencode_id
 
 
-class GENCODE(Database):
+class GENCODE(Dataset):
     def __init__(self, import_folder, file_resources=None, col_rename=None, import_sequences="all",
                  replace_U2T=True) -> None:
         if file_resources is None:
@@ -301,7 +304,7 @@ class GENCODE(Database):
         return ensembl_id_to_gene_name
 
 
-class MirBase(Database):
+class MirBase(Dataset):
 
     def __init__(self, import_folder, RNAcentral_folder, file_resources=None, col_rename=None,
                  species=9606, import_sequences="all", replace_U2T=True):
@@ -422,7 +425,7 @@ class BioMartManager:
         return df
 
 
-class EnsembleGenes(BioMartManager, Database):
+class EnsembleGenes(BioMartManager, Dataset):
     COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
                            'external_gene_name': 'gene_name',
                            'ensembl_transcript_id': 'transcript_id',

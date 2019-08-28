@@ -1,7 +1,8 @@
 
 from openomics.database.annotation import *
 
-class DiseaseAssociation(Database):
+
+class DiseaseAssociation(Dataset):
 
     @abstractmethod
     def get_disease_assocs(self, index): raise NotImplementedError
