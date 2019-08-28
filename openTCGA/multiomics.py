@@ -14,7 +14,7 @@ class MultiOmicsData:
                  import_clinical=True):
 
         """
-        Load all multi-omics TCGA data from a given tcga_data_path with the following folder structure:
+        Load all multi-omics data from a given tcga_data_path with the following folder structure:
             cohort_folder/
                 clinical/
                     genome.wustl.edu_biospecimen_sample.txt (optional)

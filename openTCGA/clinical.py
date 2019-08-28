@@ -28,6 +28,15 @@ class ClinicalData:
                  patients_file="nationwidechildrens.org_clinical_patient.txt",
                  drugs_file="nationwidechildrens.org_clinical_drug.txt",
                  biospecimens_file="genome.wustl.edu_biospecimen_sample.txt"):
+        """
+
+        Args:
+            cohort_name:
+            folder_path:
+            patients_file:
+            drugs_file:
+            biospecimens_file:
+        """
         self.cancer_type = cohort_name
 
         if not os.path.isdir(folder_path) or not os.path.exists(folder_path):
