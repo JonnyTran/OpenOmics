@@ -81,7 +81,8 @@ class ExpressionData:
         for gene in genes_to_drop:
             self.features.remove(gene)
 
-    def get_name(self):
+    @classmethod
+    def name(self):
         raise NotImplementedError
 
     def get_genes_list(self):
@@ -99,7 +100,8 @@ class LncRNA(ExpressionData, Annotatable):
         super().__init__(cohort_name, file_path, columns=columns, index=index, transposed=transposed,
                          log2_transform=log2_transform)
 
-    def get_name(self):
+    @classmethod
+    def name(self):
         return "LNC"
 
     def preprocess_table(self, df:pd.DataFrame, columns:str, key:str, transposed):
@@ -447,6 +449,10 @@ class MessengerRNA(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", index="GeneSymbol", log2_transform=False):
         super().__init__(cohort_name, file_path, columns=columns, index=index, log2_transform=log2_transform)
 
+    @classmethod
+    def name(self):
+        return "GE"
+
     def process_targetScan_gene_info(self, targetScan_gene_info_path, human_only=True):
         self.targetScan_gene_info_path = targetScan_gene_info_path
         self.targetScan_genes_info = pd.read_table(self.targetScan_gene_info_path,
@@ -619,7 +625,8 @@ class MicroRNA(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns="GeneSymbol|TCGA", index="GeneSymbol", transposed=True, log2_transform=False):
         super().__init__(cohort_name, file_path, columns=columns, index=index, log2_transform=log2_transform)
 
-    def get_name(self):
+    @classmethod
+    def name(self):
         return "MIR"
 
     def process_target_scan(self, targetScan_folder_path):
@@ -814,6 +821,10 @@ class MicroRNA(ExpressionData, Annotatable):
 class Protein(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns, index=True, log2_transform=False):
         super().__init__(cohort_name, file_path, columns=columns, index=index, log2_transform=log2_transform)
+
+    @classmethod
+    def name(self):
+        return "PRO"
 
     def process_HPRD_PPI_network(self, ppi_data_file_path):
         HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)

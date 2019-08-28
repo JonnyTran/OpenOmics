@@ -4,14 +4,13 @@ import pandas as pd
 
 from openTCGA.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
-from openTCGA.expression import MessengerRNA, MicroRNA, Protein, LncRNA
-from openTCGA.genomic import SomaticMutation, DNAMethylation, CopyNumberVariation
+from openTCGA.expression import MessengerRNA, MicroRNA, Protein, LncRNA, ExpressionData
 from openTCGA.image import WholeSlideImage
 
 
 class MultiOmicsData:
-    def __init__(self, cohort_name: str, cohort_folder_path: str, external_data_path: str, omics: list,
-                 remove_duplicate_genes=True, auto_import_clinical=True, process_annotations=True):
+    def __init__(self, cohort_name: str, cohort_folder: str, omics: list, remove_duplicate_genes=True,
+                 import_clinical=True):
 
         """
         Load all multi-omics TCGA data from a given tcga_data_path with the following folder structure:
@@ -38,155 +37,137 @@ class MultiOmicsData:
         Load the external data downloaded from various databases. These data will be imported as attribute information to
         the genes, or interactions between the genes.
 
-            external_data_path/
-                TargetScan/
-                    Gene_info.txt
-                    miR_Family_Info.txt
-                    Predicted_Targets_Context_Scores.default_predictions.txt
-                    Predicted_Targets_Info.default_predictions.txt
-
-                HUGO_Gene_names/
-                    gene_with_protein_product.txt
-                    RNA_long_non-coding.txt
-                    RNA_micro.txt
         Args:
-            cohort_name: the clinical cohort name
-            cohort_folder_path: directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
-            external_data_path: directory path to the folder containing external databases
-            omics (list): {"CLI", "WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"} 
+            cohort_name (str): the clinical cohort name
+            cohort_folder (str): directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
+            omics (list): {"CLI", "WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"}
                 A list of multi-omics data to import.
-            remove_duplicate_genes:
-            auto_import_clinical: 
-            process_annotations: 
+            remove_duplicate_genes (bool):
+            import_clinical (bool):
         """
         self.cancer_type = cohort_name
-        self.omics = omics
-        self.external_data_path = external_data_path
+        self.omics_list = omics if omics is not None else []
 
         # LOADING DATA FROM FILES
         self.data = {}
-        if auto_import_clinical or ("CLI" in omics):
-            self.clinical = ClinicalData(cohort_name, os.path.join(cohort_folder_path, "clinical/"))
+
+        if import_clinical or ("CLI" in omics):
+            self.clinical = ClinicalData(cohort_name, os.path.join(cohort_folder, "clinical/"))
             self.data["PATIENTS"] = self.clinical.patient
             if hasattr(self.clinical, "biospecimen"):
                 self.data["BIOSPECIMENS"] = self.clinical.biospecimen
             if hasattr(self.clinical, "drugs"):
                 self.data["DRUGS"] = self.clinical.drugs
 
-        if "WSI" in omics:
-            self.WSI = WholeSlideImage(cohort_name, os.path.join(cohort_folder_path, "wsi/"))
-            self.data["WSI"] = self.WSI
+        # if "WSI" in omics:
+        #     self.WSI = WholeSlideImage(cohort_name, os.path.join(cohort_folder, "wsi/"))
+        #     self.data["WSI"] = self.WSI
 
-        if "GE" in omics:
-            table_path_GE = os.path.join(cohort_folder_path, "gene_exp", "geneExp.txt")
-            self.GE = MessengerRNA(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", index="GeneSymbol")
-            self.data["GE"] = self.GE.expressions
+        # if "GE" in omics:
+        #     table_path_GE = os.path.join(cohort_folder, "gene_exp", "geneExp.txt")
+        #     self.GE = MessengerRNA(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", index="GeneSymbol")
+        #     self.data["GE"] = self.GE.expressions
 
-            try:
-                self.GE.process_targetScan_gene_info(
-                    targetScan_gene_info_path=os.path.join(external_data_path, "TargetScan", "Gene_info.txt"))
+            # try:
+            #     self.GE.process_targetScan_gene_info(
+            #         targetScan_gene_info_path=os.path.join(external_data_path, "TargetScan", "Gene_info.txt"))
+            #
+            #     self.GE.process_HUGO_protein_coding_genes_info(
+            #         os.path.join(external_data_path, "HUGO_Gene_names", "gene_with_protein_product.txt"))
+            #
+            #     self.GE.process_GO_genes_info(os.path.join(external_data_path, "GeneOntology"))
+            #
+            #     self.GE.process_genemania_interactions(os.path.join(external_data_path, "GeneMania"))
+            #
+            #     self.GE.process_biogrid_GRN_edgelist(biogrid_folder_path=os.path.join(external_data_path, "BioGRID"))
+            #
+            #     self.GE.process_RegNet_gene_regulatory_network(
+            #         grn_file_path=os.path.join(external_data_path, "RegNetwork", "human.source"))
+            #
+            #     self.GE.process_DisGeNET_gene_disease_associations(
+            #         disgenet_folder_path=os.path.join(external_data_path, "DisGeNET"))
+            #
+            #     self.GE.process_starBase_RNA_RNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
+            # except FileNotFoundError as e:
+            #     print(e)
 
-                self.GE.process_HUGO_protein_coding_genes_info(
-                    os.path.join(external_data_path, "HUGO_Gene_names", "gene_with_protein_product.txt"))
+        # if "SNP" in omics:
+        #     file_path_SNP = os.path.join(cohort_folder, "somatic/", "somaticMutation_geneLevel.txt")
+        #     self.SNP = SomaticMutation(cohort_name, file_path_SNP)
+        #     self.data["SNP"] = self.SNP.expressions
+        #
+        # if "MIR" in omics:
+        #     file_path_MIR = os.path.join(cohort_folder, "mirna/", "miRNAExp__RPM.txt")
+        #     self.MIR = MicroRNA(cohort_name, file_path_MIR)
+        #     self.data["MIR"] = self.MIR.expressions
 
-                self.GE.process_GO_genes_info(os.path.join(external_data_path, "GeneOntology"))
+            # try:
+            #     self.MIR.process_target_scan(targetScan_folder_path=os.path.join(external_data_path, "TargetScan"))
+            #
+            #     self.MIR.process_miRTarBase_miRNA_target_interactions(
+            #         miRTarBase_path=os.path.join(external_data_path, "miRTarBase"))
+            #
+            #     self.MIR.process_mirnadisease_associations(
+            #         HMDD_miRNAdisease_path=os.path.join(external_data_path, "HMDD_miRNAdisease"))
+            #
+            #     # self.MIR.process_HUGO_miRNA_gene_info(
+            #     #     HUGO_folder_path=os.path.join(external_data_path, "HUGO_Gene_names"))
+            #     # self.MIR.process_RNAcentral_annotation_info(
+            #     #     RNAcentral_folder_path=os.path.join(external_data_path, "RNAcentral"))
+            #
+            # except FileNotFoundError as e:
+            #     print(e)
+            #     print(
+            #         "Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data folder in the directory",
+            #         external_data_path)
 
-                self.GE.process_genemania_interactions(os.path.join(external_data_path, "GeneMania"))
+        # if "LNC" in omics:
+        #     file_path_LNC = os.path.join(cohort_folder, "lncrna", "TCGA-rnaexpr.tsv")
+        #     self.LNC = LncRNA(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", index="Gene_ID")
+        #     self.data["LNC"] = self.LNC.expressions
 
-                self.GE.process_biogrid_GRN_edgelist(biogrid_folder_path=os.path.join(external_data_path, "BioGRID"))
+            # try:
+            #     self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
+            #     self.LNC.process_lncRNome_gene_info(os.path.join(external_data_path, "lncRNome"))
+            #     self.LNC.process_lncBase_miRNA_lncRNA_interactions(
+            #         lncBase_folder_path=os.path.join(external_data_path, "lncBase"))
+            #     self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
+            #     self.LNC.process_starBase_lncRNA_RNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
+            #     self.LNC.process_LncReg_lncRNA_RNA_regulatory_interactions(
+            #         LncReg_folder_path=os.path.join(external_data_path, "LncReg"))
+            #     self.LNC.process_lncrna2target_interactions(os.path.join(external_data_path, "lncrna2target"))
+            #     self.LNC.process_lncRInter_interactions(os.path.join(external_data_path, "lncRInter"))
+            #     self.LNC.process_NPInter_ncRNA_RNA_regulatory_interactions(
+            #         NPInter_folder_path=os.path.join(external_data_path, "NPInter"))
+            #     self.LNC.process_NONCODE_func_annotation(os.path.join(external_data_path, "NONCODE"))
+            #     self.LNC.process_lncrnadisease_associations(
+            #         lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
+            #     # self.LNC.process_RNAcentral_annotation_info(
+            #     #     RNAcentral_folder_path=os.path.join(external_data_path, "RNAcentral"))
+            # except FileNotFoundError as e:
+            #     print(e)
 
-                self.GE.process_RegNet_gene_regulatory_network(
-                    grn_file_path=os.path.join(external_data_path, "RegNetwork", "human.source"))
-
-                self.GE.process_DisGeNET_gene_disease_associations(
-                    disgenet_folder_path=os.path.join(external_data_path, "DisGeNET"))
-
-                self.GE.process_starBase_RNA_RNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
-            except FileNotFoundError as e:
-                print(e)
-
-        if "SNP" in omics:
-            file_path_SNP = os.path.join(cohort_folder_path, "somatic/", "somaticMutation_geneLevel.txt")
-            self.SNP = SomaticMutation(cohort_name, file_path_SNP)
-            self.data["SNP"] = self.SNP.expressions
-
-        if "MIR" in omics:
-            file_path_MIR = os.path.join(cohort_folder_path, "mirna/", "miRNAExp__RPM.txt")
-            self.MIR = MicroRNA(cohort_name, file_path_MIR)
-            self.data["MIR"] = self.MIR.expressions
-
-            try:
-                self.MIR.process_target_scan(targetScan_folder_path=os.path.join(external_data_path, "TargetScan"))
-
-                self.MIR.process_miRTarBase_miRNA_target_interactions(
-                    miRTarBase_path=os.path.join(external_data_path, "miRTarBase"))
-
-                self.MIR.process_mirnadisease_associations(
-                    HMDD_miRNAdisease_path=os.path.join(external_data_path, "HMDD_miRNAdisease"))
-
-                # self.MIR.process_HUGO_miRNA_gene_info(
-                #     HUGO_folder_path=os.path.join(external_data_path, "HUGO_Gene_names"))
-                # self.MIR.process_RNAcentral_annotation_info(
-                #     RNAcentral_folder_path=os.path.join(external_data_path, "RNAcentral"))
-
-            except FileNotFoundError as e:
-                print(e)
-                print(
-                    "Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data folder in the directory",
-                    external_data_path)
-
-        if "LNC" in omics:
-            file_path_LNC = os.path.join(cohort_folder_path, "lncrna", "TCGA-rnaexpr.tsv")
-            self.LNC = LncRNA(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", index="Gene_ID")
-            self.data["LNC"] = self.LNC.expressions
-
-            try:
-                self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
-                self.LNC.process_lncRNome_gene_info(os.path.join(external_data_path, "lncRNome"))
-                self.LNC.process_lncBase_miRNA_lncRNA_interactions(
-                    lncBase_folder_path=os.path.join(external_data_path, "lncBase"))
-                self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
-                self.LNC.process_starBase_lncRNA_RNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
-                self.LNC.process_LncReg_lncRNA_RNA_regulatory_interactions(
-                    LncReg_folder_path=os.path.join(external_data_path, "LncReg"))
-                self.LNC.process_lncrna2target_interactions(os.path.join(external_data_path, "lncrna2target"))
-                self.LNC.process_lncRInter_interactions(os.path.join(external_data_path, "lncRInter"))
-                self.LNC.process_NPInter_ncRNA_RNA_regulatory_interactions(
-                    NPInter_folder_path=os.path.join(external_data_path, "NPInter"))
-                self.LNC.process_NONCODE_func_annotation(os.path.join(external_data_path, "NONCODE"))
-                self.LNC.process_lncrnadisease_associations(
-                    lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
-                # self.LNC.process_RNAcentral_annotation_info(
-                #     RNAcentral_folder_path=os.path.join(external_data_path, "RNAcentral"))
-            except FileNotFoundError as e:
-                print(e)
-
-        if "DNA" in omics:
-            file_path_DNA = os.path.join(cohort_folder_path, "dna/", "methylation_450.txt")
-            self.DNA = DNAMethylation(cohort_name, file_path_DNA)
-            self.data["DNA"] = self.DNA.expressions
-
-        if "CNV" in omics:
-            file_path_CNV = os.path.join(cohort_folder_path, "cnv/", "copyNumber.txt")
-            self.CNV = CopyNumberVariation(cohort_name, file_path_CNV)
-            self.data["CNV"] = self.CNV.expressions
-
-        if "PRO" in omics:
-            file_path_PRO = os.path.join(cohort_folder_path, "protein_rppa/", "protein_RPPA.txt")
-            self.PRO = Protein(cohort_name, file_path_PRO)
-            self.data["PRO"] = self.PRO.expressions
-            self.PRO.process_HPRD_PPI_network(
-                ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
-                                                "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
+        # if "DNA" in omics:
+        #     file_path_DNA = os.path.join(cohort_folder, "dna/", "methylation_450.txt")
+        #     self.DNA = DNAMethylation(cohort_name, file_path_DNA)
+        #     self.data["DNA"] = self.DNA.expressions
+        #
+        # if "CNV" in omics:
+        #     file_path_CNV = os.path.join(cohort_folder, "cnv/", "copyNumber.txt")
+        #     self.CNV = CopyNumberVariation(cohort_name, file_path_CNV)
+        #     self.data["CNV"] = self.CNV.expressions
+        #
+        # if "PRO" in omics:
+        #     file_path_PRO = os.path.join(cohort_folder, "protein_rppa/", "protein_RPPA.txt")
+        #     self.PRO = Protein(cohort_name, file_path_PRO)
+        #     self.data["PRO"] = self.PRO.expressions
+            # self.PRO.process_HPRD_PPI_network(
+            #     ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
+            #                                     "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
 
         # Build a table for each samples's clinical data
-        if auto_import_clinical:
-            if len(omics) > 1:  # TODO Has to make sure at least one GenomicData present
-                all_samples = pd.Index([])
-                for omic in self.omics:
-                    all_samples = all_samples.union(self.data[omic].index)
-                self.clinical.build_clinical_samples(all_samples)
-                self.data["SAMPLES"] = self.clinical.samples
+        if import_clinical:
+            self.build_samples()
 
         # Remove duplicate genes between different multi-omics (e.g. between gene expression and lncRNA expressions
         if remove_duplicate_genes:
@@ -195,36 +176,59 @@ class MultiOmicsData:
 
         self.print_sample_sizes()
 
-        if process_annotations:
-            for omic in omics:
-                if hasattr(self[omic], "process_genes_info"):
-                    self[omic].process_genes_info()
-                    print("Processed genes info for ", omic)
+    def add_omic(self, omic:ExpressionData):
+        """
+        Adds an omic object to the Multiomics such that the samples in omic matches the samples existing in the other omics.
 
-    def __getitem__(self, item):
+        Args:
+            omic (openTCGA.expression.ExpressionData): The omic to add, e.g., MessengerRNA, MicroRNA, LncRNA, etc.
+        """
+        self.__setattr__(omic.name(), omic)
+        if omic.name not in self.omics_list:
+            self.omics_list.append(omic.name())
+        self.data[omic.name()] = omic.expressions
+
+    def build_samples(self):
+        if len(self.omics_list) > 1:  # make sure at least one ExpressionData present
+            all_samples = pd.Index([])
+            for omic in self.omics_list:
+                all_samples = all_samples.union(self.data[omic].index)
+            self.clinical.build_clinical_samples(all_samples)
+            self.data["SAMPLES"] = self.clinical.samples.index
+
+
+    def __getitem__(self, item:str):
         """
         This function allows the MultiOmicData class objects to access individual omics by a dictionary lookup
+        Args:
+            item (str): a string of
         """
-        if item == "GE":
-            return self.GE
-        elif item == "MIR":
-            return self.MIR
-        elif item == "LNC":
-            return self.LNC
-        elif item == "WSI":
-            return self.WSI
-        elif item == "SNP":
+        if item.lower() == MessengerRNA.name().lower():
+            return self.__getattribute__(MessengerRNA.name())
+
+        elif item.lower() == MicroRNA.name().lower():
+            return self.__getattribute__(MicroRNA.name())
+
+        elif item.lower() == LncRNA.name().lower():
+            return self.__getattribute__(LncRNA.name())
+
+        elif item.lower() == WholeSlideImage.name():
+            return self.__getattribute__(WholeSlideImage.name())
+
+        elif item.lower() == "SNP":
             return self.SNP
-        elif item == "CNV":
+        elif item.lower() == "CNV":
             return self.CNV
-        elif item == "DNA":
+        elif item.lower() == "DNA":
             return self.DNA
-        elif item == "PRO":
-            return self.PRO
-        elif item == "CLI":
+        elif item.lower() == Protein.name().lower():
+            return self.__getattribute__(Protein.name())
+        elif item.lower() == "CLI":
             return self.clinical.patient
-        elif item == "DRU":
+        elif item.lower() == "DRU":
             return self.clinical.drugs
+        else:
+            raise Exception('String accessor must be one of {"MessengerRNA", "MicroRNA", "LncRNA", "Protein", ...}')
 
     def match_samples(self, omics):
         """
@@ -259,7 +263,7 @@ class MultiOmicsData:
         :return: X, y
         """
         if omics == 'all' or omics is None:
-            omics = self.omics
+            omics = self.omics_list
         elif omics:
             omics = omics
         else:
