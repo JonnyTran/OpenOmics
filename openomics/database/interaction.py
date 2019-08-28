@@ -32,11 +32,15 @@ class Interactions(Dataset):
         self.import_folder = import_folder
         self.file_resources = file_resources
         self.network = self.load_network(file_resources, source_index, target_index, edge_attr, directed, **kwargs)
+        self.network.name = self.name()
+
         if self.network is None:
             raise Exception("Make sure load_network() returns a Networkx Graph")
+
         if rename_dict is not None:
             self.network = nx.relabel_nodes(self.network, rename_dict)
-        print("{}: {}".format(self.name(), nx.info(self.network)))
+
+        print("{}".format(nx.info(self.network)))
 
     @abstractmethod
     def load_network(self, file_resources, source_index, target_index, edge_attr, directed, **kwargs) -> nx.Graph:
@@ -160,7 +164,6 @@ class TargetScan(Interactions, Dataset):
 
     def process_miR_family_info_table(self, file_resources, species=None):
         miR_Family_Info_df = pd.read_table(file_resources["miR_Family_Info.txt"], delimiter='\t')
-        print(miR_Family_Info_df.columns)
 
         if species:
             miR_Family_Info_df = miR_Family_Info_df[miR_Family_Info_df['Species ID'] == species]
@@ -206,7 +209,6 @@ class TargetScan(Interactions, Dataset):
         family_to_miR_df.set_index("miR Family", inplace=True)
         family_interactions_df.set_index("miR Family", inplace=True)
         mir_interactions_df = family_interactions_df.join(family_to_miR_df, how='outer', on="miR Family").reset_index()
-        print(mir_interactions_df.info())
 
         # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
         if self.strip_mirna_name:
