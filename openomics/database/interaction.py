@@ -6,7 +6,8 @@ from openomics.database.annotation import *
 class Interactions(Dataset):
     __metaclass__ = ABCMeta
 
-    def __init__(self, import_folder, file_resources, source_index, target_index, edge_attr=None, rename_dict=None,
+    def __init__(self, import_folder, file_resources, source_index, target_index, edge_attr=None, directed=True,
+                 rename_dict=None,
                  **kwargs):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
@@ -31,7 +32,7 @@ class Interactions(Dataset):
 
         self.import_folder = import_folder
         self.file_resources = file_resources
-        self.network = self.load_network(file_resources, source_index, target_index, edge_attr, **kwargs)
+        self.network = self.load_network(file_resources, source_index, target_index, edge_attr, directed, **kwargs)
         if self.network is None:
             raise Exception("Make sure load_network() returns a Networkx Graph")
         if rename_dict is not None:
@@ -39,7 +40,7 @@ class Interactions(Dataset):
         print("{}: {}".format(self.name(), nx.info(self.network)))
 
     @abstractmethod
-    def load_network(self, file_resources, source_index, target_index, edge_attr, **kwargs) -> nx.Graph:
+    def load_network(self, file_resources, source_index, target_index, edge_attr, directed, **kwargs) -> nx.Graph:
         raise NotImplementedError
 
     def get_interactions(self, edge_attr=False):
@@ -52,7 +53,7 @@ class Interactions(Dataset):
 
 class LncBase(Interactions, Dataset):
     def __init__(self, import_folder, file_resources=None, source_index="mirna", target_index="geneId",
-                 edge_attr=["tissue", "positive_negative"],
+                 edge_attr=["tissue", "positive_negative"], directed=True,
                  rename_dict=None, organism="Homo sapiens", tissue=None) -> None:
         """
 
@@ -66,7 +67,7 @@ class LncBase(Interactions, Dataset):
             file_resources = {}
             file_resources["LncBasev2_download.csv"] = os.path.join(import_folder, "LncBasev2_download.csv")
 
-        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict,
+        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict, directed,
                          organism=organism, tissue=tissue)
 
     def get_rename_dict(self, from_index="geneId", to_index="geneName"):
@@ -76,18 +77,19 @@ class LncBase(Interactions, Dataset):
         return gene_id_to_gene_name_dict
 
     def load_network(self, file_resources, source_index="mirna", target_index="gene_id",
-                     edge_attr=["tissue", "positive_negative"],
+                     edge_attr=["tissue", "positive_negative"], directed=True,
                      organism="Homo sapiens", tissue=None):
         lncbase_df = pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
         lncbase_df.replace({"species": {"Homo Sapiens": "Homo sapiens", "Mus Musculus": "Mus musculus"}}, inplace=True)
 
-        lncbase_df = lncbase_df[lncbase_df["species"] == organism]
+        if organism is not None:
+            lncbase_df = lncbase_df[lncbase_df["species"].str.lower() == organism.lower()]
         if tissue is not None:
-            lncbase_df = lncbase_df[lncbase_df["tissue"] == tissue]
+            lncbase_df = lncbase_df[lncbase_df["tissue"].str.lower() == tissue.lower()]
 
         lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source=source_index, target=target_index,
                                                                edge_attr=edge_attr,
-                                                               create_using=nx.DiGraph())
+                                                               create_using=nx.DiGraph() if directed else nx.Graph())
         return lncBase_lncRNA_miRNA_network
 
 
@@ -109,46 +111,52 @@ class NPInter(Interactions, Dataset):
 
 class MiRTarBase(Interactions):
     def __init__(self, import_folder, file_resources=None, source_index="miRNA", target_index="Target Gene",
-                 edge_attr=["Support Type"], rename_dict=None, species="Homo sapiens"):
+                 edge_attr=["Support Type"], directed=True, rename_dict=None, species="Homo sapiens",
+                 strip_mirna_name=False):
+        self.strip_mirna_name = strip_mirna_name
+
         if file_resources is None:
             file_resources = {}
             file_resources["miRTarBase_MTI.xlsx"] = os.path.join(import_folder, "miRTarBase_MTI.xlsx")
 
-        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict,
+        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict, directed,
                          species=species)
 
-    def load_network(self, source_index="miRNA", target_index="Target Gene", edge_attr=["Support Type"],
+    def load_network(self, source_index="miRNA", target_index="Target Gene", edge_attr=["Support Type"], directed=True,
                      rename_dict=None, species="Homo sapiens"):
         table = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
         if species:
             table = table[table["Species (Target Gene)"].str.lower() == species.lower()]
-        # table['miRNA'] = table['miRNA'].str.lower()
-        # table['miRNA'] = table['miRNA'].str.replace("-3p.*|-5p.*", "")
+
+        if self.strip_mirna_name:
+            table['miRNA'] = table['miRNA'].str.lower()
+            table['miRNA'] = table['miRNA'].str.replace("-3p.*|-5p.*", "")
         mir_target_network = nx.from_pandas_edgelist(table, source=source_index, target=target_index,
                                                      edge_attr=edge_attr,
-                                                     create_using=nx.DiGraph())
+                                                     create_using=nx.DiGraph() if directed else nx.Graph())
         return mir_target_network
 
 
 class TargetScan(Interactions, Dataset):
     def __init__(self, import_folder, file_resources=None, source_index="MiRBase ID", target_index="Gene Symbol",
-                 edge_attr=["tissue", "positive_negative"], rename_dict=None, species=9606, rnaseq_miRNA_rename=False):
-        self.rnaseq_miRNA_rename = rnaseq_miRNA_rename
+                 edge_attr=["tissue", "positive_negative"], directed=True, rename_dict=None, species=9606,
+                 strip_mirna_name=False):
+        self.strip_mirna_name = strip_mirna_name
         if file_resources is None:
             file_resources = {}
             file_resources["miR_Family_Info.txt"] = os.path.join(import_folder, "miR_Family_Info.txt")
             file_resources["Predicted_Targets_Info.default_predictions.txt"] = os.path.join(import_folder,
                                                                                             "Predicted_Targets_Info.default_predictions.txt")
 
-        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict,
+        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, rename_dict, directed,
                          species=species)
 
-    def load_network(self, file_resources, source_index="MiRBase ID", target_index="Gene Symbol",
+    def load_network(self, file_resources, source_index="MiRBase ID", target_index="Gene Symbol", directed=True,
                      edge_attr=["tissue", "positive_negative"], species=9606):
         self.df = self.process_miR_family_info_table(file_resources, species)
         interactions_df = self.process_interactions_table(file_resources, self.df, species)
         mir_target_network = nx.from_pandas_edgelist(interactions_df, source=source_index, target=target_index,
-                                                     create_using=nx.DiGraph())
+                                                     create_using=nx.DiGraph() if directed else nx.Graph())
         return mir_target_network
 
     def process_miR_family_info_table(self, file_resources, species=None):
@@ -159,7 +167,7 @@ class TargetScan(Interactions, Dataset):
             miR_Family_Info_df = miR_Family_Info_df[miR_Family_Info_df['Species ID'] == species]
 
         # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
-        if self.rnaseq_miRNA_rename:
+        if self.strip_mirna_name:
             miR_Family_Info_df['MiRBase ID'] = miR_Family_Info_df['MiRBase ID'].str.lower()
             miR_Family_Info_df['MiRBase ID'] = miR_Family_Info_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
 
@@ -195,13 +203,16 @@ class TargetScan(Interactions, Dataset):
         family_to_miR_df.rename(columns={'miR family': 'miR Family'}, inplace=True)
 
         # map miRBase ID names to miR Family
-        family_interactions_df = pd.merge(family_interactions_df, family_to_miR_df, how='outer', on="miR Family")
-        print(family_interactions_df.info())
-        family_interactions_df = family_interactions_df[["MiRBase ID", "Gene Symbol"]]
+        # family_interactions_df = pd.merge(family_interactions_df, family_to_miR_df, how='outer', on="miR Family")
+
+        family_to_miR_df.set_index("miR Family", inplace=True)
+        family_interactions_df.set_index("miR Family", inplace=True)
+        mir_interactions_df = family_interactions_df.join(family_to_miR_df, how='outer', on="miR Family").reset_index()
+        print(mir_interactions_df.info())
 
         # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
-        if self.rnaseq_miRNA_rename:
-            family_interactions_df['MiRBase ID'] = family_interactions_df['MiRBase ID'].str.lower()
-            family_interactions_df['MiRBase ID'] = family_interactions_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
+        if self.strip_mirna_name:
+            mir_interactions_df['MiRBase ID'] = mir_interactions_df['MiRBase ID'].str.lower()
+            mir_interactions_df['MiRBase ID'] = mir_interactions_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
 
-        return family_interactions_df
+        return mir_interactions_df
