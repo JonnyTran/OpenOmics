@@ -175,7 +175,7 @@ class TargetScan(Interactions, Dataset):
         # Load data frame from file
         interactions_df = pd.read_table(file_resources["Predicted_Targets_Info.default_predictions.txt"],
                                         delimiter='\t', low_memory=True)
-        print(interactions_df.info())
+
         # Select only homo sapiens miRNA-target pairs
         if species:
             interactions_df = interactions_df[interactions_df["Species ID"] == species]
@@ -186,6 +186,7 @@ class TargetScan(Interactions, Dataset):
         # map miRBase ID names to miR Family
         targetScan_family_df.rename(columns={'miR family': 'miR Family'}, inplace=True)
         interactions_df = pd.merge(interactions_df, targetScan_family_df, how='inner', on="miR Family")
+        print(interactions_df.info())
         interactions_df = interactions_df[["MiRBase ID", "Gene Symbol"]]
 
         # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
