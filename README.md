@@ -1,12 +1,12 @@
-# openTCGA 
-[![Documentation Status](https://readthedocs.org/projects/opentcga/badge/?version=latest)](https://opentcga.readthedocs.io/en/latest/?badge=latest)
+# open-omics 
+[![Documentation Status](https://readthedocs.org/projects/open-omics/badge/?version=latest)](https://open-omics.readthedocs.io/en/latest/?badge=latest)
 
 This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data. 
-By providing a series of data manipulation tools, openTCGA facilitates the common coding tasks when preparing data for bioinformatics analysis.
+By providing a series of data manipulation tools, open-omics facilitates the common coding tasks when preparing data for bioinformatics analysis.
 
 Installation via pip (Python >= 3.6.0): 
 
-    pip install git+https://github.com/JonnyTran/openTCGA
+    pip install git+https://github.com/JonnyTran/open-omics
 
 
 The TCGA multi-omics data is downloaded from [TCGA-Assembler](http://www.compgenome.org/TCGA-Assembler/).
@@ -45,14 +45,14 @@ The microRNA and lncRNA data requires additional external databases, e.g. Target
             RNA_micro.txt
 
 
-# How to use openTCGA:
+# How to use open-omics:
 
 
-## Importing the openTCGA library
+## Importing the open-omics library
 
 
 ```python
-from openTCGA.multiomics import MultiOmicsData
+from open-omics.multiomics import MultiOmicsData
 ```
 
 ## Import TCGA LUAD data downloaded from TCGA-Assembler
