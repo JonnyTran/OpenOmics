@@ -390,7 +390,7 @@ class MirBase(Dataset):
 
 
 class BioMartManager:
-    __class__ = ABCMeta
+    __metaclass__ = ABCMeta
 
     def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None):
         bm = BioMart(host=host)
