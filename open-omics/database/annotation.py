@@ -6,13 +6,12 @@ from os.path import expanduser
 import pandas as pd
 from Bio import SeqIO
 from bioservices import BioMart
-
 from openomics.utils import GTF
 from openomics.utils.df import concat_uniques_agg
 from openomics.utils.io import mkdirs
 
-DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
-DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
+DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".open-omics")
+DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".open-omics", "databases")
 
 
 class Database:
@@ -140,7 +139,7 @@ class Annotatable:
         Performs a left outer join between the annotations and Database's DataFrame, on the index key. The index argument must be column present in both DataFrames.
 
         Args:
-            database (openomics.annotation.Database): Database which contains annotations
+            database (open-omics.annotation.Database): Database which contains annotations
             index (str): The column name which exists in both the annotations and Database's DataFrame
             columns (list): a list of column name to join to the annotations
         """

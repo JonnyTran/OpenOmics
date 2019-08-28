@@ -3,9 +3,8 @@ from collections import OrderedDict
 import networkx as nx
 import numpy as np
 from Bio.UniProt import GOA
-from pandas import Series
-
 from openomics.database.annotation import *
+from pandas import Series
 
 
 class ExpressionData:

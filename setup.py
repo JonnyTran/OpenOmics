@@ -5,9 +5,9 @@ from shutil import rmtree
 from setuptools import setup, Command
 
 # Package meta-data.
-NAME = 'openomics'
+NAME = 'open-omics'
 DESCRIPTION = 'A toolkit to integrate, query, analyze, and visualize the multi-omics, clinical, and annotation data.'
-URL = 'https://github.com/JonnyTran/openomics'
+URL = 'https://github.com/JonnyTran/open-omics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Nhat Tran'
 REQUIRES_PYTHON = '>=3.6.0'
@@ -60,8 +60,8 @@ class UploadCommand(Command):
 setup(
     name=NAME,
     version=VERSION,
-    packages=["openomics", "openomics.utils", "openomics.utils"],
-    package_dir={NAME: 'openomics'},
+    packages=["open-omics", "open-omics.utils", "open-omics.utils"],
+    package_dir={NAME: 'open-omics'},
     url=URL,
     license='',
     python_requires=REQUIRES_PYTHON,
