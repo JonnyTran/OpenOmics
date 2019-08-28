@@ -153,6 +153,7 @@ class TargetScan(Interactions, Dataset):
 
     def process_miR_family_info(self, file_resources, species):
         miR_Family_Info_df = pd.read_table(file_resources["miR_Family_Info.txt"], delimiter='\t')
+        print(miR_Family_Info_df.columns)
         if species:
             miR_Family_Info_df = miR_Family_Info_df[miR_Family_Info_df['Species ID'] == species]
         # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
