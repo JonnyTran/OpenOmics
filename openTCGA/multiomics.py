@@ -9,7 +9,7 @@ from openTCGA.image import WholeSlideImage
 
 
 class MultiOmicsData:
-    def __init__(self, cohort_name: str, cohort_folder: str, omics:list=None, remove_duplicate_genes=True,
+    def __init__(self, cohort_name: str, cohort_folder: str, omics:list=None, remove_duplicate_genes=False,
                  import_clinical=True):
 
         """
@@ -51,7 +51,7 @@ class MultiOmicsData:
         # LOADING DATA FROM FILES
         self.data = {}
 
-        if import_clinical or ("CLI" in omics):
+        if import_clinical or (ClinicalData.name() in omics):
             self.clinical = ClinicalData(cohort_name, os.path.join(cohort_folder, "clinical/"))
             self.data["PATIENTS"] = self.clinical.patient
             if hasattr(self.clinical, "biospecimen"):
@@ -170,11 +170,13 @@ class MultiOmicsData:
             self.build_samples()
 
         # Remove duplicate genes between different multi-omics (e.g. between gene expression and lncRNA expressions
-        if remove_duplicate_genes:
-            if "GE" in omics and "LNC" in omics:
-                self.GE.drop_genes(set(self.GE.get_genes_list()) & set(self.LNC.get_genes_list()))
-
         self.print_sample_sizes()
+
+    def remote_duplate_genes(self):
+        for omic_A in self.omics_list:
+            for omic_B in self.omics_list:
+                if omic_A != omic_B:
+                    self.omic_A.drop_genes(set(self.omic_A.get_genes_list()) & set(self.omic_B.get_genes_list()))
 
     def add_omic(self, omic:ExpressionData):
         """
@@ -184,8 +186,11 @@ class MultiOmicsData:
             omic (openTCGA.expression.ExpressionData): The omic to add, e.g., MessengerRNA, MicroRNA, LncRNA, etc.
         """
         self.__setattr__(omic.name(), omic)
+
         if omic.name not in self.omics_list:
             self.omics_list.append(omic.name())
+
+        # dictionary as data accessor to the expression data
         self.data[omic.name()] = omic.expressions
 
     def build_samples(self):

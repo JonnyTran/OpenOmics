@@ -81,6 +81,10 @@ class ClinicalData:
 
         # self.patient.reindex_axis(self.patient.columns.intersection(ClinicalData.clinical_patient_colsname), 1, inplace=True)
 
+    @classmethod
+    def name(self):
+        return self.__class__.__name__
+
     def build_clinical_samples(self, all_samples):
         # Build table with samples clinical data from patients
         self.samples = pd.DataFrame(index=all_samples)
