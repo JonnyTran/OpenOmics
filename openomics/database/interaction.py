@@ -195,7 +195,7 @@ class TargetScan(Interactions, Dataset):
         family_to_miR_df.rename(columns={'miR family': 'miR Family'}, inplace=True)
 
         # map miRBase ID names to miR Family
-        family_interactions_df = pd.merge(family_interactions_df, family_to_miR_df, how='right', on="miR Family")
+        family_interactions_df = pd.merge(family_interactions_df, family_to_miR_df, how='outer', on="miR Family")
         print(family_interactions_df.info())
         family_interactions_df = family_interactions_df[["MiRBase ID", "Gene Symbol"]]
 
