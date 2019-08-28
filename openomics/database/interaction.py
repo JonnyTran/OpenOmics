@@ -23,6 +23,14 @@ class LncBase(Interactions, Database):
                            "geneName": "gene_name"}
 
     def __init__(self, import_folder, file_resources=None, col_rename=None) -> None:
+        """
+
+        Args:
+            import_folder (str):
+            file_resources (dict):
+            col_rename (dict):
+            species (str): {'Homo sapiens', "Kaposi's sarcoma-associated herpesvirus (KSHV)", 'Epstein–Barr virus', 'Mus musculus'}
+        """
         if file_resources is None:
             file_resources = {}
             file_resources["LncBasev2_download.csv"] = os.path.join(import_folder, "LncBasev2_download.csv")
@@ -33,7 +41,9 @@ class LncBase(Interactions, Database):
         super().__init__(import_folder, file_resources, col_rename)
 
     def load_data(self, file_resources) -> pd.DataFrame:
-        return pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
+        df = pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
+        df.replace({"species": {"Homo Sapiens": "Homo sapiens", "Mus Musculus": "Mus musculus"}}, inplace=True)
+        return df
 
     def get_rename_dict(self, from_index, to_index):
         gene_id_to_gene_name_dict = pd.Series(self.df["geneName"].values,
