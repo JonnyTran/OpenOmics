@@ -460,7 +460,7 @@ class LncRNA(ExpressionData, Annotatable):
 
 
 class MessengerRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, level, file_path, columns, index, transposed, log2_transform):
+    def __init__(self, cohort_name, level, file_path, columns, index, transposed=True, log2_transform=False):
         super().__init__(cohort_name, level, file_path, columns=columns, index=index, transposed=transposed, log2_transform=log2_transform)
 
     @classmethod
@@ -636,7 +636,7 @@ class MessengerRNA(ExpressionData, Annotatable):
 
 
 class MicroRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, level, file_path, columns, index, transposed, log2_transform):
+    def __init__(self, cohort_name, level, file_path, columns, index, transposed=True, log2_transform=False):
         super().__init__(cohort_name, level, file_path, columns=columns, index=index, transposed=transposed, log2_transform=log2_transform)
 
     @classmethod
@@ -833,7 +833,7 @@ class MicroRNA(ExpressionData, Annotatable):
 
 
 class Protein(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, level, file_path, columns, index, transposed, log2_transform):
+    def __init__(self, cohort_name, level, file_path, columns, index, transposed=True, log2_transform=False):
         super().__init__(cohort_name, level, file_path, columns=columns, index=index, transposed=transposed, log2_transform=log2_transform)
 
     @classmethod
