@@ -151,9 +151,10 @@ class TargetScan(Interactions, Dataset):
                                                      create_using=nx.DiGraph())
         return mir_target_network
 
-    def process_miR_family_info_table(self, file_resources, species):
+    def process_miR_family_info_table(self, file_resources, species=None):
         miR_Family_Info_df = pd.read_table(file_resources["miR_Family_Info.txt"], delimiter='\t')
         print(miR_Family_Info_df.columns)
+
         if species:
             miR_Family_Info_df = miR_Family_Info_df[miR_Family_Info_df['Species ID'] == species]
 
@@ -174,7 +175,7 @@ class TargetScan(Interactions, Dataset):
         # Load data frame from file
         interactions_df = pd.read_table(file_resources["Predicted_Targets_Info.default_predictions.txt"],
                                         delimiter='\t', low_memory=True)
-
+        print(interactions_df.info())
         # Select only homo sapiens miRNA-target pairs
         if species:
             interactions_df = interactions_df[interactions_df["Species ID"] == species]
