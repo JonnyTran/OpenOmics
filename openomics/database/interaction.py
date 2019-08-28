@@ -164,7 +164,6 @@ class TargetScan(Interactions, Dataset):
             ['miR family', 'MiRBase ID', 'Seed+m8', 'Mature sequence', 'Family Conservation?', 'MiRBase Accession']]
         miR_Family_Info_df['MiRBase ID'] = miR_Family_Info_df['MiRBase ID'].astype(str)
         miR_Family_Info_df.set_index("MiRBase ID", inplace=True)
-        miR_Family_Info_df.drop('MiRBase ID', axis=1, inplace=True)
         return miR_Family_Info_df
 
     def process_targetScan_mirna_target_interactions(self, file_resources, targetScan_family_df, species):
