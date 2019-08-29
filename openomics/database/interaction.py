@@ -47,9 +47,9 @@ class Interactions(Dataset):
     def load_network(self, file_resources, source_index, target_index, edge_attr, directed, **kwargs) -> nx.Graph:
         raise NotImplementedError
 
-    def get_interactions(self, edge_attr=False):
+    def get_interactions(self, nodelist, edge_attr=False):
         if hasattr(self, "network"):
-            return self.network.edges(data=edge_attr)
+            return self.network.subgraph(nodelist).edges(data=edge_attr)
         else:
             raise Exception(
                 "{} does not have network interaction data yet. Must run load_network() first.".format(self.name()))
@@ -139,6 +139,7 @@ class MiRTarBase(Interactions):
             df['miRNA'] = df['miRNA'].str.lower()
             df['miRNA'] = df['miRNA'].str.replace("-3p.*|-5p.*", "")
 
+        print(df.info())
         mir_target_network = nx.from_pandas_edgelist(df, source=source_index, target=target_index,
                                                      edge_attr=edge_attr,
                                                      create_using=nx.DiGraph() if directed else nx.Graph())
