@@ -131,20 +131,19 @@ class MiRTarBase(Interactions):
         super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, directed, rename_dict,
                          species=species)
 
-    def load_network(self, source_index="miRNA", target_index="gene_name", edge_attr=["Support_Type"], directed=True,
+    def load_network(self, source_index="miRNA", target_index="Target Gene", edge_attr=["Support Type"], directed=True,
                      rename_dict=None, species="Homo sapiens"):
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
-        df.rename(columns=MiRTarBase.COLUMNS_RENAME_DICT, inplace=True)
-
         print(self.name(), df.columns.tolist())
 
         if species:
-            df = df[df["species"].str.lower() == species.lower()]
+            df = df[df["Species (Target Gene)"].str.lower() == species.lower()]
 
         if self.strip_mirna_name:
             df['miRNA'] = df['miRNA'].str.lower()
             df['miRNA'] = df['miRNA'].str.replace("-3p.*|-5p.*", "")
 
+        df = df.reindex()
         print(df.info())
         mir_target_network = nx.from_pandas_edgelist(df, source=source_index, target=target_index,
                                                      edge_attr=edge_attr,
