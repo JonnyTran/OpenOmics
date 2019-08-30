@@ -12,12 +12,17 @@ class Interactions(Dataset):
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
             import_folder (str):
-                The folder path containing the data files
+                The folder path containing the data files.
             file_resources (dict): default None,
                 Used to list required files for load_network of the dataset. A dictionary where keys are required filenames and value are file paths. If None, then the class constructor should automatically build the required file resources dict.
-            source_index (str): Column name of DataFrame to be used as the source node names
-            target_index (str): Column name of DataFrame to be used as the target node names
-            edge_attr (list): A list of attributes to
+            source_index (str):
+                Column name of DataFrame to be used as the source node names.
+            target_index (str):
+                Column name of DataFrame to be used as the target node names.
+            edge_attr (list):
+                A list of column names to be included as attributes for each edge (source-target pairs).
+            directed (bool): default True,
+                Whether to create a directed or an undirected network.
             col_rename (dict): default None,
                 A dictionary to rename columns in the data table. If None, then automatically load defaults.
             **kwargs: Additional arguments that may be passed to load_data function
@@ -119,7 +124,7 @@ class MiRTarBase(Interactions):
                            "Support Type": "Support_Type",
                            "Target Gene": "gene_name"}
 
-    def __init__(self, import_folder, file_resources=None, source_index="miRNA", target_index="gene_name",
+    def __init__(self, import_folder, file_resources=None, source_index="miRNA", target_index="Target Gene",
                  edge_attr=["Support Type"], directed=True, rename_dict=None, species="Homo sapiens",
                  strip_mirna_name=False):
         self.strip_mirna_name = strip_mirna_name
@@ -131,8 +136,7 @@ class MiRTarBase(Interactions):
         super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, directed, rename_dict,
                          species=species)
 
-    def load_network(self, source_index="miRNA", target_index="Target Gene", edge_attr=["Support Type"], directed=True,
-                     rename_dict=None, species="Homo sapiens"):
+    def load_network(self, file_resources, source_index, target_index, edge_attr, directed=True, species=None):
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
         print(self.name(), df.columns.tolist())
 
@@ -143,8 +147,6 @@ class MiRTarBase(Interactions):
             df['miRNA'] = df['miRNA'].str.lower()
             df['miRNA'] = df['miRNA'].str.replace("-3p.*|-5p.*", "")
 
-        df = df.reindex()
-        print(df.info())
         mir_target_network = nx.from_pandas_edgelist(df, source=source_index, target=target_index,
                                                      edge_attr=edge_attr,
                                                      create_using=nx.DiGraph() if directed else nx.Graph())
