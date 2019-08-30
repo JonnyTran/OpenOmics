@@ -492,8 +492,10 @@ class EnsemblTranscriptSequences(EnsemblGenes):
 
 
 class EnsemblSNP(EnsemblGenes):
-    def __init__(self, dataset="hsapiens_snp_som",
-                 attributes=['refsnp_id', 'allele', 'minor_allele', 'associated_gene', 'clinical_significance',
+    def __init__(self, dataset="hsapiens_snp",
+                 attributes=['refsnp_id', 'synonym_name', 'variation_names', 'allele', 'minor_allele',
+                             'associated_variant_risk_allele', 'associated_gene', 'snp',
+                             'ensembl_gene_stable_id', 'ensembl_transcript_stable_id',
                              'chrom_strand', 'chr_name', 'chrom_start', 'chrom_end'],
                  host="www.ensemble.org", filename=False) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
@@ -503,7 +505,7 @@ class EnsemblSNP(EnsemblGenes):
 
 
 class EnsemblSomaticVariation(EnsemblGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl",
+    def __init__(self, dataset="hsapiens_snp_som",
                  attributes=['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
                              'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
                              'somatic_mapweight',
