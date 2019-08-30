@@ -8,10 +8,10 @@ import pandas as pd
 from Bio import SeqIO
 from bioservices import BioMart
 
+import openomics
 from openomics.utils import GTF
 from openomics.utils.df import concat_uniques_agg
 from openomics.utils.io import mkdirs
-from openomics.transcriptomics import LncRNA, MessengerRNA
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
@@ -256,9 +256,9 @@ class GENCODE(Dataset):
 
     def get_sequences(self, index, omic=None):
         # Parse lncRNA & mRNA fasta
-        if omic == MessengerRNA.name():
+        if omic == openomics.transcriptomics.MessengerRNA.name():
             fasta_file = self.file_resources["transcripts.fa"]
-        elif omic == LncRNA.name():
+        elif omic == openomics.transcriptomics.LncRNA.name():
             fasta_file = self.file_resources["lncRNA_transcripts.fa"]
         else:
             raise Exception("The omic argument must be one of the omic names")
