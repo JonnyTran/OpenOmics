@@ -98,19 +98,19 @@ class LncBase(Interactions, Dataset):
         return lncBase_lncRNA_miRNA_network
 
 
-class lncRInter(Interactions, Dataset):
+class lncRInter(Interactions):
     pass
 
 
-class LncRNATarget(Interactions, Dataset):
+class LncRNATarget(Interactions):
     pass
 
 
-class lncRNome(Interactions, Dataset):
+class lncRNome(Interactions):
     pass
 
 
-class NPInter(Interactions, Dataset):
+class NPInter(Interactions):
     pass
 
 
@@ -129,7 +129,7 @@ class MiRTarBase(Interactions):
 
     def load_network(self, source_index="miRNA", target_index="Target Gene", edge_attr=["Support Type"], directed=True,
                      rename_dict=None, species="Homo sapiens"):
-        df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"], low_memory=True)
+        df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
         print(self.name(), df.columns.tolist())
 
         if species:
