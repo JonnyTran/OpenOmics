@@ -1,5 +1,5 @@
 from openomics.database.annotation import Annotatable
-from openomics.expression import ExpressionData
+from openomics.transcriptomics import ExpressionData
 
 
 class SomaticMutation(ExpressionData, Annotatable):

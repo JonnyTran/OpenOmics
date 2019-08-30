@@ -93,7 +93,7 @@ class ExpressionData:
 
     @classmethod
     def name(self):
-        raise NotImplementedError
+        return __class__.__name__
 
     def get_genes_list(self):
         return self.features

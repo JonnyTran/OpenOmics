@@ -4,9 +4,9 @@ import pandas as pd
 
 from openomics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
-from openomics.expression import MessengerRNA, MicroRNA, Protein, LncRNA, ExpressionData
-from openomics.genomic import SomaticMutation, CopyNumberVariation, DNAMethylation
+from openomics.genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
 from openomics.image import WholeSlideImage
+from openomics.transcriptomics import MessengerRNA, MicroRNA, Protein, LncRNA, ExpressionData
 
 
 class MultiOmicsData:
@@ -184,7 +184,7 @@ class MultiOmicsData:
         Adds an omic object to the Multiomics such that the samples in omic matches the samples existing in the other omics.
 
         Args:
-            omic (openomics.expression.ExpressionData):
+            omic (openomics.transcriptomics.ExpressionData):
                 The omic to add, e.g., MessengerRNA, MicroRNA, LncRNA, etc.
             initialize_annotations (bool): default True.
                 If true, initializes the annotations dataframe in the omic object
