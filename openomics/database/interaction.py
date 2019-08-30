@@ -1,5 +1,3 @@
-import networkx as nx
-
 from openomics.database.annotation import *
 
 
@@ -83,7 +81,7 @@ class Interactions(Dataset):
 
 class LncBase(Interactions, Dataset):
     def __init__(self, import_folder, file_resources=None, source_col_name="mirna", target_col_name="geneId",
-                 source_index="gene_name", target_index="gene_id",
+                 source_index="transcript_name", target_index="gene_id",
                  edge_attr=["tissue", "positive_negative"], directed=True,
                  rename_dict=None, organism="Homo sapiens", tissue=None) -> None:
         """

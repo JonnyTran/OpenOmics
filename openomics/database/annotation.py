@@ -1,15 +1,4 @@
-import os
-from abc import ABCMeta, abstractmethod
-from io import StringIO
-from os.path import expanduser
-
-import pandas as pd
-from Bio import SeqIO
-from bioservices import BioMart
-
-from openomics.utils import GTF
-from openomics.utils.df import concat_uniques_agg
-from openomics.utils.io import mkdirs
+from openomics.transcriptomics import *
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
@@ -110,7 +99,7 @@ class Dataset:
         raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, omic, index, *args) -> dict:
+    def get_sequences(self, index, omic=None) -> dict:
         """
         Returns a dictionary where keys are
         Args:
@@ -165,11 +154,11 @@ class Annotatable:
         duplicate_columns = [col for col in self.annotations.columns if col[-1] == "_"]
         for col in duplicate_columns:
             self.annotations[col.strip("_")].fillna(self.annotations[col], inplace=True, axis=0)
-            # self.annotations.drop(columns=col, inplace=True)
+            self.annotations.drop(columns=col, inplace=True)
 
-    def annotate_sequences(self, database: Dataset, index, omic, **kwargs):
+    def annotate_sequences(self, database: Dataset, index, omic):
         self.annotations["Transcript sequence"] = self.annotations.index.map(
-            database.get_sequences(omic=omic, index=index))
+            database.get_sequences(index=index, omic=omic))
 
 
     @abstractmethod
@@ -249,14 +238,14 @@ class GENCODE(Dataset):
         df['transcript_id'] = df['transcript_id'].str.replace("[.].*", "")
         return df
 
-    def get_sequences(self, omic, index):
+    def get_sequences(self, index, omic=None):
         # Parse lncRNA & mRNA fasta
-        if omic == "GE":
+        if omic == MessengerRNA.name():
             fasta_file = self.file_resources["transcripts.fa"]
-        elif omic == "LNC":
+        elif omic == LncRNA.name():
             fasta_file = self.file_resources["lncRNA_transcripts.fa"]
         else:
-            raise Exception("The omic argument must be one of 'LNC', 'GE'")
+            raise Exception("The omic argument must be one of the omic names")
 
         seq_dict = {}
         for record in SeqIO.parse(fasta_file, "fasta"):
@@ -323,7 +312,7 @@ class MirBase(Dataset):
         if file_resources is None:
             file_resources = {}
             file_resources["aliases.txt"] = os.path.join(import_folder, "aliases.txt")
-            file_resources["hairpin.fa"] = os.path.join(import_folder, "hairpin.fa")
+            file_resources["mature.fa"] = os.path.join(import_folder, "mature.fa")
             file_resources["rnacentral.mirbase.tsv"] = os.path.join(RNAcentral_folder, "mirbase.tsv")
             file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(RNAcentral_folder, "rnacentral_rfam_annotations.tsv")
 
@@ -357,12 +346,13 @@ class MirBase(Dataset):
 
         return mirbase_aliases
 
-    def get_sequences(self, omic, index, *args) -> dict:
+    def get_sequences(self, index="gene_name", omic=None) -> dict:
         seq_dict = {}
-        for record in SeqIO.parse(self.file_resources["hairpin.fa"], "fasta"):
-            gene_name = str(record.id)
-            sequence_str = str(record.seq)
 
+        for record in SeqIO.parse(self.file_resources["mature.fa"], "fasta"):
+            gene_name = str(record.id)
+
+            sequence_str = str(record.seq)
             if self.replace_U2T:
                 sequence_str = sequence_str.replace("U", "T")
 
