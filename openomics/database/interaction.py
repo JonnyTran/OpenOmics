@@ -119,7 +119,7 @@ class MiRTarBase(Interactions):
                            "Support Type": "Support_Type",
                            "Target Gene": "gene_name"}
 
-    def __init__(self, import_folder, file_resources=None, source_index="miRNA", target_index="Target Gene",
+    def __init__(self, import_folder, file_resources=None, source_index="miRNA", target_index="gene_name",
                  edge_attr=["Support Type"], directed=True, rename_dict=None, species="Homo sapiens",
                  strip_mirna_name=False):
         self.strip_mirna_name = strip_mirna_name
