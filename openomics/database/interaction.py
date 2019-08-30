@@ -1,5 +1,5 @@
 from openomics.database.annotation import *
-
+import networkx as nx
 
 class Interactions(Dataset):
     __metaclass__ = ABCMeta
