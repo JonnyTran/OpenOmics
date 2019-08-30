@@ -425,22 +425,23 @@ class BioMartManager:
         return df
 
 
-class EnsembleGenes(BioMartManager, Dataset):
+class EnsemblGenes(BioMartManager, Dataset):
     COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
                            'external_gene_name': 'gene_name',
                            'ensembl_transcript_id': 'transcript_id',
                            'external_transcript_name': 'transcript_name',
                            'rfam': 'Rfams'}
 
-    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=False) -> None:
-        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        self.host = host
-        self.attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id', 'external_transcript_name',
+    def __init__(self, dataset="hsapiens_gene_ensembl",
+                 attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id',
+                             'external_transcript_name',
                            'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
                            'gene_biotype', 'transcript_biotype',
-                           'rfam', 'go_id',]
-
-        self.df = self.load_data(datasets=dataset, attributes=self.attributes, host=self.host,
+                             'rfam', 'go_id', ],
+                 host="www.ensemble.org", filename=False) -> None:
+        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
+        self.host = host
+        self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,
                                      filename=self.filename)
 
         self.df.rename(columns=self.COLUMNS_RENAME_DICT,
@@ -462,46 +463,56 @@ class EnsembleGenes(BioMartManager, Dataset):
             .apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_go
 
-class EnsembleGeneSequences(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=False) -> None:
+
+class EnsemblGeneSequences(EnsemblGenes):
+    def __init__(self, dataset="hsapiens_gene_ensembl",
+                 attributes=['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon',
+                             'coding'],
+                 host="www.ensemble.org", filename=False) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon', 'coding']
         self.df = self.load_data(datasets=dataset, filename=self.filename, host=self.host,
-                                     attributes=self.attributes,)
-        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
-                       inplace=True)
-        
-class EnsembleTranscriptSequences(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=False) -> None:
-        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        self.host = host
-        self.attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank', 'coding_transcript_flank',
-                      '5utr', '3utr']
-        self.df = self.load_data(datasets=dataset, attributes=self.attributes, host=self.host,
-                                     filename=self.filename)
+                                 attributes=attributes, )
         self.df.rename(columns=self.COLUMNS_RENAME_DICT,
                        inplace=True)
 
-class EnsembleSNP(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=False) -> None:
-        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        self.host = host
-        self.attributes = ['variation_name', 'allele', 'minor_allele',
-                      'transcript_location', 'snp_chromosome_strand', 'chromosome_start', 'chromosome_end']
-        self.df = self.load_data(datasets=dataset, attributes=self.attributes, host=self.host,
-                                     filename=self.filename)
 
-class EnsembleSomaticVariation(EnsembleGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl", host="www.ensemble.org", filename=False) -> None:
+class EnsemblTranscriptSequences(EnsemblGenes):
+    def __init__(self, dataset="hsapiens_gene_ensembl",
+                 attributes=['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank',
+                             'coding_transcript_flank',
+                             '5utr', '3utr'],
+                 host="www.ensemble.org", filename=False) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
-                      'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
-                      'somatic_mapweight',
-                      'somatic_chromosome_start', 'somatic_chromosome_end']
-        self.df = self.load_data(datasets=dataset, attributes=self.attributes, host=self.host,
-                                     filename=self.filename)
+        self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,
+                                 filename=self.filename)
+        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
+                       inplace=True)
+
+
+class EnsemblSNP(EnsemblGenes):
+    def __init__(self, dataset="hsapiens_gene_ensembl",
+                 attributes=['variation_name', 'allele', 'minor_allele', 'transcript_location', 'snp_chromosome_strand',
+                             'chromosome_start', 'chromosome_end'],
+                 host="www.ensemble.org", filename=False) -> None:
+        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
+        self.host = host
+        self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,
+                                 filename=self.filename)
+
+
+class EnsemblSomaticVariation(EnsemblGenes):
+    def __init__(self, dataset="hsapiens_gene_ensembl",
+                 attributes=['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
+                             'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
+                             'somatic_mapweight',
+                             'somatic_chromosome_start', 'somatic_chromosome_end'],
+                 host="www.ensemble.org", filename=False) -> None:
+        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
+        self.host = host
+        self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,
+                                 filename=self.filename)
 
 
 # Constants
