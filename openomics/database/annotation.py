@@ -129,24 +129,28 @@ class Annotatable:
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_genomics(self, database: Dataset, index, columns):
+    def annotate_genomics(self, database: Dataset, index, columns, fuzzy_match=False):
         """
         Performs a left outer join between the annotations and Database's DataFrame, on the index key. The index argument must be column present in both DataFrames.
-
+        If there exists overlapping column in the join, then the fillna() is used to fill NaN values in the old column with non-NaN values from the new column.
         Args:
             database (openomics.annotation.Database): Database which contains annotations
             index (str): The column name which exists in both the annotations and Database's DataFrame
             columns (list): a list of column name to join to the annotations
+            fuzzy_match (bool): default False. Whether to join the annotations by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
         """
+        database_annotations = database.get_annotations(index, columns)
+        if fuzzy_match:
+            database_annotations.index = database_annotations.index.map(
+                lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
+
         if index == self.annotations.index.name:
-            self.annotations = self.annotations.join(database.get_annotations(index, columns),
-                                                     on=index, rsuffix="_")
+            self.annotations = self.annotations.join(database_annotations, on=index, rsuffix="_")
         else:
             old_index = self.annotations.index.name
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(index, inplace=True)
-            self.annotations = self.annotations.join(database.get_annotations(index, columns),
-                                                     on=index, rsuffix="_")
+            self.annotations = self.annotations.join(database_annotations, on=index, rsuffix="_")
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(old_index, inplace=True)
 
@@ -156,7 +160,7 @@ class Annotatable:
             self.annotations[col.strip("_")].fillna(self.annotations[col], inplace=True, axis=0)
             self.annotations.drop(columns=col, inplace=True)
 
-    def annotate_sequences(self, database: Dataset, index, omic):
+    def annotate_sequences(self, database: Dataset, index, omic, fuzzy_match=False):
         self.annotations["Transcript sequence"] = self.annotations.index.map(
             database.get_sequences(index=index, omic=omic))
 
