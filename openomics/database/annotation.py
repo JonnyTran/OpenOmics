@@ -160,7 +160,7 @@ class Annotatable:
             self.annotations[col.strip("_")].fillna(self.annotations[col], inplace=True, axis=0)
             self.annotations.drop(columns=col, inplace=True)
 
-    def annotate_sequences(self, database: Dataset, index, omic, fuzzy_match=False):
+    def annotate_sequences(self, database: Dataset, index, omic):
         self.annotations["Transcript sequence"] = self.annotations.index.map(
             database.get_sequences(index=index, omic=omic))
 
