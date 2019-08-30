@@ -1,3 +1,16 @@
+import os
+from abc import ABCMeta, abstractmethod
+from io import StringIO
+from os.path import expanduser
+
+import pandas as pd
+from Bio import SeqIO
+from bioservices import BioMart
+
+from openomics.utils import GTF
+from openomics.utils.df import concat_uniques_agg
+from openomics.utils.io import mkdirs
+import difflib
 from openomics.transcriptomics import *
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
@@ -141,8 +154,7 @@ class Annotatable:
         """
         database_annotations = database.get_annotations(index, columns)
         if fuzzy_match:
-            database_annotations.index = database_annotations.index.map(
-                lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
+            database_annotations.index = database_annotations.index.map(lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
 
         if index == self.annotations.index.name:
             self.annotations = self.annotations.join(database_annotations, on=index, rsuffix="_")
