@@ -36,7 +36,9 @@ class Interactions(Dataset):
 
         self.import_folder = import_folder
         self.file_resources = file_resources
-        self.network = self.load_network(file_resources, source_index, target_index, edge_attr, directed, **kwargs)
+        self.network = self.load_network(file_resources=file_resources, source_index=source_index,
+                                         target_index=target_index,
+                                         edge_attr=edge_attr, directed=directed, **kwargs)
         self.network.name = self.name()
 
         if self.network is None:
@@ -52,9 +54,26 @@ class Interactions(Dataset):
     def load_network(self, file_resources, source_index, target_index, edge_attr, directed, **kwargs) -> nx.Graph:
         raise NotImplementedError
 
-    def get_interactions(self, nodelist, edge_attr=False):
+    def get_interactions(self, nodelist, data=False, inclusive=False):
+        """
+
+        Args:
+            nodelist (list):
+                A list of nodes to fetch edges from
+            data (bool): default False
+                Whether to include edge attributes
+            inclusive (bool): default False
+                Whether to only retrieve edges from nodes inclusive in nodelist.
+
+        Returns:
+            edges (OutEdgeView): a NetworkX edgelist
+        """
         if hasattr(self, "network"):
-            return self.network.subgraph(nodelist).edges(data=edge_attr)
+            if inclusive:
+                return self.network.subgraph(nodelist).edges(data=data)
+            else:
+                return self.network.edges(nodelist=nodelist, data=data)
+
         else:
             raise Exception(
                 "{} does not have network interaction data yet. Must run load_network() first.".format(self.name()))
@@ -76,7 +95,9 @@ class LncBase(Interactions, Dataset):
             file_resources = {}
             file_resources["LncBasev2_download.csv"] = os.path.join(import_folder, "LncBasev2_download.csv")
 
-        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, directed, rename_dict,
+        super().__init__(import_folder=import_folder, file_resources=file_resources, source_index=source_index,
+                         target_index=target_index,
+                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
                          organism=organism, tissue=tissue)
 
     def get_rename_dict(self, from_index="geneId", to_index="geneName"):
@@ -133,7 +154,9 @@ class MiRTarBase(Interactions):
             file_resources = {}
             file_resources["miRTarBase_MTI.xlsx"] = os.path.join(import_folder, "miRTarBase_MTI.xlsx")
 
-        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, directed, rename_dict,
+        super().__init__(import_folder=import_folder, file_resources=file_resources, source_index=source_index,
+                         target_index=target_index,
+                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
                          species=species)
 
     def load_network(self, file_resources, source_index, target_index, edge_attr, directed=True, species=None):
@@ -164,7 +187,9 @@ class TargetScan(Interactions, Dataset):
             file_resources["Predicted_Targets_Info.default_predictions.txt"] = os.path.join(import_folder,
                                                                                             "Predicted_Targets_Info.default_predictions.txt")
 
-        super().__init__(import_folder, file_resources, source_index, target_index, edge_attr, directed, rename_dict,
+        super().__init__(import_folder=import_folder, file_resources=file_resources, source_index=source_index,
+                         target_index=target_index,
+                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
                          species=species)
 
     def load_network(self, file_resources, source_index="MiRBase ID", target_index="Gene Symbol",
