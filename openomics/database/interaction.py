@@ -6,8 +6,8 @@ from openomics.database.annotation import *
 class Interactions(Dataset):
     __metaclass__ = ABCMeta
 
-    def __init__(self, import_folder, file_resources, source_index, target_index, edge_attr=None, directed=True,
-                 rename_dict=None, **kwargs):
+    def __init__(self, import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
+                 edge_attr=None, directed=True, rename_dict=None, **kwargs):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
@@ -15,9 +15,9 @@ class Interactions(Dataset):
                 The folder path containing the data files.
             file_resources (dict): default None,
                 Used to list required files for load_network of the dataset. A dictionary where keys are required filenames and value are file paths. If None, then the class constructor should automatically build the required file resources dict.
-            source_index (str):
+            source_col_name (str):
                 Column name of DataFrame to be used as the source node names.
-            target_index (str):
+            target_col_name (str):
                 Column name of DataFrame to be used as the target node names.
             edge_attr (list):
                 A list of column names to be included as attributes for each edge (source-target pairs).
@@ -36,8 +36,10 @@ class Interactions(Dataset):
 
         self.import_folder = import_folder
         self.file_resources = file_resources
-        self.network = self.load_network(file_resources=file_resources, source_index=source_index,
-                                         target_index=target_index,
+        self.source_index = source_index
+        self.target_index = target_index
+        self.network = self.load_network(file_resources=file_resources, source_col_name=source_col_name,
+                                         target_col_name=target_col_name,
                                          edge_attr=edge_attr, directed=directed, **kwargs)
         self.network.name = self.name()
 
@@ -51,7 +53,7 @@ class Interactions(Dataset):
         print("{}".format(nx.info(self.network)))
 
     @abstractmethod
-    def load_network(self, file_resources, source_index, target_index, edge_attr, directed, **kwargs) -> nx.Graph:
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, **kwargs) -> nx.Graph:
         raise NotImplementedError
 
     def get_interactions(self, nodelist, data=False, inclusive=False):
@@ -80,7 +82,8 @@ class Interactions(Dataset):
 
 
 class LncBase(Interactions, Dataset):
-    def __init__(self, import_folder, file_resources=None, source_index="mirna", target_index="geneId",
+    def __init__(self, import_folder, file_resources=None, source_col_name="mirna", target_col_name="geneId",
+                 source_index="gene_name", target_index="gene_id",
                  edge_attr=["tissue", "positive_negative"], directed=True,
                  rename_dict=None, organism="Homo sapiens", tissue=None) -> None:
         """
@@ -95,8 +98,8 @@ class LncBase(Interactions, Dataset):
             file_resources = {}
             file_resources["LncBasev2_download.csv"] = os.path.join(import_folder, "LncBasev2_download.csv")
 
-        super().__init__(import_folder=import_folder, file_resources=file_resources, source_index=source_index,
-                         target_index=target_index,
+        super().__init__(import_folder=import_folder, file_resources=file_resources, source_col_name=source_col_name,
+                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
                          edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
                          organism=organism, tissue=tissue)
 
@@ -106,7 +109,7 @@ class LncBase(Interactions, Dataset):
                                               index=lncbase_df["geneId"]).to_dict()
         return gene_id_to_gene_name_dict
 
-    def load_network(self, file_resources, source_index="mirna", target_index="gene_id",
+    def load_network(self, file_resources, source_col_name="mirna", target_col_name="gene_id",
                      edge_attr=["tissue", "positive_negative"], directed=True,
                      organism="Homo sapiens", tissue=None):
         df = pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
@@ -118,7 +121,7 @@ class LncBase(Interactions, Dataset):
         if tissue is not None:
             df = df[df["tissue"].str.lower() == tissue.lower()]
 
-        lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(df, source=source_index, target=target_index,
+        lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                                                edge_attr=edge_attr,
                                                                create_using=nx.DiGraph() if directed else nx.Graph())
         return lncBase_lncRNA_miRNA_network
@@ -145,7 +148,8 @@ class MiRTarBase(Interactions):
                            "Support Type": "Support_Type",
                            "Target Gene": "gene_name"}
 
-    def __init__(self, import_folder, file_resources=None, source_index="miRNA", target_index="Target Gene",
+    def __init__(self, import_folder, file_resources=None, source_col_name="miRNA", target_col_name="Target Gene",
+                 source_index="transcript_name", target_index="gene_name",
                  edge_attr=["Support Type"], directed=True, rename_dict=None, species="Homo sapiens",
                  strip_mirna_name=False):
         self.strip_mirna_name = strip_mirna_name
@@ -154,12 +158,12 @@ class MiRTarBase(Interactions):
             file_resources = {}
             file_resources["miRTarBase_MTI.xlsx"] = os.path.join(import_folder, "miRTarBase_MTI.xlsx")
 
-        super().__init__(import_folder=import_folder, file_resources=file_resources, source_index=source_index,
-                         target_index=target_index,
+        super().__init__(import_folder=import_folder, file_resources=file_resources, source_col_name=source_col_name,
+                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
                          edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
                          species=species)
 
-    def load_network(self, file_resources, source_index, target_index, edge_attr, directed=True, species=None):
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed=True, species=None):
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
         print(self.name(), df.columns.tolist())
 
@@ -170,14 +174,15 @@ class MiRTarBase(Interactions):
             df['miRNA'] = df['miRNA'].str.lower()
             df['miRNA'] = df['miRNA'].str.replace("-3p.*|-5p.*", "")
 
-        mir_target_network = nx.from_pandas_edgelist(df, source=source_index, target=target_index,
+        mir_target_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                                      edge_attr=edge_attr,
                                                      create_using=nx.DiGraph() if directed else nx.Graph())
         return mir_target_network
 
 
 class TargetScan(Interactions, Dataset):
-    def __init__(self, import_folder, file_resources=None, source_index="MiRBase ID", target_index="Gene Symbol",
+    def __init__(self, import_folder, file_resources=None, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
+                 source_index="transcript_name", target_index="transcript_name",
                  edge_attr=["tissue", "positive_negative"], directed=True, rename_dict=None, species=9606,
                  strip_mirna_name=False):
         self.strip_mirna_name = strip_mirna_name
@@ -187,18 +192,18 @@ class TargetScan(Interactions, Dataset):
             file_resources["Predicted_Targets_Info.default_predictions.txt"] = os.path.join(import_folder,
                                                                                             "Predicted_Targets_Info.default_predictions.txt")
 
-        super().__init__(import_folder=import_folder, file_resources=file_resources, source_index=source_index,
-                         target_index=target_index,
+        super().__init__(import_folder=import_folder, file_resources=file_resources, source_col_name=source_col_name,
+                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
                          edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
                          species=species)
 
-    def load_network(self, file_resources, source_index="MiRBase ID", target_index="Gene Symbol",
+    def load_network(self, file_resources, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
                      edge_attr=["tissue", "positive_negative"], directed=True, species=9606):
         self.df = self.process_miR_family_info_table(file_resources, species)
         interactions_df = self.process_interactions_table(file_resources, self.df, species)
         print(self.name(), interactions_df.columns.tolist())
 
-        mir_target_network = nx.from_pandas_edgelist(interactions_df, source=source_index, target=target_index,
+        mir_target_network = nx.from_pandas_edgelist(interactions_df, source=source_col_name, target=target_col_name,
                                                      create_using=nx.DiGraph() if directed else nx.Graph())
         return mir_target_network
 
