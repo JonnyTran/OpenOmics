@@ -6,12 +6,12 @@ from openomics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAG
     TUMOR_NORMAL, PREDICTED_SUBTYPE
 from openomics.genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
 from openomics.image import WholeSlideImage
-from openomics.transcriptomics import MessengerRNA, MicroRNA, Protein, LncRNA, ExpressionData
+from openomics.proteomics import Protein
+from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
 
 class MultiOmicsData:
-    def __init__(self, cohort_name: str, cohort_folder: str, omics:list=None, remove_duplicate_genes=False,
-                 import_clinical=True):
+    def __init__(self, cohort_name: str, cohort_folder: str, omics: list = None, import_clinical=True):
 
         """
         Load all multi-omics data from a given tcga_data_path with the following folder structure:

@@ -12,22 +12,23 @@ class ExpressionData:
     def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
         """
         .. class:: ExpressionData
-        An abstract class that handles importing of expression data tables while providing indices to the TCGA
-        samples and gene name to the expressions.
-            Args:
-                cohort_name (str): the cohort code name string
-                index (str): {"gene_id", "transcript_id", "peptide_id", "gene_name", "trascript_name", "peptide_name"}
-                    Chooses the level of the gene/transcript/peptide of the genes list in this expression data. The expression DataFrame's index will be renamed to this.
-                file_path (str):
-                    Path of the table file to import.
-                columns (str): a regex string
-                    A regex string to import column names from the table. Columns names imported are string match, separated by "|".
-                genes_col_name (str):
-                    Index column name of expression data which is used to index the genes list
-                transposed (bool): default True
-                    If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
-                log2_transform (bool): default False
-                    Whether to log2 transform the expression values
+        An abstract class that handles importing of any quantitative -omics data that is in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame from file with the user-specified columns and genes column name, then tranpose it such that the rows are samples and columns are gene/transcript/peptides.
+        The user will also specify the index argument, which specifies if the genes are ensembl genes ID or gene name, or transcripts id/names. The user should be careful about choosing the right genes index which makes it easier to annotate functional, sequence, and interaction data to it.
+        The dataframe should only contain numeric values besides the genes_col_name and the sample barcode id indices.
+        Args:
+            cohort_name (str): the unique cohort code name string
+            index (str): {"gene_id", "transcript_id", "peptide_id", "gene_name", "trascript_name", "peptide_name"}
+                Chooses the level of the gene/transcript/peptide of the genes list in this expression data. The expression DataFrame's index will be renamed to this.
+            file_path (str):
+                Path of the table file to import.
+            columns (str): a regex string
+                A regex string to import column names from the table. Columns names imported are string match, separated by "|".
+            genes_col_name (str):
+                Index column name of expression data which is used to index the genes list
+            transposed (bool): default True
+                If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
+            log2_transform (bool): default False
+                Whether to log2 transform the expression values
         """
         self.cohort_name = cohort_name
 
@@ -46,7 +47,6 @@ class ExpressionData:
         # Save samples and features for this omics data
         self.samples = self.expressions.index
         self.features = self.expressions.columns.tolist()
-        # self.features.remove("bcr_sample_barcode")
 
     def preprocess_table(self, df:pd.DataFrame, columns:str, key:str, transposed:bool):
         """
@@ -115,7 +115,7 @@ class LncRNA(ExpressionData, Annotatable):
 
     @classmethod
     def name(self):
-        return "LNC"
+        return __class__.__name__
 
     def preprocess_table(self, df:pd.DataFrame, columns:str, key:str, transposed):
         """
@@ -465,7 +465,7 @@ class MessengerRNA(ExpressionData, Annotatable):
 
     @classmethod
     def name(self):
-        return "GE"
+        return __class__.__name__
 
     def process_HUGO_protein_coding_genes_info(self, hugo_protein_gene_names_path):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
@@ -629,7 +629,7 @@ class MicroRNA(ExpressionData, Annotatable):
 
     @classmethod
     def name(self):
-        return "MIR"
+        return __class__.__name__
 
     def process_mirnadisease_associations(self, HMDD_miRNAdisease_path):
         self.HMDD_miRNAdisease_path = HMDD_miRNAdisease_path
@@ -695,26 +695,5 @@ class MicroRNA(ExpressionData, Annotatable):
 
     def get_annotations(self):
         return self.gene_info
-
-
-class Protein(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
-        super().__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
-                         transposed=transposed, log2_transform=log2_transform)
-
-    @classmethod
-    def name(self):
-        return "PRO"
-
-    def process_HPRD_PPI_network(self, ppi_data_file_path):
-        HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
-        self.HPRD_PPI_network = nx.from_pandas_edgelist(HPRD_PPI, source=0, target=3,
-                                          create_using=nx.DiGraph())
-
-    def get_HPRD_PPI_network_edgelist(self):
-        return self.HPRD_PPI_network.edges(data=True)
-
-    def process_STRING_PPI_network(self, ppi_data_file_path):
-        pass
 
 
