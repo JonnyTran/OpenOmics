@@ -2,6 +2,7 @@ import os
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 from os.path import expanduser
+import difflib
 
 import pandas as pd
 from Bio import SeqIO
@@ -10,8 +11,7 @@ from bioservices import BioMart
 from openomics.utils import GTF
 from openomics.utils.df import concat_uniques_agg
 from openomics.utils.io import mkdirs
-import difflib
-from openomics.transcriptomics import *
+from openomics.transcriptomics import LncRNA, MessengerRNA
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
