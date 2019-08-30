@@ -492,9 +492,9 @@ class EnsemblTranscriptSequences(EnsemblGenes):
 
 
 class EnsemblSNP(EnsemblGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl",
-                 attributes=['variation_name', 'allele', 'minor_allele', 'transcript_location', 'snp_chromosome_strand',
-                             'chromosome_start', 'chromosome_end'],
+    def __init__(self, dataset="hsapiens_snp_som",
+                 attributes=['refsnp_id', 'allele', 'minor_allele', 'associated_gene', 'clinical_significance',
+                             'chrom_strand', 'chr_name', 'chrom_start', 'chrom_end'],
                  host="www.ensemble.org", filename=False) -> None:
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
