@@ -9,11 +9,10 @@ python:
 
 # Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
 install: pip install -U tox-travis codecov
-install: pip install -r requirements_dev.txt
 install: pip install -r requirements.txt
 
 # Command to run tests, e.g. python setup.py test
-script: tox
+script: python setup.py test
 
 # Codecov after success
 after_success: codecov
