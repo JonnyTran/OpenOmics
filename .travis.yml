@@ -1,32 +1,18 @@
-# Config file for automatic testing at travis-ci.org
-
 language: python
 python:
-  - 3.6
-  - 3.5
-  - 3.4
-  - 2.7
-
-# Command to install dependencies, e.g. pip install -r requirements.txt --use-mirrors
-install: pip install -U tox-travis codecov
+- 3.6
+- 3.5
+- 3.4
+- 2.7
 install: pip install -r requirements.txt
-
-# Command to run tests, e.g. python setup.py test
 script: pytest ./openomics/tests/test_openomics.py
-
-# Codecov after success
 after_success: codecov
-
-# Assuming you have installed the travis-ci CLI tool, after you
-# create the Github repo and add it to Travis, run the
-# following command to finish PyPI deployment setup:
-# $ travis encrypt --add deploy.password
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel
   user: JonnyTran
   password:
-    secure:
+    secure: m39qXuHs++1ImJ6Ei7dnGgV5lekiAdAZjfOJcenGVmEMVB7yR/pYs+I3ExLEBEvJ7puSpuKQEUELqhWdzEAWd3sAlP8l495W049StXmm7XyvjQuzBrstthOjneb1jjaAnxnI9pPYllxS9n5UOgpHyGGru+V3VTsKM9W9kEoIYtHgfkMTC2+lZlZm7opn+9RnjALxcn5X9qlhsKLyh8GulLuEbuc1s0GM2xqsWkT/cf24x3Y8tXAyWjyuTHAf26n2BgegRHGfVPOgl6A1mRZAG/mzQs/fXOWtiZUqVyephIKc1p5eMh8X+lDqxMNo0WCMw2UqgySWnP7C1PKno7wkAIDpFH/a+LOJIpBITGRc8wM3OkejyQj5w4IgPJQzbWnGAzBuawNnx/8VTAaA2K38Go96jgHLRZ0HOVPZTF8/qXdZ/JKDAhnBx2TL7y/rpFAC2C6XmqiPRzb3ajEv/04GDRIh+XFglRKIpIk8ZgZAeQwNPdBqL3sammceLYwXFicGiEv0ZlY3++f9e5WsDDKUaXQk6hjYtbhBSIz7Oa6HXxw4eLar8o+9WjF9n7Jv3XiURQoLL02nILqUeaZm3Vp1coRV9wyKhFR+7hPTNozkQO2MPVQLxV1beHtlWZTXnjD9JxfiFG1I+BjEnr/hfgUKtjK42iin7Vx62uF/pWJo4f8=
   on:
     tags: true
     repo: JonnyTran/OpenOmics
