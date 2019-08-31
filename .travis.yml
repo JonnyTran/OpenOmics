@@ -26,7 +26,7 @@ deploy:
   distributions: sdist bdist_wheel
   user: JonnyTran
   password:
-    secure: PLEASE_REPLACE_ME
+    secure:
   on:
     tags: true
     repo: JonnyTran/OpenOmics
