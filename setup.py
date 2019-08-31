@@ -2,20 +2,30 @@ import os
 import sys
 from shutil import rmtree
 
-from setuptools import setup, Command
+from setuptools import setup, find_packages, Command
+
+with open('README.rst') as readme_file:
+    readme = readme_file.read()
+
+with open('HISTORY.rst') as history_file:
+    history = history_file.read()
 
 # Package meta-data.
 NAME = 'openomics'
-DESCRIPTION = 'A toolkit to integrate, query, analyze, and visualize the multi-omics, clinical, and annotation data.'
+DESCRIPTION = 'openOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.'
 URL = 'https://github.com/JonnyTran/openomics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
-AUTHOR = 'Nhat Tran'
+AUTHOR = 'Jonny Tran'
 REQUIRES_PYTHON = '>=3.6.0'
 VERSION = '0.6'
 
-REQUIRED = [
+requirements = [
     'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py'
 ]
+
+setup_requirements = ['pytest-runner', ]
+
+test_requirements = ['pytest', ]
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -60,19 +70,37 @@ class UploadCommand(Command):
 setup(
     name=NAME,
     version=VERSION,
-    packages=["openomics", "openomics.utils", "openomics.utils"],
+    packages=find_packages(include=['openomics']),
     package_dir={NAME: 'openomics'},
     url=URL,
-    license='',
-    python_requires=REQUIRES_PYTHON,
-    install_requires=REQUIRED,
+    license="MIT license",
+    # python_requires=REQUIRES_PYTHON,
+    install_requires=requirements,
+    setup_requires=setup_requirements,
+    test_suite='tests',
+    tests_require=test_requirements,
+    classifiers=[
+            'Development Status :: 2 - Pre-Alpha',
+            'Intended Audience :: Developers',
+            'License :: OSI Approved :: MIT License',
+            'Natural Language :: English',
+            "Programming Language :: Python :: 2",
+            'Programming Language :: Python :: 2.7',
+            'Programming Language :: Python :: 3',
+            'Programming Language :: Python :: 3.4',
+            'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 3.6',
+            'Programming Language :: Python :: 3.7',
+        ],
     author=AUTHOR,
     author_email=EMAIL,
     description=DESCRIPTION,
+    long_description=readme + '\n\n' + history,
 # $ setup.py publish support.
     cmdclass={
         'upload': UploadCommand,
     },
-    include_package_data=True
+    include_package_data=True,
+    zip_safe=False,
 
 )
