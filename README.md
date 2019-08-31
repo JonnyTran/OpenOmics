@@ -522,3 +522,16 @@ for omic in ["GE", "MIR"]:
     avg / total       0.47      0.69      0.56       109
     
 
+Features
+--------
+
+* TODO
+
+Credits
+-------
+
+This package was created with Cookiecutter_ and the `pyOpenSci/cookiecutter-pyopensci`_ project template, based off `audreyr/cookiecutter-pypackage`_.
+
+.. _Cookiecutter: https://github.com/audreyr/cookiecutter
+.. _`pyOpenSci/cookiecutter-pyopensci`: https://github.com/pyOpenSci/cookiecutter-pyopensci
+.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
