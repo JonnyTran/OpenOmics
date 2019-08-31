@@ -29,5 +29,5 @@ deploy:
     secure: PLEASE_REPLACE_ME
   on:
     tags: true
-    repo: JonnyTran/openomics
+    repo: JonnyTran/OpenOmics
     python: 3.6
