@@ -9,5 +9,5 @@ scipy
 h5py
 requests
 setuptools
-bioservices
+bioservices==1.6.0
 itsdangerous
