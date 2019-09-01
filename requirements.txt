@@ -7,7 +7,7 @@ numpy==1.17.1
 pandas==0.25.1
 scipy==1.3.1
 h5py==2.9.0
-requests
+requests==2.22.0
 setuptools
 bioservices
 itsdangerous
