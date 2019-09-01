@@ -1,4 +1,4 @@
-Welcome to openOmics's documentation!
+Welcome to OpenOmics's documentation!
 ======================================
 
 .. toctree::
