@@ -16,7 +16,7 @@ DESCRIPTION = 'OpenOmics provides a bioinformatics API and web-app platform inte
 URL = 'https://github.com/JonnyTran/OpenOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Jonny Tran'
-VERSION = 'version='0.6.1''
+VERSION = '0.6.1'
 
 requirements = [
     'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py'
