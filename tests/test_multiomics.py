@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 """Tests for `openomics` package."""
 
-import pytest
 import os
-import random
 
-import openomics as oo
+import pytest
+
+from openomics.genomics import SomaticMutation
 from openomics.multiomics import MultiOmicsData
 from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA
-from openomics.genomics import SomaticMutation
 
 cohort_folder_path = "tests/data/TCGA_LUAD"
+print(os.getcwd())
 
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA():

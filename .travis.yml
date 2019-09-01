@@ -1,17 +1,20 @@
 language: python
 python:
-    - 3.6
-    - 3.5
-    - 3.4
-    - 2.7
+    - "3.6"
+    - "3.5"
+    - "3.4"
+    - "2.7"
 
 env:
     - CODECOV_TOKEN="0cfdf951-48ac-4a61-818d-639e07fde3b4"
 
-#install: pip install -U tox-travis codecov
-install: pip install -r requirements.txt
+install:
+    - pip install -U tox-travis codecov
+    - pip install -r requirements_dev.txt
+    - pip install -r requirements.txt
+
 script: python -m pytest
-after_success: codecov --token=0cfdf951-48ac-4a61-818d-639e07fde3b4
+after_success: codecov
 
 deploy:
     provider: pypi

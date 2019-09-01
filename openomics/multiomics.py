@@ -1,11 +1,8 @@
-import os
-from typing import List, Dict
+from typing import List, Dict, Union
+
 import pandas as pd
 
-print(os.getcwd())
-
-from openomics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
-    TUMOR_NORMAL, PREDICTED_SUBTYPE
+from openomics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, TUMOR_NORMAL, PREDICTED_SUBTYPE
 from openomics.genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
 from openomics.image import WholeSlideImage
 from openomics.proteomics import Protein
@@ -23,7 +20,6 @@ class MultiOmicsData:
             cohort_name (str): the clinical cohort name
             omics (list): {"ClinicalData", "MessengerRNA", "SomaticMutation", "CopyNumberVariation", "DNA", "MicroRNA", "LNC", "PRO"}
                 Deprecated. A list of multi-omics data to import.
-            remove_duplicate_genes (bool):
             import_clinical (bool, ClinicalData):
         """
         self.cancer_type = cohort_name
@@ -160,7 +156,8 @@ class MultiOmicsData:
         for omic_A in self.omics_list:
             for omic_B in self.omics_list:
                 if omic_A != omic_B:
-                    self.omic_A.drop_genes(set(self.omic_A.get_genes_list()) & set(self.omic_B.get_genes_list()))
+                    self.__getattribute__(omic_A).drop_genes(set(self.__getattribute__(omic_A).get_genes_list()) & set(
+                        self.__getattribute__(omic_B).get_genes_list()))
 
     def add_omic(self, omic, initialize_annotations=True):
         # type: (ExpressionData, bool) -> None
@@ -254,9 +251,9 @@ class MultiOmicsData:
         return matched_samples
 
     def load_data(self, omics, target=['pathologic_stage'],
-                  pathologic_stages=[], histological_subtypes=[], predicted_subtypes=[], tumor_normal=[],
+                  pathologic_stages=None, histological_subtypes=None, predicted_subtypes=None, tumor_normal=None,
                   samples_barcode=None):
-        # type: (List, List[str], List[str], List[str], List[str], List[str], List[str]) -> (Dict[str, pd.DataFrame], pd.DataFrame)
+        # type: (Union[List[str], str], List[str], List[str], List[str], List[str], List[str], List[str]) -> (Dict[str, pd.DataFrame], pd.DataFrame)
         """
         Query and fetch the multi-omics dataset based on requested . The data matrices are row index-ed by sample barcode.
 
