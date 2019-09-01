@@ -1,5 +1,5 @@
 biopython==1.74
-large-image
+large-image==1.0.0
 bokeh
 dask
 networkx>=2.1
