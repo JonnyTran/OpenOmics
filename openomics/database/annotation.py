@@ -128,6 +128,9 @@ class Dataset:
 
 
 class Annotatable:
+    """
+    This abstract class provides an interface for the omics to annotate external data downloaded from various databases. These data will be imported as attribute information to the genes, or interactions between the genes.
+    """
     __metaclass__ = ABCMeta
 
     def get_annotations(self):

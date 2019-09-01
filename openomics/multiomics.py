@@ -11,40 +11,18 @@ from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA, Expression
 
 
 class MultiOmicsData:
-    def __init__(self, cohort_name: str, cohort_folder: str, omics: list = None, import_clinical=True):
+    def __init__(self, cohort_name: str, omics: list = None, import_clinical=True, clinical_file=None):
 
         """
-        Load all multi-omics data from a given tcga_data_path with the following folder structure:
-            cohort_folder/
-                clinical/
-                    genome.wustl.edu_biospecimen_sample.txt (optional)
-                    nationwidechildrens.org_clinical_drug.txt
-                    nationwidechildrens.org_clinical_patient.txt
-                gene_exp/
-                    geneExp.txt
-                mirna/
-                    miRNAExp__RPM.txt
-                cnv/
-                    copyNumber.txt
-                protein_rppa/
-                    protein_RPPA.txt
-                somatic/
-                    somaticMutation_geneLevel.txt
-                lncrna/
-                    TCGA-rnaexpr.tsv
-                wsi/
-                    ...
+        Load all multi-omics data from a given cohort_folder path.
 
-        Load the external data downloaded from various databases. These data will be imported as attribute information to
-        the genes, or interactions between the genes.
 
         Args:
             cohort_name (str): the clinical cohort name
-            cohort_folder (str): directory path to the folder containing clinical and multi-omics data downloaded from TCGA-assembler
-            omics (list): {"CLI", "WSI", "GE", "SNP", "CNV", "DNA", "MIR", "LNC", "PRO"}
-                A list of multi-omics data to import.
+            omics (list): {"ClinicalData", "MessengerRNA", "SomaticMutation", "CopyNumberVariation", "DNA", "MicroRNA", "LNC", "PRO"}
+                Deprecated. A list of multi-omics data to import.
             remove_duplicate_genes (bool):
-            import_clinical (bool):
+            import_clinical (bool, ClinicalData):
         """
         self.cancer_type = cohort_name
         self.omics_list = omics if omics is not None else []
@@ -52,9 +30,12 @@ class MultiOmicsData:
         # This is a data dictionary accessor to retrieve DataFrame's
         self.data = {}
 
-        if import_clinical or (ClinicalData.name() in omics):
-            self.clinical = ClinicalData(cohort_name, folder_path=os.path.join(cohort_folder, "clinical/"))
+        if import_clinical and type(import_clinical) == ClinicalData:
+            self.clinical = import_clinical
+        elif import_clinical or (ClinicalData.name() in omics):
+            self.clinical = ClinicalData(cohort_name, clinical_file)
 
+        if import_clinical:
             self.data["PATIENTS"] = self.clinical.patient
             if hasattr(self.clinical, "biospecimen"):
                 self.data["BIOSPECIMENS"] = self.clinical.biospecimen
@@ -202,6 +183,9 @@ class MultiOmicsData:
             omic.initialize_annotations(None, omic.index)
 
         print(omic.name(), self.data[omic.name()].shape if hasattr(self.data[omic.name()], 'shape') else ": None")
+
+    def get_omics_list(self):
+        return self.omics_list
 
     def build_samples(self):
         if len(self.omics_list) > 1:  # make sure at least one ExpressionData present
