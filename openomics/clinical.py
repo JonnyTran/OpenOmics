@@ -29,7 +29,7 @@ class ClinicalData:
                           'ajcc_pathologic_tumor_stage']
         """
         self.cohort_name = cohort_name
-        self.patient_col_name = patient_column
+        self.patient_column = patient_column
 
         if not os.path.exists(patients_file):
             raise FileNotFoundError(patients_file)

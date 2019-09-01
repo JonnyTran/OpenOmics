@@ -2,6 +2,8 @@ import os
 from typing import List, Dict
 import pandas as pd
 
+print(os.getcwd())
+
 from openomics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
 from openomics.genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
@@ -332,4 +334,4 @@ class MultiOmicsData:
         :param dictionary: A dictionary mapping patient's barcode to a subtype
         """
         self.data["PATIENTS"] = self.data["PATIENTS"].assign(
-            predicted_subtype=self.data["PATIENTS"][BCR_PATIENT_BARCODE].map(dictionary))
+            predicted_subtype=self.data["PATIENTS"][self.clinical.patient_column].map(dictionary))
