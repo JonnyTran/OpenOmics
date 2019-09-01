@@ -7,7 +7,7 @@ python:
 
 install: pip install -U tox-travis codecov
 install: pip install -r requirements.txt
-script: pytest openomics/tests/test_openomics.py
+script: pytest
 after_success: codecov
 deploy:
   provider: pypi
