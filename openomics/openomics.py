@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """Main module template with external functions."""
 
-from openomics import multiomics, multicohorts, clinical, image, genomics, transcriptomics, proteomics
-from openomics import database
 
 def sum_numbers(number_list):
     """Example function. Sums a list of numbers using a for loop.
