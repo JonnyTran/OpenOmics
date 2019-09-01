@@ -16,7 +16,6 @@ DESCRIPTION = 'OpenOmics provides a bioinformatics API and web-app platform inte
 URL = 'https://github.com/JonnyTran/OpenOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Jonny Tran'
-VERSION = 'version='0.6.2''
 
 requirements = [
     'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py'
@@ -68,7 +67,7 @@ class UploadCommand(Command):
 
 setup(
     name=NAME,
-    version=VERSION,
+    version="0.6.1",
     packages=find_packages(include=['openomics']),
     package_dir={NAME: 'openomics'},
     url=URL,
