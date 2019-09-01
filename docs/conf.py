@@ -47,9 +47,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'openOmics'
-copyright = u"2019, Nhat Chau Tran"
-author = u"Nhat Chau Tran"
+project = u'OpenOmics'
+copyright = u"2019, Nhat Tran"
+author = u"Jonny Tran"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
