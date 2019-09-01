@@ -1,4 +1,5 @@
 import os
+from typing import List, Dict, Union
 from abc import ABCMeta, abstractmethod
 from io import StringIO
 from os.path import expanduser
@@ -101,7 +102,7 @@ class Dataset:
         raise NotImplementedError
 
     @abstractmethod
-    def get_rename_dict(self, from_index, to_index) -> dict:
+    def get_rename_dict(self, from_index, to_index):
         """
         Used to retrieve a lookup dictionary to convert from one index to another, e.g., gene_id to gene_name
 
@@ -115,15 +116,13 @@ class Dataset:
         raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, index, omic=None) -> dict:
+    def get_sequences(self, index, omic=None):
         """
         Returns a dictionary where keys are
         Args:
             omic (str): {"lncRNA", "microRNA", "messengerRNA"}
             index (str): {"gene_id", "gene_name", "transcript_id", "transcript_name"}
                 The index
-            *args:
-                optional arguments that may be passed to Database.get_sequences() method.
         """
         raise NotImplementedError
 
