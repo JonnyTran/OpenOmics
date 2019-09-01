@@ -8,6 +8,6 @@ pandas
 scipy
 h5py
 requests
-setuptools
+setuptools==41.2.0
 bioservices
 itsdangerous
