@@ -1,7 +1,7 @@
 biopython
 large-image
 bokeh
-dask
+dask==2.3.0
 networkx>=2.1
 numpy
 pandas
