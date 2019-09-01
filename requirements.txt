@@ -3,7 +3,7 @@ large-image
 bokeh
 dask
 networkx>=2.1
-numpy
+numpy==1.17.1
 pandas
 scipy
 h5py
