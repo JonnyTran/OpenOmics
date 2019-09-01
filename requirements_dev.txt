@@ -9,4 +9,4 @@ Sphinx
 twine=
 pytest
 pytest-runner
-pytest-cov
+pytest-cov==2.7.1
