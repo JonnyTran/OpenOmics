@@ -48,7 +48,8 @@ class ExpressionData:
         self.samples = self.expressions.index
         self.features = self.expressions.columns.tolist()
 
-    def preprocess_table(self, df:pd.DataFrame, columns:str, key:str, transposed:bool):
+    def preprocess_table(self, df, columns, key, transposed):
+        # type: (pd.DataFrame, str, str, bool) -> None
         """
         This function preprocesses the expression table files where columns are samples and rows are gene/transcripts
         :param transposed:
@@ -117,7 +118,8 @@ class LncRNA(ExpressionData, Annotatable):
     def name(self):
         return __class__.__name__
 
-    def preprocess_table(self, df:pd.DataFrame, columns:str, key:str, transposed):
+    def preprocess_table(self, df, columns, key, transposed):
+        # type: (pd.DataFrame, str, str, bool) -> None
         """
         Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
 

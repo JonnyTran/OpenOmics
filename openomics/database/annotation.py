@@ -53,7 +53,8 @@ class Dataset:
     def list_databases(self):
         return DEFAULT_LIBRARIES
 
-    def get_annotations(self, index:str, columns:list) -> pd.DataFrame:
+    def get_annotations(self, index, columns):
+        # type: (str, List[str]) -> pd.DataFrame
         """
         Returns the Database's DataFrame such that it's indexed by :param index:, which then applies a groupby operation
         and aggregates all other columns by concatenating all unique values.
@@ -88,7 +89,8 @@ class Dataset:
         return df
 
     @abstractmethod
-    def load_data(self, file_resources: dict, **kwargs) -> pd.DataFrame:
+    def load_data(self, file_resources, **kwargs):
+        # type: (dict, **str) -> pd.DataFrame
         """
         Handles data preprocessing given the file_resources input, and returns a DataFrame.
 
@@ -146,7 +148,8 @@ class Annotatable:
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_genomics(self, database: Dataset, index, columns, fuzzy_match=False):
+    def annotate_genomics(self, database, index, columns, fuzzy_match=False):
+        # type: (Dataset, str, List[str], bool) -> None
         """
         Performs a left outer join between the annotations and Database's DataFrame, on the index key. The index argument must be column present in both DataFrames.
         If there exists overlapping column in the join, then the fillna() is used to fill NaN values in the old column with non-NaN values from the new column.

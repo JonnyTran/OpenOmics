@@ -1,18 +1,18 @@
 import os
-
+from typing import List, Dict
 import pandas as pd
 
 from openomics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
 from openomics.genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
-# from openomics.image import WholeSlideImage
+from openomics.image import WholeSlideImage
 from openomics.proteomics import Protein
 from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
 
 class MultiOmicsData:
-    def __init__(self, cohort_name: str, omics: list = None, import_clinical=True, clinical_file=None):
-
+    def __init__(self, cohort_name, omics=None, import_clinical=True, clinical_file=None):
+        # type: (str, List[str], bool, str) -> MultiOmicsData
         """
         Load all multi-omics data from a given cohort_folder path.
 
@@ -160,7 +160,8 @@ class MultiOmicsData:
                 if omic_A != omic_B:
                     self.omic_A.drop_genes(set(self.omic_A.get_genes_list()) & set(self.omic_B.get_genes_list()))
 
-    def add_omic(self, omic:ExpressionData, initialize_annotations=True):
+    def add_omic(self, omic, initialize_annotations=True):
+        # type: (ExpressionData, bool) -> None
         """
         Adds an omic object to the Multiomics such that the samples in omic matches the samples existing in the other omics.
 
@@ -196,7 +197,8 @@ class MultiOmicsData:
             self.data["SAMPLES"] = self.clinical.samples.index
 
 
-    def __getitem__(self, item:str):
+    def __getitem__(self, item):
+        # type: (str) -> object
         """
         This function allows the MultiOmicData class objects to access individual omics by a dictionary lookup, e.g.
 
@@ -252,6 +254,7 @@ class MultiOmicsData:
     def load_data(self, omics, target=['pathologic_stage'],
                   pathologic_stages=[], histological_subtypes=[], predicted_subtypes=[], tumor_normal=[],
                   samples_barcode=None):
+        # type: (List, List[str], List[str], List[str], List[str], List[str], List[str]) -> (Dict[str, pd.DataFrame], pd.DataFrame)
         """
         Query and fetch the multi-omics dataset based on requested . The data matrices are row index-ed by sample barcode.
 
