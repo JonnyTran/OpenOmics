@@ -241,7 +241,7 @@ class RNAcentral(Dataset):
 
 class GENCODE(Dataset):
     def __init__(self, import_folder, file_resources=None, col_rename=None, import_sequences="all",
-                 replace_U2T=True) -> None:
+                 replace_U2T=True):
         if file_resources is None:
             file_resources = {}
             file_resources["long_noncoding_RNAs.gtf"] = os.path.join(import_folder, "gencode.v29.long_noncoding_RNAs.gtf")
@@ -344,7 +344,7 @@ class MirBase(Dataset):
         self.species = species
         super().__init__(import_folder, file_resources, col_rename)
 
-    def load_data(self, file_resources, **kwargs) -> pd.DataFrame:
+    def load_data(self, file_resources, **kwargs):
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
                                    names=["RNAcentral id", "database", "mirbase id", "species", "RNA type", "gene name"],
                                    # dtype="O",
@@ -369,7 +369,7 @@ class MirBase(Dataset):
 
         return mirbase_aliases
 
-    def get_sequences(self, index="gene_name", omic=None) -> dict:
+    def get_sequences(self, index="gene_name", omic=None):
         seq_dict = {}
 
         for record in SeqIO.parse(self.file_resources["mature.fa"], "fasta"):
@@ -451,7 +451,7 @@ class EnsemblGenes(BioMartManager, Dataset):
                            'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
                            'gene_biotype', 'transcript_biotype',
                              'rfam', 'go_id', ],
-                 host="www.ensemble.org", filename=False) -> None:
+                 host="www.ensemble.org", filename=False):
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
         self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,
@@ -461,7 +461,7 @@ class EnsemblGenes(BioMartManager, Dataset):
                        inplace=True)
         print(self.name(), self.df.columns.tolist())
 
-    def load_data(self, datasets, attributes, host, filename=None) -> pd.DataFrame:
+    def load_data(self, datasets, attributes, host, filename=None):
         return self.retrieve_dataset(host, datasets, attributes, filename)
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
@@ -481,7 +481,7 @@ class EnsemblGeneSequences(EnsemblGenes):
     def __init__(self, dataset="hsapiens_gene_ensembl",
                  attributes=['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon',
                              'coding'],
-                 host="www.ensemble.org", filename=False) -> None:
+                 host="www.ensemble.org", filename=False):
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
         self.df = self.load_data(datasets=dataset, filename=self.filename, host=self.host,
@@ -495,7 +495,7 @@ class EnsemblTranscriptSequences(EnsemblGenes):
                  attributes=['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank',
                              'coding_transcript_flank',
                              '5utr', '3utr'],
-                 host="www.ensemble.org", filename=False) -> None:
+                 host="www.ensemble.org", filename=False):
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
         self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,
@@ -511,7 +511,7 @@ class EnsemblSNP(EnsemblGenes):
                              'ensembl_gene_stable_id', 'ensembl_transcript_stable_id',
                              'phenotype_name',
                              'chr_name', 'chrom_start', 'chrom_end'],
-                 host="www.ensemble.org", filename=False) -> None:
+                 host="www.ensemble.org", filename=False):
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
         self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,
@@ -524,7 +524,7 @@ class EnsemblSomaticVariation(EnsemblGenes):
                              'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
                              'somatic_mapweight',
                              'somatic_chromosome_start', 'somatic_chromosome_end'],
-                 host="www.ensemble.org", filename=False) -> None:
+                 host="www.ensemble.org", filename=False):
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
         self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,

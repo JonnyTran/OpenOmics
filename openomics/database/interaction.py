@@ -51,7 +51,7 @@ class Interactions(Dataset):
         print("{}".format(nx.info(self.network)))
 
     @abstractmethod
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, **kwargs) -> nx.Graph:
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, **kwargs):
         raise NotImplementedError
 
     def get_interactions(self, nodelist, data=False, inclusive=False):
@@ -83,7 +83,7 @@ class LncBase(Interactions, Dataset):
     def __init__(self, import_folder, file_resources=None, source_col_name="mirna", target_col_name="geneId",
                  source_index="transcript_name", target_index="gene_id",
                  edge_attr=["tissue", "positive_negative"], directed=True,
-                 rename_dict=None, organism="Homo sapiens", tissue=None) -> None:
+                 rename_dict=None, organism="Homo sapiens", tissue=None):
         """
 
         Args:
