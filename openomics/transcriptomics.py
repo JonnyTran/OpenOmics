@@ -93,7 +93,7 @@ class ExpressionData:
             self.features.remove(gene)
 
     @classmethod
-    def name(self):
+    def name(cls):
         raise NotImplementedError
 
     def get_genes_list(self):
@@ -111,12 +111,12 @@ class LncRNA(ExpressionData, Annotatable):
         Args:
             level:
         """
-        super().__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
-                         transposed=transposed, log2_transform=log2_transform)
+        super(LncRNA, self).__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
+                                     transposed=transposed, log2_transform=log2_transform)
 
     @classmethod
-    def name(self):
-        return __class__.__name__
+    def name(cls):
+        return cls.__name__
 
     def preprocess_table(self, df, columns, key, transposed):
         # type: (pd.DataFrame, str, str, bool) -> None
@@ -462,12 +462,13 @@ class LncRNA(ExpressionData, Annotatable):
 
 class MessengerRNA(ExpressionData, Annotatable):
     def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
-        super().__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
-                         transposed=transposed, log2_transform=log2_transform)
+        super(MessengerRNA, self).__init__(cohort_name, index, file_path, columns=columns,
+                                           genes_col_name=genes_col_name,
+                                           transposed=transposed, log2_transform=log2_transform)
 
     @classmethod
-    def name(self):
-        return __class__.__name__
+    def name(cls):
+        return cls.__name__
 
     def process_HUGO_protein_coding_genes_info(self, hugo_protein_gene_names_path):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
@@ -626,12 +627,12 @@ class MessengerRNA(ExpressionData, Annotatable):
 
 class MicroRNA(ExpressionData, Annotatable):
     def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
-        super().__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
-                         transposed=transposed, log2_transform=log2_transform)
+        super(MicroRNA, self).__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
+                                       transposed=transposed, log2_transform=log2_transform)
 
     @classmethod
-    def name(self):
-        return __class__.__name__
+    def name(cls):
+        return cls.__name__
 
     def process_mirnadisease_associations(self, HMDD_miRNAdisease_path):
         self.HMDD_miRNAdisease_path = HMDD_miRNAdisease_path

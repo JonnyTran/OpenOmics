@@ -170,7 +170,7 @@ class MultiOmicsData:
             initialize_annotations (bool): default True.
                 If true, initializes the annotations dataframe in the omic object
         """
-        self.__setattr__(omic.name(), omic)
+        self.__dict__[omic.name()] = omic
 
         if omic.name not in self.omics_list:
             self.omics_list.append(omic.name())

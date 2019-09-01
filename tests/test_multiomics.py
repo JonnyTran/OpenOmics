@@ -40,7 +40,8 @@ def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA):
     luad_data = MultiOmicsData(cohort_name, import_clinical=True, clinical_file=os.path.join(cohort_folder_path, "nationwidechildrens.org_clinical_patient_luad.txt"))
     luad_data.add_omic(generate_TCGA_LUAD_MessengerRNA)
     luad_data.build_samples()
-    assert luad_data.data["MessengerRNA"].shape == generate_TCGA_LUAD_MessengerRNA.expressions.shape
+    print(luad_data.data.keys())
+    assert luad_data.data[MessengerRNA.name()].shape == generate_TCGA_LUAD_MessengerRNA.expressions.shape
 
 @pytest.fixture
 def generate_TCGA_LUAD(generate_TCGA_LUAD_MessengerRNA, generate_TCGA_LUAD_MicroRNA, generate_TCGA_LUAD_LncRNA):

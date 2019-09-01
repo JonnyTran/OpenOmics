@@ -34,11 +34,11 @@ class Dataset:
             **kwargs: Additional arguments that may be passed to load_data function
         """
         if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
-            raise NotADirectoryError(import_folder)
+            raise IOError(import_folder)
         else:
             for _, filepath in file_resources.items():
                 if not os.path.exists(filepath):
-                    raise FileNotFoundError(filepath)
+                    raise IOError(filepath)
 
         self.import_folder = import_folder
         self.file_resources = file_resources
@@ -49,7 +49,7 @@ class Dataset:
 
     @classmethod
     def name(cls):
-        return cls.__class__.__name__
+        return cls.__name__
 
     def list_databases(self):
         return DEFAULT_LIBRARIES
@@ -178,17 +178,17 @@ class Annotatable:
             self.annotations[col.strip("_")].fillna(self.annotations[col], inplace=True, axis=0)
             self.annotations.drop(columns=col, inplace=True)
 
-    def annotate_sequences(self, database: Dataset, index, omic):
+    def annotate_sequences(self, database, index, omic):
+        # type: (Dataset, str, str) -> None
         self.annotations["Transcript sequence"] = self.annotations.index.map(
             database.get_sequences(index=index, omic=omic))
 
-
-    @abstractmethod
-    def annotate_interactions(self, database: Dataset, index):
+    def annotate_interactions(self, database, index):
+        # type: (Dataset, str) -> None
         raise NotImplementedError
 
-    @abstractmethod
-    def annotate_diseases(self, database: Dataset, index):
+    def annotate_diseases(self, database, index):
+        # type: (Dataset, str) -> None
         raise NotImplementedError
 
 
@@ -210,7 +210,7 @@ class RNAcentral(Dataset):
         if col_rename is None:
             col_rename = self.COLUMNS_RENAME_DICT
 
-        super().__init__(import_folder, file_resources, col_rename)
+        super(RNAcentral, self).__init__(import_folder, file_resources, col_rename)
 
     def load_data(self, file_resources):
         go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
@@ -250,7 +250,7 @@ class GENCODE(Dataset):
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
 
-        super().__init__(import_folder, file_resources, col_rename=col_rename)
+        super(GENCODE, self).__init__(import_folder, file_resources, col_rename=col_rename)
 
 
     def load_data(self, file_resources):
@@ -316,7 +316,6 @@ class GENCODE(Dataset):
 
 
 class MirBase(Dataset):
-
     def __init__(self, import_folder, RNAcentral_folder, file_resources=None, col_rename=None,
                  species=9606, import_sequences="all", replace_U2T=True):
         """
@@ -341,7 +340,7 @@ class MirBase(Dataset):
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
         self.species = species
-        super().__init__(import_folder, file_resources, col_rename)
+        super(MirBase, self).__init__(import_folder, file_resources, col_rename)
 
     def load_data(self, file_resources, **kwargs):
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,

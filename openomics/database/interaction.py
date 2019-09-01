@@ -89,17 +89,17 @@ class LncBase(Interactions, Dataset):
         Args:
             import_folder (str):
             file_resources (dict): default None.
-            col_rename (dict): default None.
-            species (str): {'Homo sapiens', "Kaposi's sarcoma-associated herpesvirus (KSHV)", 'Epstein–Barr virus', 'Mus musculus'}
         """
         if file_resources is None:
             file_resources = {}
             file_resources["LncBasev2_download.csv"] = os.path.join(import_folder, "LncBasev2_download.csv")
 
-        super().__init__(import_folder=import_folder, file_resources=file_resources, source_col_name=source_col_name,
-                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
-                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
-                         organism=organism, tissue=tissue)
+        super(LncBase, self).__init__(import_folder=import_folder, file_resources=file_resources,
+                                      source_col_name=source_col_name,
+                                      target_col_name=target_col_name, source_index=source_index,
+                                      target_index=target_index,
+                                      edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
+                                      organism=organism, tissue=tissue)
 
     def get_rename_dict(self, from_index="geneId", to_index="geneName"):
         lncbase_df = pd.read_table(self.file_resources["LncBasev2_download.csv"], low_memory=True)
@@ -156,10 +156,12 @@ class MiRTarBase(Interactions):
             file_resources = {}
             file_resources["miRTarBase_MTI.xlsx"] = os.path.join(import_folder, "miRTarBase_MTI.xlsx")
 
-        super().__init__(import_folder=import_folder, file_resources=file_resources, source_col_name=source_col_name,
-                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
-                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
-                         species=species)
+        super(MiRTarBase, self).__init__(import_folder=import_folder, file_resources=file_resources,
+                                         source_col_name=source_col_name,
+                                         target_col_name=target_col_name, source_index=source_index,
+                                         target_index=target_index,
+                                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
+                                         species=species)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed=True, species=None):
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
@@ -190,10 +192,12 @@ class TargetScan(Interactions, Dataset):
             file_resources["Predicted_Targets_Info.default_predictions.txt"] = os.path.join(import_folder,
                                                                                             "Predicted_Targets_Info.default_predictions.txt")
 
-        super().__init__(import_folder=import_folder, file_resources=file_resources, source_col_name=source_col_name,
-                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
-                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
-                         species=species)
+        super(TargetScan, self).__init__(import_folder=import_folder, file_resources=file_resources,
+                                         source_col_name=source_col_name,
+                                         target_col_name=target_col_name, source_index=source_index,
+                                         target_index=target_index,
+                                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
+                                         species=species)
 
     def load_network(self, file_resources, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
                      edge_attr=["tissue", "positive_negative"], directed=True, species=9606):
