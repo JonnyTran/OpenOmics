@@ -10,7 +10,7 @@ from openomics.multiomics import MultiOmicsData
 from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA
 from openomics.genomics import SomaticMutation
 
-cohort_folder_path = "openomics/tests/data/TCGA_LUAD"
+cohort_folder_path = "tests/data/TCGA_LUAD"
 
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA():
