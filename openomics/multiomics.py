@@ -5,7 +5,7 @@ import pandas as pd
 from openomics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, BCR_PATIENT_BARCODE, \
     TUMOR_NORMAL, PREDICTED_SUBTYPE
 from openomics.genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
-from openomics.image import WholeSlideImage
+# from openomics.image import WholeSlideImage
 from openomics.proteomics import Protein
 from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
