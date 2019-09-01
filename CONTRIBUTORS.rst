@@ -5,7 +5,7 @@ Credits
 Development Lead
 ----------------
 
-* Nhat Chau Tran <nhat.tran@mavs.uta.edu>
+* Nhat (Jonny) Tran <nhat.tran@mavs.uta.edu>
 
 Contributors
 ------------
