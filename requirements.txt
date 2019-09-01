@@ -9,6 +9,6 @@ scipy
 h5py
 requests
 setuptools
-typing
+typing==3.7.4.1
 bioservices
 itsdangerous
