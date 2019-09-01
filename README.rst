@@ -3,13 +3,13 @@ OpenOmics
 =========
 
 
-.. image:: https://img.shields.io/pypi/v/openomics.svg
+.. image:: https://img.shields.io/pypi/v/OpenOmics.svg
         :target: https://pypi.python.org/pypi/OpenOmics
 
-.. image:: https://img.shields.io/travis/JonnyTran/openomics.svg
+.. image:: https://img.shields.io/travis/JonnyTran/OpenOmics.svg
         :target: https://travis-ci.org/JonnyTran/OpenOmics
 
-.. image:: https://codecov.io/gh/JonnyTran/openomics/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg
         :target: https://codecov.io/gh/JonnyTran/OpenOmics
 
 .. image:: https://readthedocs.org/projects/openomics/badge/?version=latest
@@ -17,7 +17,7 @@ OpenOmics
         :alt: Documentation Status
 
 
-.. image:: https://pyup.io/repos/github/JonnyTran/openomics/shield.svg
+.. image:: https://pyup.io/repos/github/JonnyTran/OpenOmics/shield.svg
      :target: https://pyup.io/repos/github/JonnyTran/OpenOmics/
      :alt: Updates
 
