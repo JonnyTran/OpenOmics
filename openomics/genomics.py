@@ -8,7 +8,8 @@ class SomaticMutation(ExpressionData, Annotatable):
         super().__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
                          transposed=transposed, log2_transform=log2_transform)
 
-    def name(self):
+    @classmethod
+    def name(cls):
         return __class__.__name__
 
 
@@ -18,7 +19,8 @@ class DNAMethylation(ExpressionData):
         super().__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
                          transposed=transposed, log2_transform=log2_transform)
 
-    def name(self):
+    @classmethod
+    def name(cls):
         return __class__.__name__
 
 
@@ -28,5 +30,6 @@ class CopyNumberVariation(ExpressionData, Annotatable):
         super().__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
                          transposed=transposed, log2_transform=log2_transform)
 
-    def name(self):
+    @classmethod
+    def name(cls):
         return __class__.__name__

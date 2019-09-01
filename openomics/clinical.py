@@ -24,10 +24,7 @@ class ClinicalData:
     clinical_drug_colsname = ['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name', 'pharmaceutical_therapy_type',
                               'treatment_best_response']
 
-    def __init__(self, cohort_name, folder_path,
-                 patients_file="nationwidechildrens.org_clinical_patient.txt",
-                 drugs_file="nationwidechildrens.org_clinical_drug.txt",
-                 biospecimens_file="genome.wustl.edu_biospecimen_sample.txt"):
+    def __init__(self, cohort_name, file_resources=None):
         """
 
         Args:
@@ -37,58 +34,16 @@ class ClinicalData:
             drugs_file:
             biospecimens_file:
         """
-        self.cancer_type = cohort_name
+        self.cohort_name = cohort_name
 
-        if not os.path.isdir(folder_path) or not os.path.exists(folder_path):
-            raise NotADirectoryError(folder_path)
+        for _, filepath in file_resources.items():
+            if not os.path.exists(filepath):
+                raise FileNotFoundError(filepath)
 
-        else:
-            patients_file_path = os.path.join(folder_path, patients_file)
-            drugs_file_path = os.path.join(folder_path, drugs_file)
-            biospecimens_file_path = os.path.join(folder_path, biospecimens_file)
+        patients_file_path = os.path.join(folder_path, patients_file)
+        drugs_file_path = os.path.join(folder_path, drugs_file)
+        biospecimens_file_path = os.path.join(folder_path, biospecimens_file)
 
-            # Import patients
-            if os.path.exists(patients_file_path):
-                self.patient = pd.read_table(patients_file_path,
-                                             sep="\t",
-                                             skiprows=[1, 2],
-                                             na_values=["[Not Available]", "[Not Applicable]"],
-                                             # usecols=ClinicalData.clinical_patient_colsname
-                                             )
-                self.patient.index = self.patient[BCR_PATIENT_BARCODE]
-                self.patient.rename({"ajcc_pathologic_tumor_stage": ("%s" % PATHOLOGIC_STAGE),
-                                     "histological_type": ("%s" % HISTOLOGIC_SUBTYPE),
-                                     "histologic_diagnosis.1": ("%s" % HISTOLOGIC_SUBTYPE)}, axis=1, inplace=True)
-                self.patient.replace({('%s' % PATHOLOGIC_STAGE): ClinicalData.pathologic_stage_map}, inplace=True)
-                self.patient_barcodes = self.patient[BCR_PATIENT_BARCODE].tolist()
-            else:
-                raise FileNotFoundError(patients_file_path)
-
-            # Import clinical drug
-            if os.path.exists(drugs_file_path):
-                self.drugs = pd.read_table(drugs_file_path,
-                                           sep="\t",
-                                           skiprows=[1, 2],
-                                           na_values=["[Not Available]", "[Unknown]", "[Not Applicable]"],
-                                           usecols=ClinicalData.clinical_drug_colsname
-                                           )
-                self.drugs.index = self.drugs[BCR_PATIENT_BARCODE]
-                # self.drug_barcodes = self.drugs["bcr_sample_barcode"].tolist()
-            else:
-                print("Drugs clinical data not found at " + drugs_file_path)
-
-            # Import biospecimen samples (not all samples included in dataset)
-            if os.path.exists(biospecimens_file_path):
-                self.biospecimen = pd.read_table(biospecimens_file_path, sep="\t", skiprows=[1, ],
-                                                 na_values="[Not Available]",
-                                                 usecols=ClinicalData.biospecimen_sample_colsname
-                                                 )
-                self.biospecimen.index = self.biospecimen["bcr_sample_barcode"]
-                self.sample_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()
-            else:
-                print("Biospecimen clinical data not found at " + biospecimens_file_path)
-
-        # self.patient.reindex_axis(self.patient.columns.intersection(ClinicalData.clinical_patient_colsname), 1, inplace=True)
 
     @classmethod
     def name(self):
@@ -125,3 +80,53 @@ class ClinicalData:
     #     return self.sample_barcodes
 
 
+class Patient(ClinicalData):
+    def __init__(self, cohort_name, folder_path, patients_file="nationwidechildrens.org_clinical_patient.txt",
+                 drugs_file="nationwidechildrens.org_clinical_drug.txt",
+                 biospecimens_file="genome.wustl.edu_biospecimen_sample.txt"):
+
+        if os.path.exists(patients_file_path):
+            self.patient = pd.read_table(patients_file_path,
+                                         sep="\t",
+                                         skiprows=[1, 2],
+                                         na_values=["[Not Available]", "[Not Applicable]"],
+                                         # usecols=ClinicalData.clinical_patient_colsname
+                                         )
+            self.patient.index = self.patient[BCR_PATIENT_BARCODE]
+            self.patient.rename({"ajcc_pathologic_tumor_stage": ("%s" % PATHOLOGIC_STAGE),
+                                 "histological_type": ("%s" % HISTOLOGIC_SUBTYPE),
+                                 "histologic_diagnosis.1": ("%s" % HISTOLOGIC_SUBTYPE)}, axis=1, inplace=True)
+            self.patient.replace({('%s' % PATHOLOGIC_STAGE): ClinicalData.pathologic_stage_map}, inplace=True)
+            self.patient_barcodes = self.patient[BCR_PATIENT_BARCODE].tolist()
+        else:
+            raise FileNotFoundError(patients_file_path)
+
+
+        super().__init__(cohort_name, folder_path, patients_file, drugs_file, biospecimens_file)
+
+
+class DrugResponse(ClinicalData):
+    def __init__(self, cohort_name, folder_path, patients_file="nationwidechildrens.org_clinical_patient.txt",
+                 drugs_file="nationwidechildrens.org_clinical_drug.txt",
+                 biospecimens_file="genome.wustl.edu_biospecimen_sample.txt"):
+        self.drugs = pd.read_table(drugs_file_path,
+                                   sep="\t",
+                                   skiprows=[1, 2],
+                                   na_values=["[Not Available]", "[Unknown]", "[Not Applicable]"],
+                                   usecols=ClinicalData.clinical_drug_colsname
+                                   )
+        self.drugs.index = self.drugs[BCR_PATIENT_BARCODE]
+        super().__init__(cohort_name, folder_path, patients_file, drugs_file, biospecimens_file)
+
+
+class Biospecimen(ClinicalData):
+    def __init__(self, cohort_name, folder_path, patients_file="nationwidechildrens.org_clinical_patient.txt",
+                 drugs_file="nationwidechildrens.org_clinical_drug.txt",
+                 biospecimens_file="genome.wustl.edu_biospecimen_sample.txt"):
+        self.biospecimen = pd.read_table(biospecimens_file_path, sep="\t", skiprows=[1, ],
+                                         na_values="[Not Available]",
+                                         usecols=ClinicalData.biospecimen_sample_colsname
+                                         )
+        self.biospecimen.index = self.biospecimen["bcr_sample_barcode"]
+        self.sample_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()
+        super().__init__(cohort_name, folder_path, patients_file, drugs_file, biospecimens_file)

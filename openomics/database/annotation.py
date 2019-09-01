@@ -46,8 +46,9 @@ class Dataset:
             self.df.rename(columns=col_rename, inplace=True)
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
-    def name(self):
-        return self.__class__.__name__
+    @classmethod
+    def name(cls):
+        return cls.__class__.__name__
 
     def list_databases(self):
         return DEFAULT_LIBRARIES

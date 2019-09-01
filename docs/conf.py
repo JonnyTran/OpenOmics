@@ -140,7 +140,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     (master_doc, 'openomics',
-     u'openOmics Documentation',
+     u'OpenOmics Documentation',
      [author], 1)
 ]
 
@@ -152,7 +152,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'openomics',
-     u'openOmics Documentation',
+     u'OpenOmics Documentation',
      author,
      'openomics',
      'One line description of project.',

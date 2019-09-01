@@ -27,6 +27,10 @@ class WholeSlideImage:
         else:
             print("Already has wsi_preprocessed. Loading data from hdf5 file")
 
+    @classmethod
+    def name(cls):
+        return __class__.__name__
+
     def run_preprocess(self, f, folder_path):
         wsi_preprocessed = f.create_dataset("wsi_preprocessed", (100,), dtype='i')
         wsi_file = self.wsi_file_iterator(folder_path)

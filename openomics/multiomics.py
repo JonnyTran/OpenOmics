@@ -243,12 +243,12 @@ class MultiOmicsData:
         elif item.lower() == Protein.name().lower():
             return self.__getattribute__(Protein.name())
 
-        elif item.lower() == "CLI":
+        elif item.lower() == ClinicalData.name().lower():
             return self.clinical.patient
         elif item.lower() == "DRU":
             return self.clinical.drugs
         else:
-            raise Exception('String accessor must be one of {"MessengerRNA", "MicroRNA", "LncRNA", "Protein", ...}')
+            raise Exception('String accessor must be one of {"MessengerRNA", "MicroRNA", "LncRNA", "Protein", etc.}')
 
     def match_samples(self, omics):
         """
@@ -265,7 +265,6 @@ class MultiOmicsData:
 
         return matched_samples
 
-    # noinspection PyPep8Naming
     def load_data(self, omics, target=['pathologic_stage'],
                   pathologic_stages=[], histological_subtypes=[], predicted_subtypes=[], tumor_normal=[],
                   samples_barcode=None):

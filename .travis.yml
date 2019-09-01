@@ -6,7 +6,6 @@ python:
 - 2.7
 
 install: pip install -U tox-travis codecov
-install: pip install -r requirements_dev.txt
 install: pip install -r requirements.txt
 script: pytest
 after_success: codecov --token=0cfdf951-48ac-4a61-818d-639e07fde3b4
