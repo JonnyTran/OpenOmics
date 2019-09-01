@@ -28,4 +28,8 @@ deploy:
     on:
         tags: true
         repo: JonnyTran/OpenOmics
-        python: 3.6
+        python:
+            - 3.7
+            - 3.6
+            - 3.5
+            - 2.7
