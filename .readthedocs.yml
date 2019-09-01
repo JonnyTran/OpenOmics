@@ -1,4 +1,4 @@
-formats: [mkdocs]
+formats: [htmlzip]
 version: 2
 python:
    version: 3.6
