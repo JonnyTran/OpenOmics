@@ -4,4 +4,4 @@
 
 __author__ = """Nhat (Jonny) Tran"""
 __email__ = 'nhat.tran@mavs.uta.edu'
-__version__ = '0.6.3'
+__version__ = '0.6.4'
