@@ -1,4 +1,4 @@
-biopython
+biopython==1.74
 large-image
 bokeh
 dask
