@@ -1,5 +1,5 @@
 =========
-openOmics
+OpenOmics
 =========
 
 
@@ -23,7 +23,7 @@ openOmics
 
 
 
-openOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.
+OpenOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.
 
 
 * Free software: MIT license

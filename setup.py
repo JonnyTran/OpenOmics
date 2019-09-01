@@ -13,11 +13,10 @@ with open('HISTORY.rst') as history_file:
 # Package meta-data.
 NAME = 'openomics'
 DESCRIPTION = 'openOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.'
-URL = 'https://github.com/JonnyTran/openomics'
+URL = 'https://github.com/JonnyTran/OpenOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Jonny Tran'
-REQUIRES_PYTHON = '>=3.6.0'
-VERSION = '0.6'
+VERSION = '0.6.1'
 
 requirements = [
     'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py'
@@ -74,7 +73,6 @@ setup(
     package_dir={NAME: 'openomics'},
     url=URL,
     license="MIT license",
-    # python_requires=REQUIRES_PYTHON,
     install_requires=requirements,
     setup_requires=setup_requirements,
     test_suite='tests',
