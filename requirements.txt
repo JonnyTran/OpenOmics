@@ -10,4 +10,4 @@ h5py==2.9.0
 requests==2.22.0
 setuptools==41.2.0
 bioservices==1.6.0
-itsdangerous
+itsdangerous==1.1.0
