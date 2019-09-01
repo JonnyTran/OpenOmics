@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """Tests for `openomics` package."""
 
-import os
+import sys, os
+
+myPath = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, myPath + '/../')  # Needed to collect pytests in Python 2.7
 
 import pytest
 
