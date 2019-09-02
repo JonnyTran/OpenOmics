@@ -44,7 +44,7 @@ class ClinicalData:
         self.patient_barcodes = self.patient[patient_column].tolist()
         self.patient.set_index(patient_column, inplace=True)
 
-        # Rename values to standardize
+        # Rename columns
         self.patient.rename({"ajcc_pathologic_tumor_stage": ("%s" % PATHOLOGIC_STAGE),
                              "histological_type": ("%s" % HISTOLOGIC_SUBTYPE),
                              "histologic_diagnosis.1": ("%s" % HISTOLOGIC_SUBTYPE)}, axis=1, inplace=True)
