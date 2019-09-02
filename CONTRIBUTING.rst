@@ -11,6 +11,9 @@ You can contribute in many ways:
 
 Types of Contributions
 ----------------------
+* Implement general purpose utilities for importing various fasta, gtf and sequencing files.
+* Organize the library of genomics, functional ontologies, interactions, and sequence databases.
+* Documentation standards for the openomics API.
 
 Report Bugs
 ~~~~~~~~~~~
