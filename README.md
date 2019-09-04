@@ -336,7 +336,7 @@ luad_data.match_samples(modalities=["MIR", "GE"])
 
 ```python
 # This function selects only patients with patholotic stages "Stage I" and "Stage II"
-X_multiomics, y = luad_data.load_data(modalities=["GE", "MIR", "LNC"], target=['pathologic_stage'], 
+X_multiomics, y = luad_data.load_dataframe(modalities=["GE", "MIR", "LNC"], target=['pathologic_stage'], 
                                      pathologic_stages=['Stage I', 'Stage II'])
 print(X_multiomics['GE'].shape, X_multiomics['MIR'].shape, X_multiomics['LNC'].shape, y.shape)
 ```

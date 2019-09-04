@@ -347,93 +347,6 @@ class LncRNA(ExpressionData, Annotatable):
 
         self.lncrnadisease_info["Disease name"] = self.lncrnadisease_info["Disease name"].str.lower()
 
-    def process_lncrna2target_interactions(self, lncrna2target_folder_path):
-        self.lncrna2target_folder_path = lncrna2target_folder_path
-        self.lncrna2target_high_throughput_table_path = os.path.join(self.lncrna2target_folder_path,
-                                                                     "lncRNA_target_from_high_throughput_experiments.txt")
-        self.lncrna2target_low_throughput_table_path = os.path.join(self.lncrna2target_folder_path,
-                                                                    "lncRNA_target_from_low_throughput_experiments.xlsx")
-
-
-    def get_lncrna2target_high_throughput_interactions(self, data=True, rename_dict=None):
-        table = pd.read_table(self.lncrna2target_high_throughput_table_path, low_memory=True)
-        table = table[table["species_id"] == 9606]
-        table["lncrna_symbol"] = table["lncrna_symbol"].str.upper().replace("LINC", "")
-        table["gene_symbol"] = table["gene_symbol"].str.upper()
-        self.lncrna2target_high_throughput_df = table
-        self.lncrna2target_high_throughput_network = nx.from_pandas_edgelist(self.lncrna2target_high_throughput_df, source='lncrna_symbol',
-                                                                             target='gene_symbol',
-                                                                             edge_attr=["P_Value", "direction"],
-                                                                             create_using=nx.DiGraph())
-        if rename_dict is not None:
-            self.lncrna2target_high_throughput_network = nx.relabel_nodes(self.lncrna2target_high_throughput_network, rename_dict)
-        return self.lncrna2target_high_throughput_network.edges(data=data)
-
-    def get_lncrna2target_low_throughput_interactions(self, data=True, rename_dict=None):
-        table = pd.read_excel(self.lncrna2target_low_throughput_table_path)
-        table = table[table["Species"] == "Homo sapiens"]
-        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-")
-        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("--", "-")
-        table["Target_official_symbol"].apply(lambda x: x.lower() if "mir" in x.lower() else x.upper())
-        table["GENCODE_gene_name"] = table["GENCODE_gene_name"].str.upper()
-        self.lncrna2target_low_throughput_df = table
-        self.lncrna2target_low_throughput_network = nx.from_pandas_edgelist(self.lncrna2target_low_throughput_df,
-                                                                            source='GENCODE_gene_name',
-                                                                            target='Target_official_symbol',
-                                                                            create_using=nx.DiGraph())
-        if rename_dict is not None:
-            self.lncrna2target_low_throughput_network = nx.relabel_nodes(self.lncrna2target_low_throughput_network, rename_dict)
-        return self.lncrna2target_low_throughput_network.edges(data=data)
-
-    def process_lncRInter_interactions(self, lncRInter_folder_path):
-        self.lncRInter_folder_path = lncRInter_folder_path
-        self.lncRInter_table_path = os.path.join(lncRInter_folder_path, "human_interactions.txt")
-
-    def get_lncRInter_interactions(self, data=True, rename_dict=None):
-        table = pd.read_table(self.lncRInter_table_path)
-        table = table[table["Organism"] == "Homo sapiens"]
-        table.loc[table["Interacting partner"].str.contains("MIR"), "Interacting partner"] = table.loc[
-            table["Interacting partner"].str.contains("MIR"), "Interacting partner"].str.lower()
-        table["Interacting partner"] = table["Interacting partner"].str.replace("mirlet", "hsa-let-")
-        table["Interacting partner"] = table["Interacting partner"].str.replace("mir", "hsa-mir-")
-        table["Interacting partner"][table["Interacting partner"].str.contains(r"[mir|let]\-[\d]+[a-z]+[\d]+")] = \
-            table["Interacting partner"][table["Interacting partner"].str.contains(r"[mir|let]\-[\d]+[a-z]+[\d]+")].apply(
-            lambda x: x[:-1] + "-" + x[-1])
-        self.lncRInter_df = table
-        self.lncRInter_network = nx.from_pandas_edgelist(self.lncRInter_df, source='lncrna',
-                                                             target='Interacting partner',
-                                                             edge_attr=["Interaction Class", "Interaction Mode", "Tissue", "Phenotype"],
-                                                             create_using=nx.DiGraph())
-        if rename_dict is not None:
-            self.lncRInter_network = nx.relabel_nodes(self.lncRInter_network, rename_dict)
-        return self.lncRInter_network.edges(data=data)
-
-    def process_NONCODE_func_annotation(self, noncode_folder_path):
-        self.noncode_source_path = os.path.join(noncode_folder_path, "NONCODEv5_source")
-        self.noncode_transcript2gene_path = os.path.join(noncode_folder_path, "NONCODEv5_Transcript2Gene")
-        self.noncode_func_path = os.path.join(noncode_folder_path, "NONCODEv5_human.func")
-
-        # Import tables
-        source_df = pd.read_table(self.noncode_source_path, header=None)
-        source_df.columns = ["NONCODE Transcript ID", "name type", "Gene ID"]
-
-        transcript2gene_df = pd.read_table(self.noncode_transcript2gene_path, header=None)
-        transcript2gene_df.columns = ["NONCODE Transcript ID", "NONCODE Gene ID"]
-
-        self.noncode_func_df = pd.read_table(self.noncode_func_path, header=None)
-        self.noncode_func_df.columns = ["NONCODE Gene ID", "GO terms"]
-        self.noncode_func_df.index = self.noncode_func_df["NONCODE Gene ID"]
-
-        # Convert to NONCODE transcript ID for the functional annotattion data
-        self.noncode_func_df["NONCODE Transcript ID"] = self.noncode_func_df.index.map(pd.Series(transcript2gene_df['NONCODE Transcript ID'].values,
-                                                                                                 index=transcript2gene_df['NONCODE Gene ID']).to_dict())
-
-        # Convert NONCODE transcript ID to gene names
-        source_gene_names_df = source_df[source_df["name type"] == "NAME"].copy()
-
-        self.noncode_func_df["Gene Name"] = self.noncode_func_df["NONCODE Transcript ID"].map(
-            pd.Series(source_gene_names_df['Gene ID'].values,
-                      index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
 
 
     def process_genes_info(self):
@@ -441,17 +354,7 @@ class LncRNA(ExpressionData, Annotatable):
         self.annotations["Disease association"] = self.annotations["Gene Name"].map(
             self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
 
-        # Add RNACentral GO term and Rfam family
-        self.annotations["GO Terms"] = self.annotations["Gene Name"].map(
-            pd.Series(self.RNAcentral_annotations['GO terms'].values,
-                      index=self.RNAcentral_annotations['gene symbol']).to_dict())
-        self.annotations["Rfams"] = self.annotations["Gene Name"].map(
-            pd.Series(self.RNAcentral_annotations['Rfams'].values,
-                      index=self.RNAcentral_annotations['gene symbol']).to_dict())
-
         # Change index of genes info to gene names
-        self.annotations.index = self.get_genes_list() # Assuming the entries are ordered correctly
-        self.features = list(OrderedDict.fromkeys(self.features))
         self.annotations = self.annotations[~self.annotations.index.duplicated(keep='first')] # Remove duplicate genes
 
 
@@ -493,8 +396,6 @@ class MessengerRNA(ExpressionData, Annotatable):
     def process_RegNet_gene_regulatory_network(self, grn_file_path):
         self.regnet_grn_file_path = grn_file_path
 
-    def process_biogrid_GRN_edgelist(self, biogrid_folder_path):
-        self.biogrid_interactions_path = os.path.join(biogrid_folder_path, "BIOGRID-ALL-3.4.162.tab2.txt")
 
     def process_DisGeNET_gene_disease_associations(self, disgenet_folder_path):
         self.disgenet_folder_path = disgenet_folder_path
@@ -514,28 +415,6 @@ class MessengerRNA(ExpressionData, Annotatable):
 
     def process_starBase_RNA_RNA_interactions(self, starbase_folder_path):
         self.starbase_rna_rna_interaction_table_path = os.path.join(starbase_folder_path, "starbase_3.0_rna_rna_interactions.csv")
-
-    def process_genemania_interactions(self, genemania_folder_path):
-        self.genemania_interaction_table_path = os.path.join(genemania_folder_path,
-                                                              "COMBINED.DEFAULT_NETWORKS.BP_COMBINING.txt")
-
-        self.genemania_identifier_mapping_path = os.path.join(genemania_folder_path,
-                                                              "identifier_mappings.txt")
-
-    def get_genemania_RNA_RNA_interactions(self, data=True):
-        interactions = pd.read_table(self.genemania_interaction_table_path, low_memory=True)
-        identifier = pd.read_table(self.genemania_identifier_mapping_path)
-
-        # Rename ENSG ID's to gene names
-        identifier = identifier[identifier["Source"] == "Gene Name"]
-        identifier_map = pd.Series(identifier["Name"].values, index=identifier["Preferred_Name"]).to_dict()
-        interactions.replace(identifier_map, inplace=True)
-
-        self.genemania_RNA_RNA_network = nx.from_pandas_edgelist(interactions, source='Gene_A', target='Gene_B',
-                                                                edge_attr=["Weight"],
-                                                                create_using=nx.DiGraph())
-        return self.genemania_RNA_RNA_network.edges(data=data)
-
 
 
     def get_starBase_RNA_RNA_interactions(self, data=True, min_interactionNum=1, min_expNum=1):
@@ -567,37 +446,9 @@ class MessengerRNA(ExpressionData, Annotatable):
 
         return regnet_grn_network.edges(data=True)
 
-    def get_BioGRID_GRN_edgelist(self, data=True, biogrid_interactions_file_path=None, rename_dict=None):
-        if biogrid_interactions_file_path is not None:
-            self.biogrid_interactions_path = biogrid_interactions_file_path
-
-        biogrid_df = pd.read_table(self.biogrid_interactions_path, na_values=["-"],
-                                   usecols=['Official Symbol Interactor A',
-                                            'Official Symbol Interactor B', 'Organism Interactor A', 'Score',
-                                            'Throughput', 'Qualifications', 'Modification', 'Phenotypes'],
-                                   low_memory=True)
-
-        biogrid_df = biogrid_df[biogrid_df["Organism Interactor A"] == 9606]
-        # biogrid_df = biogrid_df[biogrid_df["Throughput"] == "High Throughput"]
-
-        biogrid_grn = nx.from_pandas_edgelist(biogrid_df, source='Official Symbol Interactor A',
-                                                   target='Official Symbol Interactor B', create_using=nx.DiGraph())
-        if rename_dict is not None:
-            biogrid_grn = nx.relabel_nodes(biogrid_grn, rename_dict)
-        return biogrid_grn.edges(data=data) # TODO add biogrid GRN edge data?
 
     def process_genes_info(self, curated_gene_disease_assocs_only=True):
         self.gene_info = pd.DataFrame(index=self.get_genes_list())
-
-        self.gene_info.index.name = "Gene symbol"
-        self.gene_info = self.gene_info.join(self.targetScan_genes_info.groupby("Gene symbol").first(), on="Gene symbol", how="left")
-
-        self.gene_info.index.name = "symbol"
-        self.gene_info = self.gene_info.join(self.hugo_protein_genes_info.groupby("symbol").first(), on="symbol", how="left")
-
-        transcript_seq, gene_type = self.get_GENCODE_transcript_data(self.import_sequences, self.replace_U2T)
-        self.gene_info["locus_type"] = self.gene_info.index.map(gene_type)
-        self.gene_info["Transcript sequence"] = self.gene_info.index.map(transcript_seq)
 
         go_df = self.get_GO_genes_info()
         self.gene_info["GO Terms"] = self.gene_info.index.map(go_df.groupby("DB_Object_Symbol")["GO_ID"].apply(
@@ -661,29 +512,6 @@ class MicroRNA(ExpressionData, Annotatable):
         self.HUGO_miRNA_gene_info_df = pd.merge(df_1, df_2, how="inner", on="MiRBase ID")
         self.HUGO_miRNA_gene_info_df.index = self.HUGO_miRNA_gene_info_df["MiRBase ID"]
 
-
-
-    def get_miRTarBase_miRNA_target_interaction(self, use_latest=True, data=True, rename_dict=None):
-        if use_latest:
-            table = pd.read_excel(self.miRTarBase_MTI_path)
-        else:
-            table = pd.read_excel(self.miRTarBase_MTI_old_path)
-
-        table = table[table["Species (Target Gene)"] == "Homo sapiens"]
-
-        table['miRNA'] = table['miRNA'].str.lower()
-        table['miRNA'] = table['miRNA'].str.replace("-3p.*|-5p.*", "")
-        self.miRTarBase_df = table
-
-        if self.miRTarBase_df is None:
-            raise Exception("must first run process_miRTarBase_miRNA_target_interactions")
-
-        mir_target_network = nx.from_pandas_edgelist(self.miRTarBase_df, source="miRNA", target="Target Gene",
-                                                     edge_attr=["Support Type"],
-                                                     create_using=nx.DiGraph())
-        if rename_dict is not None:
-            mir_target_network = nx.relabel_nodes(mir_target_network, rename_dict)
-        return mir_target_network.edges(data=data)
 
     def process_genes_info(self):
         self.gene_info = pd.DataFrame(index=self.get_genes_list())

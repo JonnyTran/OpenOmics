@@ -5,6 +5,7 @@ from io import StringIO
 from os.path import expanduser
 import difflib
 
+import pandas
 import pandas as pd
 from Bio import SeqIO
 from bioservices import BioMart
@@ -42,7 +43,7 @@ class Dataset:
 
         self.import_folder = import_folder
         self.file_resources = file_resources
-        self.df = self.load_data(file_resources, **kwargs)
+        self.df = self.load_dataframe(file_resources, **kwargs)
         if col_rename is not None:
             self.df.rename(columns=col_rename, inplace=True)
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
@@ -90,7 +91,7 @@ class Dataset:
         return df
 
     @abstractmethod
-    def load_data(self, file_resources, **kwargs):
+    def load_dataframe(self, file_resources, **kwargs):
         # type: (dict, **str) -> pd.DataFrame
         """
         Handles data preprocessing given the file_resources input, and returns a DataFrame.
@@ -212,7 +213,7 @@ class RNAcentral(Dataset):
 
         super(RNAcentral, self).__init__(import_folder, file_resources, col_rename)
 
-    def load_data(self, file_resources):
+    def load_dataframe(self, file_resources, **kwargs):
         go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
@@ -252,8 +253,7 @@ class GENCODE(Dataset):
 
         super(GENCODE, self).__init__(import_folder, file_resources, col_rename=col_rename)
 
-
-    def load_data(self, file_resources):
+    def load_dataframe(self, file_resources, **kwargs):
         # Parse lncRNA gtf
         df = GTF.dataframe(file_resources["long_noncoding_RNAs.gtf"])
         df['gene_id'] = df['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
@@ -342,7 +342,7 @@ class MirBase(Dataset):
         self.species = species
         super(MirBase, self).__init__(import_folder, file_resources, col_rename)
 
-    def load_data(self, file_resources, **kwargs):
+    def load_dataframe(self, file_resources, **kwargs):
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
                                    names=["RNAcentral id", "database", "mirbase id", "species", "RNA type", "gene name"],
                                    # dtype="O",
@@ -444,22 +444,24 @@ class EnsemblGenes(BioMartManager, Dataset):
                            'rfam': 'Rfams'}
 
     def __init__(self, dataset="hsapiens_gene_ensembl",
-                 attributes=['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id',
-                             'external_transcript_name',
-                           'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
-                           'gene_biotype', 'transcript_biotype',
-                             'rfam', 'go_id', ],
+                 attributes=None,
                  host="www.ensemble.org", filename=False):
+        if attributes is None:
+            attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id',
+                          'external_transcript_name',
+                          'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
+                          'gene_biotype', 'transcript_biotype',
+                          'rfam', 'go_id', ]
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,
-                                     filename=self.filename)
+        self.df = self.load_dataframe(datasets=dataset, attributes=attributes, host=self.host,
+                                      filename=self.filename)
 
         self.df.rename(columns=self.COLUMNS_RENAME_DICT,
                        inplace=True)
         print(self.name(), self.df.columns.tolist())
 
-    def load_data(self, datasets, attributes, host, filename=None):
+    def load_dataframe(self, datasets, attributes, host, filename=None, ):
         return self.retrieve_dataset(host, datasets, attributes, filename)
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
@@ -477,56 +479,99 @@ class EnsemblGenes(BioMartManager, Dataset):
 
 class EnsemblGeneSequences(EnsemblGenes):
     def __init__(self, dataset="hsapiens_gene_ensembl",
-                 attributes=['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon',
-                             'coding'],
+                 attributes=None,
                  host="www.ensemble.org", filename=False):
+        if attributes is None:
+            attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon',
+                          'coding']
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.df = self.load_data(datasets=dataset, filename=self.filename, host=self.host,
-                                 attributes=attributes, )
+        self.df = self.load_dataframe(datasets=dataset, filename=self.filename, host=self.host,
+                                      attributes=attributes, )
         self.df.rename(columns=self.COLUMNS_RENAME_DICT,
                        inplace=True)
 
 
 class EnsemblTranscriptSequences(EnsemblGenes):
     def __init__(self, dataset="hsapiens_gene_ensembl",
-                 attributes=['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank',
-                             'coding_transcript_flank',
-                             '5utr', '3utr'],
+                 attributes=None,
                  host="www.ensemble.org", filename=False):
+        if attributes is None:
+            attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank',
+                          'coding_transcript_flank',
+                          '5utr', '3utr']
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,
-                                 filename=self.filename)
+        self.df = self.load_dataframe(datasets=dataset, attributes=attributes, host=self.host,
+                                      filename=self.filename)
         self.df.rename(columns=self.COLUMNS_RENAME_DICT,
                        inplace=True)
 
 
 class EnsemblSNP(EnsemblGenes):
     def __init__(self, dataset="hsapiens_snp",
-                 attributes=['synonym_name', 'variation_names', 'minor_allele',
-                             'associated_variant_risk_allele',
-                             'ensembl_gene_stable_id', 'ensembl_transcript_stable_id',
-                             'phenotype_name',
-                             'chr_name', 'chrom_start', 'chrom_end'],
+                 attributes=None,
                  host="www.ensemble.org", filename=False):
+        if attributes is None:
+            attributes = ['synonym_name', 'variation_names', 'minor_allele',
+                          'associated_variant_risk_allele',
+                          'ensembl_gene_stable_id', 'ensembl_transcript_stable_id',
+                          'phenotype_name',
+                          'chr_name', 'chrom_start', 'chrom_end']
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,
-                                 filename=self.filename)
+        self.df = self.load_dataframe(datasets=dataset, attributes=attributes, host=self.host,
+                                      filename=self.filename)
 
 
 class EnsemblSomaticVariation(EnsemblGenes):
     def __init__(self, dataset="hsapiens_snp_som",
-                 attributes=['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
-                             'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
-                             'somatic_mapweight',
-                             'somatic_chromosome_start', 'somatic_chromosome_end'],
+                 attributes=None,
                  host="www.ensemble.org", filename=False):
+        if attributes is None:
+            attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
+                          'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
+                          'somatic_mapweight',
+                          'somatic_chromosome_start', 'somatic_chromosome_end']
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.df = self.load_data(datasets=dataset, attributes=attributes, host=self.host,
-                                 filename=self.filename)
+        self.df = self.load_dataframe(datasets=dataset, attributes=attributes, host=self.host,
+                                      filename=self.filename)
+
+
+class NONCODE(Dataset):
+    # TODO need more fix
+    def __init__(self, import_folder, file_resources=None, col_rename=None, **kwargs):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["NONCODEv5_source"] = os.path.join(import_folder, "NONCODEv5_source")
+            file_resources["NONCODEv5_Transcript2Gene"] = os.path.join(import_folder, "NONCODEv5_Transcript2Gene")
+            file_resources["NONCODEv5_human.func"] = os.path.join(import_folder, "NONCODEv5_human.func")
+
+        super().__init__(import_folder, file_resources, col_rename, **kwargs)
+
+    def load_dataframe(self, file_resources, **kwargs):
+        source_df = pd.read_table(file_resources["NONCODEv5_source"], header=None)
+        source_df.columns = ["NONCODE Transcript ID", "name type", "Gene ID"]
+
+        transcript2gene_df = pd.read_table(file_resources["NONCODEv5_Transcript2Gene"], header=None)
+        transcript2gene_df.columns = ["NONCODE Transcript ID", "NONCODE Gene ID"]
+
+        self.noncode_func_df = pd.read_table(file_resources["NONCODEv5_human.func"], header=None)
+        self.noncode_func_df.columns = ["NONCODE Gene ID", "GO terms"]
+        self.noncode_func_df.set_index("NONCODE Gene ID", inplace=True)
+
+        # Convert to NONCODE transcript ID for the functional annotation data
+        self.noncode_func_df["NONCODE Transcript ID"] = self.noncode_func_df.index.map(
+            pd.Series(transcript2gene_df['NONCODE Transcript ID'].values,
+                      index=transcript2gene_df['NONCODE Gene ID']).to_dict())
+
+        # Convert NONCODE transcript ID to gene names
+        source_gene_names_df = source_df[source_df["name type"] == "NAME"].copy()
+
+        self.noncode_func_df["Gene Name"] = self.noncode_func_df["NONCODE Transcript ID"].map(
+            pd.Series(source_gene_names_df['Gene ID'].values,
+                      index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
 
 
 # Constants
@@ -565,4 +610,3 @@ DEFAULT_LIBRARIES=["10KImmunomes"
 "StarBase_v2.0"
 "STRING_PPI"
 "TargetScan"]
-
