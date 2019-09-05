@@ -4,6 +4,7 @@ import networkx as nx
 import numpy as np
 from Bio.UniProt import GOA
 from pandas import Series
+import dask.dataframe as dd
 
 from openomics.database.annotation import *
 
@@ -264,29 +265,29 @@ class LncRNA(ExpressionData, Annotatable):
 
         return lncBase_lncRNA_miRNA_network.edges(data=data)
 
-    def get_lncBase_miRNA_lncRNA_predicted_interactions_edgelist(self, data=True, rename_dict=None):
-        records = []
-        for record in SeqIO.parse(
-                self.lncBase_predicted_interactions_file_path,
-                "fasta"):
-            records.append(record.id.split(","))
-        lncbase_df = pd.DataFrame(records, columns=["Transcript_ID", "geneId", "mirna", "miTG-score"])
-
-        lncbase_df["miTG-score"] = lncbase_df["miTG-score"].astype(float)
-        lncbase_df = lncbase_df[lncbase_df["miTG-score"] >= 0.9]
-
-        lncbase_df["geneId"] = lncbase_df["geneId"].str.replace("(\(.+|\))", "")
-        lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("(\(.+|\))", "")
-        lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
-        lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("-3p.*|-5p.*", "")
-
-        lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='mirna', target='geneId',
-                                                               edge_attr=["miTG-score"],
-                                                               create_using=nx.DiGraph())
-        if rename_dict is not None:
-            lncBase_lncRNA_miRNA_network = nx.relabel_nodes(lncBase_lncRNA_miRNA_network, rename_dict)
-
-        return lncBase_lncRNA_miRNA_network.edges(data=data)
+    # def get_lncBase_miRNA_lncRNA_predicted_interactions_edgelist(self, data=True, rename_dict=None):
+    #     records = []
+    #     for record in SeqIO.parse(
+    #             self.lncBase_predicted_interactions_file_path,
+    #             "fasta"):
+    #         records.append(record.id.split(","))
+    #     lncbase_df = pd.DataFrame(records, columns=["Transcript_ID", "geneId", "mirna", "miTG-score"])
+    #
+    #     lncbase_df["miTG-score"] = lncbase_df["miTG-score"].astype(float)
+    #     lncbase_df = lncbase_df[lncbase_df["miTG-score"] >= 0.9]
+    #
+    #     lncbase_df["geneId"] = lncbase_df["geneId"].str.replace("(\(.+|\))", "")
+    #     lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("(\(.+|\))", "")
+    #     lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
+    #     lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("-3p.*|-5p.*", "")
+    #
+    #     lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='mirna', target='geneId',
+    #                                                            edge_attr=["miTG-score"],
+    #                                                            create_using=nx.DiGraph())
+    #     if rename_dict is not None:
+    #         lncBase_lncRNA_miRNA_network = nx.relabel_nodes(lncBase_lncRNA_miRNA_network, rename_dict)
+    #
+    #     return lncBase_lncRNA_miRNA_network.edges(data=data)
 
     def get_lncRNome_miRNA_binding_sites_edgelist(self, data=True, rename_dict=None):
         df = pd.read_table(self.lnRNome_miRNA_binding_sites_path, header=0)

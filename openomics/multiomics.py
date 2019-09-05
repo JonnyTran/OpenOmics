@@ -11,14 +11,14 @@ from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA, Expression
 
 class MultiOmicsData:
     def __init__(self, cohort_name, omics=None, import_clinical=True, clinical_file=None):
-        # type: (str, List[str], bool, str) -> MultiOmicsData
+        # type: (str, List[str], bool, str) -> None
         """
         Load all multi-omics data from a given cohort_folder path.
 
 
         Args:
             cohort_name (str): the clinical cohort name
-            omics (list): {"ClinicalData", "MessengerRNA", "SomaticMutation", "CopyNumberVariation", "DNA", "MicroRNA", "LNC", "PRO"}
+            omics (list): {"ClinicalData", "MessengerRNA", "SomaticMutation", "CopyNumberVariation", "DNAMethylation", "MicroRNA", "LncRNA", "Protein"}
                 Deprecated. A list of multi-omics data to import.
             import_clinical (bool, ClinicalData):
         """
@@ -52,10 +52,6 @@ class MultiOmicsData:
             #
             #     self.GE.process_GO_genes_info(os.path.join(external_data_path, "GeneOntology"))
             #
-            #     self.GE.process_genemania_interactions(os.path.join(external_data_path, "GeneMania"))
-            #
-            #     self.GE.process_biogrid_GRN_edgelist(biogrid_folder_path=os.path.join(external_data_path, "BioGRID"))
-            #
             #     self.GE.process_RegNet_gene_regulatory_network(
             #         grn_file_path=os.path.join(external_data_path, "RegNetwork", "human.source"))
             #
@@ -77,11 +73,6 @@ class MultiOmicsData:
         #     self.data["MIR"] = self.MIR.expressions
 
             # try:
-            #     self.MIR.process_target_scan(targetScan_folder_path=os.path.join(external_data_path, "TargetScan"))
-            #
-            #     self.MIR.process_miRTarBase_miRNA_target_interactions(
-            #         miRTarBase_path=os.path.join(external_data_path, "miRTarBase"))
-            #
             #     self.MIR.process_mirnadisease_associations(
             #         HMDD_miRNAdisease_path=os.path.join(external_data_path, "HMDD_miRNAdisease"))
             #
@@ -90,11 +81,6 @@ class MultiOmicsData:
             #     # self.MIR.process_RNAcentral_annotation_info(
             #     #     RNAcentral_folder_path=os.path.join(external_data_path, "RNAcentral"))
             #
-            # except FileNotFoundError as e:
-            #     print(e)
-            #     print(
-            #         "Could not run MiRNAExpression.process_target_scan() because of missing TargetScan data folder in the directory",
-            #         external_data_path)
 
         # if "LNC" in omics:
         #     file_path_LNC = os.path.join(cohort_folder, "lncrna", "TCGA-rnaexpr.tsv")
@@ -104,38 +90,16 @@ class MultiOmicsData:
             # try:
             #     self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
             #     self.LNC.process_lncRNome_gene_info(os.path.join(external_data_path, "lncRNome"))
-            #     self.LNC.process_lncBase_miRNA_lncRNA_interactions(
-            #         lncBase_folder_path=os.path.join(external_data_path, "lncBase"))
             #     self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
             #     self.LNC.process_starBase_lncRNA_RNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
             #     self.LNC.process_LncReg_lncRNA_RNA_regulatory_interactions(
             #         LncReg_folder_path=os.path.join(external_data_path, "LncReg"))
-            #     self.LNC.process_lncrna2target_interactions(os.path.join(external_data_path, "lncrna2target"))
-            #     self.LNC.process_lncRInter_interactions(os.path.join(external_data_path, "lncRInter"))
             #     self.LNC.process_NPInter_ncRNA_RNA_regulatory_interactions(
             #         NPInter_folder_path=os.path.join(external_data_path, "NPInter"))
-            #     self.LNC.process_NONCODE_func_annotation(os.path.join(external_data_path, "NONCODE"))
             #     self.LNC.process_lncrnadisease_associations(
             #         lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
-            #     # self.LNC.process_RNAcentral_annotation_info(
-            #     #     RNAcentral_folder_path=os.path.join(external_data_path, "RNAcentral"))
-            # except FileNotFoundError as e:
-            #     print(e)
 
-        # if "DNA" in omics:
-        #     file_path_DNA = os.path.join(cohort_folder, "dna/", "methylation_450.txt")
-        #     self.DNA = DNAMethylation(cohort_name, file_path_DNA)
-        #     self.data["DNA"] = self.DNA.expressions
-        #
-        # if "CNV" in omics:
-        #     file_path_CNV = os.path.join(cohort_folder, "cnv/", "copyNumber.txt")
-        #     self.CNV = CopyNumberVariation(cohort_name, file_path_CNV)
-        #     self.data["CNV"] = self.CNV.expressions
-        #
         # if "PRO" in omics:
-        #     file_path_PRO = os.path.join(cohort_folder, "protein_rppa/", "protein_RPPA.txt")
-        #     self.PRO = Protein(cohort_name, file_path_PRO)
-        #     self.data["PRO"] = self.PRO.expressions
             # self.PRO.process_HPRD_PPI_network(
             #     ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
             #                                     "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
@@ -157,30 +121,30 @@ class MultiOmicsData:
                     self.__getattribute__(omic_A).drop_genes(set(self.__getattribute__(omic_A).get_genes_list()) & set(
                         self.__getattribute__(omic_B).get_genes_list()))
 
-    def add_omic(self, omic, initialize_annotations=True):
+    def add_omic(self, omic_data, initialize_annotations=True):
         # type: (ExpressionData, bool) -> None
         """
         Adds an omic object to the Multiomics such that the samples in omic matches the samples existing in the other omics.
 
         Args:
-            omic (openomics.transcriptomics.ExpressionData):
+            omic_data (openomics.transcriptomics.ExpressionData):
                 The omic to add, e.g., MessengerRNA, MicroRNA, LncRNA, etc.
             initialize_annotations (bool): default True.
                 If true, initializes the annotations dataframe in the omic object
         """
-        self.__dict__[omic.name()] = omic
+        self.__dict__[omic_data.name()] = omic_data
 
-        if omic.name not in self.omics_list:
-            self.omics_list.append(omic.name())
+        if omic_data.name not in self.omics_list:
+            self.omics_list.append(omic_data.name())
 
         # dictionary as data accessor to the expression data
-        self.data[omic.name()] = omic.expressions
+        self.data[omic_data.name()] = omic_data.expressions
 
         # Initialize annotations
         if initialize_annotations:
-            omic.initialize_annotations(None, omic.index)
+            omic_data.initialize_annotations(None, omic_data.index)
 
-        print(omic.name(), self.data[omic.name()].shape if hasattr(self.data[omic.name()], 'shape') else ": None")
+        print(omic_data.name(), self.data[omic_data.name()].shape if hasattr(self.data[omic_data.name()], 'shape') else ": None")
 
     def get_omics_list(self):
         return self.omics_list
@@ -253,18 +217,28 @@ class MultiOmicsData:
                   samples_barcode=None):
         # type: (Union[List[str], str], List[str], List[str], List[str], List[str], List[str], List[str]) -> (Dict[str, pd.DataFrame], pd.DataFrame)
         """
-        Query and fetch the multi-omics dataset based on requested . The data matrices are row index-ed by sample barcode.
 
-        :param omics: A list of the data modalities to load. Default "all" to select all modalities
-        :param target: The clinical data field to include in the
-        :param pathologic_stages: List. Only fetch samples having certain stages in their corresponding patient's clinical
-        data. For instance, ["Stage I", "Stage II"] will only fetch samples from Stage I and Stage II patients. Default is [] which fetches all pathologic stages.
-        :param histological_subtypes: A list specifying the histological subtypes to fetch. Default is [] which fetches all histological sybtypes.
-        :param predicted_subtypes: A list specifying the predicted subtypes (if not null) to fetch. Default is [] which fetches all predicted subtypes.
-        :param tumor_normal: ["Tumor"] or ["Normal"]. Default is [], which fetches all tumor or normal sample types.
-        :param samples_barcode: A list of sample's barcode. If not None, only fetch data with matching bcr_sample_barcodes provided in this list
-        :return: X, y
+        Args:
+            omics (list):
+                A list of the data modalities to load. Default "all" to select all modalities
+            target (list):
+                The clinical data fields to include in the
+            pathologic_stages (list):
+                Only fetch samples having certain stages in their corresponding patient's clinical data. For instance, ["Stage I", "Stage II"] will only fetch samples from Stage I and Stage II patients. Default is [] which fetches all pathologic stages.
+            histological_subtypes:
+                A list specifying the histological subtypes to fetch. Default is [] which fetches all histological sybtypes.
+            predicted_subtypes:
+                A list specifying the histological subtypes to fetch. Default is [] which fetches all histological sybtypes.
+            tumor_normal: ["Tumor", "Normal"].
+                Default is [], which fetches all tumor or normal sample types.
+            samples_barcode:
+                A list of sample's barcode. If not None, only fetch data with matching samples provided in this list.
+
+        Returns:
+            (X, y): Returns X, a dictionary containing the multiomics data that have data
+
         """
+
         if omics == 'all' or omics is None:
             omics = self.omics_list
         elif omics:
@@ -307,7 +281,11 @@ class MultiOmicsData:
     def get_patients_clinical(self, matched_samples):
         """
         Fetch patient's clinical data for each given samples barcodes in the matched_samples
-        :param matched_samples: A list of sample barcodes
+
+        Args:
+            matched_samples: A list of sample barcodes
+        Returns
+
         """
         return self.data["SAMPLES"].reindex(matched_samples)
 
@@ -326,7 +304,8 @@ class MultiOmicsData:
         Adding a field to the patients clinical data allows openomics to query the patients data through the
         .load_data(predicted_subtypes=[]) parameter,
 
-        :param dictionary: A dictionary mapping patient's barcode to a subtype
+        Args:
+            dictionary: A dictionary mapping patient's barcode to a subtype
         """
         self.data["PATIENTS"] = self.data["PATIENTS"].assign(
             predicted_subtype=self.data["PATIENTS"][self.clinical.patient_column].map(dictionary))
