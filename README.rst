@@ -16,14 +16,13 @@ OpenOmics
         :target: https://openomics.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-
 .. image:: https://pyup.io/repos/github/JonnyTran/OpenOmics/shield.svg
      :target: https://pyup.io/repos/github/JonnyTran/OpenOmics/
      :alt: Updates
 
 
 
-OpenOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.
+OpenOmics provides a bioinformatics API and web-app platform integrate, analyze, and visualize the multi-omics and clinical data.
 
 
 * Free software: MIT license
@@ -33,7 +32,11 @@ OpenOmics provides a bioinformatics API and web-app platform integrate and visua
 Features
 --------
 
-* TODO
+* Provides a bioinformatics workflow to generate integrative results from multi-omics data.
+* Facilitates integration of various bio-databases, multi-omics expression, genomics, and clinical data.
+* Provides researchers with means to consistently store and explore their experimental datasets.
+* Enables scalable performance with parallel computing, while easily configurable to deploy on both single machine and a cluster. (Pending)
+* Usable by both developers and scientists with its intuitive Python API and web-app dashboard interface.
 
 Credits
 -------
