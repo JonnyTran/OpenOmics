@@ -68,6 +68,7 @@ class ClinicalData:
         self.samples = self.samples.join(self.patient, on=index, how="left", rsuffix="_")
         if self.samples.shape[0] != no_samples:
             raise Exception("Clinical data merging has wrong number of samples")
+
         self.samples.drop(BCR_PATIENT_BARCODE+"_", axis=1, inplace=True)  # Remove redundant column
         # self.samples.dropna(axis=0, subset=["bcr_patient_barcode"], inplace=True) # Remove samples without clinical data
 

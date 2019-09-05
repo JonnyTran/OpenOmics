@@ -10,7 +10,7 @@ from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA, Expression
 
 
 class MultiOmicsData:
-    def __init__(self, cohort_name, omics=None, import_clinical=True, clinical_file=None):
+    def __init__(self, cohort_name, import_clinical=True, clinical_file=None):
         # type: (str, List[str], bool, str) -> None
         """
         Load all multi-omics data from a given cohort_folder path.
@@ -18,19 +18,17 @@ class MultiOmicsData:
 
         Args:
             cohort_name (str): the clinical cohort name
-            omics (list): {"ClinicalData", "MessengerRNA", "SomaticMutation", "CopyNumberVariation", "DNAMethylation", "MicroRNA", "LncRNA", "Protein"}
-                Deprecated. A list of multi-omics data to import.
             import_clinical (bool, ClinicalData):
         """
         self.cancer_type = cohort_name
-        self.omics_list = omics if omics is not None else []
+        self.omics_list = []
 
         # This is a data dictionary accessor to retrieve DataFrame's
         self.data = {}
 
         if import_clinical and type(import_clinical) == ClinicalData:
             self.clinical = import_clinical
-        elif import_clinical or (ClinicalData.name() in omics):
+        elif import_clinical:
             self.clinical = ClinicalData(cohort_name, clinical_file)
 
         if import_clinical:
