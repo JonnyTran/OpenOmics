@@ -8,7 +8,7 @@ __email__ = 'nhat.tran@mavs.uta.edu'
 __version__ = '0.7.3'
 
 try:
-    from .import (
+    from . import (
         clinical,
         genomics,
         multiomics,
@@ -16,19 +16,33 @@ try:
         transcriptomics,
         proteomics,
         database,
-        utils
     )
 
-    from .database import (
-        annotation,
-        disease,
-        interaction,
-        ontology
+    from .clinical import ClinicalData
+
+    from .multiomics import (
+        MultiOmicsData
     )
+
+    from .genomics import (
+        SomaticMutation, DNAMethylation, CopyNumberVariation
+    )
+
+    from .transcriptomics import (
+        MessengerRNA, MicroRNA, LncRNA
+    )
+
+    # from .database import (
+    #     annotation,
+    #     disease,
+    #     interaction,
+    #     ontology
+    # )
 
     from .utils import (
         io
     )
+
 except ImportError as e:
     msg = (
         "OpenOmics requirements are not installed.\n\n"
