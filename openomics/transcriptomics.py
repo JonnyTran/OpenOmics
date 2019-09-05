@@ -4,7 +4,7 @@ import networkx as nx
 import numpy as np
 from Bio.UniProt import GOA
 from pandas import Series
-import dask.dataframe as dd
+import pandas as pd
 
 from openomics.database.annotation import *
 
@@ -34,7 +34,7 @@ class ExpressionData:
         self.cohort_name = cohort_name
 
         if os.path.isfile(file_path) and os.path.exists(file_path):
-            table = dd.read_table(file_path)
+            table = pd.read_table(file_path)
         else:
             raise FileNotFoundError(file_path)
 
