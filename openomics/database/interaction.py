@@ -5,7 +5,7 @@ from openomics.database.annotation import *
 
 class Interactions(Dataset):
     def __init__(self, import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
-                 edge_attr=None, directed=True, rename_dict=None):
+                 edge_attr=None, directed=True, rename_dict=None, npartitions=0):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
@@ -23,6 +23,7 @@ class Interactions(Dataset):
                 Whether to create a directed or an undirected network.
             col_rename (dict): default None,
                 A dictionary to rename columns in the data table. If None, then automatically load defaults.
+            npartitions:
         """
         if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
             raise NotADirectoryError(import_folder)

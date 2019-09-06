@@ -1,6 +1,5 @@
 from glob import glob
 
-import dask.dataframe as dd
 import networkx as nx
 import numpy as np
 from Bio.UniProt import GOA
@@ -35,7 +34,6 @@ class ExpressionData(object):
                 Whether to log2 transform the expression values
             npartitions (int): [0-n], default 0
                 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
-                :param sample_index:
         """
         self.cohort_name = cohort_name
 
