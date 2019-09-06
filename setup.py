@@ -74,6 +74,11 @@ setup(
     license='MIT license',
     install_requires=requirements,
     setup_requires=setup_requirements,
+    extras_require={
+            ':python_version == "2.7"': [
+                'six==1.10',
+            ],
+        },
     test_suite='tests',
     tests_require=test_requirements,
     classifiers=[
