@@ -79,7 +79,7 @@ class ExpressionData(object):
         df = df.iloc[:, i]
 
         # Drop NA geneID rows
-        df = df.dropna(axis=0)
+        df = df.dropna()
 
         # Remove entries with unknown geneID
         df = df[df[key] != '?']
