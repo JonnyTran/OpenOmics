@@ -128,13 +128,10 @@ class Dataset:
         raise NotImplementedError
 
 
-
 class Annotatable:
     """
-    This abstract class provides an interface for the omics to annotate external data downloaded from various databases. These data will be imported as attribute information to the genes, or interactions between the genes.
+    This class provides an interface for the omics to annotate external data downloaded from various databases. These data will be imported as attribute information to the genes, or interactions between the genes.
     """
-    __metaclass__ = ABCMeta
-
     def __init__(self):
         pass
 
@@ -404,8 +401,6 @@ class MirBase(Dataset):
 
 
 class BioMartManager:
-    __metaclass__ = ABCMeta
-
     def __init__(self, dataset, attributes, host, filename):
         pass
 
