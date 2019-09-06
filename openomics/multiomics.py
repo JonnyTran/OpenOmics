@@ -149,13 +149,27 @@ class MultiOmicsData:
     def get_omics_list(self):
         return self.omics_list
 
-    def build_samples(self):
-        if len(self.omics_list) > 1:  # make sure at least one ExpressionData present
-            all_samples = pd.Index([])
-            for omic in self.omics_list:
+    def build_samples(self, agg_by="union"):
+        """
+
+        Args:
+            agg_by (str): ["union", "intersection"]
+        """
+        if len(self.omics_list) < 1:  # make sure at least one ExpressionData present
+            raise Exception("Must add at least one omic to this MultiOmics object.")
+
+        all_samples = pd.Index([])
+        for omic in self.omics_list:
+            if agg_by == "union":
                 all_samples = all_samples.union(self.data[omic].index)
+            elif agg_by == "intersection":
+                all_samples = all_samples.intersection(self.data[omic].index)
+
+        if hasattr(self, "clinical"):
             self.clinical.build_clinical_samples(all_samples)
             self.data["SAMPLES"] = self.clinical.samples.index
+        else:
+            self.data["SAMPLES"] = all_samples
 
 
     def __getitem__(self, item):
@@ -201,8 +215,10 @@ class MultiOmicsData:
         """
         Return the index of bcr_sample_barcodes of the intersection of samples from all modalities
 
-        :param omics: An array of modalities
-        :return: An pandas Index list
+        Args:
+            omics: An array of modalities
+        Returns:
+            matched_sapmles: An pandas Index list
         """
         # TODO check that for single modalities, this fetch all patients
         matched_samples = self.data[omics[0]].index.copy()
@@ -285,7 +301,7 @@ class MultiOmicsData:
         Args:
             matched_samples: A list of sample barcodes
         Returns
-
+            samples_index: Index of samples
         """
         return self.data["SAMPLES"].reindex(matched_samples)
 
