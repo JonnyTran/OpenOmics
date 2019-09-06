@@ -18,11 +18,10 @@ EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Jonny Tran'
 
 requirements = [
-    'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py'
+    'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py', 'dash'
 ]
 
 setup_requirements = ['pytest-runner', ]
-
 test_requirements = ['pytest', ]
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -77,6 +76,7 @@ setup(
     extras_require={
             ':python_version == "2.7"': [
                 'six==1.10',
+                'lxml==4.3.5'
             ],
         },
     test_suite='tests',

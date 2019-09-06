@@ -1,4 +1,3 @@
-lxml==4.3.5
 biopython
 large-image
 bokeh
@@ -13,3 +12,6 @@ setuptools
 typing
 bioservices
 itsdangerous
+dash
+dash-daq
+dash-bootstrap-components
