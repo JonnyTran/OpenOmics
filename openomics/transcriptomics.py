@@ -1,23 +1,19 @@
-from collections import OrderedDict
-from typing import Union
 from glob import glob
-import re
 
+import dask.dataframe as dd
 import networkx as nx
 import numpy as np
 from Bio.UniProt import GOA
-from pandas import Series
-import pandas as pd
-
-import dask.dataframe as dd
 from dask import delayed
+from pandas import Series
 
 from openomics.database.annotation import *
 
 
 class ExpressionData(object):
-    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False,
-                 distributed=False):
+    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index="sample_barcode",
+                 transposed=True,
+                 log2_transform=False, npartitions=0):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of any quantitative -omics data that is in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame from file with the user-specified columns and genes column name, then tranpose it such that the rows are samples and columns are gene/transcript/peptides.
@@ -25,7 +21,7 @@ class ExpressionData(object):
         The dataframe should only contain numeric values besides the genes_col_name and the sample barcode id indices.
         Args:
             cohort_name (str): the unique cohort code name string
-            index (str): {"gene_id", "transcript_id", "peptide_id", "gene_name", "trascript_name", "peptide_name"}
+            gene_index (str): {"gene_id", "transcript_id", "peptide_id", "gene_name", "trascript_name", "peptide_name"}
                 Chooses the level of the gene/transcript/peptide of the genes list in this expression data. The expression DataFrame's index will be renamed to this.
             file_path (str):
                 Path of the table file to import.
@@ -37,20 +33,26 @@ class ExpressionData(object):
                 If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
             log2_transform (bool): default False
                 Whether to log2 transform the expression values
+            npartitions (int): [0-n], default 0
+                If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
+                :param sample_index:
         """
         self.cohort_name = cohort_name
 
-        if not os.path.isfile(file_path) or not os.path.exists(file_path):
-            raise FileNotFoundError(file_path)
-
-        if distributed:
-            table = dd.read_table(file_path)
+        if "*" in file_path:
+            self.expressions = self.preprocess_table_glob(file_path, columns, genes_col_name, transposed)
         else:
-            table = pd.read_table(file_path)
+            if not os.path.isfile(file_path) or not os.path.exists(file_path):
+                raise FileNotFoundError(file_path)
 
-        self.index = index
-        self.expressions = self.preprocess_table(table, columns, genes_col_name, transposed)
-        self.expressions.index.name = self.index
+            table = pd.read_table(file_path)
+            self.expressions = self.preprocess_table(table, columns, genes_col_name, transposed)
+            if npartitions > 1:
+                self.expressions = dd.from_pandas(self.expressions, npartitions=npartitions)
+
+        self.gene_index = gene_index
+        self.sample_index = sample_index
+        self.expressions.index.name = self.sample_index
 
         if log2_transform:
             self.expressions = self.expressions.applymap(self.log2_transform)
@@ -59,14 +61,14 @@ class ExpressionData(object):
         self.samples = self.expressions.index
         self.features = self.expressions.columns.tolist()
 
-    def preprocess_table(self, df, columns, key, transposed):
-        # type: (pd.DataFrame, str, str, bool) -> None
+    def preprocess_table(self, df, columns, genes_index, transposed):
+        # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
         """
         This function preprocesses the expression table files where columns are samples and rows are gene/transcripts
         Args:
             df (DataFrame): A Dask or Pandas DataFrame
             columns (str): A regular expression string for the column names to fetch.
-            key (str): The column name containing the gene/transcript names or id's.
+            genes_index (str): The column name containing the gene/transcript names or id's.
             transposed: Default True. Whether to transpose the dataframe so columns are genes (features) and rows are samples.
         Returns:
             dataframe: a processed Dask DataFrame
@@ -86,9 +88,9 @@ class ExpressionData(object):
         df.dropna(axis=0, inplace=True)
 
         # Remove entries with unknown geneID
-        df = df[df[key] != '?']
+        df = df[df[genes_index] != '?']
 
-        df.set_index(key, inplace=True)
+        df.set_index(genes_index, inplace=True)
 
         # Transpose dataframe to patient rows and geneID columns
         if transposed:
@@ -99,6 +101,24 @@ class ExpressionData(object):
         df = df.iloc[:, i]
 
         return df
+
+    def preprocess_table_glob(self, glob_path, columns, genes_index, transposed):
+        # type: (str, str, str, bool) -> dd.DataFrame
+        """
+
+        :param glob_path:
+        :param columns:
+        :param genes_index:
+        :param transposed:
+        :return:
+        """
+        lazy_dataframes = []
+        for file_path in glob(glob_path):
+            df = delayed(pd.read_table)(file_path, )
+            df = delayed(self.preprocess_table)(df, columns, genes_index, transposed)
+            lazy_dataframes.append(df)
+
+        return dd.from_delayed(lazy_dataframes, divisions="sorted")
 
     def log2_transform(self, x):
         return np.log2(x + 1)
@@ -120,22 +140,19 @@ class ExpressionData(object):
 
 
 class LncRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False, distributed=False):
-        """
-        :param file_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
-
-        Args:
-            level:
-        """
-        super(LncRNA, self).__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
-                                     transposed=transposed, log2_transform=log2_transform, distributed=distributed)
+    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index="sample_barcode",
+                 transposed=True,
+                 log2_transform=False, npartitions=0):
+        super(LncRNA, self).__init__(cohort_name, file_path=file_path, columns=columns, genes_col_name=genes_col_name,
+                                     gene_index=gene_index, sample_index=sample_index, transposed=transposed,
+                                     log2_transform=log2_transform, npartitions=npartitions)
 
     @classmethod
     def name(cls):
         return cls.__name__
 
-    def preprocess_table(self, df, columns, key, transposed):
-        # type: (pd.DataFrame, str, str, bool) -> None
+    def preprocess_table(self, df, columns, genes_index, transposed):
+        # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
         """
         Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
 
@@ -144,14 +161,14 @@ class LncRNA(ExpressionData, Annotatable):
         """
 
         # Replacing ENSG Gene ID to the lncRNA gene symbol name
-        df[key] = df[key].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
-        df = df[~df[key].duplicated(keep='first')] # Remove duplicate genes
+        df[genes_index] = df[genes_index].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
+        df = df[~df[genes_index].duplicated(keep='first')]  # Remove duplicate genes
 
         # Drop NA gene rows
         df.dropna(axis=0, inplace=True)
 
         # Transpose matrix to patients rows and genes columns
-        df.index = df[key]
+        df.index = df[genes_index]
         df = df.T.iloc[1:, :]
 
         # Change index string to bcr_sample_barcode standard
@@ -380,10 +397,14 @@ class LncRNA(ExpressionData, Annotatable):
 
 
 class MessengerRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False, distributed=False):
-        super(MessengerRNA, self).__init__(cohort_name, index, file_path, columns=columns,
-                                           genes_col_name=genes_col_name,
-                                           transposed=transposed, log2_transform=log2_transform, distributed=distributed)
+    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index="sample_barcode",
+                 transposed=True,
+                 log2_transform=False, npartitions=0):
+        super(MessengerRNA, self).__init__(cohort_name, file_path=file_path, columns=columns,
+                                           genes_col_name=genes_col_name, gene_index=gene_index,
+                                           sample_index=sample_index,
+                                           transposed=transposed, log2_transform=log2_transform,
+                                           npartitions=npartitions)
 
     @classmethod
     def name(cls):
@@ -493,9 +514,12 @@ class MessengerRNA(ExpressionData, Annotatable):
 
 
 class MicroRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False, distributed=False):
-        super(MicroRNA, self).__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
-                                       transposed=transposed, log2_transform=log2_transform, distributed=distributed)
+    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index="sample_barcode",
+                 transposed=True,
+                 log2_transform=False, npartitions=0):
+        super(MicroRNA, self).__init__(cohort_name, file_path=file_path, columns=columns, genes_col_name=genes_col_name,
+                                       gene_index=gene_index, sample_index=sample_index, transposed=transposed,
+                                       log2_transform=log2_transform, npartitions=npartitions)
 
     @classmethod
     def name(cls):

@@ -140,7 +140,7 @@ class MultiOmics:
 
         # Initialize annotations
         if initialize_annotations:
-            omic_data.initialize_annotations(None, omic_data.index)
+            omic_data.initialize_annotations(None, omic_data.gene_index)
 
         print(omic_data.name(), self.data[omic_data.name()].shape if hasattr(self.data[omic_data.name()], 'shape') else ": None")
 
