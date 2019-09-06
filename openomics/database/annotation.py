@@ -1,11 +1,10 @@
+import difflib
 import os
-from typing import List, Dict, Union
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from io import StringIO
 from os.path import expanduser
-import difflib
+from typing import List
 
-import pandas
 import pandas as pd
 from Bio import SeqIO
 from bioservices import BioMart
@@ -22,7 +21,7 @@ DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 class Dataset(object):
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field
 
-    def __init__(self, import_folder, file_resources=None, col_rename=None, **kwargs):
+    def __init__(self, import_folder, file_resources=None, col_rename=None):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
@@ -32,7 +31,6 @@ class Dataset(object):
                 Used to list required files for preprocessing of the database. A dictionary where keys are required filenames and value are file paths. If None, then the class constructor should automatically build the required file resources dict.
             col_rename (dict): default None,
                 A dictionary to rename columns in the data table. If None, then automatically load defaults.
-            **kwargs: Additional arguments that may be passed to load_data function
         """
         if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
             raise IOError(import_folder)
@@ -43,7 +41,7 @@ class Dataset(object):
 
         self.import_folder = import_folder
         self.file_resources = file_resources
-        self.df = self.load_dataframe(file_resources, **kwargs)
+        self.df = self.load_dataframe(file_resources)
         if col_rename is not None:
             self.df.rename(columns=col_rename, inplace=True)
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
@@ -91,8 +89,8 @@ class Dataset(object):
         return df
 
     @abstractmethod
-    def load_dataframe(self, file_resources, **kwargs):
-        # type: (dict, **str) -> pd.DataFrame
+    def load_dataframe(self, file_resources):
+        # type: (dict) -> pd.DataFrame
         """
         Handles data preprocessing given the file_resources input, and returns a DataFrame.
 
@@ -213,7 +211,7 @@ class RNAcentral(Dataset):
 
         super(RNAcentral, self).__init__(import_folder, file_resources, col_rename)
 
-    def load_dataframe(self, file_resources, **kwargs):
+    def load_dataframe(self, file_resources):
         go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
@@ -253,7 +251,7 @@ class GENCODE(Dataset):
 
         super(GENCODE, self).__init__(import_folder, file_resources, col_rename=col_rename)
 
-    def load_dataframe(self, file_resources, **kwargs):
+    def load_dataframe(self, file_resources):
         # Parse lncRNA gtf
         df = GTF.dataframe(file_resources["long_noncoding_RNAs.gtf"])
         df['gene_id'] = df['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
@@ -342,7 +340,7 @@ class MirBase(Dataset):
         self.species = species
         super(MirBase, self).__init__(import_folder, file_resources, col_rename)
 
-    def load_dataframe(self, file_resources, **kwargs):
+    def load_dataframe(self, file_resources):
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
                                    names=["RNAcentral id", "database", "mirbase id", "species", "RNA type", "gene name"],
                                    # dtype="O",
@@ -542,16 +540,16 @@ class EnsemblSomaticVariation(EnsemblGenes):
 
 class NONCODE(Dataset):
     # TODO need more fix
-    def __init__(self, import_folder, file_resources=None, col_rename=None, **kwargs):
+    def __init__(self, import_folder, file_resources=None, col_rename=None):
         if file_resources is None:
             file_resources = {}
             file_resources["NONCODEv5_source"] = os.path.join(import_folder, "NONCODEv5_source")
             file_resources["NONCODEv5_Transcript2Gene"] = os.path.join(import_folder, "NONCODEv5_Transcript2Gene")
             file_resources["NONCODEv5_human.func"] = os.path.join(import_folder, "NONCODEv5_human.func")
 
-        super().__init__(import_folder, file_resources, col_rename, **kwargs)
+        super().__init__(import_folder, file_resources, col_rename)
 
-    def load_dataframe(self, file_resources, **kwargs):
+    def load_dataframe(self, file_resources):
         source_df = pd.read_table(file_resources["NONCODEv5_source"], header=None)
         source_df.columns = ["NONCODE Transcript ID", "name type", "Gene ID"]
 

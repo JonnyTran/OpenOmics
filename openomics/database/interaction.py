@@ -1,9 +1,11 @@
-from openomics.database.annotation import *
 import networkx as nx
+
+from openomics.database.annotation import *
+
 
 class Interactions(Dataset):
     def __init__(self, import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
-                 edge_attr=None, directed=True, rename_dict=None, **kwargs):
+                 edge_attr=None, directed=True, rename_dict=None):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
@@ -21,7 +23,6 @@ class Interactions(Dataset):
                 Whether to create a directed or an undirected network.
             col_rename (dict): default None,
                 A dictionary to rename columns in the data table. If None, then automatically load defaults.
-            **kwargs: Additional arguments that may be passed to load_data function
         """
         if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
             raise NotADirectoryError(import_folder)
@@ -36,7 +37,7 @@ class Interactions(Dataset):
         self.target_index = target_index
         self.network = self.load_network(file_resources=file_resources, source_col_name=source_col_name,
                                          target_col_name=target_col_name,
-                                         edge_attr=edge_attr, directed=directed, **kwargs)
+                                         edge_attr=edge_attr, directed=directed)
         self.network.name = self.name()
 
         if self.network is None:
@@ -49,7 +50,7 @@ class Interactions(Dataset):
         print("{}".format(nx.info(self.network)))
 
     @abstractmethod
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, **kwargs):
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         raise NotImplementedError
 
     def get_interactions(self, nodelist, data=False, inclusive=False):
@@ -82,7 +83,7 @@ class GeneMania(Interactions):
 
     def __init__(self, import_folder, file_resources=None, source_col_name="Gene_A", target_col_name="Gene_B",
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=None, directed=True, rename_dict=None, **kwargs):
+                 edge_attr=None, directed=True, rename_dict=None):
         if edge_attr is None:
             edge_attr = ["Weight"]
         if file_resources is None:
@@ -93,9 +94,9 @@ class GeneMania(Interactions):
                                                                      "identifier_mappings.txt")
 
         super().__init__(import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
-                         edge_attr, directed, rename_dict, **kwargs)
+                         edge_attr, directed, rename_dict)
 
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, **kwargs):
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         interactions = pd.read_table(file_resources["COMBINED.DEFAULT_NETWORKS.BP_COMBINING.txt"], low_memory=True)
         identifier = pd.read_table(file_resources["identifier_mappings.txt"])
 
@@ -117,7 +118,7 @@ class BioGRID(Interactions):
                  target_col_name="Official Symbol Interactor B",
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=None,
-                 directed=False, rename_dict=None, **kwargs):
+                 directed=False, rename_dict=None):
         if edge_attr is None:
             edge_attr = ['Score', 'Throughput', 'Qualifications', 'Modification', 'Phenotypes']
         if file_resources is None:
@@ -125,10 +126,9 @@ class BioGRID(Interactions):
             file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"] = os.path.join(import_folder, "BIOGRID-ALL-3.4.162.tab2.txt")
 
         super().__init__(import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
-                         edge_attr, directed, rename_dict, **kwargs)
+                         edge_attr, directed, rename_dict)
 
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, species=9606,
-                     **kwargs):
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, species=9606):
         biogrid_df = pd.read_table(file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"],
                                    na_values=["-"],
                                    usecols=['Official Symbol Interactor A',
@@ -155,6 +155,9 @@ class LncBase(Interactions, Dataset):
             import_folder (str):
             file_resources (dict): default None.
         """
+        self.organism = organism
+        self.tissue = tissue
+
         if edge_attr is None:
             edge_attr = ["tissue", "positive_negative"]
         if file_resources is None:
@@ -165,8 +168,7 @@ class LncBase(Interactions, Dataset):
                                       source_col_name=source_col_name,
                                       target_col_name=target_col_name, source_index=source_index,
                                       target_index=target_index,
-                                      edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
-                                      organism=organism, tissue=tissue)
+                                      edge_attr=edge_attr, directed=directed, rename_dict=rename_dict)
 
     def get_rename_dict(self, from_index="geneId", to_index="geneName"):
         lncbase_df = pd.read_table(self.file_resources["LncBasev2_download.csv"], low_memory=True)
@@ -175,18 +177,17 @@ class LncBase(Interactions, Dataset):
         return gene_id_to_gene_name_dict
 
     def load_network(self, file_resources, source_col_name="mirna", target_col_name="gene_id",
-                     edge_attr=None, directed=True,
-                     organism="Homo sapiens", tissue=None):
+                     edge_attr=None, directed=True, ):
         if edge_attr is None:
             edge_attr = ["tissue", "positive_negative"]
         df = pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
         print(self.name(), df.columns.tolist())
         df.replace({"species": {"Homo Sapiens": "Homo sapiens", "Mus Musculus": "Mus musculus"}}, inplace=True)
 
-        if organism is not None:
-            df = df[df["species"].str.lower() == organism.lower()]
-        if tissue is not None:
-            df = df[df["tissue"].str.lower() == tissue.lower()]
+        if self.organism is not None:
+            df = df[df["species"].str.lower() == self.organism.lower()]
+        if self.tissue is not None:
+            df = df[df["tissue"].str.lower() == self.tissue.lower()]
 
         lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                                                edge_attr=edge_attr,
@@ -201,6 +202,7 @@ class lncRInter(Interactions):
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=None,
                  directed=True, rename_dict=None, organism="Homo sapiens"):
+        self.organism = organism
 
         if edge_attr is None:
             edge_attr = ["Interaction Class", "Interaction Mode", "Tissue", "Phenotype"]
@@ -211,10 +213,9 @@ class lncRInter(Interactions):
         super().__init__(import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
                          edge_attr, directed, rename_dict, )
 
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed,
-                     organism="Homo sapiens"):
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         lncRInter_df = pd.read_table(file_resources["human_interactions.txt"])
-        lncRInter_df = lncRInter_df[lncRInter_df["Organism"] == organism]
+        lncRInter_df = lncRInter_df[lncRInter_df["Organism"] == self.organism]
 
         # Data cleaning
         lncRInter_df.loc[lncRInter_df["Interacting partner"].str.contains("MIR"), "Interacting partner"] = \
@@ -251,6 +252,7 @@ class LncRNA2Target(Interactions):
         if edge_attr is None:
             edge_attr = ["P_Value", "direction"]
         self.version = version
+        self.species = species
         if file_resources is None:
             file_resources = {}
             file_resources["lncRNA_target_from_high_throughput_experiments.txt"] = os.path.join(import_folder,
@@ -259,20 +261,20 @@ class LncRNA2Target(Interactions):
         super().__init__(import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
                          edge_attr, directed, rename_dict, species)
 
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, species):
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         if self.version == "high_throughput":
             return self.load_network_high_throughput(self, file_resources, source_col_name, target_col_name, edge_attr,
-                                                     directed, species=species)
+                                                     directed)
         elif self.version == "low_throughput":
             return self.load_network_low_throughput(self, file_resources, source_col_name, target_col_name, edge_attr,
-                                                    directed, species=species)
+                                                    directed)
         else:
             raise Exception("LncRNA2Target version argument must be one of 'high_throughput' or 'low_throughput'")
 
-    def load_network_high_throughput(self, file_resources, source_col_name, target_col_name, edge_attr, directed,
-                                     species=9606):
+    def load_network_high_throughput(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         table = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"], low_memory=True)
-        table = table[table["species_id"] == species]
+        table = table[table["species_id"] == self.species]
+
         table["lncrna_symbol"] = table["lncrna_symbol"].str.upper().replace("LINC", "")
         table["gene_symbol"] = table["gene_symbol"].str.upper()
         lncrna2target_high_throughput_network = nx.from_pandas_edgelist(table,
@@ -284,9 +286,10 @@ class LncRNA2Target(Interactions):
 
     def load_network_low_throughput(self, file_resources, source_col_name="GENCODE_gene_name",
                                     target_col_name="Target_official_symbol",
-                                    edge_attr=None, directed=True, species="Homo sapiens"):
+                                    edge_attr=None, directed=True):
         table = pd.read_excel(file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"])
-        table = table[table["Species"] == species]
+        table = table[table["Species"] == self.species]
+
         table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-")
         table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("--", "-")
         table["Target_official_symbol"].apply(lambda x: x.lower() if "mir" in x.lower() else x.upper())
@@ -319,6 +322,7 @@ class MiRTarBase(Interactions):
         if edge_attr is None:
             edge_attr = ["Support Type"]
         self.strip_mirna_name = strip_mirna_name
+        self.species = species
 
         if file_resources is None:
             file_resources = {}
@@ -328,15 +332,12 @@ class MiRTarBase(Interactions):
                                          source_col_name=source_col_name,
                                          target_col_name=target_col_name, source_index=source_index,
                                          target_index=target_index,
-                                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
-                                         species=species)
+                                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict, )
 
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed=True, species=None):
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed=True):
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
-        print(self.name(), df.columns.tolist())
-
-        if species:
-            df = df[df["Species (Target Gene)"].str.lower() == species.lower()]
+        if self.species:
+            df = df[df["Species (Target Gene)"].str.lower() == self.species.lower()]
 
         if self.strip_mirna_name:
             df['miRNA'] = df['miRNA'].str.lower()
@@ -356,6 +357,7 @@ class TargetScan(Interactions, Dataset):
         if edge_attr is None:
             edge_attr = ["tissue", "positive_negative"]
         self.strip_mirna_name = strip_mirna_name
+        self.species = species
         if file_resources is None:
             file_resources = {}
             file_resources["miR_Family_Info.txt"] = os.path.join(import_folder, "miR_Family_Info.txt")
@@ -366,18 +368,19 @@ class TargetScan(Interactions, Dataset):
                                          source_col_name=source_col_name,
                                          target_col_name=target_col_name, source_index=source_index,
                                          target_index=target_index,
-                                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict,
-                                         species=species)
+                                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict)
 
     def load_network(self, file_resources, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
-                     edge_attr=None, directed=True, species=9606):
+                     edge_attr=None, directed=True):
         if edge_attr is None:
             edge_attr = ["tissue", "positive_negative"]
-        self.df = self.process_miR_family_info_table(file_resources, species)
-        interactions_df = self.process_interactions_table(file_resources, self.df, species)
+        self.df = self.process_miR_family_info_table(file_resources, self.species)
+        interactions_df = self.process_interactions_table(file_resources, self.df, self.species)
         print(self.name(), interactions_df.columns.tolist())
 
-        mir_target_network = nx.from_pandas_edgelist(interactions_df, source=source_col_name, target=target_col_name,
+        mir_target_network = nx.from_pandas_edgelist(interactions_df,
+                                                     source=source_col_name, target=target_col_name,
+                                                     edge_attr=edge_attr,
                                                      create_using=nx.DiGraph() if directed else nx.Graph())
         return mir_target_network
 

@@ -14,8 +14,8 @@ class Protein(ExpressionData, Annotatable):
                          npartitions=npartitions)
 
     @classmethod
-    def name(self):
-        return "PRO"
+    def name(cls):
+        return cls.__name__
 
     def process_HPRD_PPI_network(self, ppi_data_file_path):
         HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
