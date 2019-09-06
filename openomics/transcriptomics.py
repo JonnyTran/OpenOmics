@@ -1,4 +1,6 @@
 from collections import OrderedDict
+from typing import Union
+import re
 
 import networkx as nx
 import numpy as np
@@ -51,14 +53,23 @@ class ExpressionData(object):
         self.features = self.expressions.columns.tolist()
 
     def preprocess_table(self, df, columns, key, transposed):
-        # type: (pd.DataFrame, str, str, bool) -> None
+        # type: (Union(pd.DataFrame, dd.DataFrame), str, str, bool) -> None
         """
         This function preprocesses the expression table files where columns are samples and rows are gene/transcripts
-        :param transposed:
-        :return:
+        Args:
+            df (DataFrame): A Dask or Pandas DataFrame
+            columns (str): A regular expression string for the column names to fetch.
+            key (str): The column name containing the gene/transcript names or id's.
+            transposed: Default True. Whether to transpose the dataframe so columns are genes (features) and rows are samples.
+        Returns:
+            dataframe: a processed Dask DataFrame
         """
+
         # Filter columns
-        df = df.filter(regex=columns)
+        regex = re.compile(columns)
+        selected_cols = list(filter(regex.search, df.columns.tolist()))
+        df = df[selected_cols]
+        # df = df.filter(regex=columns) # Doesn't work with dask dataframes
 
         # Cut TCGA column names to sample barcode, discarding aliquot info
         df = df.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x, inplace=False)
