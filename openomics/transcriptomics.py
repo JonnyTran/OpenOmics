@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from typing import Union
+from glob import glob
 import re
 
 import networkx as nx
@@ -7,13 +8,16 @@ import numpy as np
 from Bio.UniProt import GOA
 from pandas import Series
 import pandas as pd
+
 import dask.dataframe as dd
+from dask import delayed
 
 from openomics.database.annotation import *
 
 
 class ExpressionData(object):
-    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False, distributed=False):
+    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False,
+                 distributed=False):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of any quantitative -omics data that is in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame from file with the user-specified columns and genes column name, then tranpose it such that the rows are samples and columns are gene/transcript/peptides.
