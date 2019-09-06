@@ -19,7 +19,7 @@ DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
 
-class Dataset:
+class Dataset(object):
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field
 
     def __init__(self, import_folder, file_resources=None, col_rename=None, **kwargs):
@@ -128,12 +128,12 @@ class Dataset:
         raise NotImplementedError
 
 
-
-class Annotatable:
+class Annotatable(object):
     """
-    This abstract class provides an interface for the omics to annotate external data downloaded from various databases. These data will be imported as attribute information to the genes, or interactions between the genes.
+    This class provides an interface for the omics to annotate external data downloaded from various databases. These data will be imported as attribute information to the genes, or interactions between the genes.
     """
-    __metaclass__ = ABCMeta
+    def __init__(self):
+        pass
 
     def get_annotations(self):
         if hasattr(self, "annotations"):
@@ -401,7 +401,8 @@ class MirBase(Dataset):
 
 
 class BioMartManager:
-    __metaclass__ = ABCMeta
+    def __init__(self, dataset, attributes, host, filename):
+        pass
 
     def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None):
         bm = BioMart(host=host)
@@ -445,7 +446,7 @@ class EnsemblGenes(BioMartManager, Dataset):
 
     def __init__(self, dataset="hsapiens_gene_ensembl",
                  attributes=None,
-                 host="www.ensemble.org", filename=False):
+                 host="www.ensembl.org", filename=False):
         if attributes is None:
             attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id',
                           'external_transcript_name',
@@ -480,7 +481,7 @@ class EnsemblGenes(BioMartManager, Dataset):
 class EnsemblGeneSequences(EnsemblGenes):
     def __init__(self, dataset="hsapiens_gene_ensembl",
                  attributes=None,
-                 host="www.ensemble.org", filename=False):
+                 host="www.ensembl.org", filename=False):
         if attributes is None:
             attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon',
                           'coding']
@@ -495,7 +496,7 @@ class EnsemblGeneSequences(EnsemblGenes):
 class EnsemblTranscriptSequences(EnsemblGenes):
     def __init__(self, dataset="hsapiens_gene_ensembl",
                  attributes=None,
-                 host="www.ensemble.org", filename=False):
+                 host="www.ensembl.org", filename=False):
         if attributes is None:
             attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank',
                           'coding_transcript_flank',
@@ -511,7 +512,7 @@ class EnsemblTranscriptSequences(EnsemblGenes):
 class EnsemblSNP(EnsemblGenes):
     def __init__(self, dataset="hsapiens_snp",
                  attributes=None,
-                 host="www.ensemble.org", filename=False):
+                 host="www.ensembl.org", filename=False):
         if attributes is None:
             attributes = ['synonym_name', 'variation_names', 'minor_allele',
                           'associated_variant_risk_allele',
@@ -527,7 +528,7 @@ class EnsemblSNP(EnsemblGenes):
 class EnsemblSomaticVariation(EnsemblGenes):
     def __init__(self, dataset="hsapiens_snp_som",
                  attributes=None,
-                 host="www.ensemble.org", filename=False):
+                 host="www.ensembl.org", filename=False):
         if attributes is None:
             attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
                           'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',

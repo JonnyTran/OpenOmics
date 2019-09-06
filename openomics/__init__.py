@@ -1,15 +1,14 @@
+from __future__ import print_function, division, absolute_import
 # -*- coding: utf-8 -*-
 
 """Top-level package for openomics."""
 
 __author__ = """Nhat (Jonny) Tran"""
 __email__ = 'nhat.tran@mavs.uta.edu'
-__version__ = '0.7.3'
-
-from __future__ import print_function, division, absolute_import
+__version__ = '0.7.4'
 
 try:
-    from .import (
+    from . import (
         clinical,
         genomics,
         multiomics,
@@ -17,19 +16,33 @@ try:
         transcriptomics,
         proteomics,
         database,
-        utils
     )
 
-    from .database import (
-        annotation,
-        disease,
-        interaction,
-        ontology
+    from .clinical import ClinicalData
+
+    from .multiomics import (
+        MultiOmics
     )
+
+    from .genomics import (
+        SomaticMutation, DNAMethylation, CopyNumberVariation
+    )
+
+    from .transcriptomics import (
+        MessengerRNA, MicroRNA, LncRNA
+    )
+
+    # from .database import (
+    #     annotation,
+    #     disease,
+    #     interaction,
+    #     ontology
+    # )
 
     from .utils import (
         io
     )
+
 except ImportError as e:
     msg = (
         "OpenOmics requirements are not installed.\n\n"

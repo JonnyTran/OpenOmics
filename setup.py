@@ -18,11 +18,10 @@ EMAIL = 'nhat.tran@mavs.uta.edu'
 AUTHOR = 'Jonny Tran'
 
 requirements = [
-    'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py'
+    'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py', 'dash'
 ]
 
 setup_requirements = ['pytest-runner', ]
-
 test_requirements = ['pytest', ]
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -67,13 +66,19 @@ class UploadCommand(Command):
 
 setup(
     name=NAME,
-    version='0.7.3',
+    version='0.7.4',
     packages=find_packages(include=['openomics']),
     package_dir={NAME: 'openomics', 'openomics_web': 'openomics_web'},
     url=URL,
     license='MIT license',
     install_requires=requirements,
     setup_requires=setup_requirements,
+    extras_require={
+            ':python_version == "2.7"': [
+                'six==1.10',
+                'lxml==4.3.5'
+            ],
+        },
     test_suite='tests',
     tests_require=test_requirements,
     classifiers=[
