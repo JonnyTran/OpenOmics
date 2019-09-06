@@ -2,8 +2,6 @@ from openomics.database.annotation import *
 import networkx as nx
 
 class Interactions(Dataset):
-    __metaclass__ = ABCMeta
-
     def __init__(self, import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
                  edge_attr=None, directed=True, rename_dict=None, **kwargs):
         """
