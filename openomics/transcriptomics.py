@@ -35,7 +35,7 @@ class ExpressionData(object):
         self.cohort_name = cohort_name
 
         if os.path.isfile(file_path) and os.path.exists(file_path):
-            table = pd.read_table(file_path)
+            table = dd.read_table(file_path)
         else:
             raise FileNotFoundError(file_path)
 
