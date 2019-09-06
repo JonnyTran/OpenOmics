@@ -72,7 +72,7 @@ class ExpressionData(object):
         # df = df.filter(regex=columns) # Doesn't work with dask dataframes
 
         # Cut TCGA column names to sample barcode, discarding aliquot info
-        df = df.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x, inplace=False)
+        df = df.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x)
 
         # Drop duplicate columns names (Gene symbols with same name)
         _, i = np.unique(df.columns, return_index=True)
@@ -86,7 +86,7 @@ class ExpressionData(object):
 
         # Transpose dataframe to patient rows and geneID columns
         df.index = df[key]
-        df.drop([key], axis=1, inplace=True)
+        df = df.drop([key], axis=1)
 
         if transposed:
             df = df.T
