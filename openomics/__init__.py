@@ -5,7 +5,7 @@ from __future__ import print_function, division, absolute_import
 
 __author__ = """Nhat (Jonny) Tran"""
 __email__ = 'nhat.tran@mavs.uta.edu'
-__version__ = '0.7.3'
+__version__ = '0.7.4'
 
 try:
     from . import (
