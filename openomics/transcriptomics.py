@@ -13,7 +13,7 @@ from openomics.database.annotation import *
 
 
 class ExpressionData(object):
-    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
+    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False, distributed=False):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of any quantitative -omics data that is in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame from file with the user-specified columns and genes column name, then tranpose it such that the rows are samples and columns are gene/transcript/peptides.
@@ -36,10 +36,13 @@ class ExpressionData(object):
         """
         self.cohort_name = cohort_name
 
-        if os.path.isfile(file_path) and os.path.exists(file_path):
+        if not os.path.isfile(file_path) or not os.path.exists(file_path):
+            raise FileNotFoundError(file_path)
+
+        if distributed:
             table = dd.read_table(file_path)
         else:
-            raise FileNotFoundError(file_path)
+            table = pd.read_table(file_path)
 
         self.index = index
         self.expressions = self.preprocess_table(table, columns, genes_col_name, transposed)
@@ -53,7 +56,7 @@ class ExpressionData(object):
         self.features = self.expressions.columns.tolist()
 
     def preprocess_table(self, df, columns, key, transposed):
-        # type: (Union(pd.DataFrame, dd.DataFrame), str, str, bool) -> None
+        # type: (pd.DataFrame, str, str, bool) -> None
         """
         This function preprocesses the expression table files where columns are samples and rows are gene/transcripts
         Args:
@@ -66,10 +69,7 @@ class ExpressionData(object):
         """
 
         # Filter columns
-        regex = re.compile(columns)
-        selected_cols = list(filter(regex.search, df.columns.tolist()))
-        df = df[selected_cols]
-        # df = df.filter(regex=columns) # Doesn't work with dask dataframes
+        df = df.filter(regex=columns)
 
         # Cut TCGA column names to sample barcode, discarding aliquot info
         df = df.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x)
@@ -79,12 +79,12 @@ class ExpressionData(object):
         df = df.iloc[:, i]
 
         # Drop NA geneID rows
-        df = df.dropna()
+        df.dropna(axis=0, inplace=True)
 
         # Remove entries with unknown geneID
         df = df[df[key] != '?']
 
-        df = df.set_index(key)
+        df.set_index(key, inplace=True)
 
         # Transpose dataframe to patient rows and geneID columns
         if transposed:
@@ -116,7 +116,7 @@ class ExpressionData(object):
 
 
 class LncRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
+    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False, distributed=False):
         """
         :param file_path: Path to the lncRNA expression data, downloaded from http://ibl.mdanderson.org/tanric/_design/basic/index.html
 
@@ -124,7 +124,7 @@ class LncRNA(ExpressionData, Annotatable):
             level:
         """
         super(LncRNA, self).__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
-                                     transposed=transposed, log2_transform=log2_transform)
+                                     transposed=transposed, log2_transform=log2_transform, distributed=distributed)
 
     @classmethod
     def name(cls):
@@ -376,10 +376,10 @@ class LncRNA(ExpressionData, Annotatable):
 
 
 class MessengerRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
+    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False, distributed=False):
         super(MessengerRNA, self).__init__(cohort_name, index, file_path, columns=columns,
                                            genes_col_name=genes_col_name,
-                                           transposed=transposed, log2_transform=log2_transform)
+                                           transposed=transposed, log2_transform=log2_transform, distributed=distributed)
 
     @classmethod
     def name(cls):
@@ -489,9 +489,9 @@ class MessengerRNA(ExpressionData, Annotatable):
 
 
 class MicroRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
+    def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False, distributed=False):
         super(MicroRNA, self).__init__(cohort_name, index, file_path, columns=columns, genes_col_name=genes_col_name,
-                                       transposed=transposed, log2_transform=log2_transform)
+                                       transposed=transposed, log2_transform=log2_transform, distributed=distributed)
 
     @classmethod
     def name(cls):
