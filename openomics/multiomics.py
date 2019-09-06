@@ -102,13 +102,6 @@ class MultiOmics:
             #     ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
             #                                     "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
 
-        # Build a table for each samples's clinical data
-        if import_clinical:
-            self.build_samples()
-
-        # Remove duplicate genes between different multi-omics (e.g. between gene expression and lncRNA expressions
-        self.print_sample_sizes()
-
     def remote_duplate_genes(self):
         """
         Removes duplicate genes between any omics such that the index across all omics has no duplicates.
@@ -149,12 +142,13 @@ class MultiOmics:
 
     def build_samples(self, agg_by="union"):
         """
+        Running this function will build a dataframe for all samples across the different omics (either by a union or intersection). Then,
 
         Args:
             agg_by (str): ["union", "intersection"]
         """
         if len(self.omics_list) < 1:  # make sure at least one ExpressionData present
-            raise Exception("Must add at least one omic to this MultiOmics object.")
+            print("build_samples() does nothing. Must add at least one omic to this MultiOmics object.")
 
         all_samples = pd.Index([])
         for omic in self.omics_list:

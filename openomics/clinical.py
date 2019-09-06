@@ -57,8 +57,8 @@ class ClinicalData:
     def build_clinical_samples(self, all_samples, index="bcr_patient_barcode"):
         # Build table with samples clinical data from patients
         self.samples = pd.DataFrame(index=all_samples)
-
-        self.samples[index] = self.samples.index.str[:-4]
+        self.samples.index.name = index
+        self.samples.index = self.samples.index.str[:-4]  # Cut sample barcode for TCGA
 
         no_samples = self.samples.shape[0]
 
@@ -69,14 +69,14 @@ class ClinicalData:
         if self.samples.shape[0] != no_samples:
             raise Exception("Clinical data merging has wrong number of samples")
 
-        self.samples.drop(BCR_PATIENT_BARCODE+"_", axis=1, inplace=True)  # Remove redundant column
+        # self.samples.drop(index+"_", axis=1, inplace=True)  # Remove redundant column
         # self.samples.dropna(axis=0, subset=["bcr_patient_barcode"], inplace=True) # Remove samples without clinical data
 
         self.samples = self.samples[self.samples[PATHOLOGIC_STAGE] != "[Discrepancy]"]
-        self.samples.loc[self.samples.index.str.contains("-11"),
-                         ('%s' % TUMOR_NORMAL)] = NORMAL  # Change stage label of normal samples to "Normal"
-        self.samples.loc[self.samples.index.str.contains("-01"),
-                         TUMOR_NORMAL] = TUMOR  # Change stage label of normal samples to "Normal"
+        self.samples.loc[self.samples.index.str.contains(
+            "-11"), TUMOR_NORMAL] = NORMAL  # Change stage label of normal samples to "Normal"
+        self.samples.loc[self.samples.index.str.contains(
+            "-01"), TUMOR_NORMAL] = TUMOR  # Change stage label of normal samples to "Normal"
 
     def add_drug_response_data(self, file_path="nationwidechildrens.org_clinical_drug.txt", patient_column="bcr_patient_barcode",
                                columns=['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name', 'pharmaceutical_therapy_type', 'treatment_best_response'],

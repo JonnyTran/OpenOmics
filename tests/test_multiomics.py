@@ -9,11 +9,7 @@ from openomics.genomics import SomaticMutation
 from openomics.multiomics import MultiOmics
 from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA
 
-# myPath = os.path.dirname(os.path.abspath(__file__))
-# sys.path.insert(0, myPath + '/../')  # Needed to for pytest to properly find modules in Python 2.7
-
 cohort_folder_path = "tests/data/TCGA_LUAD"
-print(os.getcwd())
 
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA():
