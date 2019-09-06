@@ -74,7 +74,7 @@ class ExpressionData(object):
         # Cut TCGA column names to sample barcode, discarding aliquot info
         df = df.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x)
 
-        # Drop duplicate columns names (Gene symbols with same name)
+        # Drop duplicate sample names
         _, i = np.unique(df.columns, return_index=True)
         df = df.iloc[:, i]
 
@@ -84,10 +84,9 @@ class ExpressionData(object):
         # Remove entries with unknown geneID
         df = df[df[key] != '?']
 
-        # Transpose dataframe to patient rows and geneID columns
-        df.index = df[key]
-        df = df.drop([key], axis=1)
+        df = df.set_index(key)
 
+        # Transpose dataframe to patient rows and geneID columns
         if transposed:
             df = df.T
 
