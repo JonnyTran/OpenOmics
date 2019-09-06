@@ -5,11 +5,12 @@ import numpy as np
 from Bio.UniProt import GOA
 from pandas import Series
 import pandas as pd
+import dask.dataframe as dd
 
 from openomics.database.annotation import *
 
 
-class ExpressionData:
+class ExpressionData(object):
     def __init__(self, cohort_name, index, file_path, columns, genes_col_name, transposed=True, log2_transform=False):
         """
         .. class:: ExpressionData

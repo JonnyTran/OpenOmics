@@ -9,7 +9,7 @@ from openomics.proteomics import Protein
 from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
 
-class MultiOmicsData:
+class MultiOmics:
     def __init__(self, cohort_name, import_clinical=True, clinical_file=None):
         # type: (str, List[str], bool, str) -> None
         """

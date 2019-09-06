@@ -19,7 +19,7 @@ DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
 
-class Dataset:
+class Dataset(object):
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field
 
     def __init__(self, import_folder, file_resources=None, col_rename=None, **kwargs):
@@ -128,7 +128,7 @@ class Dataset:
         raise NotImplementedError
 
 
-class Annotatable:
+class Annotatable(object):
     """
     This class provides an interface for the omics to annotate external data downloaded from various databases. These data will be imported as attribute information to the genes, or interactions between the genes.
     """

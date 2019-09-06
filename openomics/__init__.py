@@ -21,7 +21,7 @@ try:
     from .clinical import ClinicalData
 
     from .multiomics import (
-        MultiOmicsData
+        MultiOmics
     )
 
     from .genomics import (
