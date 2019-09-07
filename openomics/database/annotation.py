@@ -46,7 +46,7 @@ class Dataset(object):
         self.file_resources = file_resources
         self.df = self.load_dataframe(file_resources)
         if col_rename is not None:
-            self.df.rename(columns=col_rename, inplace=True)
+            self.df = self.df.rename(columns=col_rename)
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
     @abstractmethod
@@ -215,11 +215,11 @@ class RNAcentral(Dataset):
         super(RNAcentral, self).__init__(import_folder, file_resources, col_rename=col_rename, npartitions=npartitions)
 
     def load_dataframe(self, file_resources):
-        go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
+        go_terms = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
-        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
+        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True, n=2)[0]
 
-        gencode_id = pd.read_table(file_resources["gencode.tsv"],
+        gencode_id = dd.read_table(file_resources["gencode.tsv"],
                                    low_memory=True, header=None,
                                    names=["RNAcentral id", "database", "external id", "species", "RNA type",
                                           "gene symbol"])
@@ -233,8 +233,8 @@ class RNAcentral(Dataset):
         lnc_rfams = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
             "Rfams"].apply(lambda x: "|".join(x.unique()))
 
-        gencode_id["GO terms"] = gencode_id["RNAcentral id"].map(lnc_go_terms.to_dict())
-        gencode_id["Rfams"] = gencode_id["RNAcentral id"].map(lnc_rfams.to_dict())
+        gencode_id["GO terms"] = gencode_id["RNAcentral id"].map(lnc_go_terms)
+        gencode_id["Rfams"] = gencode_id["RNAcentral id"].map(lnc_rfams)
         gencode_id = gencode_id[gencode_id["GO terms"].notnull() | gencode_id["Rfams"].notnull()]
 
         return gencode_id
@@ -256,7 +256,7 @@ class GENCODE(Dataset):
 
     def load_dataframe(self, file_resources):
         # Parse lncRNA gtf
-        df = GTF.dataframe(file_resources["long_noncoding_RNAs.gtf"])
+        df = GTF.dataframe(file_resources["long_noncoding_RNAs.gtf"])  # Returns a dask dataframe
         df['gene_id'] = df['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         df['transcript_id'] = df['transcript_id'].str.replace("[.].*", "")
         return df
@@ -346,17 +346,16 @@ class MirBase(Dataset):
 
     def load_dataframe(self, file_resources):
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
-                                   names=["RNAcentral id", "database", "mirbase id", "species", "RNA type", "gene name"],
-                                   # dtype="O",
-                                   index_col="mirbase id")
-        #
+                                           names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
+                                                  "gene name"])
+        rnacentral_mirbase = rnacentral_mirbase.set_index("mirbase id")
         rnacentral_mirbase["species"] = rnacentral_mirbase["species"].astype("O")
         if self.species is not None:
             rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species"] == self.species]
 
         mirbase_aliases = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
-                                     names=["mirbase id", "gene_name"], dtype="O")
-        mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, on="mirbase id", how="inner")
+                                        names=["mirbase id", "gene_name"], dtype="O").set_index("mirbase id")
+        mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, how="inner")
 
         # # Expanding miRNA names in each MirBase Ascension ID
         mirna_names = mirbase_aliases.apply(lambda x: pd.Series(x['gene_name'].split(";")[:-1]), axis=1).stack().reset_index(
@@ -416,7 +415,7 @@ class BioMartManager:
 
         print("Querying {} from {} with attributes {}...".format(dataset, host, attributes))
         results = bm.query(xml_query)
-        df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", index_col=None, low_memory=True)
+        df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True)
 
         if cache:
             self.cache_dataset(dataset, df, save_filename)
@@ -554,13 +553,13 @@ class NONCODE(Dataset):
         super().__init__(import_folder, file_resources, col_rename)
 
     def load_dataframe(self, file_resources):
-        source_df = pd.read_table(file_resources["NONCODEv5_source"], header=None)
+        source_df = dd.read_table(file_resources["NONCODEv5_source"], header=None)
         source_df.columns = ["NONCODE Transcript ID", "name type", "Gene ID"]
 
-        transcript2gene_df = pd.read_table(file_resources["NONCODEv5_Transcript2Gene"], header=None)
+        transcript2gene_df = dd.read_table(file_resources["NONCODEv5_Transcript2Gene"], header=None)
         transcript2gene_df.columns = ["NONCODE Transcript ID", "NONCODE Gene ID"]
 
-        self.noncode_func_df = pd.read_table(file_resources["NONCODEv5_human.func"], header=None)
+        self.noncode_func_df = dd.read_table(file_resources["NONCODEv5_human.func"], header=None)
         self.noncode_func_df.columns = ["NONCODE Gene ID", "GO terms"]
         self.noncode_func_df.set_index("NONCODE Gene ID", inplace=True)
 
