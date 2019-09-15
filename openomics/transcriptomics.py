@@ -10,9 +10,8 @@ from openomics.database.annotation import *
 
 
 class ExpressionData(object):
-    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index="sample_barcode",
-                 transposed=True,
-                 log2_transform=False, npartitions=0):
+    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index,
+                 transposed=True, log2_transform=False, npartitions=0):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of any quantitative -omics data that is in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame from file with the user-specified columns and genes column name, then tranpose it such that the rows are samples and columns are gene/transcript/peptides.
@@ -139,8 +138,7 @@ class ExpressionData(object):
 
 class LncRNA(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index="sample_barcode",
-                 transposed=True,
-                 log2_transform=False, npartitions=0):
+                 transposed=True, log2_transform=False, npartitions=0):
         super(LncRNA, self).__init__(cohort_name, file_path=file_path, columns=columns, genes_col_name=genes_col_name,
                                      gene_index=gene_index, sample_index=sample_index, transposed=transposed,
                                      log2_transform=log2_transform, npartitions=npartitions)

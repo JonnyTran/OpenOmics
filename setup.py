@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
 
 # Package meta-data.
 NAME = 'openomics'
-version = 'version='0.7.6''
+version = '0.7.6'
 DESCRIPTION = 'OpenOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.'
 URL = 'https://github.com/JonnyTran/OpenOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
@@ -22,7 +22,7 @@ requirements = [
     'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py', 'dash'
 ]
 
-setup_requirements = ['pytest-runner', ]
+setup_requirements = ['pytest-runner', 'twine']
 test_requirements = ['pytest', ]
 
 here = os.path.abspath(os.path.dirname(__file__))
