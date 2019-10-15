@@ -45,6 +45,7 @@ class Dataset(object):
         self.import_folder = import_folder
         self.file_resources = file_resources
         self.df = self.load_dataframe(file_resources)
+        self.df = self.df.reset_index()
         if col_rename is not None:
             self.df = self.df.rename(columns=col_rename)
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
@@ -215,11 +216,11 @@ class RNAcentral(Dataset):
         super(RNAcentral, self).__init__(import_folder, file_resources, col_rename=col_rename, npartitions=npartitions)
 
     def load_dataframe(self, file_resources):
-        go_terms = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
+        go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True, n=2)[0]
 
-        gencode_id = dd.read_table(file_resources["gencode.tsv"],
+        gencode_id = pd.read_table(file_resources["gencode.tsv"],
                                    low_memory=True, header=None,
                                    names=["RNAcentral id", "database", "external id", "species", "RNA type",
                                           "gene symbol"])
