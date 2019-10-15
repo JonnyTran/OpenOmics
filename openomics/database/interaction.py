@@ -4,12 +4,12 @@ from openomics.database.annotation import *
 
 
 class Interactions(Dataset):
-    def __init__(self, import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
+    def __init__(self, path, file_resources, source_col_name, target_col_name, source_index, target_index,
                  edge_attr=None, directed=True, rename_dict=None, npartitions=0):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
-            import_folder (str):
+            path (str):
                 The folder path containing the data files.
             file_resources (dict): default None,
                 Used to list required files for load_network of the dataset. A dictionary where keys are required filenames and value are file paths. If None, then the class constructor should automatically build the required file resources dict.
@@ -25,14 +25,14 @@ class Interactions(Dataset):
                 A dictionary to rename columns in the data table. If None, then automatically load defaults.
             npartitions:
         """
-        if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
-            raise NotADirectoryError(import_folder)
+        if not os.path.isdir(path) or not os.path.exists(path):
+            raise NotADirectoryError(path)
         else:
             for _, filepath in file_resources.items():
                 if not os.path.exists(filepath):
                     raise FileNotFoundError(filepath)
 
-        self.import_folder = import_folder
+        self.import_folder = path
         self.file_resources = file_resources
         self.source_index = source_index
         self.target_index = target_index
@@ -82,19 +82,19 @@ class Interactions(Dataset):
 
 class GeneMania(Interactions):
 
-    def __init__(self, import_folder, file_resources=None, source_col_name="Gene_A", target_col_name="Gene_B",
+    def __init__(self, path, file_resources=None, source_col_name="Gene_A", target_col_name="Gene_B",
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=None, directed=True, rename_dict=None):
         if edge_attr is None:
             edge_attr = ["Weight"]
         if file_resources is None:
             file_resources = {}
-            file_resources["COMBINED.DEFAULT_NETWORKS.BP_COMBINING.txt"] = os.path.join(import_folder,
+            file_resources["COMBINED.DEFAULT_NETWORKS.BP_COMBINING.txt"] = os.path.join(path,
                                                                                         "COMBINED.DEFAULT_NETWORKS.BP_COMBINING.txt")
-            file_resources["identifier_mappings.txt"] = os.path.join(import_folder,
+            file_resources["identifier_mappings.txt"] = os.path.join(path,
                                                                      "identifier_mappings.txt")
 
-        super().__init__(import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
+        super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
                          edge_attr, directed, rename_dict)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
@@ -115,7 +115,7 @@ class GeneMania(Interactions):
 
 class BioGRID(Interactions):
 
-    def __init__(self, import_folder, file_resources=None, source_col_name="Official Symbol Interactor A",
+    def __init__(self, path, file_resources=None, source_col_name="Official Symbol Interactor A",
                  target_col_name="Official Symbol Interactor B",
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=None,
@@ -124,9 +124,9 @@ class BioGRID(Interactions):
             edge_attr = ['Score', 'Throughput', 'Qualifications', 'Modification', 'Phenotypes']
         if file_resources is None:
             file_resources = {}
-            file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"] = os.path.join(import_folder, "BIOGRID-ALL-3.4.162.tab2.txt")
+            file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"] = os.path.join(path, "BIOGRID-ALL-3.4.162.tab2.txt")
 
-        super().__init__(import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
+        super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
                          edge_attr, directed, rename_dict)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, species=9606):
@@ -146,14 +146,14 @@ class BioGRID(Interactions):
         return biogrid_grn
 
 class LncBase(Interactions, Dataset):
-    def __init__(self, import_folder, file_resources=None, source_col_name="mirna", target_col_name="geneId",
+    def __init__(self, path, file_resources=None, source_col_name="mirna", target_col_name="geneId",
                  source_index="transcript_name", target_index="gene_id",
                  edge_attr=None, directed=True,
                  rename_dict=None, organism="Homo sapiens", tissue=None):
         """
 
         Args:
-            import_folder (str):
+            path (str):
             file_resources (dict): default None.
         """
         self.organism = organism
@@ -163,9 +163,9 @@ class LncBase(Interactions, Dataset):
             edge_attr = ["tissue", "positive_negative"]
         if file_resources is None:
             file_resources = {}
-            file_resources["LncBasev2_download.csv"] = os.path.join(import_folder, "LncBasev2_download.csv")
+            file_resources["LncBasev2_download.csv"] = os.path.join(path, "LncBasev2_download.csv")
 
-        super(LncBase, self).__init__(import_folder=import_folder, file_resources=file_resources,
+        super(LncBase, self).__init__(path=path, file_resources=file_resources,
                                       source_col_name=source_col_name,
                                       target_col_name=target_col_name, source_index=source_index,
                                       target_index=target_index,
@@ -198,7 +198,7 @@ class LncBase(Interactions, Dataset):
 
 class lncRInter(Interactions):
 
-    def __init__(self, import_folder, file_resources=None, source_col_name="lncrna",
+    def __init__(self, path, file_resources=None, source_col_name="lncrna",
                  target_col_name='Interacting partner',
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=None,
@@ -209,9 +209,9 @@ class lncRInter(Interactions):
             edge_attr = ["Interaction Class", "Interaction Mode", "Tissue", "Phenotype"]
         if file_resources is None:
             file_resources = {}
-            file_resources["human_interactions.txt"] = os.path.join(import_folder, "human_interactions.txt")
+            file_resources["human_interactions.txt"] = os.path.join(path, "human_interactions.txt")
 
-        super().__init__(import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
+        super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
                          edge_attr, directed, rename_dict, )
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
@@ -238,7 +238,7 @@ class lncRInter(Interactions):
 
 
 class LncRNA2Target(Interactions):
-    def __init__(self, import_folder, file_resources=None, source_col_name="lncrna_symbol",
+    def __init__(self, path, file_resources=None, source_col_name="lncrna_symbol",
                  target_col_name="gene_symbol",
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=None, directed=True, rename_dict=None, version="high_throughput", species=9606):
@@ -256,10 +256,10 @@ class LncRNA2Target(Interactions):
         self.species = species
         if file_resources is None:
             file_resources = {}
-            file_resources["lncRNA_target_from_high_throughput_experiments.txt"] = os.path.join(import_folder,
+            file_resources["lncRNA_target_from_high_throughput_experiments.txt"] = os.path.join(path,
                                                                                                 "lncRNA_target_from_high_throughput_experiments.txt")
 
-        super().__init__(import_folder, file_resources, source_col_name, target_col_name, source_index, target_index,
+        super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
                          edge_attr, directed, rename_dict, species)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
@@ -316,7 +316,7 @@ class MiRTarBase(Interactions):
                            "Support Type": "Support_Type",
                            "Target Gene": "gene_name"}
 
-    def __init__(self, import_folder, file_resources=None, source_col_name="miRNA", target_col_name="Target Gene",
+    def __init__(self, path, file_resources=None, source_col_name="miRNA", target_col_name="Target Gene",
                  source_index="transcript_name", target_index="gene_name",
                  edge_attr=None, directed=True, rename_dict=None, species="Homo sapiens",
                  strip_mirna_name=False):
@@ -327,9 +327,9 @@ class MiRTarBase(Interactions):
 
         if file_resources is None:
             file_resources = {}
-            file_resources["miRTarBase_MTI.xlsx"] = os.path.join(import_folder, "miRTarBase_MTI.xlsx")
+            file_resources["miRTarBase_MTI.xlsx"] = os.path.join(path, "miRTarBase_MTI.xlsx")
 
-        super(MiRTarBase, self).__init__(import_folder=import_folder, file_resources=file_resources,
+        super(MiRTarBase, self).__init__(path=path, file_resources=file_resources,
                                          source_col_name=source_col_name,
                                          target_col_name=target_col_name, source_index=source_index,
                                          target_index=target_index,
@@ -351,7 +351,7 @@ class MiRTarBase(Interactions):
 
 
 class TargetScan(Interactions, Dataset):
-    def __init__(self, import_folder, file_resources=None, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
+    def __init__(self, path, file_resources=None, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
                  source_index="transcript_name", target_index="transcript_name",
                  edge_attr=None, directed=True, rename_dict=None, species=9606,
                  strip_mirna_name=False):
@@ -361,11 +361,11 @@ class TargetScan(Interactions, Dataset):
         self.species = species
         if file_resources is None:
             file_resources = {}
-            file_resources["miR_Family_Info.txt"] = os.path.join(import_folder, "miR_Family_Info.txt")
-            file_resources["Predicted_Targets_Info.default_predictions.txt"] = os.path.join(import_folder,
+            file_resources["miR_Family_Info.txt"] = os.path.join(path, "miR_Family_Info.txt")
+            file_resources["Predicted_Targets_Info.default_predictions.txt"] = os.path.join(path,
                                                                                             "Predicted_Targets_Info.default_predictions.txt")
 
-        super(TargetScan, self).__init__(import_folder=import_folder, file_resources=file_resources,
+        super(TargetScan, self).__init__(path=path, file_resources=file_resources,
                                          source_col_name=source_col_name,
                                          target_col_name=target_col_name, source_index=source_index,
                                          target_index=target_index,

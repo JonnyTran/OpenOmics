@@ -4,7 +4,13 @@ import os
 import dask.dataframe as dd
 import requests
 import sqlalchemy as sa
+from astropy.utils import data
 from requests.adapters import HTTPAdapter
+
+
+def get_pkg_data_filename(dataurl, file_name):
+    with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
+        return data.get_pkg_data_filename(file_name)
 
 
 def read_db(connString="sqlite:///c:\\temp\\test.db", table='testtable'):

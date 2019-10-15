@@ -17,3 +17,4 @@ dash-daq
 dash-bootstrap-components
 six==1.10
 lxml==4.3.5
+validators
