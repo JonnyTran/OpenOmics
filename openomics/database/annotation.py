@@ -38,7 +38,7 @@ class Dataset(object):
                 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
         """
         if validators.url(path):
-            for filename, filepath in copy.copy(file_resources.items()):
+            for filename, filepath in copy.copy(file_resources).items():
                 file_resources[filename] = get_pkg_data_filename(path,
                                                                  filepath)  # Download the files and replace the file_resource paths
             print(file_resources)
