@@ -9,8 +9,17 @@ from requests.adapters import HTTPAdapter
 
 
 def get_pkg_data_filename(dataurl, file_name):
+    """
+    Downloads a remote file given the url, then caches it to the user's home folder.
+    Args:
+        dataurl: Url to the download path, excluding the file name
+        file_name: The file name to download
+
+    Returns:
+        filename (str): A file path on the local file system corresponding to the data requested in data_name.
+    """
     with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
-        return data.get_pkg_data_filename(file_name)
+        return data.get_pkg_data_filename(file_name, show_progress=True)
 
 
 def read_db(connString="sqlite:///c:\\temp\\test.db", table='testtable'):
