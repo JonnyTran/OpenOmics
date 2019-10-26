@@ -8,16 +8,6 @@ __email__ = 'nhat.tran@mavs.uta.edu'
 __version__ = '0.7.6'
 
 try:
-    from . import (
-        clinical,
-        genomics,
-        multiomics,
-        multicohorts,
-        transcriptomics,
-        proteomics,
-        database,
-    )
-
     from .clinical import ClinicalData
 
     from .multiomics import (
@@ -41,6 +31,17 @@ try:
 
     from .utils import (
         io
+    )
+
+    from . import (
+        database,
+        clinical,
+        genomics,
+        multiomics,
+        multicohorts,
+        transcriptomics,
+        proteomics,
+
     )
 
 except ImportError as e:
