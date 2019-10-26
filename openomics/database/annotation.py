@@ -1,5 +1,6 @@
 import copy
 import difflib
+import gzip
 import os
 from abc import abstractmethod
 from io import StringIO
@@ -7,13 +8,14 @@ from os.path import expanduser
 from typing import List, Union
 
 import dask.dataframe as dd
+import filetype
 import pandas as pd
 import validators
 from Bio import SeqIO
 from bioservices import BioMart
+from gtfparse import read_gtf
 
 import openomics
-from openomics.utils import GTF
 from openomics.utils.df import concat_uniques
 from openomics.utils.io import mkdirs, get_pkg_data_filename
 
@@ -38,8 +40,13 @@ class Dataset(object):
         """
         if validators.url(path):
             for filename, filepath in copy.copy(file_resources).items():
-                file_resources[filename] = get_pkg_data_filename(path,
-                                                                 filepath)  # Download the files and replace the file_resource paths
+                data_file = get_pkg_data_filename(path,
+                                                  filepath)  # Download the files and replace the file_resource paths
+                extension = filetype.guess(data_file).extension
+                if extension == 'gz':
+                    file_resources[filename] = gzip.open(data_file, 'r')
+                else:
+                    file_resources[filename] = data_file
             print(file_resources)
 
         elif os.path.isdir(path) and os.path.exists(path):
@@ -56,6 +63,11 @@ class Dataset(object):
         if col_rename is not None:
             self.df = self.df.rename(columns=col_rename)
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
+
+        # Close opened file resources
+        for filename, filepath in file_resources.items():
+            if type(file_resources[filename]) != str:
+                file_resources[filename].close()
 
     @abstractmethod
     def load_dataframe(self, file_resources):
@@ -264,7 +276,7 @@ class GENCODE(Dataset):
 
     def load_dataframe(self, file_resources):
         # Parse lncRNA gtf
-        df = GTF.dataframe(file_resources["long_noncoding_RNAs.gtf"])  # Returns a dask dataframe
+        df = read_gtf(file_resources["long_noncoding_RNAs.gtf"])  # Returns a dask dataframe
         df['gene_id'] = df['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         df['transcript_id'] = df['transcript_id'].str.replace("[.].*", "")
         return df

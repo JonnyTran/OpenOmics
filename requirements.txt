@@ -19,3 +19,6 @@ six==1.10
 lxml==4.3.5
 validators
 sqlalchemy
+filetype
+gtfparse
+gzip
