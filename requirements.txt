@@ -6,6 +6,7 @@ networkx>=2.1
 numpy
 pandas
 scipy
+astropy
 h5py
 requests
 setuptools
