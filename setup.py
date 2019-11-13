@@ -12,7 +12,7 @@ with open('HISTORY.rst') as history_file:
 
 # Package meta-data.
 NAME = 'openomics'
-version = '0.7.7'
+version='0.7.7'
 DESCRIPTION = 'OpenOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.'
 URL = 'https://github.com/JonnyTran/OpenOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
@@ -69,7 +69,8 @@ setup(
     name=NAME,
     version=version,
     packages=find_packages(include=['openomics']),
-    package_dir={NAME: 'openomics', 'openomics_web': 'openomics_web'},
+    package_dir={NAME: 'openomics',
+                 'openomics_web': 'openomics_web'},
     url=URL,
     license='MIT license',
     install_requires=requirements,
