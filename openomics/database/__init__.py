@@ -1,13 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
 try:
-    from . import (
-        annotation,
-        disease,
-        interaction,
-        ontology
-    )
-
     from .annotation import (
         GENCODE, MirBase, EnsemblGenes, RNAcentral, BioMartManager
     )

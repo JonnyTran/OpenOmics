@@ -29,20 +29,6 @@ try:
     #     ontology
     # )
 
-    from .utils import (
-        io
-    )
-
-    from . import (
-        database,
-        clinical,
-        genomics,
-        multiomics,
-        multicohorts,
-        transcriptomics,
-        proteomics,
-
-    )
 
 except ImportError as e:
     msg = (
