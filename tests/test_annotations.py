@@ -12,5 +12,5 @@ def generate_GENCODE_db_ftp():
                    import_sequences="shortest")
 
 
-def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA):
-    assert generate_TCGA_LUAD_MessengerRNA.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/'
+def test_import_expression_table_size(generate_GENCODE_db_ftp):
+    assert generate_GENCODE_db_ftp.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/'
