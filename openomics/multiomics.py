@@ -102,13 +102,6 @@ class MultiOmics:
             #     ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
             #                                     "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
 
-        # Build a table for each samples's clinical data
-        if import_clinical:
-            self.build_samples()
-
-        # Remove duplicate genes between different multi-omics (e.g. between gene expression and lncRNA expressions
-        self.print_sample_sizes()
-
     def remote_duplate_genes(self):
         """
         Removes duplicate genes between any omics such that the index across all omics has no duplicates.
@@ -140,20 +133,35 @@ class MultiOmics:
 
         # Initialize annotations
         if initialize_annotations:
-            omic_data.initialize_annotations(None, omic_data.index)
+            omic_data.initialize_annotations(None, omic_data.gene_index)
 
         print(omic_data.name(), self.data[omic_data.name()].shape if hasattr(self.data[omic_data.name()], 'shape') else ": None")
 
     def get_omics_list(self):
         return self.omics_list
 
-    def build_samples(self):
-        if len(self.omics_list) > 1:  # make sure at least one ExpressionData present
-            all_samples = pd.Index([])
-            for omic in self.omics_list:
+    def build_samples(self, agg_by="union"):
+        """
+        Running this function will build a dataframe for all samples across the different omics (either by a union or intersection). Then,
+
+        Args:
+            agg_by (str): ["union", "intersection"]
+        """
+        if len(self.omics_list) < 1:  # make sure at least one ExpressionData present
+            print("build_samples() does nothing. Must add at least one omic to this MultiOmics object.")
+
+        all_samples = pd.Index([])
+        for omic in self.omics_list:
+            if agg_by == "union":
                 all_samples = all_samples.union(self.data[omic].index)
+            elif agg_by == "intersection":
+                all_samples = all_samples.intersection(self.data[omic].index)
+
+        if hasattr(self, "clinical"):
             self.clinical.build_clinical_samples(all_samples)
             self.data["SAMPLES"] = self.clinical.samples.index
+        else:
+            self.data["SAMPLES"] = all_samples
 
 
     def __getitem__(self, item):
@@ -199,8 +207,10 @@ class MultiOmics:
         """
         Return the index of bcr_sample_barcodes of the intersection of samples from all modalities
 
-        :param omics: An array of modalities
-        :return: An pandas Index list
+        Args:
+            omics: An array of modalities
+        Returns:
+            matched_sapmles: An pandas Index list
         """
         # TODO check that for single modalities, this fetch all patients
         matched_samples = self.data[omics[0]].index.copy()
@@ -283,7 +293,7 @@ class MultiOmics:
         Args:
             matched_samples: A list of sample barcodes
         Returns
-
+            samples_index: Index of samples
         """
         return self.data["SAMPLES"].reindex(matched_samples)
 

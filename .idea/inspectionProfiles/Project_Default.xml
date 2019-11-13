@@ -17,7 +17,7 @@
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>
-          <list size="8">
+          <list size="13">
             <item index="0" class="java.lang.String" itemvalue="python-dotenv" />
             <item index="1" class="java.lang.String" itemvalue="awscli" />
             <item index="2" class="java.lang.String" itemvalue="pkg_resources" />
@@ -26,6 +26,11 @@
             <item index="5" class="java.lang.String" itemvalue="dash-daq" />
             <item index="6" class="java.lang.String" itemvalue="dash" />
             <item index="7" class="java.lang.String" itemvalue="dash-bootstrap-components" />
+            <item index="8" class="java.lang.String" itemvalue="typing" />
+            <item index="9" class="java.lang.String" itemvalue="validators" />
+            <item index="10" class="java.lang.String" itemvalue="filetype" />
+            <item index="11" class="java.lang.String" itemvalue="gtfparse" />
+            <item index="12" class="java.lang.String" itemvalue="gzip" />
           </list>
         </value>
       </option>

@@ -1,52 +1,85 @@
+import copy
+import difflib
+import gzip
 import os
-from typing import List, Dict, Union
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from io import StringIO
 from os.path import expanduser
-import difflib
+from typing import List, Union
 
-import pandas
+import dask.dataframe as dd
+import filetype
 import pandas as pd
+import validators
 from Bio import SeqIO
 from bioservices import BioMart
+from gtfparse import read_gtf
 
 import openomics
-from openomics.utils import GTF
-from openomics.utils.df import concat_uniques_agg
-from openomics.utils.io import mkdirs
+from openomics.utils.df import concat_uniques
+from openomics.utils.io import mkdirs, get_pkg_data_filename
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
-
 class Dataset(object):
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field
 
-    def __init__(self, import_folder, file_resources=None, col_rename=None, **kwargs):
+    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
-            import_folder (str):
-                The folder path containing the data files
+            path (str):
+                The folder or url path containing the data file resources. If url path, the files will be downloaded and cached to the user's home folder (at ~/.astropy/).
             file_resources (dict): default None,
                 Used to list required files for preprocessing of the database. A dictionary where keys are required filenames and value are file paths. If None, then the class constructor should automatically build the required file resources dict.
             col_rename (dict): default None,
                 A dictionary to rename columns in the data table. If None, then automatically load defaults.
-            **kwargs: Additional arguments that may be passed to load_data function
+            npartitions (int): [0-n], default 0
+                If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
         """
-        if not os.path.isdir(import_folder) or not os.path.exists(import_folder):
-            raise IOError(import_folder)
-        else:
+        if validators.url(path):
+            for filename, filepath in copy.copy(file_resources).items():
+                data_file = get_pkg_data_filename(path,
+                                                  filepath)  # Download the files and replace the file_resource paths
+                extension = filetype.guess(data_file).extension
+                if extension == 'gz':
+                    file_resources[filename] = gzip.open(data_file, 'r')
+                else:
+                    file_resources[filename] = data_file
+            print(file_resources)
+
+        elif os.path.isdir(path) and os.path.exists(path):
             for _, filepath in file_resources.items():
                 if not os.path.exists(filepath):
                     raise IOError(filepath)
+        else:
+            raise IOError(path)
 
-        self.import_folder = import_folder
+        self.data_path = path
         self.file_resources = file_resources
-        self.df = self.load_dataframe(file_resources, **kwargs)
+        self.df = self.load_dataframe(file_resources)
+        self.df = self.df.reset_index()
         if col_rename is not None:
-            self.df.rename(columns=col_rename, inplace=True)
+            self.df = self.df.rename(columns=col_rename)
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
+
+        # Close opened file resources
+        for filename, filepath in file_resources.items():
+            if type(file_resources[filename]) != str:
+                file_resources[filename].close()
+
+    @abstractmethod
+    def load_dataframe(self, file_resources):
+        # type: (dict) -> pd.DataFrame
+        """
+        Handles data preprocessing given the file_resources input, and returns a DataFrame.
+
+        Args:
+            file_resources (dict): A dict with keys as filenames and values as full file path.
+            **kwargs: Optional
+        """
+        raise NotImplementedError
 
     @classmethod
     def name(cls):
@@ -56,7 +89,7 @@ class Dataset(object):
         return DEFAULT_LIBRARIES
 
     def get_annotations(self, index, columns):
-        # type: (str, List[str]) -> pd.DataFrame
+        # type: (str, List[str]) -> Union[pd.DataFrame, dd.DataFrame]
         """
         Returns the Database's DataFrame such that it's indexed by :param index:, which then applies a groupby operation
         and aggregates all other columns by concatenating all unique values.
@@ -72,35 +105,23 @@ class Dataset(object):
         """
         if columns is not None:
             if index in columns:
-                df = self.df.filter(items=columns)
+                df = self.df[columns]
                 columns.pop(columns.index(index))
             else:
-                df = self.df.filter(items=columns + [index])
+                df = self.df[columns + [index]]
         else:
             raise Exception("The columns argument must be a list such that it's subset of the following columns in the dataframe",
                             self.df.columns.tolist())
 
         if index != self.df.index.name and index in self.df.columns:
-            df.set_index(index, inplace=True)
+            df = df.set_index(index)
 
         # Groupby index, and Aggregate by all columns by concatenating unique values
-        df = df.groupby(index).agg({k:concat_uniques_agg for k in columns})
+        df = df.groupby(index).agg({k: concat_uniques for k in columns})
 
         if df.index.duplicated().sum() > 0:
             raise ValueError("DataFrame must not have duplicates in index")
         return df
-
-    @abstractmethod
-    def load_dataframe(self, file_resources, **kwargs):
-        # type: (dict, **str) -> pd.DataFrame
-        """
-        Handles data preprocessing given the file_resources input, and returns a DataFrame.
-
-        Args:
-            file_resources (dict): A dict with keys as filenames and values as full file path.
-            **kwargs: Optional
-        """
-        raise NotImplementedError
 
     @abstractmethod
     def get_rename_dict(self, from_index, to_index):
@@ -199,24 +220,24 @@ class RNAcentral(Dataset):
                            'external id': 'transcript_id',
                            'GO terms': 'go_id'}
 
-    def __init__(self, import_folder, file_resources=None, col_rename=None, species=9606):
+    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, species=9606):
         self.species = species
 
         if file_resources is None:
             file_resources = {}
-            file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(import_folder,
+            file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(path,
                                                                           "rnacentral_rfam_annotations.tsv")
-            file_resources["gencode.tsv"] = os.path.join(import_folder, "gencode.tsv")
+            file_resources["gencode.tsv"] = os.path.join(path, "gencode.tsv")
 
         if col_rename is None:
             col_rename = self.COLUMNS_RENAME_DICT
 
-        super(RNAcentral, self).__init__(import_folder, file_resources, col_rename)
+        super(RNAcentral, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
 
-    def load_dataframe(self, file_resources, **kwargs):
+    def load_dataframe(self, file_resources):
         go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
-        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True)[0]
+        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True, n=2)[0]
 
         gencode_id = pd.read_table(file_resources["gencode.tsv"],
                                    low_memory=True, header=None,
@@ -232,30 +253,30 @@ class RNAcentral(Dataset):
         lnc_rfams = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
             "Rfams"].apply(lambda x: "|".join(x.unique()))
 
-        gencode_id["GO terms"] = gencode_id["RNAcentral id"].map(lnc_go_terms.to_dict())
-        gencode_id["Rfams"] = gencode_id["RNAcentral id"].map(lnc_rfams.to_dict())
+        gencode_id["GO terms"] = gencode_id["RNAcentral id"].map(lnc_go_terms)
+        gencode_id["Rfams"] = gencode_id["RNAcentral id"].map(lnc_rfams)
         gencode_id = gencode_id[gencode_id["GO terms"].notnull() | gencode_id["Rfams"].notnull()]
 
         return gencode_id
 
 
 class GENCODE(Dataset):
-    def __init__(self, import_folder, file_resources=None, col_rename=None, import_sequences="all",
+    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, import_sequences="all",
                  replace_U2T=True):
         if file_resources is None:
             file_resources = {}
-            file_resources["long_noncoding_RNAs.gtf"] = os.path.join(import_folder, "gencode.v29.long_noncoding_RNAs.gtf")
-            file_resources["lncRNA_transcripts.fa"] = os.path.join(import_folder, "gencode.v29.lncRNA_transcripts.fa")
-            file_resources["transcripts.fa"] = os.path.join(import_folder, "gencode.v29.transcripts.fa")
+            file_resources["long_noncoding_RNAs.gtf"] = os.path.join(path, "gencode.v29.long_noncoding_RNAs.gtf")
+            file_resources["lncRNA_transcripts.fa"] = os.path.join(path, "gencode.v29.lncRNA_transcripts.fa")
+            file_resources["transcripts.fa"] = os.path.join(path, "gencode.v29.transcripts.fa")
 
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
 
-        super(GENCODE, self).__init__(import_folder, file_resources, col_rename=col_rename)
+        super(GENCODE, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
 
-    def load_dataframe(self, file_resources, **kwargs):
+    def load_dataframe(self, file_resources):
         # Parse lncRNA gtf
-        df = GTF.dataframe(file_resources["long_noncoding_RNAs.gtf"])
+        df = read_gtf(file_resources["long_noncoding_RNAs.gtf"])  # Returns a dask dataframe
         df['gene_id'] = df['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
         df['transcript_id'] = df['transcript_id'].str.replace("[.].*", "")
         return df
@@ -316,7 +337,7 @@ class GENCODE(Dataset):
 
 
 class MirBase(Dataset):
-    def __init__(self, import_folder, RNAcentral_folder, file_resources=None, col_rename=None,
+    def __init__(self, path, RNAcentral_folder, file_resources=None, col_rename=None, npartitions=0,
                  species=9606, import_sequences="all", replace_U2T=True):
         """
 
@@ -329,32 +350,32 @@ class MirBase(Dataset):
             import_sequences (str): {"longest", "shortest", "all"}
                 Whether to select the longest, shortest, or a list of all transcript sequences when aggregating transcript sequences by gene_id or gene_name.
             replace_U2T:
+            :param npartitions:
         """
         if file_resources is None:
             file_resources = {}
-            file_resources["aliases.txt"] = os.path.join(import_folder, "aliases.txt")
-            file_resources["mature.fa"] = os.path.join(import_folder, "mature.fa")
+            file_resources["aliases.txt"] = os.path.join(path, "aliases.txt")
+            file_resources["mature.fa"] = os.path.join(path, "mature.fa")
             file_resources["rnacentral.mirbase.tsv"] = os.path.join(RNAcentral_folder, "mirbase.tsv")
             file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(RNAcentral_folder, "rnacentral_rfam_annotations.tsv")
 
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
         self.species = species
-        super(MirBase, self).__init__(import_folder, file_resources, col_rename)
+        super(MirBase, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
 
-    def load_dataframe(self, file_resources, **kwargs):
+    def load_dataframe(self, file_resources):
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
-                                   names=["RNAcentral id", "database", "mirbase id", "species", "RNA type", "gene name"],
-                                   # dtype="O",
-                                   index_col="mirbase id")
-        #
+                                           names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
+                                                  "gene name"])
+        rnacentral_mirbase = rnacentral_mirbase.set_index("mirbase id")
         rnacentral_mirbase["species"] = rnacentral_mirbase["species"].astype("O")
         if self.species is not None:
             rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species"] == self.species]
 
         mirbase_aliases = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
-                                     names=["mirbase id", "gene_name"], dtype="O")
-        mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, on="mirbase id", how="inner")
+                                        names=["mirbase id", "gene_name"], dtype="O").set_index("mirbase id")
+        mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, how="inner")
 
         # # Expanding miRNA names in each MirBase Ascension ID
         mirna_names = mirbase_aliases.apply(lambda x: pd.Series(x['gene_name'].split(";")[:-1]), axis=1).stack().reset_index(
@@ -414,7 +435,7 @@ class BioMartManager:
 
         print("Querying {} from {} with attributes {}...".format(dataset, host, attributes))
         results = bm.query(xml_query)
-        df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", index_col=None, low_memory=True)
+        df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True)
 
         if cache:
             self.cache_dataset(dataset, df, save_filename)
@@ -467,8 +488,8 @@ class EnsemblGenes(BioMartManager, Dataset):
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
         geneid_to_genename = self.df[self.df[to_index].notnull()]\
-            .groupby(from_index)[to_index]\
-            .apply(concat_uniques_agg).to_dict()
+            .groupby(from_index)[to_index] \
+            .apply(concat_uniques).to_dict()
         return geneid_to_genename
 
     def get_functional_annotations(self, omic, index):
@@ -542,23 +563,23 @@ class EnsemblSomaticVariation(EnsemblGenes):
 
 class NONCODE(Dataset):
     # TODO need more fix
-    def __init__(self, import_folder, file_resources=None, col_rename=None, **kwargs):
+    def __init__(self, path, file_resources=None, col_rename=None):
         if file_resources is None:
             file_resources = {}
-            file_resources["NONCODEv5_source"] = os.path.join(import_folder, "NONCODEv5_source")
-            file_resources["NONCODEv5_Transcript2Gene"] = os.path.join(import_folder, "NONCODEv5_Transcript2Gene")
-            file_resources["NONCODEv5_human.func"] = os.path.join(import_folder, "NONCODEv5_human.func")
+            file_resources["NONCODEv5_source"] = os.path.join(path, "NONCODEv5_source")
+            file_resources["NONCODEv5_Transcript2Gene"] = os.path.join(path, "NONCODEv5_Transcript2Gene")
+            file_resources["NONCODEv5_human.func"] = os.path.join(path, "NONCODEv5_human.func")
 
-        super().__init__(import_folder, file_resources, col_rename, **kwargs)
+        super().__init__(path, file_resources, col_rename)
 
-    def load_dataframe(self, file_resources, **kwargs):
-        source_df = pd.read_table(file_resources["NONCODEv5_source"], header=None)
+    def load_dataframe(self, file_resources):
+        source_df = dd.read_table(file_resources["NONCODEv5_source"], header=None)
         source_df.columns = ["NONCODE Transcript ID", "name type", "Gene ID"]
 
-        transcript2gene_df = pd.read_table(file_resources["NONCODEv5_Transcript2Gene"], header=None)
+        transcript2gene_df = dd.read_table(file_resources["NONCODEv5_Transcript2Gene"], header=None)
         transcript2gene_df.columns = ["NONCODE Transcript ID", "NONCODE Gene ID"]
 
-        self.noncode_func_df = pd.read_table(file_resources["NONCODEv5_human.func"], header=None)
+        self.noncode_func_df = dd.read_table(file_resources["NONCODEv5_human.func"], header=None)
         self.noncode_func_df.columns = ["NONCODE Gene ID", "GO terms"]
         self.noncode_func_df.set_index("NONCODE Gene ID", inplace=True)
 

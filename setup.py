@@ -12,6 +12,7 @@ with open('HISTORY.rst') as history_file:
 
 # Package meta-data.
 NAME = 'openomics'
+version='0.7.7'
 DESCRIPTION = 'OpenOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.'
 URL = 'https://github.com/JonnyTran/OpenOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
@@ -21,7 +22,7 @@ requirements = [
     'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py', 'dash'
 ]
 
-setup_requirements = ['pytest-runner', ]
+setup_requirements = ['pytest-runner', 'twine']
 test_requirements = ['pytest', ]
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -58,7 +59,7 @@ class UploadCommand(Command):
         os.system('twine upload dist/*')
 
         self.status('Pushing git tags…')
-        os.system('git tag v{0}'.format(about['__version__']))
+        os.system('git tag v{0}'.format(version))
         os.system('git push --tags')
 
         sys.exit()
@@ -66,7 +67,7 @@ class UploadCommand(Command):
 
 setup(
     name=NAME,
-    version='0.7.5',
+    version=version,
     packages=find_packages(include=['openomics']),
     package_dir={NAME: 'openomics',
                  'openomics_web': 'openomics_web'},

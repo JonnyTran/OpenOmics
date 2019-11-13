@@ -5,19 +5,9 @@ from __future__ import print_function, division, absolute_import
 
 __author__ = """Nhat (Jonny) Tran"""
 __email__ = 'nhat.tran@mavs.uta.edu'
-__version__ = '0.7.5'
+__version__ = '0.7.7'
 
 try:
-    from . import (
-        clinical,
-        genomics,
-        multiomics,
-        multicohorts,
-        transcriptomics,
-        proteomics,
-        database,
-    )
-
     from .clinical import ClinicalData
 
     from .multiomics import (
@@ -39,9 +29,6 @@ try:
     #     ontology
     # )
 
-    from .utils import (
-        io
-    )
 
 except ImportError as e:
     msg = (

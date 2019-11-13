@@ -16,20 +16,19 @@ class ClinicalData:
                             'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
                             'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
 
-    def __init__(self, cohort_name, patients_file, patient_column="bcr_patient_barcode",
-                 columns=None):
+    def __init__(self, cohort_name, patients_file, patient_id_col="bcr_patient_barcode", columns=None):
         """
 
         Args:
-            cohort_name:
-            folder_path:
-            patients_file:
-            patient_column:
-            columns (list): default None. Example: ['bcr_patient_barcode', 'gender', 'race', 'histologic_diagnosis', 'tumor_status', 'death_days_to',
+            cohort_name (str): the unique cohort code name string
+            patients_file (str): path to the patients clinical data file
+            patient_id_col (str): the patient's ID column name
+            columns (list): default None.
+                Specifies the columns to import, if None, then import all columns. Example: ['bcr_patient_barcode', 'gender', 'race', 'histologic_diagnosis', 'tumor_status', 'death_days_to',
                           'ajcc_pathologic_tumor_stage']
         """
         self.cohort_name = cohort_name
-        self.patient_column = patient_column
+        self.patient_column = patient_id_col
 
         if not os.path.exists(patients_file):
             raise FileNotFoundError(patients_file)
@@ -41,13 +40,13 @@ class ClinicalData:
                                      usecols=columns
                                      )
 
-        self.patient_barcodes = self.patient[patient_column].tolist()
-        self.patient.set_index(patient_column, inplace=True)
+        self.patient_barcodes = self.patient[patient_id_col].tolist()
+        self.patient.set_index(patient_id_col, inplace=True)
 
         # Rename columns
-        self.patient.rename({"ajcc_pathologic_tumor_stage": ("%s" % PATHOLOGIC_STAGE),
-                             "histological_type": ("%s" % HISTOLOGIC_SUBTYPE),
-                             "histologic_diagnosis.1": ("%s" % HISTOLOGIC_SUBTYPE)}, axis=1, inplace=True)
+        self.patient.rename({"ajcc_pathologic_tumor_stage": PATHOLOGIC_STAGE,
+                             "histological_type": HISTOLOGIC_SUBTYPE,
+                             "histologic_diagnosis.1": HISTOLOGIC_SUBTYPE}, axis=1, inplace=True)
         self.patient.replace({PATHOLOGIC_STAGE: ClinicalData.pathologic_stage_map}, inplace=True)
 
     @classmethod
@@ -57,8 +56,8 @@ class ClinicalData:
     def build_clinical_samples(self, all_samples, index="bcr_patient_barcode"):
         # Build table with samples clinical data from patients
         self.samples = pd.DataFrame(index=all_samples)
-
-        self.samples[index] = self.samples.index.str[:-4]
+        self.samples.index.name = index
+        self.samples.index = self.samples.index.str[:-4]  # Cut sample barcode for TCGA
 
         no_samples = self.samples.shape[0]
 
@@ -69,14 +68,13 @@ class ClinicalData:
         if self.samples.shape[0] != no_samples:
             raise Exception("Clinical data merging has wrong number of samples")
 
-        self.samples.drop(BCR_PATIENT_BARCODE+"_", axis=1, inplace=True)  # Remove redundant column
         # self.samples.dropna(axis=0, subset=["bcr_patient_barcode"], inplace=True) # Remove samples without clinical data
 
         self.samples = self.samples[self.samples[PATHOLOGIC_STAGE] != "[Discrepancy]"]
-        self.samples.loc[self.samples.index.str.contains("-11"),
-                         ('%s' % TUMOR_NORMAL)] = NORMAL  # Change stage label of normal samples to "Normal"
-        self.samples.loc[self.samples.index.str.contains("-01"),
-                         TUMOR_NORMAL] = TUMOR  # Change stage label of normal samples to "Normal"
+        self.samples.loc[self.samples.index.str.contains(
+            "-11"), TUMOR_NORMAL] = NORMAL  # Change stage label of normal samples to "Normal"
+        self.samples.loc[self.samples.index.str.contains(
+            "-01"), TUMOR_NORMAL] = TUMOR  # Change stage label of normal samples to "Normal"
 
     def add_drug_response_data(self, file_path="nationwidechildrens.org_clinical_drug.txt", patient_column="bcr_patient_barcode",
                                columns=['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name', 'pharmaceutical_therapy_type', 'treatment_best_response'],
