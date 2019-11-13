@@ -47,7 +47,6 @@ class Dataset(object):
                     file_resources[filename] = gzip.open(data_file, 'r')
                 else:
                     file_resources[filename] = data_file
-            print(file_resources)
 
         elif os.path.isdir(path) and os.path.exists(path):
             for _, filepath in file_resources.items():
