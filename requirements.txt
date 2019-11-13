@@ -22,3 +22,4 @@ sqlalchemy
 filetype
 gtfparse
 gzip
+scikit-allel
