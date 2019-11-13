@@ -5,9 +5,9 @@ import os
 
 import pytest
 
-from openomics.genomics import SomaticMutation
-from openomics.multiomics import MultiOmics
-from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA
+from openomics import MessengerRNA, MicroRNA, LncRNA
+from openomics import MultiOmics
+from openomics import SomaticMutation
 
 cohort_folder_path = "tests/data/TCGA_LUAD"
 
