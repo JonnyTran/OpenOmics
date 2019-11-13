@@ -2,6 +2,9 @@ from openomics.database.annotation import Annotatable
 from openomics.transcriptomics import ExpressionData
 
 
+class SingleNucleotideVariants(ExpressionData, Annotatable):
+    pass
+
 class SomaticMutation(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index="sample_barcode",
                  transposed=True,
