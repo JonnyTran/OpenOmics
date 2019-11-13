@@ -12,8 +12,8 @@ cache: pip
 
 install:
     - pip install -U tox-travis codecov
-    - pip install -U -e ./pkgB -e ./pkbA -r requirements_dev.txt
-    - pip install -U -e ./pkgB -e ./pkbA -r requirements.txt
+    - pip install -U -r requirements_dev.txt
+    - pip install -U -r requirements.txt
 
 script:
     - python -m pytest --cov=./
