@@ -1,5 +1,5 @@
-from openomics.database.annotation import Annotatable
-from openomics.transcriptomics import ExpressionData
+from openomics import ExpressionData
+from openomics.database import Annotatable
 
 
 class SingleNucleotideVariants(ExpressionData, Annotatable):

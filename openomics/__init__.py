@@ -8,6 +8,12 @@ __email__ = 'nhat.tran@mavs.uta.edu'
 __version__ = '0.7.7'
 
 try:
+    from . import (
+        database, transcriptomics, genomics, proteomics, clinical, multiomics
+    )
+
+    from .database import annotation
+
     from .clinical import ClinicalData
 
     from .multiomics import (
@@ -19,15 +25,9 @@ try:
     )
 
     from .transcriptomics import (
-        MessengerRNA, MicroRNA, LncRNA
+        ExpressionData, MessengerRNA, MicroRNA, LncRNA
     )
 
-    # from .database import (
-    #     annotation,
-    #     disease,
-    #     interaction,
-    #     ontology
-    # )
 
 
 except ImportError as e:
