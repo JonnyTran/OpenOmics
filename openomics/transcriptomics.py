@@ -1,12 +1,16 @@
+import os
 from glob import glob
 
+import dask.dataframe as dd
 import networkx as nx
 import numpy as np
+import pandas as pd
 from Bio.UniProt import GOA
 from dask import delayed
+from gtfparse import read_gtf
 from pandas import Series
 
-from openomics.database.annotation import *
+from .database import Annotatable
 
 
 class ExpressionData(object):
@@ -182,7 +186,7 @@ class LncRNA(ExpressionData, Annotatable):
         return df
 
     def get_lncipedia_gene_id_to_name_dict(self):
-        lncipedia_names = GTF.dataframe(
+        lncipedia_names = read_gtf(
             os.path.join(self.external_data_path, "LNCipedia/lncipedia_5_0_hg19 (copy).gtf"))
         lncipedia_names = lncipedia_names[
             lncipedia_names["gene_alias_1"].notnull() & lncipedia_names["gene_alias_2"].notnull()]

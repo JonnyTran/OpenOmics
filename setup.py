@@ -68,7 +68,7 @@ class UploadCommand(Command):
 setup(
     name=NAME,
     version=version,
-    packages=find_packages(include=['openomics']),
+    packages=find_packages(include=['openomics', 'openomics.database', 'openomics.utils', 'openomics.visualization']),
     package_dir={NAME: 'openomics',
                  'openomics_web': 'openomics_web'},
     url=URL,

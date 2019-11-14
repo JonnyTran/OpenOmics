@@ -1,8 +1,8 @@
 import networkx as nx
 import pandas as pd
 
-from openomics.database.annotation import Annotatable
-from openomics.transcriptomics import ExpressionData
+from .database.annotation import Annotatable
+from .transcriptomics import ExpressionData
 
 
 class Protein(ExpressionData, Annotatable):
