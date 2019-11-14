@@ -2,11 +2,11 @@ from typing import List, Dict, Union
 
 import pandas as pd
 
-from openomics.clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, TUMOR_NORMAL, PREDICTED_SUBTYPE
-from openomics.genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
-from openomics.image import WholeSlideImage
-from openomics.proteomics import Protein
-from openomics.transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
+from .clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, TUMOR_NORMAL, PREDICTED_SUBTYPE
+from .genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
+from .image import WholeSlideImage
+from .proteomics import Protein
+from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
 
 class MultiOmics:

@@ -1,13 +1,16 @@
+import os
 from glob import glob
 
+import dask.dataframe as dd
 import networkx as nx
 import numpy as np
+import pandas as pd
 from Bio.UniProt import GOA
 from dask import delayed
+from gtfparse import read_gtf
 from pandas import Series
 
-from openomics.database.annotation import *
-from openomics.database.base import Annotatable
+from .database import Annotatable
 
 
 class ExpressionData(object):
@@ -58,9 +61,6 @@ class ExpressionData(object):
         # Save samples and features for this omics data
         self.samples = self.expressions.index
         self.features = self.expressions.columns.tolist()
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(samples={len(self.samples)}, features={len(self.features)})"
 
     def preprocess_table(self, df, columns, genes_index, transposed):
         # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
@@ -186,7 +186,7 @@ class LncRNA(ExpressionData, Annotatable):
         return df
 
     def get_lncipedia_gene_id_to_name_dict(self):
-        lncipedia_names = GTF.dataframe(
+        lncipedia_names = read_gtf(
             os.path.join(self.external_data_path, "LNCipedia/lncipedia_5_0_hg19 (copy).gtf"))
         lncipedia_names = lncipedia_names[
             lncipedia_names["gene_alias_1"].notnull() & lncipedia_names["gene_alias_2"].notnull()]
@@ -410,14 +410,12 @@ class MessengerRNA(ExpressionData, Annotatable):
     def name(cls):
         return cls.__name__
 
-    def __repr__(self):
-        return super().__repr__()
-
     def process_HUGO_protein_coding_genes_info(self, hugo_protein_gene_names_path):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
         self.hugo_protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path,
                                                      usecols=["symbol", "locus_type", "gene_family", "gene_family_id",
                                                               "location"])
+
 
     def process_GO_genes_info(self, gene_ontology_folder_path):
         self.gene_ontology_file_path = os.path.join(gene_ontology_folder_path, "goa_human.gaf")
