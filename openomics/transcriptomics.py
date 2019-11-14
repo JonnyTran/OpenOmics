@@ -14,7 +14,8 @@ from .database import Annotatable
 
 
 class ExpressionData(object):
-    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index,
+    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index="gene_index",
+                 sample_index="sample_index",
                  transposed=True, log2_transform=False, npartitions=0):
         """
         .. class:: ExpressionData
@@ -32,7 +33,7 @@ class ExpressionData(object):
             genes_col_name (str):
                 Index column name of expression data which is used to index the genes list
             transposed (bool): default True
-                If True, perform preprocessing steps for the table data obtained from TCGA-Assembler tool. If False, import a pandas table as-is with bcr_sample_barcode for row index, and gene names as columns
+                True if sample names are columns and rows are genes. False if the table has samples for row index, and gene names as columns.
             log2_transform (bool): default False
                 Whether to log2 transform the expression values
             npartitions (int): [0-n], default 0

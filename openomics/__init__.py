@@ -24,6 +24,10 @@ try:
         MultiOmics
     )
 
+    from .visualization import (
+        umap
+    )
+
 
 except ImportError as e:
     msg = (
