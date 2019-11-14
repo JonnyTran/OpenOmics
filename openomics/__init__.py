@@ -8,22 +8,24 @@ __email__ = 'nhat.tran@mavs.uta.edu'
 __version__ = '0.7.7'
 
 try:
+    from . import (
+        database, transcriptomics, genomics, proteomics, clinical, multiomics
+    )
+
+    from .database import annotation
+
     from .clinical import ClinicalData
+
+    from .multiomics import (
+        MultiOmics
+    )
 
     from .genomics import (
         SomaticMutation, DNAMethylation, CopyNumberVariation
     )
 
     from .transcriptomics import (
-        MessengerRNA, MicroRNA, LncRNA
-    )
-
-    from .proteomics import (
-        Protein
-    )
-
-    from .multiomics import (
-        MultiOmics
+        ExpressionData, MessengerRNA, MicroRNA, LncRNA
     )
 
     # from .database import (

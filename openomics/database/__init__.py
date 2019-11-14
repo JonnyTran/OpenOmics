@@ -2,7 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 try:
     from .annotation import (
-        GENCODE, MirBase, EnsemblGenes, RNAcentral, BioMartManager
+        Annotatable, GENCODE, MirBase, EnsemblGenes, RNAcentral, BioMartManager
     )
 
     from .interaction import (
