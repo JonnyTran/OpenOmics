@@ -63,7 +63,7 @@ class ExpressionData(object):
         self.samples = self.expressions.index
         self.features = self.expressions.columns.tolist()
 
-    def preprocess_table(self, df, columns, genes_index, transposed):
+    def preprocess_table(self, df, columns, genes_index, transposed, sort_index=False):
         # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
         """
         This function preprocesses the expression table files where columns are samples and rows are gene/transcripts
@@ -94,6 +94,10 @@ class ExpressionData(object):
 
         df.set_index(genes_index, inplace=True)
 
+        # Needed for Dask Delayed
+        if sort_index == True:
+            df.sort_index(axis=0, ascending=True, inplace=True)
+
         # Transpose dataframe to patient rows and geneID columns
         if transposed:
             df = df.T
@@ -117,10 +121,10 @@ class ExpressionData(object):
         lazy_dataframes = []
         for file_path in glob(glob_path):
             df = delayed(pd.read_table)(file_path, )
-            df = delayed(self.preprocess_table)(df, columns, genes_index, transposed)
+            df = delayed(self.preprocess_table)(df, columns, genes_index, transposed, True)
             lazy_dataframes.append(df)
 
-        return dd.from_delayed(lazy_dataframes, divisions="sorted")
+        return dd.from_delayed(lazy_dataframes, divisions=None)
 
     def log2_transform(self, x):
         return np.log2(x + 1)
