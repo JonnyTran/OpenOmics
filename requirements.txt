@@ -25,3 +25,4 @@ sqlalchemy
 filetype
 gtfparse
 scikit-allel
+gunicorn
