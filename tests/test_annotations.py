@@ -21,7 +21,6 @@ def generate_RNACentral_db_ftp():
                       )
 
 
-@pytest.skip
 def test_import_gencode_db(generate_GENCODE_db_ftp):
     assert generate_GENCODE_db_ftp.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/'
 
