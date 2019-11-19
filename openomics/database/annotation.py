@@ -358,9 +358,8 @@ class MirBase(Dataset):
             file_resources = {}
             file_resources["aliases.txt"] = "aliases.txt.gz"
             file_resources["mature.fa"] = "mature.fa.gz"
-
-        file_resources[
-            "rnacentral.mirbase.tsv"] = "ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/id_mapping/database_mappings/mirbase.tsv"
+            file_resources["rnacentral.mirbase.tsv"] = \
+                "ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/id_mapping/database_mappings/mirbase.tsv"
 
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
