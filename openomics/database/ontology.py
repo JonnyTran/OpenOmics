@@ -14,7 +14,11 @@ class GeneOntology(Dataset):
             file_resources = {}
             file_resources["gene_with_protein_product.txt"] = os.path.join(path, "gene_with_protein_product.txt")
 
-        super().__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
+        super(Dataset, self).__init__(path=path, file_resources=file_resources, col_rename=col_rename,
+                                      npartitions=npartitions)
+
+    def load_dataframe(self, file_resources):
+        pass
 
     def get_GO_genes_info(self):
         lines = []
