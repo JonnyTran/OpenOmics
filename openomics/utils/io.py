@@ -18,8 +18,9 @@ def get_pkg_data_filename(dataurl, file_name):
     Returns:
         filename (str): A file path on the local file system corresponding to the data requested in data_name.
     """
+    print("Fetching file from URL:", os.path.join(dataurl, file_name))
     with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
-        return data.get_pkg_data_filename(file_name, show_progress=True)
+        return data.get_pkg_data_filename(file_name, package="openomics.database", show_progress=True)
 
 
 def read_db(connString="sqlite:///c:\\temp\\test.db", table='testtable'):

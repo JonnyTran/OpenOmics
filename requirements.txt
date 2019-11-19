@@ -1,6 +1,7 @@
 biopython
 large-image
 bokeh
+umap
 dask[complete]
 networkx>=2.1
 numpy
