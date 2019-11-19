@@ -1,6 +1,6 @@
 import pytest
 
-from openomics.database import GENCODE, RNAcentral
+from openomics.database import GENCODE, RNAcentral, MirBase
 
 
 @pytest.fixture
@@ -21,9 +21,18 @@ def generate_RNACentral_ftp():
                       )
 
 
+@pytest.fixture
+def generate_MirBase_ftp():
+    return MirBase(path="ftp://mirbase.org/pub/mirbase/CURRENT/")
+
+
 def test_import_gencode_db(generate_GENCODE_ftp):
     assert generate_GENCODE_ftp.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/'
 
 
 def test_import_rnacentral_db(generate_RNACentral_ftp):
     assert generate_RNACentral_ftp.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/'
+
+
+def test_import_mirbase_db(generate_MirBase_ftp):
+    assert generate_MirBase_ftp.data_path == "ftp://mirbase.org/pub/mirbase/CURRENT/"
