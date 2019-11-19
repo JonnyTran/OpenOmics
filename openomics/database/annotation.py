@@ -42,7 +42,9 @@ class Dataset(object):
             for filename, filepath in copy.copy(file_resources).items():
                 data_file = get_pkg_data_filename(path,
                                                   filepath)  # Download the files and replace the file_resource paths
+                print("file_resources", file_resources)
                 extension = filetype.guess(data_file).extension
+                print("extension", extension)
                 if extension == 'gz':
                     file_resources[filename] = gzip.open(data_file, 'r')
                 else:
@@ -219,7 +221,8 @@ class RNAcentral(Dataset):
                            'external id': 'transcript_id',
                            'GO terms': 'go_id'}
 
-    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, species=9606):
+    def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/",
+                 file_resources=None, col_rename=None, npartitions=0, species=9606):
         self.species = species
 
         if file_resources is None:
@@ -260,13 +263,13 @@ class RNAcentral(Dataset):
 
 
 class GENCODE(Dataset):
-    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, import_sequences="all",
+    def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
+                 file_resources=None, col_rename=None, npartitions=0, import_sequences="all",
                  replace_U2T=True):
         if file_resources is None:
-            file_resources = {}
-            file_resources["long_noncoding_RNAs.gtf"] = os.path.join(path, "gencode.v29.long_noncoding_RNAs.gtf")
-            file_resources["lncRNA_transcripts.fa"] = os.path.join(path, "gencode.v29.lncRNA_transcripts.fa")
-            file_resources["transcripts.fa"] = os.path.join(path, "gencode.v29.transcripts.fa")
+            file_resources = {"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
+                              "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
+                              "transcripts.fa": "gencode.v32.transcripts.fa.gz"}
 
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T

@@ -18,6 +18,8 @@ class ClinicalData:
 
     def __init__(self, cohort_name, patients_file, patient_id_col="bcr_patient_barcode", columns=None):
         """
+        This class manages the clinical data tables to handle the phenotype, treatment, and sample data associated to a
+        patient.
 
         Args:
             cohort_name (str): the unique cohort code name string
