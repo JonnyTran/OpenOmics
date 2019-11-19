@@ -40,11 +40,9 @@ class Dataset(object):
         """
         if validators.url(path):
             for filename, filepath in copy.copy(file_resources).items():
-                data_file = get_pkg_data_filename(path,
-                                                  filepath)  # Download the files and replace the file_resource paths
-                print("data_file", data_file)
+                data_file = get_pkg_data_filename(path, filepath)  # Download file and replace the file_resource path
                 filetype_ext = filetype.guess(data_file)
-                print("filetype_ext", filetype_ext)
+
                 if filetype_ext is None:
                     file_resources[filename] = data_file
                 elif filetype_ext.extension == 'gz':
