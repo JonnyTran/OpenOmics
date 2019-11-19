@@ -229,9 +229,8 @@ class RNAcentral(Dataset):
 
         if file_resources is None:
             file_resources = {}
-            file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(path,
-                                                                             "go_annotations/rnacentral_rfam_annotations.tsv.gz")
-            file_resources["gencode.tsv"] = os.path.join(path, "id_mapping/database_mappings/gencode.tsv")
+            file_resources["rnacentral_rfam_annotations.tsv"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
+            file_resources["gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
 
         if col_rename is None:
             col_rename = self.COLUMNS_RENAME_DICT
@@ -359,8 +358,8 @@ class MirBase(Dataset):
         """
         if file_resources is None:
             file_resources = {}
-            file_resources["aliases.txt"] = os.path.join(path, "aliases.txt.gz")
-            file_resources["mature.fa"] = os.path.join(path, "mature.fa.gz")
+            file_resources["aliases.txt"] = "aliases.txt.gz"
+            file_resources["mature.fa"] = "mature.fa.gz"
 
         file_resources[
             "rnacentral.mirbase.tsv"] = "ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/id_mapping/database_mappings/mirbase.tsv"
