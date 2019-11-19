@@ -344,11 +344,10 @@ class MirBase(Dataset):
         """
 
         Args:
-            import_folder:
-            RNAcentral_folder:
+            path:
             file_resources:
             col_rename:
-            species:
+            species (int): Species code, e.g., 9606 for human
             import_sequences (str): {"longest", "shortest", "all"}
                 Whether to select the longest, shortest, or a list of all transcript sequences when aggregating transcript sequences by gene_id or gene_name.
             replace_U2T:
@@ -379,7 +378,7 @@ class MirBase(Dataset):
                                         names=["mirbase id", "gene_name"], dtype="O").set_index("mirbase id")
         mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, how="inner")
 
-        # # Expanding miRNA names in each MirBase Ascension ID
+        # Expanding miRNA names in each MirBase Ascension ID
         mirna_names = mirbase_aliases.apply(lambda x: pd.Series(x['gene_name'].split(";")[:-1]), axis=1).stack().reset_index(
             level=1, drop=True)
         mirna_names.name = "gene_name"
