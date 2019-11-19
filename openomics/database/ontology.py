@@ -1,6 +1,9 @@
 
 import os
 
+import pandas as pd
+from Bio.UniProt import GOA
+
 from .annotation import Dataset
 
 
@@ -12,3 +15,12 @@ class GeneOntology(Dataset):
             file_resources["gene_with_protein_product.txt"] = os.path.join(path, "gene_with_protein_product.txt")
 
         super().__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
+
+    def get_GO_genes_info(self):
+        lines = []
+        with open(self.gene_ontology_file_path) as file:
+            l = GOA.gafiterator(file)
+            for line in l:
+                lines.append(line)
+        go_df = pd.DataFrame(lines)
+        return go_df
