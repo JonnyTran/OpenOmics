@@ -21,6 +21,7 @@ def get_pkg_data_filename(dataurl, file):
     """
     if validators.url(file):  # Split data url and file name if the user provided a whole path in file_resources
         dataurl, file = os.path.split(file)
+        dataurl = dataurl + "/"
     print("Fetching file from URL:", dataurl, file)
     with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
         return data.get_pkg_data_filename(file, package="openomics.database", show_progress=True)
