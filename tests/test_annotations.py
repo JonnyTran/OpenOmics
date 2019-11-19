@@ -1,6 +1,6 @@
 import pytest
 
-from openomics.database import GENCODE
+from openomics.database import GENCODE, RNAcentral
 
 
 @pytest.fixture
@@ -12,5 +12,19 @@ def generate_GENCODE_db_ftp():
                    import_sequences="shortest")
 
 
-def test_import_expression_table_size(generate_GENCODE_db_ftp):
+@pytest.fixture
+def generate_RNACentral_db_ftp():
+    return RNAcentral(path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/",
+                      file_resources={
+                          "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
+                          "gencode.tsv": "id_mapping/database_mappings/gencode.tsv"},
+                      )
+
+
+@pytest.skip
+def test_import_gencode_db(generate_GENCODE_db_ftp):
     assert generate_GENCODE_db_ftp.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/'
+
+
+def test_import_rnacentral_db(generate_RNACentral_db_ftp):
+    assert generate_RNACentral_db_ftp.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/'
