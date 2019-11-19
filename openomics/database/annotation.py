@@ -42,7 +42,7 @@ class Dataset(object):
             for filename, filepath in copy.copy(file_resources).items():
                 data_file = get_pkg_data_filename(path,
                                                   filepath)  # Download the files and replace the file_resource paths
-                print("file_resources", file_resources)
+                print("data_file", data_file)
                 extension = filetype.guess(data_file).extension
                 print("extension", extension)
                 if extension == 'gz':
