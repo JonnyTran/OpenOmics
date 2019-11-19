@@ -230,8 +230,8 @@ class RNAcentral(Dataset):
         if file_resources is None:
             file_resources = {}
             file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(path,
-                                                                          "rnacentral_rfam_annotations.tsv")
-            file_resources["gencode.tsv"] = os.path.join(path, "gencode.tsv")
+                                                                             "go_annotations/rnacentral_rfam_annotations.tsv.gz")
+            file_resources["gencode.tsv"] = os.path.join(path, "id_mapping/database_mappings/gencode.tsv")
 
         if col_rename is None:
             col_rename = self.COLUMNS_RENAME_DICT
@@ -341,7 +341,8 @@ class GENCODE(Dataset):
 
 
 class MirBase(Dataset):
-    def __init__(self, path, RNAcentral_folder, file_resources=None, col_rename=None, npartitions=0,
+    def __init__(self, path="ftp://mirbase.org/pub/mirbase/CURRENT/",
+                 file_resources=None, col_rename=None, npartitions=0,
                  species=9606, import_sequences="all", replace_U2T=True):
         """
 
@@ -358,10 +359,11 @@ class MirBase(Dataset):
         """
         if file_resources is None:
             file_resources = {}
-            file_resources["aliases.txt"] = os.path.join(path, "aliases.txt")
-            file_resources["mature.fa"] = os.path.join(path, "mature.fa")
-            file_resources["rnacentral.mirbase.tsv"] = os.path.join(RNAcentral_folder, "mirbase.tsv")
-            file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(RNAcentral_folder, "rnacentral_rfam_annotations.tsv")
+            file_resources["aliases.txt"] = os.path.join(path, "aliases.txt.gz")
+            file_resources["mature.fa"] = os.path.join(path, "mature.fa.gz")
+
+        file_resources[
+            "rnacentral.mirbase.tsv"] = "ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/id_mapping/database_mappings/mirbase.tsv"
 
         self.import_sequences = import_sequences
         self.replace_U2T = replace_U2T
