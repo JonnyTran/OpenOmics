@@ -43,9 +43,11 @@ class Dataset(object):
                 data_file = get_pkg_data_filename(path,
                                                   filepath)  # Download the files and replace the file_resource paths
                 print("data_file", data_file)
-                extension = filetype.guess(data_file).extension
-                print("extension", extension)
-                if extension == 'gz':
+                filetype_ext = filetype.guess(data_file)
+                print("filetype_ext", filetype_ext)
+                if filetype_ext is None:
+                    file_resources[filename] = data_file
+                elif filetype_ext.extension == 'gz':
                     file_resources[filename] = gzip.open(data_file, 'r')
                 else:
                     file_resources[filename] = data_file
