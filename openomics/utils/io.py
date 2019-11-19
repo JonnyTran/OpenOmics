@@ -20,7 +20,7 @@ def get_pkg_data_filename(dataurl, file):
         filename (str): A file path on the local file system corresponding to the data requested in data_name.
     """
     if validators.url(file):
-        dataurl, file = os.path.split(os.path.abspath(file))
+        dataurl, file = os.path.split(file)
     print("Fetching file from URL:", os.path.join(dataurl, file))
     with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
         return data.get_pkg_data_filename(file, package="openomics.database", show_progress=True)
