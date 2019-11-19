@@ -5,7 +5,7 @@ import dask.dataframe as dd
 import networkx as nx
 import numpy as np
 import pandas as pd
-from Bio.UniProt import GOA
+# from Bio.UniProt import GOA
 from dask import delayed
 from gtfparse import read_gtf
 from pandas import Series
@@ -424,16 +424,6 @@ class MessengerRNA(ExpressionData, Annotatable):
 
     def process_GO_genes_info(self, gene_ontology_folder_path):
         self.gene_ontology_file_path = os.path.join(gene_ontology_folder_path, "goa_human.gaf")
-
-
-    def get_GO_genes_info(self):
-        lines = []
-        with open(self.gene_ontology_file_path) as file:
-            l = GOA.gafiterator(file)
-            for line in l:
-                lines.append(line)
-        go_df = pd.DataFrame(lines)
-        return go_df
 
     def process_RegNet_gene_regulatory_network(self, grn_file_path):
         self.regnet_grn_file_path = grn_file_path
