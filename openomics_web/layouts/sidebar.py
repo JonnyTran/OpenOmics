@@ -2,59 +2,6 @@ import os
 
 import dash_core_components as dcc
 import dash_html_components as html
-import dash_table as dt
-
-
-def app_layout():
-    return html.Div(id='circos-body', className='app-body', children=[
-        loading(),
-        control_tabs(),
-        table_view()
-    ])
-
-
-def loading():
-    return html.Div(id='loading', children=[
-        dcc.Loading(className='loading', children=html.Div(id="circos-hold", ))]
-                    )
-
-
-def table_view():
-    return html.Div(id='table-container', children=[dt.DataTable(
-        id="data-table",
-        row_selectable='multi',
-        # sorting=True,
-        # filtering=True,
-        css=[{
-            "selector": ".dash-cell div.dash-cell-value",
-            "rule": "display: inline; "
-                    "white-space: inherit; "
-                    "overflow: auto; "
-                    "text-overflow: inherit;"
-        }],
-        style_cell={
-            "whiteSpace": "no-wrap",
-            "overflow": "hidden",
-            "textOverflow": "ellipsis",
-            "maxWidth": 100,
-            'fontWeight': 100,
-            'fontSize': '11pt',
-            'fontFamily': 'Courier New',
-            'backgroundColor': '#1F2132'
-        },
-        style_header={
-            'backgroundColor': '#1F2132',
-            'textAlign': 'center'
-        },
-        style_table={
-            "maxHeight": "310px",
-            'width': '320px',
-            'marginTop': '5px',
-            'marginBottom': '10px',
-        },
-        # n_fixed_rows=1,
-        # n_fixed_columns=1
-    )])
 
 
 def control_tabs():
@@ -66,11 +13,6 @@ def control_tabs():
                 children=html.Div(className='control-tab', children=[
                     html.H4(className='what-is', children="What is Circos?"),
 
-                    html.P('A Dash Circos graph consists of two main parts: the layout '
-                           'and the tracks. '
-                           'The layout sets the basic parameters of the graph, such as '
-                           'radius, ticks, labels, etc; the tracks are graph layouts '
-                           'that take in a series of data points to display.'),
                     html.P('The visualizations supported by Dash Circos are: heatmaps, '
                            'chords, highlights, histograms, line, scatter, stack, '
                            'and text graphs.'),
