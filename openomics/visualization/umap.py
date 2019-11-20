@@ -9,7 +9,7 @@ def d3_umap(X, y_km, heat=None):
     node_colors = get_node_colormap(y_km)
     x, y, z = X_embedded[:, 0], X_embedded[:, 1], X_embedded[:, 2]
 
-    fig = px.scatter_3d(x, y, z, color=node_colors)
+    fig = px.scatter_3d(x=x, y=y, z=z, color=node_colors)
     fig.show()
     return reducer
 
