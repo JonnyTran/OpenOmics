@@ -1,6 +1,5 @@
 import numpy as np
-import plotly.graph_objs as go
-import plotly.plotly as py
+import plotly.express as px
 import umap
 
 
@@ -10,10 +9,8 @@ def d3_umap(X, y_km, heat=None):
     node_colors = get_node_colormap(y_km)
     x, y, z = X_embedded[:, 0], X_embedded[:, 1], X_embedded[:, 2]
 
-    trace = go.Scatter3D(x, y, z, mode="markers")
-    data = [trace]
-    py.iplot(data)
-
+    fig = px.scatter_3d(x, y, z, color=node_colors)
+    fig.show()
     return reducer
 
 
