@@ -1,11 +1,10 @@
 import base64
 import datetime
-import io
 
 import dash_core_components as dcc
 import dash_html_components as html
-import pandas as pd
 
+from openomics import ExpressionData
 from openomics_web.views.table import ExpressionDataView
 
 
@@ -39,21 +38,22 @@ def parse_datatable_file(contents, filename, date):
 
     decoded = base64.b64decode(content_string)
     try:
-        if 'csv' in filename:
-            # Assume that the user uploaded a CSV file
-            df = pd.read_csv(
-                io.StringIO(decoded.decode('utf-8')))
-        elif 'xls' in filename:
-            # Assume that the user uploaded an excel file
-            df = pd.read_excel(io.BytesIO(decoded))
-        elif 'tsv' in filename:
-            # Assume that the user uploaded an tsv file
-            df = pd.read_table(io.StringIO(decoded.decode('utf-8')))
-        elif 'txt' in filename:
-            # Assume that the user uploaded either a tsv or csv file
-            df = pd.read_table(
-                io.StringIO(decoded.decode('utf-8'))
-            )
+        df = ExpressionData(filename, decoded.decode('utf-8'))
+        # if 'csv' in filename:
+        #     # Assume that the user uploaded a CSV file
+        #     df = pd.read_csv(
+        #         io.StringIO(decoded.decode('utf-8')))
+        # elif 'xls' in filename:
+        #     # Assume that the user uploaded an excel file
+        #     df = pd.read_excel(io.BytesIO(decoded))
+        # elif 'tsv' in filename:
+        #     # Assume that the user uploaded an tsv file
+        #     df = pd.read_table(io.StringIO(decoded.decode('utf-8')))
+        # elif 'txt' in filename:
+        #     # Assume that the user uploaded either a tsv or csv file
+        #     df = pd.read_table(
+        #         io.StringIO(decoded.decode('utf-8'))
+        #     )
 
     except Exception as e:
         print(e)
@@ -65,7 +65,7 @@ def parse_datatable_file(contents, filename, date):
         html.H5(filename),
         html.H6(datetime.datetime.fromtimestamp(date)),
 
-        ExpressionDataView(df),
+        ExpressionDataView(df.head()),
 
         html.Hr(),  # horizontal line
 

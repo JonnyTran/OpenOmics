@@ -14,7 +14,7 @@ from .database import Annotatable
 
 
 class ExpressionData(object):
-    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index="gene_index",
+    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index="gene_index",
                  sample_index="sample_index",
                  transposed=True, log2_transform=False, npartitions=0):
         """
@@ -63,7 +63,7 @@ class ExpressionData(object):
         self.samples = self.expressions.index
         self.features = self.expressions.columns.tolist()
 
-    def preprocess_table(self, df, columns, genes_index, transposed, sort_index=False):
+    def preprocess_table(self, df, columns=None, genes_index=None, transposed=True, sort_index=False):
         # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
         """
         This function preprocesses the expression table files where columns are samples and rows are gene/transcripts
@@ -77,7 +77,8 @@ class ExpressionData(object):
         """
 
         # Filter columns
-        df = df.filter(regex=columns)
+        if columns is not None:
+            df = df.filter(regex=columns)
 
         # Cut TCGA column names to sample barcode, discarding aliquot info
         df = df.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x)
@@ -90,9 +91,9 @@ class ExpressionData(object):
         df.dropna(axis=0, inplace=True)
 
         # Remove entries with unknown geneID
-        df = df[df[genes_index] != '?']
-
-        df.set_index(genes_index, inplace=True)
+        if genes_index is not None:
+            df = df[df[genes_index] != '?']
+            df.set_index(genes_index, inplace=True)
 
         # Needed for Dask Delayed
         if sort_index == True:
