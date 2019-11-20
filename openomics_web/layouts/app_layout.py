@@ -9,13 +9,7 @@ def app_main():
     return html.Div(id='circos-body', className='app-body', children=[
         loading(),
         control_tabs(),
-        html.Div(
-            [
-                html.Div(id="output-data-upload"),
-                html.Div(id="event-data-store"),
-            ],
-            className="circos-display-none",
-        ),
+        html.Div(id="output-data-upload"),
     ])
 
 
