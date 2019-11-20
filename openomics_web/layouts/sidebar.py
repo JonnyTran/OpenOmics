@@ -1,7 +1,7 @@
-import os
-
 import dash_core_components as dcc
 import dash_html_components as html
+
+from openomics_web.layouts.datatable_upload import datatable_upload
 
 
 def control_tabs():
@@ -13,16 +13,6 @@ def control_tabs():
                 children=html.Div(className='control-tab', children=[
                     html.H4(className='what-is', children="What is Circos?"),
 
-                    html.P('The visualizations supported by Dash Circos are: heatmaps, '
-                           'chords, highlights, histograms, line, scatter, stack, '
-                           'and text graphs.'),
-                    html.P('In the "Data" tab, you can opt to use preloaded datasets; '
-                           'additionally, you can download sample data that you would '
-                           'use with a Dash Circos component, upload that sample data, '
-                           'and render it with the "Render" button.'),
-                    html.P('In the "Graph" tab, you can choose the type of Circos graph '
-                           'to display, control the size of the graph, and access data '
-                           'that are generated upon hovering over parts of the graph. '),
                     html.P('In the "Table" tab, you can view the datasets that define '
                            'the parameters of the graph, such as the layout, the '
                            'highlights, and the chords. You can interact with Circos '
@@ -49,118 +39,8 @@ def control_tabs():
             dcc.Tab(
                 label='Data',
                 value='data',
-                children=html.Div(className='control-tab', children=[
-                    html.Div(className='app-controls-block', children=[
-                        html.Div(className='app-controls-name', children='Data source'),
-                        dcc.Dropdown(
-                            id='circos-preloaded-uploaded',
-                            options=[
-                                {'label': 'Preloaded', 'value': 'preloaded'},
-                                {'label': 'Upload', 'value': 'upload'}
-                            ],
-                            value='preloaded'
-                        )
-                    ]),
-                    html.Hr(),
-                    html.A(
-                        html.Button(
-                            id='circos-download-button',
-                            className='control-download',
-                            children="Download sample data"
-                        ),
-                        href=os.path.join('assets', 'sample_data', 'circos_sample_data.rar'),
-                        download="circos_sample_data.rar",
-                    ),
-
-                    html.Div(id='circos-uploaded-data', children=[
-                        dcc.Upload(
-                            id="upload-data",
-                            className='control-upload',
-                            children=html.Div(
-                                [
-                                    "Drag and Drop or "
-                                    "click to import "
-                                    ".CSV file here!"
-                                ]
-                            ),
-                            multiple=True,
-                        ),
-                        html.Div(className='app-controls-block', children=[
-                            html.Div(className='app-controls-name',
-                                     children='Select upload data'),
-                            dcc.Dropdown(
-                                id="circos-view-dataset-custom",
-                                options=[
-                                    {
-                                        "label": "Layout",
-                                        "value": 0,
-                                    },
-                                    {
-                                        "label": "Track 1",
-                                        "value": 1,
-                                    },
-                                    {
-                                        "label": "Track 2",
-                                        "value": 2,
-                                    },
-                                ],
-                                value=0,
-                            ),
-                        ]),
-                        html.Button(
-                            "Render uploaded dataset",
-                            id="render-button",
-                            className='control-download',
-                        )
-
-                    ]),
-                ])
-            ),
-
-            dcc.Tab(
-                label='Graph',
-                value='graph',
-                children=html.Div(className='control-tab', children=[
-                    html.Div(className='app-controls-block', children=[
-                        html.Div(className='app-controls-name', children='Graph type'),
-                        dcc.Dropdown(
-                            id='circos-graph-type',
-                            options=[
-                                {'label': graph_type.title(),
-                                 'value': graph_type} for graph_type in [
-                                    'heatmap',
-                                    'chords',
-                                    'highlight',
-                                    'histogram',
-                                    'line',
-                                    'scatter',
-                                    'stack',
-                                    'text',
-                                    'parser_data'
-                                ]
-                            ],
-                            value='chords'
-                        ),
-                        html.Div(className='app-controls-desc', id='chords-text'),
-                    ]),
-                    html.Div(className='app-controls-block', children=[
-                        html.Div(className='app-controls-name', children='Graph size'),
-                        dcc.Slider(
-                            id='circos-size',
-                            min=500,
-                            max=800,
-                            step=10,
-                            value=650
-                        ),
-                    ]),
-                    html.Hr(),
-                    html.H5('Hover data'),
-                    html.Div(
-                        id='event-data-select'
-                    ),
-
-                ]),
-            ),
+                children=[datatable_upload()]
+            )
 
         ])
     ])

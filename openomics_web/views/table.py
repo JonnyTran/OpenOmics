@@ -2,6 +2,30 @@ import dash_html_components as html
 import dash_table as dt
 
 
+def ExpressionDataView(df):
+    return dt.DataTable(
+        id='table',
+        columns=[{"name": i, "id": i} for i in df.columns],
+        data=df.to_dict('records'),
+        style_as_list_view=True,
+        style_cell={'textAlign': 'left'},
+        style_data_conditional=[
+            {
+                'if': {'row_index': 'odd'},
+                'backgroundColor': 'rgb(248, 248, 248)'
+            }
+        ],
+        filter_action="native",
+        sort_action="native",
+        sort_mode="multi",
+        row_selectable="multi",
+        selected_rows=[],
+        page_action="native",
+        page_current=0,
+        page_size=10,
+    )
+
+
 def expression_data_view():
     return html.Div(id='table-container', children=[dt.DataTable(
         id="data-table",
