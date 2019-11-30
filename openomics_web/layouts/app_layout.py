@@ -2,7 +2,7 @@ import dash_bio
 import dash_core_components as dcc
 import dash_html_components as html
 
-from openomics_web.layouts.sidebar import control_tabs
+from openomics_web.layouts.control_tabs import control_tabs
 
 
 def app_main():

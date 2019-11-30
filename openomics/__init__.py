@@ -11,11 +11,15 @@ try:
     # from . import database
 
     from .transcriptomics import (
-        ExpressionData, MessengerRNA, MicroRNA, LncRNA
+        ExpressionData, MessengerRNA, MicroRNA, LncRNA,
     )
 
     from .genomics import (
         SomaticMutation, DNAMethylation, CopyNumberVariation
+    )
+
+    from .proteomics import (
+        ProteinExpression
     )
 
     from .clinical import ClinicalData

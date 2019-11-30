@@ -5,7 +5,7 @@ import pandas as pd
 from .clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, TUMOR_NORMAL, PREDICTED_SUBTYPE
 from .genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
 from .image import WholeSlideImage
-from .proteomics import Protein
+from .proteomics import ProteinExpression
 from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
 
@@ -195,8 +195,8 @@ class MultiOmics:
         elif item.lower() == DNAMethylation.name().lower():
             return self.__getattribute__(DNAMethylation.name())
 
-        elif item.lower() == Protein.name().lower():
-            return self.__getattribute__(Protein.name())
+        elif item.lower() == ProteinExpression.name().lower():
+            return self.__getattribute__(ProteinExpression.name())
 
         elif item.lower() == ClinicalData.name().lower():
             return self.clinical.patient
