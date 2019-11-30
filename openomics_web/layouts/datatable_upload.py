@@ -1,44 +1,49 @@
 import base64
-import datetime
 
 import dash_core_components as dcc
 import dash_html_components as html
 
-from openomics import ExpressionData
+from openomics import MicroRNA, MessengerRNA
 from openomics_web.views.table import ExpressionDataView
 
 
-def datatable_upload():
-    return html.Div(className='control-tab', children=[
-        dcc.Upload(
-            id='upload-data',
-            children=html.Div([
-                'Drag and Drop or ',
-                html.A('Select Files')
-            ]),
-            style={
-                'width': '100%',
-                'height': '60px',
-                'lineHeight': '60px',
-                'borderWidth': '1px',
-                'borderStyle': 'dashed',
-                'borderRadius': '5px',
-                'textAlign': 'center',
-                'margin': '10px'
-            },
-            # Allow multiple files to be uploaded
-            multiple=True
-        ),
-
-    ])
+def FileUpload():
+    return dcc.Upload(
+        id='upload-data',
+        children=html.Div([
+            'Drag and Drop or ',
+            html.A('Select Files')
+        ]),
+        style={
+            'width': '100%',
+            'height': '60px',
+            'lineHeight': '60px',
+            'borderWidth': '1px',
+            'borderStyle': 'dashed',
+            'borderRadius': '5px',
+            'textAlign': 'center',
+            'margin': '10px'
+        },
+        # Allow multiple files to be uploaded
+        multiple=True
+    )
 
 
-def parse_datatable_file(contents, filename, date):
+def parse_datatable_file(contents, filename, data_type):
     content_type, content_string = contents.split(',')
 
     decoded = base64.b64decode(content_string)
     try:
-        df = ExpressionData(filename, decoded.decode('utf-8'))
+        # with open('mytsvfile.tsv', 'r') as tsv:
+        #     columns = tsv.readline().split('\t')
+        print("data_type", data_type)
+
+        if data_type == MicroRNA.name():
+            df = MicroRNA(filename, decoded.decode('utf-8'))
+        elif data_type == MessengerRNA.name():
+            df = MessengerRNA(filename, decoded.decode('utf-8'))
+
+        # # df = ExpressionData(filename, decoded.decode('utf-8'))
         # if 'csv' in filename:
         #     # Assume that the user uploaded a CSV file
         #     df = pd.read_csv(
@@ -62,17 +67,11 @@ def parse_datatable_file(contents, filename, date):
         ])
 
     return html.Div([
-        html.H5(filename),
-        html.H6(datetime.datetime.fromtimestamp(date)),
+        # html.H5(filename),
+        # html.H6(datetime.datetime.fromtimestamp(data_type)),
 
         ExpressionDataView(df.head()),
 
         html.Hr(),  # horizontal line
-
         # For debugging, display the raw contents provided by the web browser
-        html.Div('Raw Content'),
-        html.Pre(contents[0:200] + '...', style={
-            'whiteSpace': 'pre-wrap',
-            'wordBreak': 'break-all'
-        })
     ])

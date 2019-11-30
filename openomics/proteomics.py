@@ -5,7 +5,7 @@ from .database.annotation import Annotatable
 from .transcriptomics import ExpressionData
 
 
-class Protein(ExpressionData, Annotatable):
+class ProteinExpression(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index="sample_barcode",
                  transposed=True,
                  log2_transform=False, npartitions=0):

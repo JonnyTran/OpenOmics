@@ -15,8 +15,7 @@ from .database import Annotatable
 
 class ExpressionData(object):
     def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index="gene_index",
-                 sample_index="sample_index",
-                 transposed=True, log2_transform=False, npartitions=0):
+                 sample_index="sample_index", transposed=True, log2_transform=False, npartitions=0):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of any quantitative -omics data that is in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame from file with the user-specified columns and genes column name, then tranpose it such that the rows are samples and columns are gene/transcript/peptides.
@@ -510,7 +509,8 @@ class MessengerRNA(ExpressionData, Annotatable):
 
 
 class MicroRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index="sample_barcode",
+    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index=None,
+                 sample_index="sample_barcode",
                  transposed=True,
                  log2_transform=False, npartitions=0):
         super(MicroRNA, self).__init__(cohort_name, file_path=file_path, columns=columns, genes_col_name=genes_col_name,
