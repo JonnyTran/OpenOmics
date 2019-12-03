@@ -1,43 +1,18 @@
 import base64
 
-import dash_core_components as dcc
 import dash_html_components as html
+import dash_table as dt
 
 from openomics import MicroRNA, MessengerRNA
-from openomics_web.views.table import ExpressionDataView
 
 
-def FileUpload():
-    return dcc.Upload(
-        id='upload-data',
-        children=html.Div([
-            'Drag and Drop or ',
-            html.A('Select Files')
-        ]),
-        style={
-            'width': '100%',
-            'height': '60px',
-            'lineHeight': '60px',
-            'borderWidth': '1px',
-            'borderStyle': 'dashed',
-            'borderRadius': '5px',
-            'textAlign': 'center',
-            'margin': '10px'
-        },
-        # Allow multiple files to be uploaded
-        multiple=True
-    )
-
-
-def parse_datatable_file(contents, filename, data_type):
+def parse_datatable_file(cohort_name, contents, filename, data_type):
     content_type, content_string = contents.split(',')
 
     decoded = base64.b64decode(content_string)
     try:
         # with open('mytsvfile.tsv', 'r') as tsv:
         #     columns = tsv.readline().split('\t')
-        print("data_type", data_type)
-
         if data_type == MicroRNA.name():
             df = MicroRNA(filename, decoded.decode('utf-8'))
         elif data_type == MessengerRNA.name():
@@ -67,11 +42,73 @@ def parse_datatable_file(contents, filename, data_type):
         ])
 
     return html.Div([
-        # html.H5(filename),
-        # html.H6(datetime.datetime.fromtimestamp(data_type)),
-
-        ExpressionDataView(df.head()),
-
-        html.Hr(),  # horizontal line
-        # For debugging, display the raw contents provided by the web browser
+        html.H5(filename),
+        ExpressionDataTable(df.head()),
     ])
+
+
+def ExpressionDataTable(df):
+    return dt.DataTable(
+        id='table',
+        columns=[{"name": i, "id": i} for i in df.columns],
+        data=df.to_dict('records'),
+        style_as_list_view=True,
+        style_cell={'textAlign': 'left',
+                    "maxWidth": 100, },
+        style_data_conditional=[
+            {'if': {'row_index': 'odd'},
+             'backgroundColor': 'rgb(248, 248, 248)'
+             },
+        ],
+        style_table={"maxHeight": "310px",
+                     'width': '320px',
+                     'marginTop': '5px',
+                     'marginBottom': '10px',
+                     },
+        filter_action="native",
+        sort_action="native",
+        sort_mode="multi",
+        row_selectable="multi",
+        selected_rows=[],
+        page_action="native",
+        page_current=0,
+        page_size=10,
+    )
+
+
+def expression_data_view():
+    return html.Div(id='table-container', children=[dt.DataTable(
+        id="data-table",
+        row_selectable='multi',
+        # sorting=True,
+        # filtering=True,
+        css=[{
+            "selector": ".dash-cell div.dash-cell-value",
+            "rule": "display: inline; "
+                    "white-space: inherit; "
+                    "overflow: auto; "
+                    "text-overflow: inherit;"
+        }],
+        style_cell={
+            "whiteSpace": "no-wrap",
+            "overflow": "hidden",
+            "textOverflow": "ellipsis",
+            "maxWidth": 100,
+            'fontWeight': 100,
+            'fontSize': '11pt',
+            'fontFamily': 'Courier New',
+            'backgroundColor': '#1F2132'
+        },
+        style_header={
+            'backgroundColor': '#1F2132',
+            'textAlign': 'center'
+        },
+        style_table={
+            "maxHeight": "310px",
+            'width': '320px',
+            'marginTop': '5px',
+            'marginBottom': '10px',
+        },
+        # n_fixed_rows=1,
+        # n_fixed_columns=1
+    )])
