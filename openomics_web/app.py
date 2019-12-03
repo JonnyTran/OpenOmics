@@ -1,4 +1,5 @@
 import base64
+import io
 import os
 
 import dash
@@ -42,9 +43,9 @@ def update_datatable_metadata(list_of_contents, list_of_names, data_type, ):
         elif file_extension == ".csv":
             columns = first_line.split(',')
         elif file_extension == ".xls":
-            columns = pd.read_excel(decoded.decode('utf-8')).columns.tolist()
+            columns = pd.read_excel(io.BytesIO(decoded), low_memory=True).columns.tolist()
         else:
-            columns = first_line.split(',')
+            columns = pd.read_table(io.BytesIO(decoded), low_memory=True).columns.tolist()
 
     except Exception as e:
         print(e)
@@ -59,16 +60,17 @@ def update_datatable_metadata(list_of_contents, list_of_names, data_type, ):
                State('data-table-type', 'value'),
                State('upload-data', 'contents'),
                State('upload-data', 'filename'),
-               # State('data_table_columns_select', 'value')
+               State('data_table_genes_col_name', 'value'),
+               State('data_table_columns_select', 'value')
                ])
-def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, list_of_names):
+def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, list_of_names, genes_col_name,
+                            columns_select):
     if list_of_contents is None:
         return []
-
-    # print("columns", columns)
-
-    children = [parse_datatable_file(cohort_name, c, n, data_type) for c, n in zip(list_of_contents, list_of_names)]
-    return children
+    columns = "|".join(columns_select)
+    print("columns", columns)
+    print("genes_col_name", genes_col_name)
+    return parse_datatable_file(cohort_name, list_of_contents, list_of_names, data_type, columns, genes_col_name)
 
 if __name__ == '__main__':
     app.run_server(debug=True, port=8050)

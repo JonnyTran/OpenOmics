@@ -1,4 +1,5 @@
 import base64
+import io
 
 import dash_core_components as dcc
 import dash_html_components as html
@@ -33,38 +34,39 @@ def DataTableColumnSelect(columns):
     ])
 
 
-def parse_datatable_file(cohort_name, content, filename, data_type):
-    content_type, content_string = content.split(',')
+def parse_datatable_file(cohort_name, contents, filenames, data_type, columns, genes_col):
+    if len(contents) == 1:
+        content = contents[0]
+        filename = filenames[0]
+    else:
+        print("Multiple Files not supported")
 
+    content_type, content_string = content.split(',')
     decoded = base64.b64decode(content_string)
+
     try:
-        # with open('mytsvfile.tsv', 'r') as tsv:
-        #     columns = tsv.readline().split('\t')
+        if 'csv' in filename:  # Assume that the user uploaded a CSV file
+            file = io.StringIO(decoded.decode('utf-8'))
+        elif 'xls' in filename:  # Assume that the user uploaded an excel file
+            file = io.BytesIO(decoded)
+        elif 'tsv' in filename:  # Assume that the user uploaded an tsv file
+            file = io.StringIO(decoded.decode('utf-8'))
+        elif 'txt' in filename:  # Assume that the user uploaded either a tsv or csv file
+            file = decoded.decode('utf-8')
+
         if data_type == MicroRNA.name():
-            df = MicroRNA(cohort_name, decoded.decode('utf-8'))
+            df = MicroRNA(cohort_name, file, columns=columns, genes_col_name=genes_col)
         elif data_type == MessengerRNA.name():
-            df = MessengerRNA(cohort_name, decoded.decode('utf-8'))
+            df = MessengerRNA(cohort_name, file, columns=columns, genes_col_name=genes_col)
         elif data_type == LncRNA.name():
-            pass
+            df = LncRNA(cohort_name, file, columns=columns, genes_col_name=genes_col)
         elif data_type == ProteinExpression.name():
-            pass
+            df = LncRNA(cohort_name, file, columns=columns, genes_col_name=genes_col)
+
+        print("df.head()", df.head())
 
         # # df = ExpressionData(filename, decoded.decode('utf-8'))
-        # if 'csv' in filename:
-        #     # Assume that the user uploaded a CSV file
-        #     df = pd.read_csv(
-        #         io.StringIO(decoded.decode('utf-8')))
-        # elif 'xls' in filename:
-        #     # Assume that the user uploaded an excel file
-        #     df = pd.read_excel(io.BytesIO(decoded))
-        # elif 'tsv' in filename:
-        #     # Assume that the user uploaded an tsv file
-        #     df = pd.read_table(io.StringIO(decoded.decode('utf-8')))
-        # elif 'txt' in filename:
-        #     # Assume that the user uploaded either a tsv or csv file
-        #     df = pd.read_table(
-        #         io.StringIO(decoded.decode('utf-8'))
-        #     )
+
 
     except Exception as e:
         print(e)
