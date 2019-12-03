@@ -1,17 +1,12 @@
-import base64
-import io
-
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table as dt
 
-from openomics import MicroRNA, MessengerRNA, LncRNA, ProteinExpression
 from openomics_web.utils.str_utils import longest_common_prefix
 
 
 def DataTableColumnSelect(columns):
     longest_common_prefixes = longest_common_prefix(columns)
-    print("longest_common_prefixes", longest_common_prefixes)
 
     return html.Div([
         html.Div(['Select the gene id/name column to index by:']),
@@ -21,6 +16,7 @@ def DataTableColumnSelect(columns):
             style={
                 'width': '100%',
             },
+            value=columns[0],
         ),
         html.Div(['Select the column prefixes to import:']),
         dcc.Dropdown(
@@ -31,52 +27,6 @@ def DataTableColumnSelect(columns):
             },
             multi=True,
         )
-    ])
-
-
-def parse_datatable_file(cohort_name, contents, filenames, data_type, columns, genes_col):
-    if len(contents) == 1:
-        content = contents[0]
-        filename = filenames[0]
-    else:
-        print("Multiple Files not supported")
-
-    content_type, content_string = content.split(',')
-    decoded = base64.b64decode(content_string)
-
-    try:
-        if 'csv' in filename:  # Assume that the user uploaded a CSV file
-            file = io.StringIO(decoded.decode('utf-8'))
-        elif 'xls' in filename:  # Assume that the user uploaded an excel file
-            file = io.BytesIO(decoded)
-        elif 'tsv' in filename:  # Assume that the user uploaded an tsv file
-            file = io.StringIO(decoded.decode('utf-8'))
-        elif 'txt' in filename:  # Assume that the user uploaded either a tsv or csv file
-            file = decoded.decode('utf-8')
-
-        if data_type == MicroRNA.name():
-            df = MicroRNA(cohort_name, file, columns=columns, genes_col_name=genes_col)
-        elif data_type == MessengerRNA.name():
-            df = MessengerRNA(cohort_name, file, columns=columns, genes_col_name=genes_col)
-        elif data_type == LncRNA.name():
-            df = LncRNA(cohort_name, file, columns=columns, genes_col_name=genes_col)
-        elif data_type == ProteinExpression.name():
-            df = LncRNA(cohort_name, file, columns=columns, genes_col_name=genes_col)
-
-        print("df.head()", df.head())
-
-        # # df = ExpressionData(filename, decoded.decode('utf-8'))
-
-
-    except Exception as e:
-        print(e)
-        return html.Div([
-            'There was an error processing this file.'
-        ])
-
-    return html.Div([
-        html.H5(filename),
-        ExpressionDataTable(df.head()),
     ])
 
 
