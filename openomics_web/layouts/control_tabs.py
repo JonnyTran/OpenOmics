@@ -49,6 +49,7 @@ def control_tabs():
                               placeholder="Leave empty to use filename",
                               type='text'),
                     html.Br(),
+                    html.Br(),
                     html.Div(['Select data type:', ]),
                     dcc.RadioItems(id='data-table-type',
                                    options=[
@@ -78,7 +79,18 @@ def control_tabs():
                         )
                     ]),
                     html.Br(),
-                    html.Div(id='upload_table_preview'),
+                    html.Div(id='upload_table_preview', children=[
+                        html.Div(['Select the gene id/name column to index by:']),
+                        dcc.Dropdown(
+                            id='data_table_genes_col_name',
+                            disabled=True
+                        ),
+                        html.Div(['Select the column prefixes to import:']),
+                        dcc.Dropdown(
+                            id='data_table_columns_select',
+                            disabled=True,
+                        )
+                    ]),
                     html.Br(),
                     html.Button(id='submit-button', n_clicks=0, children='Submit'),
                 ]

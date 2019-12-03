@@ -25,8 +25,8 @@ class ExpressionData(object):
             cohort_name (str): the unique cohort code name string
             gene_index (str): {"gene_id", "transcript_id", "peptide_id", "gene_name", "trascript_name", "peptide_name"}
                 Chooses the level of the gene/transcript/peptide of the genes list in this expression data. The expression DataFrame's index will be renamed to this.
-            file_path (str):
-                Path of the table file to import.
+            file_path (str, byte-like):
+                Path or file stream of the table file to import.
             columns (str): a regex string
                 A regex string to import column names from the table. Columns names imported are string match, separated by "|".
             genes_col_name (str):
