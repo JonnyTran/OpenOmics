@@ -63,9 +63,7 @@ def control_tabs():
                     html.Div(children=[
                         dcc.Upload(
                             id='upload-data',
-                            children=html.Div(['Drag and Drop or ',
-                                               html.A('Select Files')
-                                               ]),
+                            children=html.Div(['Drag and Drop or ', html.A('Select Files')]),
                             style={
                                 'width': '100%',
                                 'height': '60px',
@@ -81,6 +79,7 @@ def control_tabs():
                     ]),
                     html.Br(),
                     html.Div(id='upload_table_preview'),
+                    html.Br(),
                     html.Button(id='submit-button', n_clicks=0, children='Submit'),
                 ]
             )

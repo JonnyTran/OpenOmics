@@ -1,22 +1,53 @@
 import base64
 
+import dash_core_components as dcc
 import dash_html_components as html
 import dash_table as dt
 
-from openomics import MicroRNA, MessengerRNA
+from openomics import MicroRNA, MessengerRNA, LncRNA, ProteinExpression
+from openomics_web.utils.str_utils import longest_common_prefix
 
 
-def parse_datatable_file(cohort_name, contents, filename, data_type):
-    content_type, content_string = contents.split(',')
+def DataTableColumnSelect(columns):
+    longest_common_prefixes = longest_common_prefix(columns)
+    print("longest_common_prefixes", longest_common_prefixes)
+
+    return html.Div([
+        html.Div(['Select the gene id/name column to index by:']),
+        dcc.Dropdown(
+            id='data_table_genes_col_name',
+            options=[{'label': col, 'value': col} for col in columns],
+            style={
+                'width': '100%',
+            },
+        ),
+        html.Div(['Select the column prefixes to import:']),
+        dcc.Dropdown(
+            id='data_table_columns_select',
+            options=[{'label': col, 'value': col} for col in longest_common_prefixes],
+            style={
+                'width': '100%',
+            },
+            multi=True,
+        )
+    ])
+
+
+def parse_datatable_file(cohort_name, content, filename, data_type):
+    content_type, content_string = content.split(',')
 
     decoded = base64.b64decode(content_string)
     try:
         # with open('mytsvfile.tsv', 'r') as tsv:
         #     columns = tsv.readline().split('\t')
         if data_type == MicroRNA.name():
-            df = MicroRNA(filename, decoded.decode('utf-8'))
+            df = MicroRNA(cohort_name, decoded.decode('utf-8'))
         elif data_type == MessengerRNA.name():
-            df = MessengerRNA(filename, decoded.decode('utf-8'))
+            df = MessengerRNA(cohort_name, decoded.decode('utf-8'))
+        elif data_type == LncRNA.name():
+            pass
+        elif data_type == ProteinExpression.name():
+            pass
 
         # # df = ExpressionData(filename, decoded.decode('utf-8'))
         # if 'csv' in filename:
