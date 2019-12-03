@@ -1,4 +1,3 @@
-import dash_bio
 import dash_core_components as dcc
 import dash_html_components as html
 
@@ -21,15 +20,3 @@ def loading():
             # children=[empty]
         ))
     ])
-
-
-empty = dash_bio.Circos(
-    id='main-circos',
-    selectEvent={},
-    layout=[],
-    # size=700,
-    config={},
-    tracks=[],
-    enableZoomPan=True,
-    enableDownloadSVG=False
-)
