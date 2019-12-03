@@ -16,18 +16,17 @@ def make_trie(words):
 
 
 def longest_common_prefix(strs):
-    trie = make_trie(strs)
-    lcp_branches = [[letter, ] for letter in trie.keys()]
-
     def traverse_trie(dictionary, prefix):
         if len(dictionary.keys()) == 1 and COUNT not in dictionary.keys():
             letter = list(dictionary.keys())[0]
-            traverse_trie(dictionary[letter], prefix + letter)
+            return traverse_trie(dictionary[letter], prefix + letter)
         else:
             return prefix
 
-    for branch in lcp_branches:
-        print("branch[0]", branch[0])
-        branch.append(traverse_trie(trie, branch[0]))
+    trie = make_trie(strs)
+    lcp_branches = []
+    for branch in trie.keys():
+        branch_lcp = traverse_trie(trie[branch], branch)
+        lcp_branches.append(branch_lcp)
 
     return lcp_branches
