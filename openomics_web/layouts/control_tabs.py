@@ -45,20 +45,21 @@ def control_tabs():
                 className='control-tab',
                 children=[
                     html.Div(['Cohort name: ', ]),
-                    dcc.Input(id='data-table-cohort', style={'width': '100%'},
-                              placeholder="Leave empty to use filename",
-                              type='text'),
+                    dcc.Input(
+                        id='data-table-cohort', style={'width': '100%'},
+                        placeholder="Leave empty to use filename", type='text'),
                     html.Br(),
                     html.Br(),
                     html.Div(['Select data type:', ]),
-                    dcc.RadioItems(id='data-table-type',
-                                   options=[
-                                       {'label': 'Protein Expression', 'value': ProteinExpression.name()},
-                                       {'label': 'miRNA Expression', 'value': MicroRNA.name()},
-                                       {'label': 'lncRNA Expression', 'value': LncRNA.name()},
-                                       {'label': 'mRNA Expression', 'value': MessengerRNA.name()},
-                                   ],
-                                   value=MicroRNA.name(), ),
+                    dcc.RadioItems(
+                        id='data-table-type',
+                        options=[
+                            {'label': 'Protein Expression', 'value': ProteinExpression.name()},
+                            {'label': 'miRNA Expression', 'value': MicroRNA.name()},
+                            {'label': 'lncRNA Expression', 'value': LncRNA.name()},
+                            {'label': 'mRNA Expression', 'value': MessengerRNA.name()},
+                        ],
+                        value=MicroRNA.name(), ),
                     html.Br(),
                     html.Div(['Import Data Table', ]),
                     html.Div(children=[
@@ -82,15 +83,25 @@ def control_tabs():
                     html.Div(id='upload_table_preview', children=[
                         html.Div(['Select the gene id/name column to index by:']),
                         dcc.Dropdown(
-                            id='data_table_genes_col_name',
+                            id='data-table-genes-col-name',
                             disabled=True
                         ),
                         html.Div(['Select the column prefixes to import:']),
                         dcc.Dropdown(
-                            id='data_table_columns_select',
+                            id='data-table-columns-select',
                             disabled=True,
                         )
                     ]),
+                    html.Br(),
+                    html.Div(['Is the table transposed?:']),
+                    dcc.RadioItems(
+                        id='data-table-transpose',
+                        options=[
+                            {'label': 'Sample name columns', 'value': "True"},
+                            {'label': 'Gene name in columns', 'value': "False"},
+                        ],
+                        value="True",
+                    ),
                     html.Br(),
                     html.Button(id='submit-button', n_clicks=0, children='Submit'),
                 ]
