@@ -11,7 +11,7 @@ def DataTableColumnSelect(columns):
     return html.Div([
         html.Div(['Select the gene id/name column to index by:']),
         dcc.Dropdown(
-            id='data_table_genes_col_name',
+            id='data-table-genes-col-name',
             options=[{'label': col, 'value': col} for col in columns],
             style={
                 'width': '100%',
@@ -20,7 +20,7 @@ def DataTableColumnSelect(columns):
         ),
         html.Div(['Select the column prefixes to import:']),
         dcc.Dropdown(
-            id='data_table_columns_select',
+            id='data-table-columns-select',
             options=[{'label': col, 'value': col} for col in longest_common_prefixes],
             style={
                 'width': '100%',
