@@ -43,7 +43,7 @@ def ExpressionDataTable(df):
              'backgroundColor': 'rgb(248, 248, 248)'
              },
         ],
-        style_table={"maxHeight": "310px",
+        style_table={"maxHeight": '310px',
                      'width': '320px',
                      'marginTop': '5px',
                      'marginBottom': '10px',

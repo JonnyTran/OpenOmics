@@ -60,11 +60,11 @@ def get_expression_table(list_of_contents, list_of_names, data_type, cohort_name
     decoded = base64.b64decode(content_string)
 
     if 'csv' in filename:  # Assume that the user uploaded a CSV file
-        file = io.StringIO(decoded.decode('utf-8'))
+        file = decoded.decode('utf-8')
     elif 'xls' in filename:  # Assume that the user uploaded an excel file
         file = io.BytesIO(decoded)
     elif 'tsv' in filename:  # Assume that the user uploaded an tsv file
-        file = io.StringIO(decoded.decode('utf-8'))
+        file = decoded.decode('utf-8')
     elif 'txt' in filename:  # Assume that the user uploaded either a tsv or csv file
         file = decoded.decode('utf-8')
 
