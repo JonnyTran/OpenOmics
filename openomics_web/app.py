@@ -17,10 +17,8 @@ app = dash.Dash(__name__,
 app.layout = app_layout.app_main()
 
 
-@app.callback([Output('upload_table_preview', 'children'),
-               Output('upload-data', 'children')],
-              [Input('upload-data', 'contents'),
-               Input('upload-data', 'filename')],
+@app.callback([Output('upload_table_preview', 'children'), Output('upload-data', 'children')],
+              [Input('upload-data', 'contents'), Input('upload-data', 'filename')],
               [State('data-table-type', 'value'), ])
 def update_datatable_metadata(list_of_contents, list_of_names, data_type, ):
     if list_of_contents is None: return None
@@ -36,12 +34,9 @@ def update_datatable_metadata(list_of_contents, list_of_names, data_type, ):
 
 @app.callback(Output('output-data-upload', 'children'),
               [Input('submit-button', 'n_clicks')],
-              [State('data-table-cohort', 'value'),
-               State('data-table-type', 'value'),
-               State('upload-data', 'contents'),
-               State('upload-data', 'filename'),
-               State('data-table-genes-col-name', 'value'),
-               State('data-table-columns-select', 'value'),
+              [State('data-table-cohort', 'value'), State('data-table-type', 'value'),
+               State('upload-data', 'contents'), State('upload-data', 'filename'),
+               State('data-table-genes-col-name', 'value'), State('data-table-columns-select', 'value'),
                State('data-table-transpose', 'value')
                ])
 def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, list_of_names, genes_col_name,
