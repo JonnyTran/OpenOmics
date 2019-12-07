@@ -33,27 +33,33 @@ def DataTableColumnSelect(columns):
 
 def ExpressionDataTable(df: pd.DataFrame):
     df.index.rename("id", inplace=True)
-
+    print("df.reset_index()", df.reset_index().columns)
     return dt.DataTable(
         id='expression-datatable',
-        columns=[{"name": i, "id": i} for i in df.columns],
+        columns=[{'name': i, 'id': i, 'deletable': True} for i in df.columns],
         data=df.reset_index().to_dict('records'),
-        style_as_list_view=True,
-        style_cell={'textAlign': 'left',
-                    # "maxWidth": '100px',
-                    },
+        style_cell={
+            'overflow': 'hidden',
+            'textOverflow': 'clip',
+            'whiteSpace': 'normal'
+        },
         style_data={'width': '30px'},
         style_data_conditional=[
             {'if': {'row_index': 'odd'},
              'backgroundColor': 'rgb(248, 248, 248)'
              },
         ],
-        style_table={"maxHeight": '800px',
-                     'width': '800px',
-                     'marginTop': '5px',
-                     'marginBottom': '10px',
-                     'overflowX': 'scroll'
-                     },
+        style_table={
+            "maxHeight": '800px',
+            'width': '800px',
+            'marginTop': '5px',
+            'marginBottom': '10px',
+            'overflowX': 'scroll'
+        },
+        style_header={
+            'backgroundColor': 'white',
+            'fontWeight': 'bold'
+        },
         virtualization=True,
         filter_action="native",
         sort_action="native",
