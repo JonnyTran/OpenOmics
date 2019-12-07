@@ -17,7 +17,7 @@ def make_trie(words):
 
 def longest_common_prefix(strs):
     def traverse_trie(dictionary, prefix):
-        if len(prefix) > 10:
+        if len(prefix) > 100:
             return prefix
 
         if len(dictionary.keys()) == 1 and COUNT not in dictionary.keys():

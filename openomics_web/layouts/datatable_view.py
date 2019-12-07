@@ -1,6 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table as dt
+import pandas as pd
 
 from openomics_web.utils.str_utils import longest_common_prefix
 
@@ -30,11 +31,13 @@ def DataTableColumnSelect(columns):
     ])
 
 
-def ExpressionDataTable(df):
+def ExpressionDataTable(df: pd.DataFrame):
+    df.index.rename("id", inplace=True)
+
     return dt.DataTable(
-        id='table',
+        id='expression-datatable',
         columns=[{"name": i, "id": i} for i in df.columns],
-        data=df.to_dict('records'),
+        data=df.reset_index().to_dict('records'),
         style_as_list_view=True,
         style_cell={'textAlign': 'left',
                     "maxWidth": 100, },
@@ -43,11 +46,46 @@ def ExpressionDataTable(df):
              'backgroundColor': 'rgb(248, 248, 248)'
              },
         ],
-        style_table={"maxHeight": '310px',
-                     'width': '320px',
+        style_table={"maxHeight": '800px',
+                     'width': '800px',
                      'marginTop': '5px',
                      'marginBottom': '10px',
+                     'overflowX': 'scroll'
                      },
+        virtualization=True,
+        filter_action="native",
+        sort_action="native",
+        sort_mode="multi",
+        row_selectable="multi",
+        selected_rows=[],
+        page_action="native",
+        page_current=0,
+        page_size=10,
+    )
+
+
+def ClinicalDataTable(df: pd.DataFrame):
+    df.index.rename("id", inplace=True)
+
+    return dt.DataTable(
+        id='clinical-datatable',
+        columns=[{"name": i, "id": i} for i in df.columns],
+        data=df.reset_index().to_dict('records'),
+        style_as_list_view=True,
+        style_cell={'textAlign': 'left',
+                    "maxWidth": 100, },
+        style_data_conditional=[
+            {'if': {'row_index': 'odd'},
+             'backgroundColor': 'rgb(248, 248, 248)'
+             },
+        ],
+        style_table={"maxHeight": '800px',
+                     'width': '800px',
+                     'marginTop': '5px',
+                     'marginBottom': '10px',
+                     'overflowX': 'scroll'
+                     },
+        virtualization=True,
         filter_action="native",
         sort_action="native",
         sort_mode="multi",

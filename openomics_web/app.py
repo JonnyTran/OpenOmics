@@ -3,9 +3,9 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
 from openomics_web.layouts import app_layout
-from openomics_web.layouts.datatable_view import ExpressionDataTable, DataTableColumnSelect
+from openomics_web.layouts.datatable_view import ExpressionDataTable, ClinicalDataTable, DataTableColumnSelect
 from openomics_web.server import server
-from openomics_web.utils.io import get_table_columns, get_expression_table
+from openomics_web.utils.io import get_table_columns, get_expression_data, get_clinical_data
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -17,25 +17,26 @@ app = dash.Dash(__name__,
 app.layout = app_layout.app_main()
 
 
-@app.callback([Output('upload_table_preview', 'children'), Output('upload-data', 'children')],
-              [Input('upload-data', 'contents'), Input('upload-data', 'filename')],
+@app.callback([Output('data-table-column-select', 'children'), Output('upload-data-table', 'children')],
+              [Input('upload-data-table', 'contents'), Input('upload-data-table', 'filename')],
               [State('data-table-type', 'value'), ])
 def update_datatable_metadata(list_of_contents, list_of_names, data_type, ):
-    if list_of_contents is None: return None
+    if list_of_contents is None: return None, ['Drag and Drop or ', html.A('Select Files')]
+
     try:
         columns = get_table_columns(list_of_contents, list_of_names)
 
     except Exception as e:
         print(e)
-        return 'There was an error processing this file.'
+        return None, 'There was an error processing this file.'
 
     return DataTableColumnSelect(columns), "Uploaded {}".format(list_of_names)
 
 
 @app.callback(Output('output-data-upload', 'children'),
-              [Input('submit-button', 'n_clicks')],
+              [Input('upload-data-table-submit', 'n_clicks')],
               [State('data-table-cohort', 'value'), State('data-table-type', 'value'),
-               State('upload-data', 'contents'), State('upload-data', 'filename'),
+               State('upload-data-table', 'contents'), State('upload-data-table', 'filename'),
                State('data-table-genes-col-name', 'value'), State('data-table-columns-select', 'value'),
                State('data-table-transpose', 'value')
                ])
@@ -43,14 +44,49 @@ def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, 
                             columns_select, transposed):
     if list_of_contents is None: return []
     try:
-        df = get_expression_table(list_of_contents, list_of_names, data_type, cohort_name, genes_col_name,
-                                  columns_select, transposed)
-        print(df.describe())
+
+        expression_data = get_expression_data(list_of_contents, list_of_names, data_type, cohort_name, genes_col_name,
+                                              columns_select, transposed)
     except Exception as e:
         print(e)
         return html.Div(['There was an error processing this file.'])
 
-    return ExpressionDataTable(df)
+    return ExpressionDataTable(expression_data.expressions.head(20))
+
+
+@app.callback([Output('clinical-column-select', 'children'), Output('upload-data', 'children')],
+              [Input('upload-clinical', 'contents'), Input('upload-clinical', 'filename')],
+              [State('data-table-type', 'value'), ])
+def update_datatable_metadata(file_content, file_name, data_type, ):
+    if file_content is None: return None, ['Drag and Drop or ', html.A('Select Files')]
+
+    try:
+        columns = get_table_columns([file_content, ], [file_name, ])
+
+    except Exception as e:
+        print(e)
+        return None, 'There was an error processing this file.'
+
+    return DataTableColumnSelect(columns), "Uploaded {}".format(file_name)
+
+
+@app.callback(Output('output-data-upload', 'children'),
+              [Input('clinical-submit-button', 'n_clicks')],
+              [State('clinical-data-type', 'value'),
+               State('upload-clinical', 'contents'), State('upload-clinical', 'filename'),
+               ])
+def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, list_of_names, genes_col_name,
+                            columns_select, transposed):
+    if list_of_contents is None: return []
+    try:
+
+        clinical_data = get_clinical_data(list_of_contents, list_of_names, data_type, cohort_name, genes_col_name,
+                                          columns_select, transposed)
+    except Exception as e:
+        print(e)
+        return html.Div(['There was an error processing this file.'])
+
+    return ClinicalDataTable(clinical_data.expressions.head(20))
 
 
 if __name__ == '__main__':
