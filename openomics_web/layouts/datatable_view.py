@@ -40,7 +40,9 @@ def ExpressionDataTable(df: pd.DataFrame):
         data=df.reset_index().to_dict('records'),
         style_as_list_view=True,
         style_cell={'textAlign': 'left',
-                    "maxWidth": 100, },
+                    # "maxWidth": '100px',
+                    },
+        style_data={'width': '30px'},
         style_data_conditional=[
             {'if': {'row_index': 'odd'},
              'backgroundColor': 'rgb(248, 248, 248)'

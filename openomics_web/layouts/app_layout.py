@@ -8,8 +8,8 @@ def app_main():
     return html.Div(id='circos-body', className='app-body', children=[
         loading(),
         control_tabs(),
-        html.Div(id="output-data-upload", className="circos-hold"),
-        html.Div(id="output-clinical-upload", className="circos-hold"),
+        html.Div(id="output-data-upload", className="circos-size"),
+        html.Div(id="output-clinical-upload", className="circos-size"),
     ])
 
 
