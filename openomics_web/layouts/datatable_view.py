@@ -64,39 +64,6 @@ def ExpressionDataTable(df: pd.DataFrame):
     )
 
 
-def ClinicalDataTable(df: pd.DataFrame):
-    df.index.rename("id", inplace=True)
-
-    return dt.DataTable(
-        id='clinical-datatable',
-        columns=[{"name": i, "id": i} for i in df.columns],
-        data=df.reset_index().to_dict('records'),
-        style_as_list_view=True,
-        style_cell={'textAlign': 'left',
-                    "maxWidth": 100, },
-        style_data_conditional=[
-            {'if': {'row_index': 'odd'},
-             'backgroundColor': 'rgb(248, 248, 248)'
-             },
-        ],
-        style_table={"maxHeight": '800px',
-                     'width': '800px',
-                     'marginTop': '5px',
-                     'marginBottom': '10px',
-                     'overflowX': 'scroll'
-                     },
-        virtualization=True,
-        filter_action="native",
-        sort_action="native",
-        sort_mode="multi",
-        row_selectable="multi",
-        selected_rows=[],
-        page_action="native",
-        page_current=0,
-        page_size=10,
-    )
-
-
 def expression_data_view():
     return html.Div(id='table-container', children=[dt.DataTable(
         id="data-table",

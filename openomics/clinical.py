@@ -1,3 +1,4 @@
+import io
 import os
 
 import pandas as pd
@@ -32,15 +33,23 @@ class ClinicalData:
         self.cohort_name = cohort_name
         self.patient_column = patient_id_col
 
-        if not os.path.exists(patients_file):
-            raise FileNotFoundError(patients_file)
-
-        self.patient = pd.read_table(patients_file,
-                                     sep="\t",
-                                     skiprows=[1, 2],
-                                     na_values=["[Not Available]", "[Unknown]", "[Not Applicable]", "[Discrepancy]"],
-                                     usecols=columns
-                                     )
+        if isinstance(patients_file, io.StringIO):
+            patients_file.seek(0)  # Needed since the file was previous read to extract columns information
+            self.patient = pd.read_table(patients_file,
+                                         # skiprows=[1, 2],
+                                         na_values=["[Not Available]", "[Unknown]", "[Not Applicable]",
+                                                    "[Discrepancy]"],
+                                         usecols=columns
+                                         )
+        elif type(patients_file) == str and os.path.exists(patients_file):
+            self.patient = pd.read_table(patients_file,
+                                         # skiprows=[1, 2],
+                                         na_values=["[Not Available]", "[Unknown]", "[Not Applicable]",
+                                                    "[Discrepancy]"],
+                                         usecols=columns
+                                         )
+        else:
+            raise IOError(patients_file)
 
         self.patient_barcodes = self.patient[patient_id_col].tolist()
         self.patient.set_index(patient_id_col, inplace=True)

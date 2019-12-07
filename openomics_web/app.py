@@ -3,7 +3,8 @@ import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
 from openomics_web.layouts import app_layout
-from openomics_web.layouts.datatable_view import ExpressionDataTable, ClinicalDataTable, DataTableColumnSelect
+from openomics_web.layouts.clinical_view import ClinicalDataColumnSelect, ClinicalDataTable
+from openomics_web.layouts.datatable_view import ExpressionDataTable, DataTableColumnSelect
 from openomics_web.server import server
 from openomics_web.utils.io import get_table_columns, get_expression_data, get_clinical_data
 
@@ -54,10 +55,10 @@ def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, 
     return ExpressionDataTable(expression_data.expressions.head(20))
 
 
-@app.callback([Output('clinical-column-select', 'children'), Output('upload-data', 'children')],
+@app.callback([Output('clinical-column-select', 'children'), Output('upload-clinical', 'children')],
               [Input('upload-clinical', 'contents'), Input('upload-clinical', 'filename')],
-              [State('data-table-type', 'value'), ])
-def update_datatable_metadata(file_content, file_name, data_type, ):
+              )
+def update_clinical_upload_metadata(file_content, file_name, ):
     if file_content is None: return None, ['Drag and Drop or ', html.A('Select Files')]
 
     try:
@@ -67,26 +68,26 @@ def update_datatable_metadata(file_content, file_name, data_type, ):
         print(e)
         return None, 'There was an error processing this file.'
 
-    return DataTableColumnSelect(columns), "Uploaded {}".format(file_name)
+    return ClinicalDataColumnSelect(columns), "Uploaded {}".format(file_name)
 
 
-@app.callback(Output('output-data-upload', 'children'),
+@app.callback(Output('output-clinical-upload', 'children'),
               [Input('clinical-submit-button', 'n_clicks')],
-              [State('clinical-data-type', 'value'),
+              [State('clinical-cohort', 'value'), State('clinical-data-type', 'value'),
                State('upload-clinical', 'contents'), State('upload-clinical', 'filename'),
+               State('clinical-patient-col-name', 'value'), State('clinical-data-columns-select', 'value'),
                ])
-def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, list_of_names, genes_col_name,
-                            columns_select, transposed):
+def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, list_of_names, patient_id_col,
+                            columns_select):
     if list_of_contents is None: return []
     try:
-
-        clinical_data = get_clinical_data(list_of_contents, list_of_names, data_type, cohort_name, genes_col_name,
-                                          columns_select, transposed)
+        clinical_data = get_clinical_data(list_of_contents, list_of_names, data_type, cohort_name, patient_id_col,
+                                          columns_select)
     except Exception as e:
         print(e)
         return html.Div(['There was an error processing this file.'])
 
-    return ClinicalDataTable(clinical_data.expressions.head(20))
+    return ClinicalDataTable(clinical_data.patient.head(20))
 
 
 if __name__ == '__main__':

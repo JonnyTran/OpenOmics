@@ -59,13 +59,8 @@ def get_expression_data(list_of_contents, list_of_names, data_type, cohort_name=
 
 
 def get_clinical_data(file_content, file_name, data_type, cohort_name, patient_id_col=None, columns_selected=None):
-    if columns_selected:
-        columns = "|".join(columns_selected)
-    else:
-        columns = None
-
     file = handle_filestreams([file_content, ], [file_name, ])
-    clinical_data = ClinicalData(cohort_name, file, patient_id_col=patient_id_col, columns=columns)
+    clinical_data = ClinicalData(cohort_name, file, patient_id_col=patient_id_col, columns=columns_selected)
 
     return clinical_data
 

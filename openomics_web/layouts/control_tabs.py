@@ -11,13 +11,13 @@ def control_tabs():
                 label='Welcome',
                 value='what-is',
                 children=html.Div(className='control-tab', children=[
-                    html.H5(className='what-is', children="OpenOmics: Multi-Omics Data Explorer"),
+                    html.H5(className='what-is', children="OpenOmics: The Multi-Omics Explorer"),
 
-                    html.P('OpenOmics provides a bioinformatics API and web-app'
-                           'platform integrate, analyze, and visualize the'
-                           'multi-omics and clinical data. You can interact with the'
-                           'data input tabs to integrate the various different data types'
-                           'including bio-databases, multi-omics expression, genomics,'
+                    html.P('OpenOmics provides a bioinformatics API and web-app '
+                           'platform integrate, analyze, and visualize the '
+                           'multi-omics and clinical data. You can interact with the '
+                           'data input tabs to integrate the various different data types '
+                           'including bio-databases, multi-omics expression, genomics, '
                            'and clinical data.'),
 
                     html.Div([
@@ -41,9 +41,14 @@ def control_tabs():
 
             dcc.Tab(
                 label='Import Clinical Data',
-                value='data',
+                value='clinical-upload',
                 className='control-tab',
                 children=[
+                    html.Div(['Cohort name: ', ]),
+                    dcc.Input(
+                        id='clinical-cohort', style={'width': '100%'},
+                        placeholder="Leave empty to use filename", type='text'),
+                    html.Br(),
                     html.Div(['Select clinical data type']),
                     dcc.RadioItems(
                         id='clinical-data-type',
@@ -53,6 +58,7 @@ def control_tabs():
                             {'label': 'Drug responses', 'value': 'Drug responses'},
                         ],
                         value='Patients data', ),
+                    html.Br(),
                     html.Div(['Import Clinical Data', ]),
                     html.Div(children=[
                         dcc.Upload(
@@ -80,7 +86,7 @@ def control_tabs():
                         ),
                         html.Div(['Select the column prefixes to import:']),
                         dcc.Dropdown(
-                            id='clinilcal-data-columns-select',
+                            id='clinical-data-columns-select',
                             disabled=True,
 
                         )
@@ -92,7 +98,7 @@ def control_tabs():
 
             dcc.Tab(
                 label='Import Data Table',
-                value='data',
+                value='data-upload',
                 className='control-tab',
                 children=[
                     html.Div(['Cohort name: ', ]),

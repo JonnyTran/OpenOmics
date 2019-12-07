@@ -9,6 +9,7 @@ def app_main():
         loading(),
         control_tabs(),
         html.Div(id="output-data-upload", className="circos-hold"),
+        html.Div(id="output-clinical-upload", className="circos-hold"),
     ])
 
 
