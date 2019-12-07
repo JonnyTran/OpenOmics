@@ -97,7 +97,7 @@ def control_tabs():
             ),
 
             dcc.Tab(
-                label='Import Data Table',
+                label='Import Omics Data',
                 value='data-upload',
                 className='control-tab',
                 children=[
@@ -118,7 +118,7 @@ def control_tabs():
                         ],
                         value=MicroRNA.name(), ),
                     html.Br(),
-                    html.Div(['Import Data Table', ]),
+                    html.Div(['Import a data file', ]),
                     html.Div(children=[
                         dcc.Upload(
                             id='upload-data-table',
@@ -151,7 +151,19 @@ def control_tabs():
                         )
                     ]),
                     html.Br(),
-                    html.Div(['Is the table transposed?:']),
+                    html.Div(['Each gene is indexed by:']),
+                    dcc.RadioItems(
+                        id='data-table-genes_index',
+                        options=[
+                            {'label': 'Gene symbol', 'value': 'gene_name'},
+                            {'label': 'Gene index', 'value': 'gene_index'},
+                            {'label': 'Transcript name', 'value': 'transcript_name'},
+                            {'label': 'Transcript index', 'value': 'transcript_index'},
+                        ],
+                        value='gene_name',
+                    ),
+                    html.Br(),
+                    html.Div(['Is the table transposed?']),
                     dcc.RadioItems(
                         id='data-table-transpose',
                         options=[
@@ -163,7 +175,16 @@ def control_tabs():
                     html.Br(),
                     html.Button(id='upload-data-table-submit', n_clicks=0, children='Submit'),
                 ]
-            )
+            ),
+
+            dcc.Tab(
+                label='Annotate database',
+                value='annotatte-db',
+                className='control-tab',
+                children=[
+                    html.Div('To be implemented'),
+                ]
+            ),
 
         ])
     ])

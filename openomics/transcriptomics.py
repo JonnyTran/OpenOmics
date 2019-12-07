@@ -155,7 +155,8 @@ class ExpressionData(object):
 
 
 class LncRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by, sample_index_by="sample_barcode",
+    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by=None,
+                 sample_index_by="sample_barcode",
                  transposed=True, log2_transform=False, npartitions=0):
         super(LncRNA, self).__init__(cohort_name, file_path=file_path, columns=columns, genes_col_name=genes_col_name,
                                      gene_index_by=gene_index_by, sample_index_by=sample_index_by,
@@ -412,7 +413,8 @@ class LncRNA(ExpressionData, Annotatable):
 
 
 class MessengerRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by, sample_index_by="sample_barcode",
+    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by=None,
+                 sample_index_by="sample_barcode",
                  transposed=True,
                  log2_transform=False, npartitions=0):
         super(MessengerRNA, self).__init__(cohort_name, file_path=file_path, columns=columns,
