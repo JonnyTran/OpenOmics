@@ -40,6 +40,57 @@ def control_tabs():
             ),
 
             dcc.Tab(
+                label='Import Clinical Data',
+                value='data',
+                className='control-tab',
+                children=[
+                    html.Div(['Select clinical data type']),
+                    dcc.RadioItems(
+                        id='clinical-data-type',
+                        options=[
+                            {'label': 'Patients data', 'value': 'Patients data'},
+                            {'label': 'Samples data', 'value': 'Samples data'},
+                            {'label': 'Drug responses', 'value': 'Drug responses'},
+                        ],
+                        value='Patients data', ),
+                    html.Div(['Import Clinical Data', ]),
+                    html.Div(children=[
+                        dcc.Upload(
+                            id='upload-clinical',
+                            children=html.Div(['Drag and Drop or ', html.A('Select Files')]),
+                            style={
+                                'width': '100%',
+                                'height': '60px',
+                                'lineHeight': '60px',
+                                'borderWidth': '1px',
+                                'borderStyle': 'dashed',
+                                'borderRadius': '5px',
+                                'textAlign': 'center',
+                                'margin': '10px'
+                            },
+                            multiple=False
+                        )
+                    ]),
+                    html.Br(),
+                    html.Div(id='clinical-column-select', children=[
+                        html.Div(['Select the patient id column to index by:']),
+                        dcc.Dropdown(
+                            id='clinical-patient-col-name',
+                            disabled=True
+                        ),
+                        html.Div(['Select the column prefixes to import:']),
+                        dcc.Dropdown(
+                            id='clinilcal-data-columns-select',
+                            disabled=True,
+
+                        )
+                    ]),
+                    html.Br(),
+                    html.Button(id='clinical-submit-button', n_clicks=0, children='Submit'),
+                ]
+            ),
+
+            dcc.Tab(
                 label='Import Data Table',
                 value='data',
                 className='control-tab',
@@ -64,7 +115,7 @@ def control_tabs():
                     html.Div(['Import Data Table', ]),
                     html.Div(children=[
                         dcc.Upload(
-                            id='upload-data',
+                            id='upload-data-table',
                             children=html.Div(['Drag and Drop or ', html.A('Select Files')]),
                             style={
                                 'width': '100%',
@@ -80,7 +131,7 @@ def control_tabs():
                         )
                     ]),
                     html.Br(),
-                    html.Div(id='upload_table_preview', children=[
+                    html.Div(id='data-table-column-select', children=[
                         html.Div(['Select the gene id/name column to index by:']),
                         dcc.Dropdown(
                             id='data-table-genes-col-name',
@@ -90,6 +141,7 @@ def control_tabs():
                         dcc.Dropdown(
                             id='data-table-columns-select',
                             disabled=True,
+
                         )
                     ]),
                     html.Br(),
@@ -103,7 +155,7 @@ def control_tabs():
                         value="True",
                     ),
                     html.Br(),
-                    html.Button(id='submit-button', n_clicks=0, children='Submit'),
+                    html.Button(id='upload-data-table-submit', n_clicks=0, children='Submit'),
                 ]
             )
 

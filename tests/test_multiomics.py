@@ -14,22 +14,24 @@ cohort_folder_path = "tests/data/TCGA_LUAD"
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA():
     return MessengerRNA("LUAD", file_path=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"),
-                        columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index=None, sample_index=None)
+                        columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index_by=None,
+                        sample_index_by=None)
 
 @pytest.fixture
 def generate_TCGA_LUAD_MicroRNA():
     return MicroRNA("LUAD", file_path=os.path.join(cohort_folder_path, "LUAD__miRNAExp__RPM.txt"),
-                    columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index=None, sample_index=None)
+                    columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index_by=None, sample_index_by=None)
 
 @pytest.fixture
 def generate_TCGA_LUAD_LncRNA():
     return LncRNA("LUAD", file_path=os.path.join(cohort_folder_path, "TCGA-rnaexpr.tsv"), columns="Gene_ID|TCGA",
-                  genes_col_name="Gene_ID", gene_index="gene_id", sample_index=None)
+                  genes_col_name="Gene_ID", gene_index_by="gene_id", sample_index_by=None)
 
 @pytest.fixture
 def generate_TCGA_LUAD_SomaticMutation():
     return SomaticMutation("LUAD", file_path=os.path.join(cohort_folder_path, "LUAD__somaticMutation_geneLevel.txt"),
-                           columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index=None, sample_index=None)
+                           columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index_by=None,
+                           sample_index_by=None)
 
 def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA):
     cohort_name = "LUAD"

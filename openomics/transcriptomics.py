@@ -1,3 +1,4 @@
+import io
 import os
 from glob import glob
 
@@ -14,8 +15,8 @@ from .database import Annotatable
 
 
 class ExpressionData(object):
-    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index="gene_index",
-                 sample_index="sample_index", transposed=True, log2_transform=False, npartitions=0):
+    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index_by="gene_index",
+                 sample_index_by="sample_index", transposed=True, log2_transform=False, npartitions=0):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of any quantitative -omics data that is in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame from file with the user-specified columns and genes column name, then tranpose it such that the rows are samples and columns are gene/transcript/peptides.
@@ -23,14 +24,16 @@ class ExpressionData(object):
         The dataframe should only contain numeric values besides the genes_col_name and the sample barcode id indices.
         Args:
             cohort_name (str): the unique cohort code name string
-            gene_index (str): {"gene_id", "transcript_id", "peptide_id", "gene_name", "trascript_name", "peptide_name"}
-                Chooses the level of the gene/transcript/peptide of the genes list in this expression data. The expression DataFrame's index will be renamed to this.
             file_path (str, byte-like):
                 Path or file stream of the table file to import.
             columns (str): a regex string
                 A regex string to import column names from the table. Columns names imported are string match, separated by "|".
             genes_col_name (str):
                 Index column name of expression data which is used to index the genes list
+            gene_index_by (str): {"gene_id", "transcript_id", "peptide_id", "gene_name", "trascript_name", "peptide_name"}
+                Chooses the level of the gene/transcript/peptide of the genes list in this expression data. The expression DataFrame's index will be renamed to this.
+            sample_index_by (str): {"sample_index", "patient_index"}
+                Chooses the level of the patient/sample/aliquot indexing.
             transposed (bool): default True
                 True if sample names are columns and rows are genes. False if the table has samples for row index, and gene names as columns.
             log2_transform (bool): default False
@@ -42,17 +45,21 @@ class ExpressionData(object):
 
         if "*" in file_path:
             self.expressions = self.preprocess_table_glob(file_path, columns, genes_col_name, transposed)
+        elif isinstance(file_path, io.StringIO):
+            # TODO implement handling for multiple file ByteIO
+            file_path.seek(0)  # Needed since the file was previous read to extract columns information
+            df = pd.read_table(file_path)
+        elif type(file_path) == str and os.path.isfile(file_path):
+            df = pd.read_table(file_path, sep=None)
         else:
-            if not os.path.isfile(file_path) or not os.path.exists(file_path):
-                raise FileNotFoundError(file_path)
+            raise IOError(file_path)
 
-            table = pd.read_table(file_path)
-            self.expressions = self.preprocess_table(table, columns, genes_col_name, transposed)
-            if npartitions > 1:
-                self.expressions = dd.from_pandas(self.expressions, npartitions=npartitions)
+        self.expressions = self.preprocess_table(df, columns, genes_col_name, transposed)
+        if npartitions > 1:
+            self.expressions = dd.from_pandas(self.expressions, npartitions=npartitions)
 
-        self.gene_index = gene_index
-        self.sample_index = sample_index
+        self.gene_index = gene_index_by
+        self.sample_index = sample_index_by
         self.expressions.index.name = self.sample_index
 
         if log2_transform:
@@ -77,6 +84,8 @@ class ExpressionData(object):
 
         # Filter columns
         if columns is not None:
+            if genes_index not in columns:
+                columns = columns + "|" + genes_index
             df = df.filter(regex=columns)
 
         # Cut TCGA column names to sample barcode, discarding aliquot info
@@ -146,10 +155,11 @@ class ExpressionData(object):
 
 
 class LncRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index="sample_barcode",
+    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by, sample_index_by="sample_barcode",
                  transposed=True, log2_transform=False, npartitions=0):
         super(LncRNA, self).__init__(cohort_name, file_path=file_path, columns=columns, genes_col_name=genes_col_name,
-                                     gene_index=gene_index, sample_index=sample_index, transposed=transposed,
+                                     gene_index_by=gene_index_by, sample_index_by=sample_index_by,
+                                     transposed=transposed,
                                      log2_transform=log2_transform, npartitions=npartitions)
 
     @classmethod
@@ -402,12 +412,12 @@ class LncRNA(ExpressionData, Annotatable):
 
 
 class MessengerRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index, sample_index="sample_barcode",
+    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by, sample_index_by="sample_barcode",
                  transposed=True,
                  log2_transform=False, npartitions=0):
         super(MessengerRNA, self).__init__(cohort_name, file_path=file_path, columns=columns,
-                                           genes_col_name=genes_col_name, gene_index=gene_index,
-                                           sample_index=sample_index,
+                                           genes_col_name=genes_col_name, gene_index_by=gene_index_by,
+                                           sample_index_by=sample_index_by,
                                            transposed=transposed, log2_transform=log2_transform,
                                            npartitions=npartitions)
 
@@ -509,12 +519,13 @@ class MessengerRNA(ExpressionData, Annotatable):
 
 
 class MicroRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index=None,
-                 sample_index="sample_barcode",
+    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index_by=None,
+                 sample_index_by="sample_barcode",
                  transposed=True,
                  log2_transform=False, npartitions=0):
         super(MicroRNA, self).__init__(cohort_name, file_path=file_path, columns=columns, genes_col_name=genes_col_name,
-                                       gene_index=gene_index, sample_index=sample_index, transposed=transposed,
+                                       gene_index_by=gene_index_by, sample_index_by=sample_index_by,
+                                       transposed=transposed,
                                        log2_transform=log2_transform, npartitions=npartitions)
 
     @classmethod

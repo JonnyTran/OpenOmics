@@ -4,6 +4,7 @@ import os
 
 import pandas as pd
 
+from openomics import ClinicalData
 from openomics import MicroRNA, MessengerRNA, LncRNA, ProteinExpression
 
 
@@ -13,33 +14,22 @@ def get_table_columns(list_of_contents, list_of_names):
     _, file_extension = os.path.splitext(filename)
     content_type, content_string = content.split(',')
     decoded = base64.b64decode(content_string)
-    first_line = decoded.decode('utf-8').partition('\n')[0]
+
     if file_extension == ".tsv":
+        first_line = decoded.decode('utf-8').partition('\n')[0]
         columns = first_line.split('\t')
     elif file_extension == ".csv":
+        first_line = decoded.decode('utf-8').partition('\n')[0]
         columns = first_line.split(',')
-    elif file_extension == ".xls":
+    elif file_extension == ".xls" or file_extension == ".xlsx":
         columns = pd.read_excel(io.BytesIO(decoded), low_memory=True).columns.tolist()
     else:
-        columns = pd.read_table(io.BytesIO(decoded), low_memory=True).columns.tolist()
+        columns = pd.read_table(io.StringIO(decoded.decode('utf-8')), low_memory=True).columns.tolist()
     return columns
 
 
-def get_expression_table(list_of_contents, list_of_names, data_type, cohort_name=None, genes_col_name=None,
-                         columns_selected=None, transposed=None):
-    """
-
-    Args:
-        list_of_contents:
-        list_of_names:
-        data_type:
-        cohort_name:
-        genes_col_name:
-        columns_selected:
-
-    Returns:
-
-    """
+def get_expression_data(list_of_contents, list_of_names, data_type, cohort_name=None, genes_col_name=None,
+                        columns_selected=None, transposed=None):
     if columns_selected:
         columns = "|".join(columns_selected)
     else:
@@ -50,6 +40,37 @@ def get_expression_table(list_of_contents, list_of_names, data_type, cohort_name
     elif transposed == "False":
         transposed = False
 
+    file = handle_filestreams(list_of_contents, list_of_names)
+
+    if data_type == MicroRNA.name():
+        expression_data = MicroRNA(cohort_name, file, columns=columns, genes_col_name=genes_col_name,
+                                   transposed=transposed)
+    elif data_type == MessengerRNA.name():
+        expression_data = MessengerRNA(cohort_name, file, columns=columns, genes_col_name=genes_col_name,
+                                       transposed=transposed)
+    elif data_type == LncRNA.name():
+        expression_data = LncRNA(cohort_name, file, columns=columns, genes_col_name=genes_col_name,
+                                 transposed=transposed)
+    elif data_type == ProteinExpression.name():
+        expression_data = ProteinExpression(cohort_name, file, columns=columns, genes_col_name=genes_col_name,
+                                            transposed=transposed)
+
+    return expression_data
+
+
+def get_clinical_data(file_content, file_name, data_type, cohort_name, patient_id_col=None, columns_selected=None):
+    if columns_selected:
+        columns = "|".join(columns_selected)
+    else:
+        columns = None
+
+    file = handle_filestreams([file_content, ], [file_name, ])
+    clinical_data = ClinicalData(cohort_name, file, patient_id_col=patient_id_col, columns=columns)
+
+    return clinical_data
+
+
+def handle_filestreams(list_of_contents, list_of_names):
     if len(list_of_contents) == 1:
         content = list_of_contents[0]
         filename = list_of_names[0]
@@ -58,23 +79,14 @@ def get_expression_table(list_of_contents, list_of_names, data_type, cohort_name
 
     content_type, content_string = content.split(',')
     decoded = base64.b64decode(content_string)
-
     if 'csv' in filename:  # Assume that the user uploaded a CSV file
-        file = decoded.decode('utf-8')
+        file = io.StringIO(decoded.decode('utf-8'))
     elif 'xls' in filename:  # Assume that the user uploaded an excel file
         file = io.BytesIO(decoded)
     elif 'tsv' in filename:  # Assume that the user uploaded an tsv file
-        file = decoded.decode('utf-8')
+        file = io.StringIO(decoded.decode('utf-8'))
     elif 'txt' in filename:  # Assume that the user uploaded either a tsv or csv file
-        file = decoded.decode('utf-8')
-
-    if data_type == MicroRNA.name():
-        df = MicroRNA(cohort_name, file, columns=columns, genes_col_name=genes_col_name, transposed=transposed)
-    elif data_type == MessengerRNA.name():
-        df = MessengerRNA(cohort_name, file, columns=columns, genes_col_name=genes_col_name, transposed=transposed)
-    elif data_type == LncRNA.name():
-        df = LncRNA(cohort_name, file, columns=columns, genes_col_name=genes_col_name, transposed=transposed)
-    elif data_type == ProteinExpression.name():
-        df = ProteinExpression(cohort_name, file, columns=columns, genes_col_name=genes_col_name, transposed=transposed)
-
-    return df
+        file = io.StringIO(decoded.decode('utf-8'))
+    else:
+        raise IOError("Unable to read table file.")
+    return file
