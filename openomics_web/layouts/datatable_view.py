@@ -1,7 +1,6 @@
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table as dt
-import pandas as pd
 
 from openomics_web.utils.str_utils import longest_common_prefix
 
@@ -31,39 +30,90 @@ def DataTableColumnSelect(columns):
     ])
 
 
-def ExpressionDataTable(df: pd.DataFrame):
-    df.index.rename("id", inplace=True)
+def ExpressionDataTable(df):
+    return html.Div(
+        className="row",
+        children=[
+            html.Div(
+                dt.DataTable(
+                    id='expression-datatable',
+                    columns=[{"name": i, "id": i} for i in df.columns],
+                    page_current=0,
+                    page_size=20,
+                    page_action='custom',
 
-    return dt.DataTable(
-        id='expression-datatable',
-        columns=[{"name": i, "id": i} for i in df.columns],
-        data=df.reset_index().to_dict('records'),
-        style_as_list_view=True,
-        style_cell={'textAlign': 'left',
-                    # "maxWidth": '100px',
-                    },
-        style_data={'width': '30px'},
-        style_data_conditional=[
-            {'if': {'row_index': 'odd'},
-             'backgroundColor': 'rgb(248, 248, 248)'
-             },
-        ],
-        style_table={"maxHeight": '800px',
-                     'width': '800px',
-                     'marginTop': '5px',
-                     'marginBottom': '10px',
-                     'overflowX': 'scroll'
-                     },
-        virtualization=True,
-        filter_action="native",
-        sort_action="native",
-        sort_mode="multi",
-        row_selectable="multi",
-        selected_rows=[],
-        page_action="native",
-        page_current=0,
-        page_size=10,
+                    filter_action='custom',
+                    filter_query='',
+
+                    sort_action='custom',
+                    sort_mode='multi',
+                    sort_by=[],
+
+                    style_as_list_view=True,
+                    style_cell={'textAlign': 'left',
+                                # "maxWidth": '100px',
+                                },
+                    style_data={'width': '30px'},
+                    style_data_conditional=[
+                        {'if': {'row_index': 'odd'},
+                         'backgroundColor': 'rgb(248, 248, 248)'
+                         },
+                    ],
+                    style_table={"maxHeight": '800px',
+                                 'width': '800px',
+                                 'marginTop': '5px',
+                                 'marginBottom': '10px',
+                                 'overflowX': 'scroll'
+                                 },
+
+                    row_selectable="multi",
+                    selected_rows=[],
+
+                    # virtualization=True,
+                ),
+                style={'height': 750, 'overflowY': 'scroll'},
+                className='six columns'
+            ),
+            html.Div(
+                id='table-paging-with-graph-container',
+                className="five columns"
+            )
+        ]
     )
+
+
+operators = [['ge ', '>='],
+             ['le ', '<='],
+             ['lt ', '<'],
+             ['gt ', '>'],
+             ['ne ', '!='],
+             ['eq ', '='],
+             ['contains '],
+             ['datestartswith ']]
+
+
+def split_filter_part(filter_part):
+    for operator_type in operators:
+        for operator in operator_type:
+            if operator in filter_part:
+                name_part, value_part = filter_part.split(operator, 1)
+                name = name_part[name_part.find('{') + 1: name_part.rfind('}')]
+
+                value_part = value_part.strip()
+                v0 = value_part[0]
+                if (v0 == value_part[-1] and v0 in ("'", '"', '`')):
+                    value = value_part[1: -1].replace('\\' + v0, v0)
+                else:
+                    try:
+                        value = float(value_part)
+                    except ValueError:
+                        value = value_part
+
+                # word operators need spaces after them in the filter string,
+                # but we don't want these later
+                return name, operator_type[0].strip(), value
+
+    return [None] * 3
 
 
 def expression_data_view():

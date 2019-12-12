@@ -2,9 +2,10 @@ import dash
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
 
+from openomics import MultiOmics
 from openomics_web.layouts import app_layout
 from openomics_web.layouts.clinical_view import ClinicalDataColumnSelect, ClinicalDataTable
-from openomics_web.layouts.datatable_view import ExpressionDataTable, DataTableColumnSelect
+from openomics_web.layouts.datatable_view import ExpressionDataTable, DataTableColumnSelect, split_filter_part
 from openomics_web.server import server
 from openomics_web.utils.io import get_table_columns, get_expression_data, get_clinical_data
 
@@ -17,6 +18,7 @@ app = dash.Dash(__name__,
 
 app.layout = app_layout.app_main()
 
+user_multiomics = MultiOmics(cohort_name="TEST", import_clinical=False, )
 
 @app.callback([Output('data-table-column-select', 'children'), Output('upload-data-table', 'children')],
               [Input('upload-data-table', 'contents'), Input('upload-data-table', 'filename')],
@@ -46,14 +48,51 @@ def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, 
     if list_of_contents is None: return []
     try:
 
-        expression_data = get_expression_data(list_of_contents, list_of_names, data_type, cohort_name, genes_col_name,
-                                              columns_select, transposed)
+        omics_data = get_expression_data(list_of_contents, list_of_names, data_type, cohort_name, genes_col_name,
+                                         columns_select, transposed)
+        user_multiomics.add_omic(omics_data)
     except Exception as e:
         print(e)
         return html.Div(['There was an error processing this file.'])
 
-    return ExpressionDataTable(expression_data.expressions.head(20))
+    return ExpressionDataTable(omics_data.expressions.head(20))
 
+
+@app.callback(
+    Output('expression-datatable', "data"),
+    [Input('expression-datatable', "page_current"),
+     Input('expression-datatable', "page_size"),
+     Input('expression-datatable', "sort_by"),
+     Input('expression-datatable', "filter_query")])
+def update_table(page_current, page_size, sort_by, filter):
+    filtering_expressions = filter.split(' && ')
+    dff = df
+    for filter_part in filtering_expressions:
+        col_name, operator, filter_value = split_filter_part(filter_part)
+
+        if operator in ('eq', 'ne', 'lt', 'le', 'gt', 'ge'):
+            # these operators match pandas series operator method names
+            dff = dff.loc[getattr(dff[col_name], operator)(filter_value)]
+        elif operator == 'contains':
+            dff = dff.loc[dff[col_name].str.contains(filter_value)]
+        elif operator == 'datestartswith':
+            # this is a simplification of the front-end filtering logic,
+            # only works with complete fields in standard format
+            dff = dff.loc[dff[col_name].str.startswith(filter_value)]
+
+    if len(sort_by):
+        dff = dff.sort_values(
+            [col['column_id'] for col in sort_by],
+            ascending=[
+                col['direction'] == 'asc'
+                for col in sort_by
+            ],
+            inplace=False
+        )
+
+    return dff.iloc[
+           page_current * page_size: (page_current + 1) * page_size
+           ].to_dict('records')
 
 @app.callback([Output('clinical-column-select', 'children'), Output('upload-clinical', 'children')],
               [Input('upload-clinical', 'contents'), Input('upload-clinical', 'filename')],
@@ -83,6 +122,7 @@ def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, 
     try:
         clinical_data = get_clinical_data(list_of_contents, list_of_names, data_type, cohort_name, patient_id_col,
                                           columns_select)
+        user_multiomics.add_clinical_data(clinical_data)
     except Exception as e:
         print(e)
         return html.Div(['There was an error processing this file.'])
