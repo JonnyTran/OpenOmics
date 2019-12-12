@@ -10,8 +10,8 @@ from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
 
 class MultiOmics:
-    def __init__(self, cohort_name, import_clinical=True, clinical_file=None):
-        # type: (str, List[str], bool, str) -> None
+    def __init__(self, cohort_name):
+        # type: (str, List[str]) -> None
         """
         Load all multi-omics data from a given cohort_folder path.
 
@@ -20,23 +20,13 @@ class MultiOmics:
             cohort_name (str): the clinical cohort name
             import_clinical (bool, ClinicalData):
         """
-        self.cancer_type = cohort_name
+        self.cohort_name = cohort_name
         self.omics_list = []
 
         # This is a data dictionary accessor to retrieve DataFrame's
         self.data = {}
 
-        if import_clinical and type(import_clinical) == ClinicalData:
-            self.clinical = import_clinical
-        elif import_clinical:
-            self.clinical = ClinicalData(cohort_name, clinical_file)
 
-        if import_clinical:
-            self.data["PATIENTS"] = self.clinical.patient
-            if hasattr(self.clinical, "biospecimen"):
-                self.data["BIOSPECIMENS"] = self.clinical.biospecimen
-            if hasattr(self.clinical, "drugs"):
-                self.data["DRUGS"] = self.clinical.drugs
 
         # if "GE" in omics:
         #     table_path_GE = os.path.join(cohort_folder, "gene_exp", "geneExp.txt")
@@ -114,6 +104,18 @@ class MultiOmics:
                 if omic_A != omic_B:
                     self.__getattribute__(omic_A).drop_genes(set(self.__getattribute__(omic_A).get_genes_list()) & set(
                         self.__getattribute__(omic_B).get_genes_list()))
+
+    def add_clinical_data(self, clinical_data=None):
+        if type(clinical_data) == ClinicalData:
+            self.clinical = clinical_data
+        else:
+            self.clinical = ClinicalData(self.cohort_name, clinical_data)
+
+        self.data["PATIENTS"] = self.clinical.patient
+        if hasattr(self.clinical, "biospecimen"):
+            self.data["BIOSPECIMENS"] = self.clinical.biospecimen
+        if hasattr(self.clinical, "drugs"):
+            self.data["DRUGS"] = self.clinical.drugs
 
     def add_omic(self, omic_data, initialize_annotations=True):
         # type: (ExpressionData, bool) -> None
