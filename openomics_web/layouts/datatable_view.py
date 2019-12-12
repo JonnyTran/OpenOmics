@@ -1,6 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table as dt
+import pandas as pd
 
 from openomics_web.utils.str_utils import longest_common_prefix
 
@@ -50,9 +51,11 @@ def ExpressionDataTable(df):
                     sort_by=[],
 
                     style_as_list_view=True,
-                    style_cell={'textAlign': 'left',
-                                # "maxWidth": '100px',
-                                },
+                    style_cell={
+                        'overflow': 'hidden',
+                        'textOverflow': 'clip',
+                        'whiteSpace': 'normal'
+                    },
                     style_data={'width': '30px'},
                     style_data_conditional=[
                         {'if': {'row_index': 'odd'},
@@ -65,6 +68,10 @@ def ExpressionDataTable(df):
                                  'marginBottom': '10px',
                                  'overflowX': 'scroll'
                                  },
+                    style_header={
+                        'backgroundColor': 'white',
+                        'fontWeight': 'bold'
+                    },
 
                     row_selectable="multi",
                     selected_rows=[],

@@ -30,25 +30,37 @@ def ClinicalDataColumnSelect(columns):
 
 def ClinicalDataTable(df: pd.DataFrame):
     df.index.rename("id", inplace=True)
+    print("df.reset_index()", df.reset_index().columns)
 
     return dt.DataTable(
         id='clinical-datatable',
-        columns=[{"name": i, "id": i} for i in df.columns],
+        columns=[{'name': i, 'id': i, 'deletable': True} for i in df.columns],
         data=df.reset_index().to_dict('records'),
         style_as_list_view=True,
-        style_cell={'textAlign': 'left',
-                    "maxWidth": 100, },
+        # fixed_columns={'headers': True, 'data': 1},
+        style_cell={
+            'textAlign': 'left',
+            'minWidth': '180px', 'width': '180px', 'maxWidth': '180px',
+        },
+        style_data={
+            'whiteSpace': 'normal',
+            'height': 'auto'
+        },
         style_data_conditional=[
             {'if': {'row_index': 'odd'},
              'backgroundColor': 'rgb(248, 248, 248)'
              },
         ],
-        style_table={"maxHeight": '800px',
-                     'width': '800px',
+        style_table={"maxHeight": '1200px',
+                     'width': '1000px',
                      'marginTop': '5px',
                      'marginBottom': '10px',
                      'overflowX': 'scroll'
                      },
+        style_header={
+            'backgroundColor': 'white',
+            'fontWeight': 'bold'
+        },
         virtualization=True,
         filter_action="native",
         sort_action="native",
