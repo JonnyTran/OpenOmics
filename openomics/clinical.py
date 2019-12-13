@@ -33,20 +33,20 @@ class ClinicalData:
         self.cohort_name = cohort_name
         self.patient_column = patient_id_col
 
-        if patient_id_col not in columns:
+        if columns and patient_id_col not in columns:
             columns.append(patient_id_col)
 
         if isinstance(patients_file, io.StringIO):
             patients_file.seek(0)  # Needed since the file was previous read to extract columns information
             self.patient = pd.read_table(patients_file,
-                                         # skiprows=[1, 2],
+                                         skiprows=[1, 2],
                                          na_values=["[Not Available]", "[Unknown]", "[Not Applicable]",
                                                     "[Discrepancy]"],
                                          usecols=columns
                                          )
         elif type(patients_file) == str and os.path.exists(patients_file):
             self.patient = pd.read_table(patients_file,
-                                         # skiprows=[1, 2],
+                                         skiprows=[1, 2],
                                          na_values=["[Not Available]", "[Unknown]", "[Not Applicable]",
                                                     "[Discrepancy]"],
                                          usecols=columns
