@@ -66,9 +66,9 @@ class Dataset(object):
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
         # Close opened file resources
-        for filename, filepath in file_resources.items():
-            if type(file_resources[filename]) != str:
-                file_resources[filename].close()
+        # for filename, filepath in file_resources.items():
+        #     if type(file_resources[filename]) != str:
+        #         file_resources[filename].close()
 
     @abstractmethod
     def load_dataframe(self, file_resources):
