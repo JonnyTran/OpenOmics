@@ -407,8 +407,6 @@ class LncRNA(ExpressionData, Annotatable):
         self.annotations = self.annotations[~self.annotations.index.duplicated(keep='first')] # Remove duplicate genes
 
 
-    def get_annotations(self):
-        return self.annotations
 
 
 
@@ -516,8 +514,6 @@ class MessengerRNA(ExpressionData, Annotatable):
 
         self.gene_info["3P-seq tags"] = self.gene_info["3P-seq tags"].astype("O")
 
-    def get_annotations(self):
-        return self.gene_info
 
 
 class MicroRNA(ExpressionData, Annotatable):
@@ -573,7 +569,5 @@ class MicroRNA(ExpressionData, Annotatable):
             self.mirnadisease.groupby("miRNA name")["Disease name"].apply('|'.join).to_dict())
 
 
-    def get_annotations(self):
-        return self.gene_info
 
 
