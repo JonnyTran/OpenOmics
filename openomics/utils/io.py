@@ -1,4 +1,5 @@
 import errno
+import io
 import os
 
 import dask.dataframe as dd
@@ -71,3 +72,12 @@ def retry(num=5):
     s.mount('http://', HTTPAdapter(max_retries=retries))
 
     return s
+
+
+def get_decompressed_text_gzip(gzip_file):
+    # compressedFile = StringIO()
+    # compressedFile.write(gzip_file.read())
+    # compressedFile.seek(0)
+    return io.TextIOWrapper(gzip_file)
+    # decompressedFile = gzip.GzipFile(fileobj=gzip_file, mode='rb')
+    # return decompressedFile

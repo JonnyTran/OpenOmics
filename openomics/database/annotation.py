@@ -46,7 +46,7 @@ class Dataset(object):
                 if filetype_ext is None:
                     file_resources[filename] = data_file
                 elif filetype_ext.extension == 'gz':
-                    file_resources[filename] = gzip.open(data_file, 'r')
+                    file_resources[filename] = gzip.open(data_file, 'rt')
                 else:
                     file_resources[filename] = data_file
 
@@ -65,10 +65,11 @@ class Dataset(object):
             self.df = self.df.rename(columns=col_rename)
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
+    def close(self):
         # Close opened file resources
-        # for filename, filepath in file_resources.items():
-        #     if type(file_resources[filename]) != str:
-        #         file_resources[filename].close()
+        for filename, filepath in self.file_resources.items():
+            if type(self.file_resources[filename]) != str:
+                self.file_resources[filename].close()
 
     @abstractmethod
     def load_dataframe(self, file_resources):
@@ -292,9 +293,12 @@ class GENCODE(Dataset):
             raise Exception("The omic argument must be one of the omic names")
 
         seq_dict = {}
+        # print("fasta_file", fasta_file)
+        # decompressedFile = get_decompressed_text_gzip(fasta_file)
+
         for record in SeqIO.parse(fasta_file, "fasta"):
             if index == "gene_id":
-                key = record.id.split("|")[1].split(".")[0] # gene id
+                key = record.id.split("|")[1].split(".")[0]  # gene id
             elif index == "gene_name":
                 key = record.id.split("|")[5]  # gene_name
             elif index == "transcript_id":
@@ -391,6 +395,8 @@ class MirBase(Dataset):
 
     def get_sequences(self, index="gene_name", omic=None):
         seq_dict = {}
+        # print("fasta_file", self.file_resources["mature.fa"])
+        # decompressedFile = get_decompressed_text_gzip(self.file_resources["mature.fa"])
 
         for record in SeqIO.parse(self.file_resources["mature.fa"], "fasta"):
             gene_name = str(record.id)
