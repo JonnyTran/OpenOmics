@@ -26,8 +26,6 @@ class MultiOmics:
         # This is a data dictionary accessor to retrieve DataFrame's
         self.data = {}
 
-
-
         # if "GE" in omics:
         #     table_path_GE = os.path.join(cohort_folder, "gene_exp", "geneExp.txt")
         #     self.GE = MessengerRNA(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", index="GeneSymbol")
@@ -105,18 +103,6 @@ class MultiOmics:
                     self.__getattribute__(omic_A).drop_genes(set(self.__getattribute__(omic_A).get_genes_list()) & set(
                         self.__getattribute__(omic_B).get_genes_list()))
 
-    def add_clinical_data(self, clinical_data=None):
-        if type(clinical_data) == ClinicalData:
-            self.clinical = clinical_data
-        else:
-            self.clinical = ClinicalData(self.cohort_name, clinical_data)
-
-        self.data["PATIENTS"] = self.clinical.patient
-        if hasattr(self.clinical, "biospecimen"):
-            self.data["BIOSPECIMENS"] = self.clinical.biospecimen
-        if hasattr(self.clinical, "drugs"):
-            self.data["DRUGS"] = self.clinical.drugs
-
     def add_omic(self, omic_data, initialize_annotations=True):
         # type: (ExpressionData, bool) -> None
         """
@@ -140,7 +126,20 @@ class MultiOmics:
         if initialize_annotations:
             omic_data.initialize_annotations(None, omic_data.gene_index)
 
-        print(omic_data.name(), self.data[omic_data.name()].shape if hasattr(self.data[omic_data.name()], 'shape') else ": None")
+        print(omic_data.name(),
+              self.data[omic_data.name()].shape if hasattr(self.data[omic_data.name()], 'shape') else ": None")
+
+    def add_clinical_data(self, clinical_data=None):
+        if type(clinical_data) == ClinicalData:
+            self.clinical = clinical_data
+        else:
+            self.clinical = ClinicalData(self.cohort_name, clinical_data)
+
+        self.data["PATIENTS"] = self.clinical.patient
+        if hasattr(self.clinical, "biospecimen"):
+            self.data["BIOSPECIMENS"] = self.clinical.biospecimen
+        if hasattr(self.clinical, "drugs"):
+            self.data["DRUGS"] = self.clinical.drugs
 
     def get_omics_list(self):
         return self.omics_list
@@ -200,12 +199,17 @@ class MultiOmics:
         elif item.lower() == ProteinExpression.name().lower():
             return self.__getattribute__(ProteinExpression.name())
 
-        elif item.lower() == ClinicalData.name().lower():
+        elif item.lower() == "PATIENTS":
             return self.clinical.patient
-        elif item.lower() == "DRU":
+        elif item.lower() == "SAMPLES":
+            return self.clinical.samples
+        elif item.lower() == "DRUGS":
             return self.clinical.drugs
         else:
             raise Exception('String accessor must be one of {"MessengerRNA", "MicroRNA", "LncRNA", "Protein", etc.}')
+
+    def __dir__(self):
+        return list(self.data.keys())
 
     def match_samples(self, omics):
         """
