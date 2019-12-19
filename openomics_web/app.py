@@ -18,7 +18,7 @@ app = dash.Dash(__name__,
 
 app.layout = app_layout.app_main()
 
-user_multiomics = MultiOmics(cohort_name="TEST", import_clinical=False, )
+user_multiomics = MultiOmics(cohort_name="TEST", )
 
 @app.callback([Output('data-table-column-select', 'children'), Output('upload-data-table', 'children')],
               [Input('upload-data-table', 'contents'), Input('upload-data-table', 'filename')],
@@ -66,7 +66,8 @@ def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, 
      Input('expression-datatable', "filter_query")])
 def update_table(page_current, page_size, sort_by, filter):
     filtering_expressions = filter.split(' && ')
-    dff = df
+    print(user_multiomics.get_omics_list())
+    dff = user_multiomics[user_multiomics.get_omics_list()[0]]
     for filter_part in filtering_expressions:
         col_name, operator, filter_value = split_filter_part(filter_part)
 
