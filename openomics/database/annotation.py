@@ -284,6 +284,7 @@ class GTEx(Dataset):
         gene_exp_medians = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct"],
             sep='\t', header=1, skiprows=1)
+        print(gene_exp_medians.columns)
         gene_exp_medians["gene_id"] = gene_exp_medians["gene_id"].str.replace("[.].*", "")
         gene_exp_medians.set_index("gene_id", inplace=True)
         gene_exp_medians.drop("Description", axis=1, inplace=True)
@@ -291,6 +292,7 @@ class GTEx(Dataset):
         transcript_exp_medians = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct"],
             sep='\t')
+        print(transcript_exp_medians.columns)
         transcript_exp_medians["gene_id"] = transcript_exp_medians["gene_id"].str.replace("[.].*", "")
         transcript_exp_medians.set_index("gene_id", inplace=True)
 
