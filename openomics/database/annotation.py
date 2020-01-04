@@ -125,6 +125,9 @@ class Dataset(object):
             raise ValueError("DataFrame must not have duplicates in index")
         return df
 
+    def get_expressions(self, index):
+        return self.df.loc[index]
+
     @abstractmethod
     def get_rename_dict(self, from_index, to_index):
         """
@@ -207,6 +210,10 @@ class Annotatable(object):
         self.annotations["Transcript sequence"] = self.annotations.index.map(
             database.get_sequences(index=index, omic=omic))
 
+    def annotate_expressions(self, database, index):
+        self.annotations["expressions"] = self.annotations.index.map(
+            database.get_expressions(index=index))
+
     def annotate_interactions(self, database, index):
         # type: (Dataset, str) -> None
         raise NotImplementedError
@@ -260,6 +267,34 @@ class RNAcentral(Dataset):
         gencode_id = gencode_id[gencode_id["GO terms"].notnull() | gencode_id["Rfams"].notnull()]
 
         return gencode_id
+
+
+class GTEx(Dataset):
+    def __init__(self, path="https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/",
+                 file_resources=None, col_rename=None, npartitions=0):
+        if file_resources is None:
+            file_resources = {
+                "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct": "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct.gz",
+                "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct": "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz",
+            }
+
+        super(GTEx, self).__init__(path, file_resources, col_rename, npartitions)
+
+    def load_dataframe(self, file_resources):  # type: (dict) -> pd.DataFrame
+        gene_exp_medians = pd.read_csv(
+            self.file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct"],
+            sep='\t', header=1, skiprows=1)
+        gene_exp_medians["gene_id"] = gene_exp_medians["gene_id"].str.replace("[.].*", "")
+        gene_exp_medians.set_index("gene_id", inplace=True)
+        gene_exp_medians.drop("Description", axis=1, inplace=True)
+
+        transcript_exp_medians = pd.read_csv(
+            self.file_resources["GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct"],
+            sep='\t')
+        transcript_exp_medians["gene_id"] = transcript_exp_medians["gene_id"].str.replace("[.].*", "")
+        transcript_exp_medians.set_index("gene_id", inplace=True)
+
+        return pd.concat([gene_exp_medians, transcript_exp_medians], join="inner", copy=True)
 
 
 class GENCODE(Dataset):
