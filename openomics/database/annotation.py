@@ -283,7 +283,7 @@ class GTEx(Dataset):
     def load_dataframe(self, file_resources):  # type: (dict) -> pd.DataFrame
         gene_exp_medians = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct"],
-            sep='\t', header=1, skiprows=1)
+            sep='\t')
         print(gene_exp_medians.columns)
         gene_exp_medians["gene_id"] = gene_exp_medians["gene_id"].str.replace("[.].*", "")
         gene_exp_medians.set_index("gene_id", inplace=True)
