@@ -35,8 +35,9 @@ def generate_TCGA_LUAD_SomaticMutation():
 
 def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA):
     cohort_name = "LUAD"
-    luad_data = MultiOmics(cohort_name, import_clinical=True, clinical_file=os.path.join(cohort_folder_path,
-                                                                                             "nationwidechildrens.org_clinical_patient_luad.txt"))
+    luad_data = MultiOmics(cohort_name)
+    luad_data.add_clinical_data(
+        clinical_data=os.path.join(cohort_folder_path, "nationwidechildrens.org_clinical_patient_luad.txt"))
     luad_data.add_omic(generate_TCGA_LUAD_MessengerRNA)
     luad_data.build_samples()
     print(luad_data.data.keys())
@@ -45,8 +46,9 @@ def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA):
 @pytest.fixture
 def generate_TCGA_LUAD(generate_TCGA_LUAD_MessengerRNA, generate_TCGA_LUAD_MicroRNA, generate_TCGA_LUAD_LncRNA):
     cohort_name = "LUAD"
-    luad_data = MultiOmics(cohort_name, import_clinical=True, clinical_file=os.path.join(cohort_folder_path,
-                                                                                             "nationwidechildrens.org_clinical_patient_luad.txt"))
+    luad_data = MultiOmics(cohort_name)
+    luad_data.add_clinical_data(
+        clinical_data=os.path.join(cohort_folder_path, "nationwidechildrens.org_clinical_patient_luad.txt"))
     luad_data.add_omic(generate_TCGA_LUAD_MessengerRNA)
     luad_data.add_omic(generate_TCGA_LUAD_MicroRNA)
     luad_data.add_omic(generate_TCGA_LUAD_LncRNA)

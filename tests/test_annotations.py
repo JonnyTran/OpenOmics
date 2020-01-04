@@ -1,6 +1,6 @@
 import pytest
 
-from openomics.database import GENCODE, RNAcentral, MirBase
+from openomics.database import GENCODE, RNAcentral, MirBase, GTEx
 
 
 @pytest.fixture
@@ -26,6 +26,11 @@ def generate_MirBase_ftp():
     return MirBase(path="ftp://mirbase.org/pub/mirbase/CURRENT/")
 
 
+@pytest.fixture
+def generate_GTEx_expressions():
+    return GTEx(path="https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/")
+
+
 def test_import_gencode_db(generate_GENCODE_ftp):
     assert generate_GENCODE_ftp.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/'
 
@@ -36,3 +41,7 @@ def test_import_rnacentral_db(generate_RNACentral_ftp):
 
 def test_import_mirbase_db(generate_MirBase_ftp):
     assert generate_MirBase_ftp.data_path == "ftp://mirbase.org/pub/mirbase/CURRENT/"
+
+
+def test_import_GTEx(generate_GTEx_expressions):
+    assert generate_GTEx_expressions.data_path == "https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/"
