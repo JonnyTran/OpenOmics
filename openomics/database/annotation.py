@@ -126,7 +126,8 @@ class Dataset(object):
         return df
 
     def get_expressions(self, index):
-        return self.df.loc[index]
+        return self.df.groupby(
+            index).median()  # TODO if index by gene, aggregate medians of transcript-level expressions
 
     @abstractmethod
     def get_rename_dict(self, from_index, to_index):
@@ -211,7 +212,7 @@ class Annotatable(object):
             database.get_sequences(index=index, omic=omic))
 
     def annotate_expressions(self, database, index):
-        self.annotations["expressions"] = self.annotations.index.map(
+        self.expressions = self.annotations.index.map(
             database.get_expressions(index=index))
 
     def annotate_interactions(self, database, index):
@@ -270,6 +271,10 @@ class RNAcentral(Dataset):
 
 
 class GTEx(Dataset):
+    COLUMNS_RENAME_DICT = {
+        "Description": "gene_name"
+    }
+
     def __init__(self, path="https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/",
                  gene_id_col="Name",
                  file_resources=None, col_rename=None, npartitions=0):
@@ -277,6 +282,7 @@ class GTEx(Dataset):
 
         if file_resources is None:
             file_resources = {
+                "GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt": "https://storage.googleapis.com/gtex_analysis_v8/annotations/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt",
                 "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct": "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz",
                 "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct": "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz",
             }
@@ -286,19 +292,38 @@ class GTEx(Dataset):
         gene_exp_medians = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"],
             sep='\t', header=1, skiprows=1)
-        print(gene_exp_medians.columns)
         gene_exp_medians[self.gene_id_col] = gene_exp_medians[self.gene_id_col].str.replace("[.].*", "")
-        gene_exp_medians.set_index(self.gene_id_col, inplace=True)
-        gene_exp_medians.drop("Description", axis=1, inplace=True)
+        gene_exp_medians = gene_exp_medians.rename(columns=self.COLUMNS_RENAME_DICT)
+        gene_exp_medians.set_index([self.gene_id_col, "gene_name"], inplace=True)
 
-        transcript_exp_medians = pd.read_csv(
+        # Sample attributes (needed to get tissue type)
+        SampleAttributes = pd.read_table(
+            self.file_resources["GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt"],
+        )
+        SampleAttributes.set_index("SAMPID", inplace=True)
+
+        # Transcript expression for all samples
+        transcript_exp = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct"],
             sep='\t')
-        print(transcript_exp_medians.columns)
-        transcript_exp_medians["gene_id"] = transcript_exp_medians["gene_id"].str.replace("[.].*", "")
-        transcript_exp_medians.set_index("gene_id", inplace=True)
+        transcript_exp["gene_id"] = transcript_exp["gene_id"].str.replace("[.].*", "")
+        transcript_exp["transcript_id"] = transcript_exp["transcript_id"].str.replace("[.].*", "")
+        transcript_exp.set_index(["gene_id", "transcript_id"], inplace=True)
 
-        return pd.concat([gene_exp_medians, transcript_exp_medians], join="inner", copy=True)
+        # Join by sample with tissue type, group expressions by tissue type, and compute medians for each
+        transcript_exp_medians = transcript_exp.T \
+            .join(SampleAttributes["SMTSD"], how="left") \
+            .groupby("SMTSD") \
+            .median()
+
+        # Reset multilevel index
+        transcript_exp_medians.index.rename(name=None, inplace=True)
+        transcript_exp_medians = transcript_exp_medians.T.set_index(
+            pd.MultiIndex.from_tuples(tuples=transcript_exp_medians.T.index, names=["gene_id", "transcript_id"]))
+
+        gene_transcript_exp_medians = pd.concat([gene_exp_medians, transcript_exp_medians], join="inner", copy=True)
+        print("gene_transcript_exp_medians \n", gene_transcript_exp_medians)
+        return gene_transcript_exp_medians
 
 
 class GENCODE(Dataset):
