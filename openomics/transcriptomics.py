@@ -15,7 +15,7 @@ from .database import Annotatable
 
 
 class ExpressionData(object):
-    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index_by="gene_index",
+    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index_by="gene_id",
                  sample_index_by="sample_index", transposed=True, log2_transform=False, npartitions=0):
         """
         .. class:: ExpressionData
@@ -226,27 +226,6 @@ class LncRNA(ExpressionData, Annotatable):
                                 index=self.HGNC_lncrna_info['ensembl_gene_id']).to_dict()
         return lncrna_dict
 
-    def process_starBase_miRNA_lncRNA_interactions(self, starBase_folder_path):
-        self.starBase_miRNA_lncRNA_file_path = os.path.join(starBase_folder_path,
-                                                            "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
-
-    def process_starBase_lncRNA_RNA_interactions(self, starBase_folder_path):
-        self.starBase_lncRNA_RNA_interactions_file_path = os.path.join(starBase_folder_path,
-                                                            "starbase_3.0_lncrna_rna_interactions.csv")
-
-    def process_LncReg_lncRNA_RNA_regulatory_interactions(self, LncReg_folder_path):
-        self.LncReg_RNA_regulatory_file_path = os.path.join(LncReg_folder_path, "data.xlsx")
-
-    def process_lncBase_miRNA_lncRNA_interactions(self, lncBase_folder_path):
-        self.lncBase_interactions_file_path = os.path.join(lncBase_folder_path, "LncBasev2_download.csv")
-        self.lncBase_predicted_interactions_file_path = os.path.join(lncBase_folder_path, "lncBaseV2_predicted_human_data.csv")
-
-    def process_NPInter_ncRNA_RNA_regulatory_interactions(self, NPInter_folder_path):
-        self.NPInter_interactions_file_path = os.path.join(NPInter_folder_path, "interaction_NPInter[v3.0].txt")
-        self.NPInter_interactions_old_file_path = os.path.join(NPInter_folder_path, "interaction_NPInter[v2.0].txt")
-
-    def process_lncRNome_miRNA_binding_sites(self, lncRNome_folder_path):
-        self.lnRNome_miRNA_binding_sites_path = os.path.join(lncRNome_folder_path, "miRNA_binding_sites.txt")
 
     def get_starBase_miRNA_lncRNA_interactions_edgelist(self, data=True, rename_dict=None):
         grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=0)
@@ -277,41 +256,6 @@ class LncRNA(ExpressionData, Annotatable):
         if rename_dict is not None:
             self.starBase_lncRNA_RNA_network = nx.relabel_nodes(self.starBase_lncRNA_RNA_network, rename_dict)
         return self.starBase_lncRNA_RNA_network.edges(data=data)
-
-    def get_LncReg_lncRNA_RNA_regulatory_interactions(self, data=True):
-        table = pd.read_excel(self.LncReg_RNA_regulatory_file_path)
-
-        table = table[table["species"] == "Homo sapiens"]
-        table.loc[table["B_category"] == "miRNA", "B_name_in_paper"] = table[table["B_category"] == "miRNA"][
-            "B_name_in_paper"].str.replace("-3p.*|-5p.*", "")
-        table.loc[table["B_category"] == "miRNA", "B_name_in_paper"] = table[table["B_category"] == "miRNA"][
-            "B_name_in_paper"].str.replace("MIR", "hsa-mir-")
-        table.loc[table["B_category"] == "miRNA", "B_name_in_paper"] = table[table["B_category"] == "miRNA"][
-            "B_name_in_paper"].str.replace("let-", "hsa-let-")
-
-        LncReg_lncRNA_RNA_network = nx.from_pandas_edgelist(table, source='A_name_in_paper', target='B_name_in_paper',
-                                                               edge_attr=["relationship", "mechanism", "pmid"],
-                                                               create_using=nx.DiGraph())
-        return LncReg_lncRNA_RNA_network.edges(data=data)
-
-
-    def get_lncBase_miRNA_lncRNA_interactions_edgelist(self, tissue=None, data=True, rename_dict=None):
-        lncbase_df = pd.read_table(self.lncBase_interactions_file_path)
-
-        lncbase_df = lncbase_df[lncbase_df["species"] == "Homo sapiens"]
-        lncbase_df["mirna"] = lncbase_df["mirna"].str.lower()
-        lncbase_df["mirna"] = lncbase_df["mirna"].str.replace("-3p.*|-5p.*", "")
-
-        if tissue is not None:
-            lncbase_df = lncbase_df[lncbase_df["tissue"] == tissue]
-
-        lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(lncbase_df, source='mirna', target='geneId',
-                                                               edge_attr=["tissue", "positive_negative"],
-                                                               create_using=nx.DiGraph())
-        if rename_dict is not None:
-            lncBase_lncRNA_miRNA_network = nx.relabel_nodes(lncBase_lncRNA_miRNA_network, rename_dict)
-
-        return lncBase_lncRNA_miRNA_network.edges(data=data)
 
     # def get_lncBase_miRNA_lncRNA_predicted_interactions_edgelist(self, data=True, rename_dict=None):
     #     records = []
