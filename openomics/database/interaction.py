@@ -196,6 +196,37 @@ class LncBase(Interactions, Dataset):
         return lncBase_lncRNA_miRNA_network
 
 
+class LncReg(Interactions):
+
+    def __init__(self, path, file_resources,
+                 source_col_name='A_name_in_paper', target_col_name='B_name_in_paper',
+                 source_index="transcript_name", target_index="gene_name",
+                 edge_attr=["relationship", "mechanism", "pmid"], directed=True, rename_dict=None, npartitions=0):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["data.xlsx"] = os.path.join(path, "data.xlsx")
+
+        super(LncReg, self).__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
+                                     edge_attr,
+                                     directed, rename_dict, npartitions)
+
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
+        df = pd.read_excel(self.file_resources["data.xlsx"])
+
+        df = df[df["species"] == "Homo sapiens"]
+        df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
+            "B_name_in_paper"].str.replace("-3p.*|-5p.*", "")
+        df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
+            "B_name_in_paper"].str.replace("MIR", "hsa-mir-")
+        df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
+            "B_name_in_paper"].str.replace("let-", "hsa-let-")
+
+        LncReg_lncRNA_RNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
+                                                            edge_attr=edge_attr,
+                                                            create_using=nx.DiGraph())
+        return LncReg_lncRNA_RNA_network
+
+
 class lncRInter(Interactions):
 
     def __init__(self, path, file_resources=None, source_col_name="lncrna",
@@ -304,11 +335,44 @@ class LncRNA2Target(Interactions):
 
 
 class lncRNome(Interactions):
-    pass
+    def __init__(self, path, file_resources, source_col_name, target_col_name, source_index, target_index,
+                 edge_attr=None, directed=True, rename_dict=None, npartitions=0):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["miRNA_binding_sites.txt"] = os.path.join(path, "miRNA_binding_sites.txt")
+
+        super(lncRNome, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
+                                       target_index, edge_attr,
+                                       directed, rename_dict, npartitions)
 
 
 class NPInter(Interactions):
-    pass
+
+    def __init__(self, path, file_resources, source_col_name, target_col_name, source_index, target_index,
+                 edge_attr=None, directed=True, rename_dict=None, npartitions=0):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["interaction_NPInter[v3.0].txt"] = os.path.join(path, "interaction_NPInter[v3.0].txt")
+
+        super(NPInter, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
+                                      target_index, edge_attr,
+                                      directed, rename_dict, npartitions)
+
+
+class StarBase(Interactions):
+
+    def __init__(self, path, file_resources, source_col_name, target_col_name, source_index, target_index,
+                 edge_attr=None, directed=True, rename_dict=None, npartitions=0):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls"] = \
+                os.path.join(path, "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
+            file_resources["starbase_3.0_lncrna_rna_interactions.csv"] = \
+                os.path.join(path, "starbase_3.0_lncrna_rna_interactions.csv")
+
+        super(StarBase, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
+                                       target_index, edge_attr,
+                                       directed, rename_dict, npartitions)
 
 
 class MiRTarBase(Interactions):
