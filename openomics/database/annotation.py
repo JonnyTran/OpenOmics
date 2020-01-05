@@ -305,7 +305,8 @@ class GTEx(Dataset):
         # Transcript expression for all samples
         transcript_exp = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct"],
-            sep='\t')
+            sep='\t', header=1, skiprows=1)
+        print("transcript_exp", transcript_exp.columns)
         transcript_exp["gene_id"] = transcript_exp["gene_id"].str.replace("[.].*", "")
         transcript_exp["transcript_id"] = transcript_exp["transcript_id"].str.replace("[.].*", "")
         transcript_exp.set_index(["gene_id", "transcript_id"], inplace=True)
