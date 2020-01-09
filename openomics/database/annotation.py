@@ -43,8 +43,8 @@ class Dataset(object):
                 data_file = get_pkg_data_filename(path, filepath)  # Download file and replace the file_resource path
                 filetype_ext = filetype.guess(data_file)
 
-                if filetype_ext is None:
-                    file_resources[filename] = data_file
+                if filetype_ext is None:  # This if-clause is needed incase when filetype_ext is None, causing the next clause to fail
+                    file_resources[filename] = data_file  # Returns the
                 elif filetype_ext.extension == 'gz':
                     file_resources[filename] = gzip.open(data_file, 'rt')
                 else:
@@ -155,10 +155,15 @@ class Dataset(object):
         raise NotImplementedError
 
 
+from openomics.database.disease import DiseaseAssociation
+from openomics.database.interaction import Interactions
+
+
 class Annotatable(object):
     """
     This class provides an interface for the omics to annotate external data downloaded from various databases. These data will be imported as attribute information to the genes, or interactions between the genes.
     """
+
     def __init__(self):
         pass
 
@@ -216,12 +221,13 @@ class Annotatable(object):
             database.get_expressions(index=index))
 
     def annotate_interactions(self, database, index):
-        # type: (Dataset, str) -> None
+        # type: (Interactions, str) -> None
         raise NotImplementedError
 
     def annotate_diseases(self, database, index):
-        # type: (Dataset, str) -> None
-        raise NotImplementedError
+        # type: (DiseaseAssociation, str) -> None
+        self.annotations["disease_associations"] = self.annotations.index.map(
+            database.get_disease_assocs(index=index, ))
 
 
 class RNAcentral(Dataset):
