@@ -1,4 +1,4 @@
-from openomics.database import GENCODE, RNAcentral, MirBase
+from openomics.database import GENCODE, RNAcentral, MirBase, GTEx
 from .test_multiomics import *
 
 
@@ -36,14 +36,14 @@ def test_import_rnacentral_db(generate_RNACentral_ftp):
 
 
 def test_rnacentral_annotate(generate_TCGA_LUAD, generate_RNACentral_ftp):
-    generate_TCGA_LUAD.LncRNA.annotate_genomics(database=generate_RNACentral_ftp, index='gene_name',
-                                                columns=['Rfams', 'go_id'])
+    # generate_TCGA_LUAD.LncRNA.annotate_genomics(database=generate_RNACentral_ftp, index='gene_name',
+    #                                             columns=['Rfams', 'go_id'])
     generate_TCGA_LUAD.MicroRNA.annotate_genomics(database=generate_RNACentral_ftp, index="RNAcentral id",
                                                   columns=['transcript_id', 'RNA type', 'go_id', 'Rfams'])
     generate_TCGA_LUAD.MessengerRNA.annotate_genomics(database=generate_RNACentral_ftp, index="gene_name",
                                                       columns=['gene_name', 'transcript_id', 'RNA type', 'go_id',
                                                                'Rfams'])
-    assert {'Rfams', 'go_id'}.issubset(generate_TCGA_LUAD.LncRNA.get_annotations().columns)
+    # assert {'Rfams', 'go_id'}.issubset(generate_TCGA_LUAD.LncRNA.get_annotations().columns)
     assert {'transcript_id', 'RNA type', 'go_id', 'Rfams'}.issubset(
         generate_TCGA_LUAD.MicroRNA.get_annotations().columns)
     assert {'gene_name', 'transcript_id', 'RNA type', 'go_id', 'Rfams'}.issubset(
@@ -58,9 +58,18 @@ def generate_MirBase_ftp():
 def test_import_mirbase_db(generate_MirBase_ftp):
     assert generate_MirBase_ftp.data_path == "ftp://mirbase.org/pub/mirbase/CURRENT/"
 
-# @pytest.fixture
-# def generate_GTEx_expressions():
-#     return GTEx(path="https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/")
 
-# def test_import_GTEx(generate_GTEx_expressions):
-#     assert generate_GTEx_expressions.data_path == "https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/"
+@pytest.fixture
+def generate_GTEx_expressions():
+    return GTEx(path="https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/", )
+
+
+def test_import_GTEx(generate_GTEx_expressions):
+    assert generate_GTEx_expressions.data_path == "https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/"
+    assert not generate_GTEx_expressions.get_expressions(index="gene_name").empty
+    assert not generate_GTEx_expressions.get_expressions(index="gene_id").empty
+
+
+def test_GTEx_annotate(generate_TCGA_LUAD, generate_GTEx_expressions):
+    generate_TCGA_LUAD.MessengerRNA.annotate_expressions(database=generate_GTEx_expressions, index="gene_name")
+    assert not MessengerRNA.get_annotation_expressions().empty
