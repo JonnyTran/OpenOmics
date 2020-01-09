@@ -9,7 +9,6 @@ import pandas as pd
 # from Bio.UniProt import GOA
 from dask import delayed
 from gtfparse import read_gtf
-from pandas import Series
 
 from .database import Annotatable
 
@@ -328,30 +327,6 @@ class LncRNA(ExpressionData, Annotatable):
         self.lnRNome_genes_info = pd.read_table(self.lnRNome_genes_info_path, header=0,
                                                 usecols=["Gene Name", "Transcript Name", "Transcript Type", "Location", "Strand"])
 
-    def process_lncrnadisease_associations(self, lncrnadisease_folder_path):
-        self.lncrnadisease_folder_path = lncrnadisease_folder_path
-        self.lncrnadisease_associations_path = os.path.join(lncrnadisease_folder_path,
-                                                            "lncRNA-disease_association_v2017.txt")
-
-        self.lncrnadisease_info = pd.read_table(self.lncrnadisease_associations_path, header=None, sep="\t")
-        self.lncrnadisease_info.columns = ["LncRNA name", "Disease name", "Dysfunction type", "Description", "Chr",
-                                           "Start", "End", "Strand", "Species", "Alias", "Sequence", "Reference"]
-        self.lncrnadisease_info = self.lncrnadisease_info[self.lncrnadisease_info["Species"] == "Human"]
-
-        self.lncrnadisease_info["Disease name"] = self.lncrnadisease_info["Disease name"].str.lower()
-
-
-
-    def process_genes_info(self):
-        # Merge lncrnadisease associations database
-        self.annotations["Disease association"] = self.annotations["Gene Name"].map(
-            self.lncrnadisease_info.groupby("LncRNA name")["Disease name"].apply('|'.join).to_dict())
-
-        # Change index of genes info to gene names
-        self.annotations = self.annotations[~self.annotations.index.duplicated(keep='first')] # Remove duplicate genes
-
-
-
 
 
 class MessengerRNA(ExpressionData, Annotatable):
@@ -383,21 +358,6 @@ class MessengerRNA(ExpressionData, Annotatable):
         self.regnet_grn_file_path = grn_file_path
 
 
-    def process_DisGeNET_gene_disease_associations(self, disgenet_folder_path):
-        self.disgenet_folder_path = disgenet_folder_path
-        self.disgenet_curated_gene_disease_file_path = os.path.join(disgenet_folder_path,
-                                                                    "curated_gene_disease_associations.tsv")
-        self.disgenet_all_gene_disease_file_path = os.path.join(disgenet_folder_path,
-                                                                "all_gene_disease_associations.tsv")
-
-        self.disgenet_curated_gene_disease = pd.read_table(self.disgenet_curated_gene_disease_file_path,
-                                                           usecols=["geneSymbol", "diseaseName", "score"])
-        self.disgenet_all_gene_disease = pd.read_table(self.disgenet_all_gene_disease_file_path,
-                                                       usecols=["geneSymbol", "diseaseName", "score"])
-
-        self.disgenet_curated_gene_disease["diseaseName"] = self.disgenet_curated_gene_disease[
-            "diseaseName"].str.lower()
-        self.disgenet_all_gene_disease["diseaseName"] = self.disgenet_all_gene_disease["diseaseName"].str.lower()
 
     def process_starBase_RNA_RNA_interactions(self, starbase_folder_path):
         self.starbase_rna_rna_interaction_table_path = os.path.join(starbase_folder_path, "starbase_3.0_rna_rna_interactions.csv")
@@ -440,23 +400,11 @@ class MessengerRNA(ExpressionData, Annotatable):
         self.gene_info["GO Terms"] = self.gene_info.index.map(go_df.groupby("DB_Object_Symbol")["GO_ID"].apply(
             lambda x: "|".join(x.unique())).to_dict())
 
-        if curated_gene_disease_assocs_only:
-            self.gene_info["Disease association"] = self.gene_info.index.map(
-                self.disgenet_curated_gene_disease.groupby("geneSymbol")["diseaseName"].apply('|'.join).to_dict())
-        else:
-            self.gene_info["Disease association"] = self.gene_info.index.map(
-                self.disgenet_all_gene_disease.groupby("geneSymbol")["diseaseName"].apply('|'.join).to_dict())
-
         # Process gene location info
         self.gene_info["Chromosome"] = "chr" + self.gene_info["location"].str.split("p|q", expand=True)[0]
         self.gene_info["Chromosome arm"] = self.gene_info["location"].str.extract(r'(?P<arm>[pq])', expand=True)
         self.gene_info["Chromosome region"] = self.gene_info["location"].str.split("[pq.-]", expand=True)[1]
         self.gene_info["Chromosome band"] = self.gene_info["location"].str.split("[pq.-]", expand=True)[2]
-
-        self.gene_info["Transcript length"] = self.gene_info["Transcript sequence"].apply(
-            lambda x: len(x) if type(x) is str else None)
-
-        self.gene_info["3P-seq tags"] = self.gene_info["3P-seq tags"].astype("O")
 
 
 
@@ -474,43 +422,6 @@ class MicroRNA(ExpressionData, Annotatable):
     def name(cls):
         return cls.__name__
 
-    def process_mirnadisease_associations(self, HMDD_miRNAdisease_path):
-        self.HMDD_miRNAdisease_path = HMDD_miRNAdisease_path
-        self.mirnadisease_association_path = os.path.join(HMDD_miRNAdisease_path, "miRNA_disease.txt")
-
-        self.mirnadisease = pd.read_table(self.mirnadisease_association_path, header=None, sep="\t")
-        self.mirnadisease.columns = ["index", "miRNA name", "Disease name", "Reference", "Description"]
-
-        self.mirnadisease["Disease name"] = self.mirnadisease["Disease name"].str.lower()
-
-    def process_HUGO_miRNA_gene_info(self, HUGO_folder_path):
-        self.HUGO_miRNA_gene_info_path = os.path.join(HUGO_folder_path, "RNA_micro.txt")
-
-        df = pd.read_table(self.HUGO_miRNA_gene_info_path,
-                           usecols=["alias_symbol", "ensembl_gene_id", "location"])
-        df = df[df["alias_symbol"].notna()]
-
-        df_1 = pd.concat([Series(data=row["location"], index=row['alias_symbol'].split('|'))
-                          for _, row in df.iterrows()]).reset_index()
-        df_2 = pd.concat([Series(data=row["ensembl_gene_id"], index=row['alias_symbol'].split('|'))
-                          for _, row in df.iterrows()]).reset_index()
-
-        df_1.columns = ["MiRBase ID", "location"]
-        df_2.columns = ["MiRBase ID", "ensembl_gene_id"]
-
-        self.HUGO_miRNA_gene_info_df = pd.merge(df_1, df_2, how="inner", on="MiRBase ID")
-        self.HUGO_miRNA_gene_info_df.index = self.HUGO_miRNA_gene_info_df["MiRBase ID"]
-
-
-    def process_genes_info(self):
-        self.gene_info = pd.DataFrame(index=self.get_genes_list())
-        self.gene_info.index.name = "MiRBase ID"
-
-        self.gene_info = self.gene_info.join(self.targetScan_family_df.groupby("MiRBase ID").first(), on="MiRBase ID", how="left")
-        self.gene_info = self.gene_info.join(self.HUGO_miRNA_gene_info_df, on="MiRBase ID", how="left")
-
-        self.gene_info["Disease association"] = self.gene_info.index.map(
-            self.mirnadisease.groupby("miRNA name")["Disease name"].apply('|'.join).to_dict())
 
 
 

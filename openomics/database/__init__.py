@@ -9,9 +9,9 @@ try:
         LncBase, MiRTarBase, TargetScan, LncRNA2Target, BioGRID, GeneMania, lncRInter, lncRNome
     )
 
-    # from .disease import (
-    #     Dataset
-    # )
+    from .disease import (
+        DisGeNet, HMDD, LncRNADisease
+    )
 
 except ImportError as e:
     msg = (
