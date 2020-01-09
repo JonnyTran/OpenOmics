@@ -127,7 +127,10 @@ class MultiOmics:
             omic_data.initialize_annotations(None, omic_data.gene_index)
 
         print(omic_data.name(),
-              self.data[omic_data.name()].shape if hasattr(self.data[omic_data.name()], 'shape') else ": None")
+              "shape: ",
+              self.data[omic_data.name()].shape if hasattr(self.data[omic_data.name()], 'shape') else ": None",
+              ", index:", omic_data.expressions.index,
+              )
 
     def add_clinical_data(self, clinical_data=None):
         if type(clinical_data) == ClinicalData:

@@ -308,13 +308,13 @@ class GTEx(Dataset):
             file_resources[
                 "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct"] = "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"
 
-        super(GTEx, self).__init__(path, file_resources, col_rename, npartitions)
+        super(GTEx, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
 
     def load_dataframe(self, file_resources):  # type: (dict) -> pd.DataFrame
         gene_exp_medians = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"],
             sep='\t', header=1, skiprows=1)
-        gene_exp_medians["gene_id"] = gene_exp_medians["gene_id"].str.replace("[.].*", "")
+        gene_exp_medians["Name"] = gene_exp_medians["Name"].str.replace("[.].*", "")
         gene_exp_medians = gene_exp_medians.rename(columns=self.COLUMNS_RENAME_DICT)
         gene_exp_medians.set_index(["gene_id", "gene_name"], inplace=True)
         #
