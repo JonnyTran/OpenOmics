@@ -53,7 +53,6 @@ class HMDD(DiseaseAssociation):
         super(HMDD, self).__init__(path, file_resources, **kwargs)
 
     def load_dataframe(self, file_resources):
-        print('file_resources["alldata.txt"]', file_resources["alldata.txt"])
         df = pd.read_csv(file_resources["alldata.txt"], sep="\t", encoding="unicode_escape")
         df["disease"] = df["disease"].str.lower()
         return df
@@ -75,7 +74,6 @@ class LncRNADisease(DiseaseAssociation):
         super(LncRNADisease, self).__init__(path, file_resources, **kwargs)
 
     def load_dataframe(self, file_resources):
-        print('self.file_resources["data_v2017.txt"]', self.file_resources["data_v2017.txt"])
         df = pd.read_csv(self.file_resources["data_v2017.txt"], header=None, sep="\t", encoding="unicode_escape")
         df.columns = ["LncRNA name", "Disease name", "Dysfunction type", "Description", "Chr",
                       "Start", "End", "Strand", "Species", "Alias", "Sequence", "Reference"]

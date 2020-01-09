@@ -35,7 +35,7 @@ def test_import_rnacentral_db(generate_RNACentral_ftp):
     assert generate_RNACentral_ftp.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/'
 
 
-def test_annotate_rnacentral(generate_TCGA_LUAD, generate_RNACentral_ftp):
+def test_rnacentral_annotate(generate_TCGA_LUAD, generate_RNACentral_ftp):
     generate_TCGA_LUAD.LncRNA.annotate_genomics(database=generate_RNACentral_ftp, index='gene_name',
                                                 columns=['Rfams', 'go_id'])
     generate_TCGA_LUAD.MicroRNA.annotate_genomics(database=generate_RNACentral_ftp, index="RNAcentral id",
