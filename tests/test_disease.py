@@ -1,10 +1,5 @@
-import pytest
-
 from openomics.database import DisGeNet, HMDD, LncRNADisease
-import pytest
-
-from openomics.database import DisGeNet, HMDD, LncRNADisease
-
+from .test_multiomics import *
 
 @pytest.fixture
 def generate_DisGeNet_ftp():
@@ -24,6 +19,11 @@ def generate_HMDD_ftp():
 def test_HMDD(generate_HMDD_ftp):
     assert generate_HMDD_ftp.data_path == "http://www.cuilab.cn/static/hmdd3/data/"
     assert not generate_HMDD_ftp.get_disease_assocs(index="gene_name").empty
+
+
+def test_HMDD_annotate(generate_TCGA_LUAD, generate_HMDD_ftp):
+    generate_TCGA_LUAD.MicroRNA.annotate_diseases(generate_HMDD_ftp, index="gene_name", )
+    assert {'disease_associations'}.issubset(generate_TCGA_LUAD.MicroRNA.get_annotations().columns)
 
 
 @pytest.fixture
