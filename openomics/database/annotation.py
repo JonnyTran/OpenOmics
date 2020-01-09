@@ -114,7 +114,7 @@ class Dataset(object):
         else:
             raise Exception("The columns argument must be a list such that it's subset of the following columns in the dataframe",
                             self.df.columns.tolist())
-
+        print("self.df.columns", self.df.columns)
         if index != self.df.index.name and index in self.df.columns:
             df = df.set_index(index)
 
@@ -287,11 +287,15 @@ class GTEx(Dataset):
         self.gene_id_col = gene_id_col
 
         if file_resources is None:
-            file_resources = {
-                "GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt": "https://storage.googleapis.com/gtex_analysis_v8/annotations/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt",
-                "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct": "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz",
-                "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct": "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz",
-            }
+            file_resources = {}
+
+        file_resources[
+            "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"] = "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
+        file_resources[
+            "GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt"] = "https://storage.googleapis.com/gtex_analysis_v8/annotations/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt"
+        file_resources[
+            "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct"] = "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"
+
         super(GTEx, self).__init__(path, file_resources, col_rename, npartitions)
 
     def load_dataframe(self, file_resources):  # type: (dict) -> pd.DataFrame
