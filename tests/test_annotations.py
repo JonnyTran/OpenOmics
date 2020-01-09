@@ -36,14 +36,14 @@ def test_import_rnacentral_db(generate_RNACentral_ftp):
 
 
 def test_rnacentral_annotate(generate_TCGA_LUAD, generate_RNACentral_ftp):
-    # generate_TCGA_LUAD.LncRNA.annotate_genomics(database=generate_RNACentral_ftp, index='gene_name',
-    #                                             columns=['Rfams', 'go_id'])
+    generate_TCGA_LUAD.LncRNA.annotate_genomics(database=generate_RNACentral_ftp, index='gene_name',
+                                                columns=['Rfams', 'go_id', 'gene_name'])
     generate_TCGA_LUAD.MicroRNA.annotate_genomics(database=generate_RNACentral_ftp, index="RNAcentral id",
                                                   columns=['transcript_id', 'RNA type', 'go_id', 'Rfams'])
     generate_TCGA_LUAD.MessengerRNA.annotate_genomics(database=generate_RNACentral_ftp, index="gene_name",
                                                       columns=['gene_name', 'transcript_id', 'RNA type', 'go_id',
                                                                'Rfams'])
-    # assert {'Rfams', 'go_id'}.issubset(generate_TCGA_LUAD.LncRNA.get_annotations().columns)
+    assert {'Rfams', 'go_id'}.issubset(generate_TCGA_LUAD.LncRNA.get_annotations().columns)
     assert {'transcript_id', 'RNA type', 'go_id', 'Rfams'}.issubset(
         generate_TCGA_LUAD.MicroRNA.get_annotations().columns)
     assert {'gene_name', 'transcript_id', 'RNA type', 'go_id', 'Rfams'}.issubset(
@@ -72,4 +72,8 @@ def test_import_GTEx(generate_GTEx_expressions):
 
 def test_GTEx_annotate(generate_TCGA_LUAD, generate_GTEx_expressions):
     generate_TCGA_LUAD.MessengerRNA.annotate_expressions(database=generate_GTEx_expressions, index="gene_name")
-    assert not MessengerRNA.get_annotation_expressions().empty
+    generate_TCGA_LUAD.LncRNA.annotate_expressions(database=generate_GTEx_expressions, index="gene_id")
+    generate_TCGA_LUAD.MicroRNA.annotate_expressions(database=generate_GTEx_expressions, index="gene_name")
+    assert not generate_TCGA_LUAD.MessengerRNA.get_annotation_expressions().empty
+    assert not generate_TCGA_LUAD.LncRNA.get_annotation_expressions().empty
+    assert not generate_TCGA_LUAD.MicroRNA.get_annotation_expressions().empty

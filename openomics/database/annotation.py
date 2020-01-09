@@ -223,8 +223,16 @@ class Annotatable(object):
             database.get_sequences(index=index, omic=omic))
 
     def annotate_expressions(self, database, index):
-        self.annotation_expressions = self.annotations.index.map(
-            database.get_expressions(index=index))
+        if self.annotations.index.name == index:
+            self.annotation_expressions = self.annotations.index.map(
+                database.get_expressions(index=index))
+        else:
+            old_index = self.annotations.index.name
+            annotations = self.annotations.reset_index().set_index(index)
+            annotations = annotations.join(database.get_expressions(index=index),
+                                           on=index, rsuffix="_")
+            annotations = annotations.reset_index()
+            self.annotation_expressions = annotations.set_index(old_index)
 
     def annotate_interactions(self, database, index):
         # type: (Interactions, str) -> None
