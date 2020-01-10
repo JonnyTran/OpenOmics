@@ -36,14 +36,11 @@ def test_import_rnacentral_db(generate_RNACentral_ftp):
 
 
 def test_rnacentral_annotate(generate_TCGA_LUAD, generate_RNACentral_ftp):
-    generate_TCGA_LUAD.LncRNA.annotate_genomics(database=generate_RNACentral_ftp, index='gene_id',
-                                                columns=['Rfams', 'go_id'])
     generate_TCGA_LUAD.MicroRNA.annotate_genomics(database=generate_RNACentral_ftp, index="RNAcentral id",
                                                   columns=['transcript_id', 'RNA type', 'go_id', 'Rfams'])
     generate_TCGA_LUAD.MessengerRNA.annotate_genomics(database=generate_RNACentral_ftp, index="gene_name",
                                                       columns=['gene_name', 'transcript_id', 'RNA type', 'go_id',
                                                                'Rfams'])
-    assert {'Rfams', 'go_id'}.issubset(generate_TCGA_LUAD.LncRNA.get_annotations().columns)
     assert {'transcript_id', 'RNA type', 'go_id', 'Rfams'}.issubset(
         generate_TCGA_LUAD.MicroRNA.get_annotations().columns)
     assert {'gene_name', 'transcript_id', 'RNA type', 'go_id', 'Rfams'}.issubset(
