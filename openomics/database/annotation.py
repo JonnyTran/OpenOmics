@@ -224,19 +224,12 @@ class Annotatable(object):
 
     def annotate_expressions(self, database, index, fuzzy_match=False):
         self.annotation_expressions = pd.DataFrame(index=self.annotations.index)
-        # if fuzzy_match:
-        #     database_annotations.index = database_annotations.index.map(lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
 
         if self.annotations.index.name == index:
             self.annotation_expressions = self.annotation_expressions.join(
                 database.get_expressions(index=index))
         else:
-            old_index = self.annotations.index.name
-            annotations = self.annotations.reset_index().set_index(index)
-            annotations = annotations.join(database.get_expressions(index=index),
-                                           on=index, rsuffix="_")
-            annotations = annotations.reset_index()
-            self.annotation_expressions = annotations.set_index(old_index)
+            raise Exception("index argument must be one of", database.df.index)
 
     def annotate_interactions(self, database, index):
         # type: (Interactions, str) -> None
