@@ -14,13 +14,14 @@ cohort_folder_path = "tests/data/TCGA_LUAD"
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA():
     return MessengerRNA("LUAD", file_path=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"),
-                        columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index_by=None,
+                        columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index_by="gene_name",
                         sample_index_by=None)
 
 @pytest.fixture
 def generate_TCGA_LUAD_MicroRNA():
     return MicroRNA("LUAD", file_path=os.path.join(cohort_folder_path, "LUAD__miRNAExp__RPM.txt"),
-                    columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index_by=None, sample_index_by=None)
+                    columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index_by="gene_name",
+                    sample_index_by=None)
 
 @pytest.fixture
 def generate_TCGA_LUAD_LncRNA():
@@ -52,6 +53,8 @@ def generate_TCGA_LUAD(generate_TCGA_LUAD_MessengerRNA, generate_TCGA_LUAD_Micro
     luad_data.add_omic(generate_TCGA_LUAD_MessengerRNA)
     luad_data.add_omic(generate_TCGA_LUAD_MicroRNA)
     luad_data.add_omic(generate_TCGA_LUAD_LncRNA)
+    luad_data.MicroRNA.expressions.index = luad_data.MicroRNA.expressions.index.str.replace("mir", "miR")
+    luad_data.MicroRNA.annotations.index = luad_data.MicroRNA.annotations.index.str.replace("mir", "miR")
     return luad_data
 
 def test_TCGA_LUAD_multiomics_transcriptomics(generate_TCGA_LUAD):

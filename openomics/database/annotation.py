@@ -114,7 +114,7 @@ class Dataset(object):
         else:
             raise Exception("The columns argument must be a list such that it's subset of the following columns in the dataframe",
                             self.df.columns.tolist())
-        print("self.df.columns", self.df.columns)
+
         if index != self.df.index.name and index in self.df.columns:
             df = df.set_index(index)
 
@@ -222,9 +222,13 @@ class Annotatable(object):
         self.annotations["Transcript sequence"] = self.annotations.index.map(
             database.get_sequences(index=index, omic=omic))
 
-    def annotate_expressions(self, database, index):
+    def annotate_expressions(self, database, index, fuzzy_match=False):
+        self.annotation_expressions = pd.DataFrame(index=self.annotations.index)
+        # if fuzzy_match:
+        #     database_annotations.index = database_annotations.index.map(lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
+
         if self.annotations.index.name == index:
-            self.annotation_expressions = self.annotations.index.map(
+            self.annotation_expressions = self.annotation_expressions.join(
                 database.get_expressions(index=index))
         else:
             old_index = self.annotations.index.name
