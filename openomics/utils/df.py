@@ -1,8 +1,8 @@
 
 
-def concat_uniques(x):
-    agg = x.dropna().astype(str)
-    if not agg.empty:
-        return "|".join(agg.unique())
+def concat_uniques(df_column):
+    df_column = df_column.dropna().astype(str)
+    if not df_column.empty:
+        return "|".join(df_column.unique())
     else:
         return None
