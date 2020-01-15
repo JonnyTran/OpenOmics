@@ -563,8 +563,7 @@ class EnsemblGenes(BioMartManager, Dataset):
             attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id',
                           'external_transcript_name',
                           'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
-                          'gene_biotype', 'transcript_biotype',
-                          'rfam', 'go_id', ]
+                          'gene_biotype', 'transcript_biotype', ]
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
         self.df = self.load_dataframe(datasets=dataset, attributes=attributes, host=self.host,
