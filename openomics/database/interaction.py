@@ -56,7 +56,7 @@ class Interactions(Dataset):
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed) -> nx.Graph:
         raise NotImplementedError
 
-    def get_interactions(self, nodelist, data=False, inclusive=False):
+    def get_interactions(self, nodelist, data=False, inclusive=True):
         """
 
         Args:
@@ -96,8 +96,9 @@ class GeneMania(Interactions):
             file_resources["identifier_mappings.txt"] = os.path.join(path,
                                                                      "identifier_mappings.txt")
 
-        super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
-                         edge_attr, directed, relabel_nodes)
+        super(GeneMania, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
+                                        target_index,
+                                        edge_attr, directed, relabel_nodes)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         interactions = pd.read_table(file_resources["COMBINED.DEFAULT_NETWORKS.BP_COMBINING.txt"], low_memory=True)
