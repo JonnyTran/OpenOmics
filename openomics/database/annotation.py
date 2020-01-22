@@ -39,6 +39,17 @@ class Dataset(object):
             npartitions (int): [0-n], default 0
                 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
         """
+        self.validate_file_resources(file_resources, path)
+
+        self.data_path = path
+        self.file_resources = file_resources
+        self.df = self.load_dataframe(file_resources)
+        self.df = self.df.reset_index()
+        if col_rename is not None:
+            self.df = self.df.rename(columns=col_rename)
+        print("{}: {}".format(self.name(), self.df.columns.tolist()))
+
+    def validate_file_resources(self, file_resources, path):
         if validators.url(path):
             for filename, filepath in copy.copy(file_resources).items():
                 data_file = get_pkg_data_filename(path, filepath)  # Download file and replace the file_resource path
@@ -57,14 +68,6 @@ class Dataset(object):
                     raise IOError(filepath)
         else:
             raise IOError(path)
-
-        self.data_path = path
-        self.file_resources = file_resources
-        self.df = self.load_dataframe(file_resources)
-        self.df = self.df.reset_index()
-        if col_rename is not None:
-            self.df = self.df.rename(columns=col_rename)
-        print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
     def close(self):
         # Close opened file resources

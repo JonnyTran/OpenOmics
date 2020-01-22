@@ -3,12 +3,10 @@ import os
 from glob import glob
 
 import dask.dataframe as dd
-import networkx as nx
 import numpy as np
 import pandas as pd
 # from Bio.UniProt import GOA
 from dask import delayed
-from gtfparse import read_gtf
 
 from .database import Annotatable
 
@@ -200,62 +198,6 @@ class LncRNA(ExpressionData, Annotatable):
 
         return df
 
-    def get_lncipedia_gene_id_to_name_dict(self):
-        lncipedia_names = read_gtf(
-            os.path.join(self.external_data_path, "LNCipedia/lncipedia_5_0_hg19 (copy).gtf"))
-        lncipedia_names = lncipedia_names[
-            lncipedia_names["gene_alias_1"].notnull() & lncipedia_names["gene_alias_2"].notnull()]
-        lncipedia_names = lncipedia_names[lncipedia_names["gene_alias_1"].str.startswith("ENSG")]
-        lncipedia_names = lncipedia_names[~lncipedia_names["gene_alias_2"].str.startswith("ENSG")]
-        lncipedia_lncrna_dict = pd.Series(lncipedia_names["gene_alias_2"].values,
-                                          index=lncipedia_names["gene_alias_1"]).to_dict()
-        return lncipedia_lncrna_dict
-
-
-    def get_HUGO_lncRNA_gene_name_dict(self):
-        try:
-            HGNC_lncrna_info = pd.read_table(self.HGNC_lncRNA_names_path, delimiter="\t",
-                                             usecols=['symbol', 'locus_type', 'ensembl_gene_id', 'name', 'location'])
-            self.HGNC_lncrna_info = HGNC_lncrna_info
-            self.HGNC_lncrna_info.index = self.HGNC_lncrna_info["ensembl_gene_id"]
-        except Exception:
-            raise FileNotFoundError("Needs the file RNA_long_non-coding.txt at directory external_data/HUGO_Gene_names to process lncRNA gene info")
-
-        lncrna_dict = pd.Series(self.HGNC_lncrna_info['symbol'].values,
-                                index=self.HGNC_lncrna_info['ensembl_gene_id']).to_dict()
-        return lncrna_dict
-
-
-    def get_starBase_miRNA_lncRNA_interactions_edgelist(self, data=True, rename_dict=None):
-        grn_df = pd.read_table(self.starBase_miRNA_lncRNA_file_path, header=0)
-
-        grn_df['name'] = grn_df['name'].str.lower()
-        grn_df['name'] = grn_df['name'].str.replace("-3p.*|-5p.*", "")
-
-        self.starBase_miRNA_lncRNA_network = nx.from_pandas_edgelist(grn_df, source='name', target='geneName',
-                                                                     create_using=nx.DiGraph())
-        if rename_dict is not None:
-            self.starBase_miRNA_lncRNA_network = nx.relabel_nodes(self.starBase_miRNA_lncRNA_network, rename_dict)
-        return self.starBase_miRNA_lncRNA_network.edges(data=data)
-
-    def get_starBase_lncRNA_RNA_interactions(self, data=True, rename_dict=None):
-        df = pd.read_table(self.starBase_lncRNA_RNA_interactions_file_path, header=0, sep=",",
-              usecols=["geneID", "geneName", "geneType", "pairGeneID", "pairGeneName",
-                      "pairGeneType", "interactionNum", 'expNum', "FreeEnergy"])
-
-        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
-            "pairGeneName"].str.lower()
-        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
-            "pairGeneName"].str.replace("-3p.*|-5p.*", "")
-
-
-        self.starBase_lncRNA_RNA_network = nx.from_pandas_edgelist(df, source='geneName', target='pairGeneName',
-                                                                   edge_attr=["interactionNum"],
-                                                                     create_using=nx.DiGraph())
-        if rename_dict is not None:
-            self.starBase_lncRNA_RNA_network = nx.relabel_nodes(self.starBase_lncRNA_RNA_network, rename_dict)
-        return self.starBase_lncRNA_RNA_network.edges(data=data)
-
     # def get_lncBase_miRNA_lncRNA_predicted_interactions_edgelist(self, data=True, rename_dict=None):
     #     records = []
     #     for record in SeqIO.parse(
@@ -280,53 +222,6 @@ class LncRNA(ExpressionData, Annotatable):
     #
     #     return lncBase_lncRNA_miRNA_network.edges(data=data)
 
-    def get_lncRNome_miRNA_binding_sites_edgelist(self, data=True, rename_dict=None):
-        df = pd.read_table(self.lnRNome_miRNA_binding_sites_path, header=0)
-
-        df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
-        df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "")
-
-        lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source='Gene Name',
-                                                                            target='Binding miRNAs',
-                                                                            edge_attr=["miRNA Interaction Site",
-                                                                                       "Transcript ID"],
-                                                                            create_using=nx.DiGraph())
-        if rename_dict is not None:
-            lncRNome_miRNA_binding_sites_network = nx.relabel_nodes(lncRNome_miRNA_binding_sites_network, rename_dict)
-
-        return lncRNome_miRNA_binding_sites_network.edges(data=data)
-
-
-    def get_NPInter_ncRNA_RNA_regulatory_interaction_edgelist(self, use_latest=True, data=True, rename_dict=None):
-        if use_latest:
-            file_path = self.NPInter_interactions_file_path
-        else:
-            file_path = self.NPInter_interactions_old_file_path
-
-        table = pd.read_table(file_path,
-                              usecols=["ncType", "ncIdentifier", "ncName", "prType", "prIdentifier",
-                                       "InteractionPartner", "organism", "tag", "interClass", "interLevel"])
-        table = table[table["organism"] == "Homo sapiens"]
-        table = table[table["interLevel"] == "RNA-RNA"]
-        # table = table[table["interClass"].isin(["binding;regulatory", "regulatory"])]
-        table["InteractionPartner"] = table["InteractionPartner"].str.replace("-3p.*|-5p.*", "")
-        table["InteractionPartner"] = table["InteractionPartner"].str.replace("hsa-miR", "hsa-mir")
-        table["InteractionPartner"] = table["InteractionPartner"].str.replace("miR", "hsa-mir")
-
-        NPInter_ncRNA_RNA_regulatory_network = nx.from_pandas_edgelist(table, source='ncName',
-                                                                       target='InteractionPartner',
-                                                                       # edge_attr=["tag", "interClass"],
-                                                                       create_using=nx.DiGraph())
-        if rename_dict is not None:
-            NPInter_ncRNA_RNA_regulatory_network = nx.relabel_nodes(NPInter_ncRNA_RNA_regulatory_network, rename_dict)
-        return NPInter_ncRNA_RNA_regulatory_network.edges(data=data)
-
-    def process_lncRNome_gene_info(self, lncRNome_folder_path):
-        self.lnRNome_genes_info_path = os.path.join(lncRNome_folder_path, "general_information.txt")
-
-        self.lnRNome_genes_info = pd.read_table(self.lnRNome_genes_info_path, header=0,
-                                                usecols=["Gene Name", "Transcript Name", "Transcript Type", "Location", "Strand"])
-
 
 
 class MessengerRNA(ExpressionData, Annotatable):
@@ -344,50 +239,6 @@ class MessengerRNA(ExpressionData, Annotatable):
     def name(cls):
         return cls.__name__
 
-    def process_HUGO_protein_coding_genes_info(self, hugo_protein_gene_names_path):
-        self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
-        self.hugo_protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path,
-                                                     usecols=["symbol", "locus_type", "gene_family", "gene_family_id",
-                                                              "location"])
-
-
-    def process_RegNet_gene_regulatory_network(self, grn_file_path):
-        self.regnet_grn_file_path = grn_file_path
-
-
-
-    def process_starBase_RNA_RNA_interactions(self, starbase_folder_path):
-        self.starbase_rna_rna_interaction_table_path = os.path.join(starbase_folder_path, "starbase_3.0_rna_rna_interactions.csv")
-
-
-    def get_starBase_RNA_RNA_interactions(self, data=True, min_interactionNum=1, min_expNum=1):
-        df = pd.read_csv(self.starbase_rna_rna_interaction_table_path, header=0)
-
-        df.loc[df["pairGeneType"]=="miRNA", "pairGeneName"] = df[df["pairGeneType"]=="miRNA"][
-            "pairGeneName"].str.lower()
-        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
-            "pairGeneName"].str.replace("-3p.*|-5p.*", "")
-        df = df[df["interactionNum"] >= min_interactionNum]
-        df = df[df["expNum"] >= min_expNum]
-
-        self.starBase_RNA_RNA_network = nx.from_pandas_edgelist(df, source='geneName', target='pairGeneName',
-                                                                edge_attr=["interactionNum"],
-                                                                     create_using=nx.DiGraph())
-        return self.starBase_RNA_RNA_network.edges(data=data)
-
-    def get_RegNet_GRN_edgelist(self, regnet_grn_file_path=None):
-        if regnet_grn_file_path is not None:
-            self.regnet_grn_file_path = regnet_grn_file_path
-
-        grn_df = pd.read_table(self.regnet_grn_file_path, header=None)
-
-        # Since RegNet GRN contains miRNA and TF regulatory interactions
-        # hsa-miR-* microRNA gene names will be mapped to hsa-mir-*
-        grn_df[0] = grn_df[0].map(lambda x: x.lower() if ("hsa-miR" in x) else x)
-
-        regnet_grn_network = nx.from_pandas_edgelist(grn_df, source=0, target=2, create_using=nx.DiGraph())
-
-        return regnet_grn_network.edges(data=True)
 
 
 class MicroRNA(ExpressionData, Annotatable):
@@ -403,8 +254,4 @@ class MicroRNA(ExpressionData, Annotatable):
     @classmethod
     def name(cls):
         return cls.__name__
-
-
-
-
 

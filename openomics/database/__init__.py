@@ -6,7 +6,7 @@ try:
     )
 
     from .interaction import (
-        LncBase, MiRTarBase, TargetScan, LncRNA2Target, BioGRID, GeneMania, lncRInter, lncRNome
+        LncBase, MiRTarBase, TargetScan, LncRNA2Target, BioGRID, GeneMania, lncRInter, lncRNome, STRING
     )
 
     from .disease import (
