@@ -5,7 +5,7 @@ import os
 import pandas as pd
 
 from openomics import ClinicalData
-from openomics import MicroRNA, MessengerRNA, LncRNA, ProteinExpression
+from openomics import MicroRNA, MessengerRNA, LncRNA, Protein
 
 
 def get_table_columns(list_of_contents, list_of_names):
@@ -51,9 +51,9 @@ def get_expression_data(list_of_contents, list_of_names, data_type, cohort_name=
     elif data_type == LncRNA.name():
         expression_data = LncRNA(cohort_name, file, columns=columns, genes_col_name=genes_col_name,
                                  transposed=transposed)
-    elif data_type == ProteinExpression.name():
-        expression_data = ProteinExpression(cohort_name, file, columns=columns, genes_col_name=genes_col_name,
-                                            transposed=transposed)
+    elif data_type == Protein.name():
+        expression_data = Protein(cohort_name, file, columns=columns, genes_col_name=genes_col_name,
+                                  transposed=transposed)
 
     return expression_data
 

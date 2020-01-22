@@ -521,7 +521,7 @@ class MiRTarBase(Interactions):
 class TargetScan(Interactions, Dataset):
     def __init__(self, path, file_resources=None, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
                  source_index="transcript_name", target_index="transcript_name",
-                 edge_attr=None, directed=True, relabel_nodes=None, species=9606,
+                 edge_attr=["tissue", "positive_negative"], directed=True, relabel_nodes=None, species=9606,
                  strip_mirna_name=False):
         if edge_attr is None:
             edge_attr = ["tissue", "positive_negative"]
@@ -539,10 +539,8 @@ class TargetScan(Interactions, Dataset):
                                          target_index=target_index,
                                          edge_attr=edge_attr, directed=directed, relabel_nodes=relabel_nodes)
 
-    def load_network(self, file_resources, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
-                     edge_attr=None, directed=True):
-        if edge_attr is None:
-            edge_attr = ["tissue", "positive_negative"]
+    def load_network(self, file_resources, source_col_name, target_col_name,
+                     edge_attr, directed=True):
         self.df = self.process_miR_family_info_table(file_resources, self.species)
         interactions_df = self.process_interactions_table(file_resources, self.df, self.species)
         print(self.name(), interactions_df.columns.tolist())
