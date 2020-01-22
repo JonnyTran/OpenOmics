@@ -1,4 +1,4 @@
-from openomics.database import GENCODE, RNAcentral, MirBase, GTEx
+from openomics.database import GENCODE, RNAcentral, MirBase, GTEx, GeneOntology
 from .test_multiomics import *
 
 
@@ -8,7 +8,7 @@ def generate_GENCODE_ftp():
                    file_resources={"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
                                    "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
                                    "transcripts.fa": "gencode.v32.transcripts.fa.gz"},
-                   import_sequences="shortest")
+                   agg_sequences="shortest")
 
 
 def test_import_gencode_db(generate_GENCODE_ftp):
@@ -70,3 +70,30 @@ def test_GTEx_annotate(generate_TCGA_LUAD, generate_GTEx_expressions):
     assert not generate_TCGA_LUAD.MessengerRNA.get_annotation_expressions().empty
     assert not generate_TCGA_LUAD.LncRNA.get_annotation_expressions().empty
     assert not generate_TCGA_LUAD.MicroRNA.get_annotation_expressions().empty
+
+
+@pytest.fixture
+def generate_GeneOntology():
+    return GeneOntology(path="http://geneontology.org/gene-associations/",
+                        file_resources={"goa_human.gaf": "goa_human.gaf.gz",
+                                        "goa_human_rna.gaf": "goa_human_rna.gaf.gz"}
+                        )
+
+
+def test_import_GeneOntology(generate_GeneOntology):
+    assert generate_GeneOntology.data_path == "http://geneontology.org/gene-associations/"
+
+
+def test_annotate_GeneOntology(generate_TCGA_LUAD, generate_GeneOntology):
+    generate_TCGA_LUAD.MessengerRNA.annotate_genomics(database=generate_GeneOntology, index="gene_name",
+                                                      columns=['go_id'])
+    generate_TCGA_LUAD.LncRNA.annotate_genomics(database=generate_GeneOntology, index="gene_id",
+                                                columns=['go_id'])
+    generate_TCGA_LUAD.MicroRNA.annotate_genomics(database=generate_GeneOntology, index="gene_name",
+                                                  columns=['go_id'])
+    assert {'go_id'}.issubset(generate_TCGA_LUAD.MessengerRNA.get_annotations().columns)
+    assert {'go_id'}.issubset(generate_TCGA_LUAD.LncRNA.get_annotations().columns)
+    assert {'go_id'}.issubset(generate_TCGA_LUAD.MicroRNA.get_annotations().columns)
+    assert not generate_TCGA_LUAD.LncRNA.annotations["go_id"].empty
+    assert not generate_TCGA_LUAD.MessengerRNA.annotations["go_id"].empty
+    assert not generate_TCGA_LUAD.MicroRNA.annotations["go_id"].empty
