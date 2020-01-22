@@ -13,7 +13,7 @@ from .database import Annotatable
 
 class ExpressionData(object):
     def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index_by="gene_id",
-                 sample_index_by="sample_index", transposed=True, log2_transform=False, npartitions=0):
+                 sample_index_by="sample_index", transposed=True, log2_transform=False, npartitions=None):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of any quantitative -omics data that is in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame from file with the user-specified columns and genes column name, then tranpose it such that the rows are samples and columns are gene/transcript/peptides.
@@ -21,8 +21,8 @@ class ExpressionData(object):
         The dataframe should only contain numeric values besides the genes_col_name and the sample barcode id indices.
         Args:
             cohort_name (str): the unique cohort code name string
-            file_path (str, byte-like):
-                Path or file stream of the table file to import.
+            file_path (str, byte-like, Pandas DataFrame):
+                Path or file stream of the table file to import. If a pandas DataFrame is passed, then import this dataframe and skip preprocessing steps.
             columns (str): a regex string
                 A regex string to import column names from the table. Columns names imported are string match, separated by "|".
             genes_col_name (str):
@@ -40,7 +40,9 @@ class ExpressionData(object):
         """
         self.cohort_name = cohort_name
 
-        if "*" in file_path:
+        if isinstance(file_path, pd.DataFrame):
+            self.expressions = file_path
+        elif "*" in file_path:
             df = self.preprocess_table_glob(file_path, columns, genes_col_name, transposed)
         elif isinstance(file_path, io.StringIO):
             # TODO implement handling for multiple file ByteIO
@@ -52,7 +54,7 @@ class ExpressionData(object):
             raise IOError(file_path)
 
         self.expressions = self.preprocess_table(df, columns, genes_col_name, transposed)
-        if npartitions > 1:
+        if npartitions:
             self.expressions = dd.from_pandas(self.expressions, npartitions=npartitions)
 
         self.gene_index = gene_index_by
