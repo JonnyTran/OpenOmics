@@ -351,9 +351,6 @@ class MessengerRNA(ExpressionData, Annotatable):
                                                               "location"])
 
 
-    def process_GO_genes_info(self, gene_ontology_folder_path):
-        self.gene_ontology_file_path = os.path.join(gene_ontology_folder_path, "goa_human.gaf")
-
     def process_RegNet_gene_regulatory_network(self, grn_file_path):
         self.regnet_grn_file_path = grn_file_path
 
@@ -391,21 +388,6 @@ class MessengerRNA(ExpressionData, Annotatable):
         regnet_grn_network = nx.from_pandas_edgelist(grn_df, source=0, target=2, create_using=nx.DiGraph())
 
         return regnet_grn_network.edges(data=True)
-
-
-    def process_genes_info(self, curated_gene_disease_assocs_only=True):
-        self.gene_info = pd.DataFrame(index=self.get_genes_list())
-
-        go_df = self.get_GO_genes_info()
-        self.gene_info["GO Terms"] = self.gene_info.index.map(go_df.groupby("DB_Object_Symbol")["GO_ID"].apply(
-            lambda x: "|".join(x.unique())).to_dict())
-
-        # Process gene location info
-        self.gene_info["Chromosome"] = "chr" + self.gene_info["location"].str.split("p|q", expand=True)[0]
-        self.gene_info["Chromosome arm"] = self.gene_info["location"].str.extract(r'(?P<arm>[pq])', expand=True)
-        self.gene_info["Chromosome region"] = self.gene_info["location"].str.split("[pq.-]", expand=True)[1]
-        self.gene_info["Chromosome band"] = self.gene_info["location"].str.split("[pq.-]", expand=True)[2]
-
 
 
 class MicroRNA(ExpressionData, Annotatable):

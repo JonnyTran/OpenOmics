@@ -12,6 +12,7 @@ import filetype
 import pandas as pd
 import validators
 from Bio import SeqIO
+from Bio.UniProt import GOA
 from bioservices import BioMart
 from gtfparse import read_gtf
 
@@ -217,7 +218,7 @@ class Annotatable(object):
             self.annotations[col.strip("_")].fillna(self.annotations[col], inplace=True, axis=0)
             self.annotations.drop(columns=col, inplace=True)
 
-    def annotate_sequences(self, database, index, omic):
+    def annotate_sequences(self, database, index, omic=None):
         # type: (Dataset, str, str) -> None
         self.annotations["Transcript sequence"] = self.annotations.index.map(
             database.get_sequences(index=index, omic=omic))
@@ -346,16 +347,45 @@ class GTEx(Dataset):
         return gene_exp_medians
 
 
+class GeneOntology(Dataset):
+    COLUMNS_RENAME_DICT = {
+        "DB_Object_Symbol": "gene_name",
+        "DB_Object_ID": "gene_id",
+        "GO_ID": "go_id"
+    }
+
+    def __init__(self, path="http://geneontology.org/gene-associations/",
+                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0):
+        if file_resources is None:
+            file_resources = {"goa_human.gaf": "goa_human.gaf.gz",
+                              "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
+                              "goa_human_isoform.gaf.gz": "goa_human_isoform.gaf.gz"
+                              }
+        super().__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
+
+    def load_dataframe(self, file_resources):
+        lines = []
+        dfs = []
+        for file in self.file_resources:
+            l = GOA.gafiterator(self.file_resources[file])
+            for line in l:
+                lines.append(line)
+            go_df = pd.DataFrame(lines)
+            dfs.append(go_df)
+
+        go_df = pd.concat(dfs)
+        return go_df
+
 class GENCODE(Dataset):
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
-                 file_resources=None, col_rename=None, npartitions=0, import_sequences="all",
+                 file_resources=None, col_rename=None, npartitions=0, agg_sequences="all",
                  replace_U2T=True):
         if file_resources is None:
             file_resources = {"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
                               "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
                               "transcripts.fa": "gencode.v32.transcripts.fa.gz"}
 
-        self.import_sequences = import_sequences
+        self.agg_sequences = agg_sequences
         self.replace_U2T = replace_U2T
 
         super(GENCODE, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
@@ -397,19 +427,19 @@ class GENCODE(Dataset):
                 sequence_str = sequence_str.replace("U", "T")
 
             # If index by gene, then select transcript sequences either by "shortest", "longest" or "all"
-            if "gene" in index and self.import_sequences == "shortest":
+            if "gene" in index and self.agg_sequences == "shortest":
                 if key not in seq_dict:
                     seq_dict[key] = sequence_str
                 else:
                     if len(seq_dict[key]) > len(sequence_str):
                         seq_dict[key] = sequence_str
-            elif "gene" in index and self.import_sequences == "longest":
+            elif "gene" in index and self.agg_sequences == "longest":
                 if key not in seq_dict:
                     seq_dict[key] = sequence_str
                 else:
                     if len(seq_dict[key]) < len(sequence_str):
                         seq_dict[key] = sequence_str
-            elif "gene" in index and self.import_sequences == "all":
+            elif "gene" in index and self.agg_sequences == "all":
                 if key not in seq_dict:
                     seq_dict[key] = [sequence_str, ]
                 else:
@@ -428,7 +458,7 @@ class GENCODE(Dataset):
 class MirBase(Dataset):
     def __init__(self, path="ftp://mirbase.org/pub/mirbase/CURRENT/",
                  file_resources=None, col_rename=None, npartitions=0,
-                 species=9606, import_sequences="all", replace_U2T=True):
+                 species="Homo sapiens", species_id=9606, agg_sequences="longest", replace_U2T=True):
         """
 
         Args:
@@ -436,7 +466,7 @@ class MirBase(Dataset):
             file_resources:
             col_rename:
             species (int): Species code, e.g., 9606 for human
-            import_sequences (str): {"longest", "shortest", "all"}
+            agg_sequences (str): {"longest", "shortest", "all"}
                 Whether to select the longest, shortest, or a list of all transcript sequences when aggregating transcript sequences by gene_id or gene_name.
             replace_U2T:
             :param npartitions:
@@ -448,8 +478,9 @@ class MirBase(Dataset):
             file_resources["rnacentral.mirbase.tsv"] = \
                 "ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/id_mapping/database_mappings/mirbase.tsv"
 
-        self.import_sequences = import_sequences
+        self.agg_sequences = agg_sequences
         self.replace_U2T = replace_U2T
+        self.species_id = species_id
         self.species = species
         super(MirBase, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
 
@@ -459,15 +490,16 @@ class MirBase(Dataset):
                                                   "gene name"])
         rnacentral_mirbase = rnacentral_mirbase.set_index("mirbase id")
         rnacentral_mirbase["species"] = rnacentral_mirbase["species"].astype("O")
-        if self.species is not None:
-            rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species"] == self.species]
+        if self.species_id is not None:
+            rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species"] == self.species_id]
 
         mirbase_aliases = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
                                         names=["mirbase id", "gene_name"], dtype="O").set_index("mirbase id")
         mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, how="inner")
 
         # Expanding miRNA names in each MirBase Ascension ID
-        mirna_names = mirbase_aliases.apply(lambda x: pd.Series(x['gene_name'].split(";")[:-1]), axis=1).stack().reset_index(
+        mirna_names = mirbase_aliases.apply(lambda x: pd.Series(x['gene_name'].split(";")[:-1]),
+                                            axis=1).stack().reset_index(
             level=1, drop=True)
         mirna_names.name = "gene_name"
         mirbase_aliases = mirbase_aliases.drop('gene_name', axis=1).join(mirna_names)
@@ -478,38 +510,43 @@ class MirBase(Dataset):
         return mirbase_aliases
 
     def get_sequences(self, index="gene_name", omic=None):
-        seq_dict = {}
+        if hasattr(self, "seq_dict"):
+            return self.seq_dict
+
+        self.seq_dict = {}
         # print("fasta_file", self.file_resources["mature.fa"])
         # decompressedFile = get_decompressed_text_gzip(self.file_resources["mature.fa"])
-
         for record in SeqIO.parse(self.file_resources["mature.fa"], "fasta"):
-            gene_name = str(record.id)
-
+            gene_name = str(record.name)
+            species = record.description.split(" ")[3]
             sequence_str = str(record.seq)
+
+            if species != self.species: continue
+
             if self.replace_U2T:
                 sequence_str = sequence_str.replace("U", "T")
 
-            if self.import_sequences == "shortest":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = sequence_str
+            if self.agg_sequences == "shortest":
+                if gene_name not in self.seq_dict:
+                    self.seq_dict[gene_name] = sequence_str
                 else:
-                    if len(seq_dict[gene_name]) > len(sequence_str):
-                        seq_dict[gene_name] = sequence_str
-            elif self.import_sequences == "longest":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = sequence_str
+                    if len(self.seq_dict[gene_name]) > len(sequence_str):
+                        self.seq_dict[gene_name] = sequence_str
+            elif self.agg_sequences == "longest":
+                if gene_name not in self.seq_dict:
+                    self.seq_dict[gene_name] = sequence_str
                 else:
-                    if len(seq_dict[gene_name]) < len(sequence_str):
-                        seq_dict[gene_name] = sequence_str
-            elif self.import_sequences == "all":
-                if gene_name not in seq_dict:
-                    seq_dict[gene_name] = [sequence_str, ]
+                    if len(self.seq_dict[gene_name]) < len(sequence_str):
+                        self.seq_dict[gene_name] = sequence_str
+            elif self.agg_sequences == "all":
+                if gene_name not in self.seq_dict:
+                    self.seq_dict[gene_name] = [sequence_str, ]
                 else:
-                    seq_dict[gene_name].append(sequence_str)
+                    self.seq_dict[gene_name].append(sequence_str)
             else:
-                seq_dict[gene_name] = sequence_str
+                self.seq_dict[gene_name] = sequence_str
 
-        return seq_dict
+        return self.seq_dict
 
 
 class BioMartManager:

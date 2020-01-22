@@ -4,7 +4,7 @@ import pandas as pd
 
 from .clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, TUMOR_NORMAL, PREDICTED_SUBTYPE
 from .genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
-from .image import WholeSlideImage
+from .imageomics import WholeSlideImage
 from .proteomics import ProteinExpression
 from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
