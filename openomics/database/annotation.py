@@ -574,9 +574,12 @@ class BioMartManager:
         return df
 
     def cache_dataset(self, dataset, dataframe, save_filename):
-        if save_filename is None:
+        if not os.path.exists(DEFAULT_CACHE_PATH):
             mkdirs(DEFAULT_CACHE_PATH)
+
+        if save_filename is None:
             save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(dataset))
+
         dataframe.to_csv(save_filename, sep="\t", index=False)
         return save_filename
 
