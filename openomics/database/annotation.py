@@ -209,7 +209,10 @@ class Annotatable(object):
         if index == self.annotations.index.name:
             self.annotations = self.annotations.join(database_annotations, on=index, rsuffix="_")
         else:
-            old_index = self.annotations.index.name
+            if type(self.annotations.index) == pd.MultiIndex:
+                old_index = self.annotations.index.names
+            else:
+                old_index = self.annotations.index.name
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(index, inplace=True)
             self.annotations = self.annotations.join(database_annotations, on=index, rsuffix="_")

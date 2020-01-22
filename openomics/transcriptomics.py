@@ -12,7 +12,7 @@ from .database import Annotatable
 
 
 class ExpressionData(object):
-    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index_by="gene_id",
+    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index_by=None,
                  sample_index_by="sample_index", transposed=True, log2_transform=False, npartitions=None):
         """
         .. class:: ExpressionData
