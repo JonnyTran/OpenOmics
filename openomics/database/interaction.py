@@ -7,7 +7,8 @@ from abc import abstractmethod
 
 
 class Interactions(Dataset):
-    def __init__(self, path, file_resources, source_col_name, target_col_name, source_index, target_index,
+    def __init__(self, path, file_resources, source_col_name=None, target_col_name=None, source_index=None,
+                 target_index=None,
                  edge_attr=None, directed=True, rename_dict=None, npartitions=0):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
@@ -28,12 +29,7 @@ class Interactions(Dataset):
                 A dictionary to rename columns in the data table. If None, then automatically load defaults.
             npartitions:
         """
-        if not os.path.isdir(path) or not os.path.exists(path):
-            raise NotADirectoryError(path)
-        else:
-            for _, filepath in file_resources.items():
-                if not os.path.exists(filepath):
-                    raise FileNotFoundError(filepath)
+        self.validate_file_resources(file_resources, path)
 
         self.import_folder = path
         self.file_resources = file_resources
@@ -150,6 +146,62 @@ class BioGRID(Interactions):
                                               edge_attr=edge_attr,
                                               create_using=nx.DiGraph() if directed else nx.Graph())
         return biogrid_grn
+
+
+class STRING(Interactions, Dataset):
+    COLUMNS_RENAME_DICT = {
+        "protein_external_id": "protein_id",
+        "preferred_name": "protein_name",
+    }
+
+    def __init__(self, path="https://stringdb-static.org/download/", file_resources=None,
+                 species_id="9606",
+                 source_col_name="protein1", target_col_name="protein2", source_index="protein_name",
+                 target_index="protein_name",
+                 edge_attr=["combined_score"], directed=False,
+                 rename_dict=COLUMNS_RENAME_DICT, npartitions=0):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["protein.links.txt"] = os.path.join(path,
+                                                               "protein.links.v11.0/{}.protein.links.v11.0.txt.gz".format(
+                                                                   species_id))
+            file_resources["protein.info.txt"] = os.path.join(path,
+                                                              "protein.info.v11.0/{}.protein.info.v11.0.txt.gz".format(
+                                                                  species_id))
+            file_resources["protein.sequences.fa"] = os.path.join(path,
+                                                                  "/protein.sequences.v11.0/{}.protein.sequences.v11.0.fa.gz".format(
+                                                                      species_id))
+
+        super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
+                         target_col_name=target_col_name,
+                         source_index=source_index, target_index=target_index, edge_attr=edge_attr,
+                         directed=directed, rename_dict=rename_dict, npartitions=npartitions)
+
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
+        df = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
+        # df["protein1"] = df["protein1"].str.split(".", expand=True)[1]
+        # df["protein2"] = df["protein2"].str.split(".", expand=True)[1]
+        network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
+                                          edge_attr=edge_attr,
+                                          create_using=nx.DiGraph() if directed else nx.Graph())
+        return network
+
+    def load_dataframe(self, file_resources):
+        df = pd.read_table(file_resources["protein.info.txt"])
+        return df
+
+    def get_sequences(self, index, omic=None):
+        if hasattr(self, "seq_dict"):
+            return self.seq_dict
+
+        self.seq_dict = {}
+        for record in SeqIO.parse(self.file_resources["protein.sequences.fa"], "fasta"):
+            gene_name = str(record.name)
+            sequence_str = str(record.seq)
+            self.seq_dict[gene_name] = sequence_str
+
+        return self.seq_dict
+
 
 class LncBase(Interactions, Dataset):
     def __init__(self, path, file_resources=None, source_col_name="mirna", target_col_name="geneId",
@@ -340,22 +392,43 @@ class LncRNA2Target(Interactions):
         return lncrna2target_low_throughput_network
 
 
-class lncRNome(Interactions):
-    def __init__(self, path, file_resources, source_col_name, target_col_name, source_index, target_index,
-                 edge_attr=None, directed=True, rename_dict=None, npartitions=0):
+class lncRNome(Interactions, Dataset):
+    def __init__(self, path, file_resources, source_col_name='Gene Name', target_col_name='Binding miRNAs',
+                 source_index="gene_name", target_index="gene_name",
+                 edge_attr=["miRNA Interaction Site", "Transcript ID"], directed=True, rename_dict=None, npartitions=0):
         if file_resources is None:
             file_resources = {}
             file_resources["miRNA_binding_sites.txt"] = os.path.join(path, "miRNA_binding_sites.txt")
+            file_resources["general_information.txt"] = os.path.join(path, "general_information.txt")
 
         super(lncRNome, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
                                        target_index, edge_attr,
                                        directed, rename_dict, npartitions)
 
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
+        df = pd.read_table(self.file_resources["miRNA_binding_sites.txt"], header=0)
+
+        df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
+        df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "")
+
+        lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source=source_col_name,
+                                                                       target=target_col_name,
+                                                                       edge_attr=edge_attr,
+                                                                       create_using=nx.DiGraph())
+
+        return lncRNome_miRNA_binding_sites_network
+
+    def load_dataframe(self, file_resources):
+        return pd.read_table(self.file_resources["general_information.txt"], header=0,
+                             usecols=["Gene Name", "Transcript Name", "Transcript Type", "Location", "Strand"])
+
 
 class NPInter(Interactions):
 
-    def __init__(self, path, file_resources, source_col_name, target_col_name, source_index, target_index,
-                 edge_attr=None, directed=True, rename_dict=None, npartitions=0):
+    def __init__(self, path, file_resources, source_col_name='Gene Name', target_col_name='Binding miRNAs',
+                 source_index="gene_name", target_index="gene_name",
+                 edge_attr=["miRNA Interaction Site", "Transcript ID"],
+                 directed=True, rename_dict=None, npartitions=0):
         if file_resources is None:
             file_resources = {}
             file_resources["interaction_NPInter[v3.0].txt"] = os.path.join(path, "interaction_NPInter[v3.0].txt")
@@ -364,21 +437,48 @@ class NPInter(Interactions):
                                       target_index, edge_attr,
                                       directed, rename_dict, npartitions)
 
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
+        df = pd.read_table(file_resources["interaction_NPInter[v3.0].txt"], header=0)
+
+        lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source=source_col_name,
+                                                                       target=target_col_name,
+                                                                       edge_attr=edge_attr,
+                                                                       create_using=nx.DiGraph())
+
+        return lncRNome_miRNA_binding_sites_network
+
 
 class StarBase(Interactions):
 
-    def __init__(self, path, file_resources, source_col_name, target_col_name, source_index, target_index,
+    def __init__(self, path, file_resources, source_col_name="geneName", target_col_name="pairGeneName",
+                 source_index="gene_name", target_index="gene_name",
+                 min_interactionNum=1, min_expNum=1,
                  edge_attr=None, directed=True, rename_dict=None, npartitions=0):
         if file_resources is None:
             file_resources = {}
-            file_resources["starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls"] = \
-                os.path.join(path, "starBase_Human_Pan-Cancer_miRNA-LncRNA_Interactions2018-04-26_09-10.xls")
             file_resources["starbase_3.0_lncrna_rna_interactions.csv"] = \
                 os.path.join(path, "starbase_3.0_lncrna_rna_interactions.csv")
-
+        self.min_interactionNum = min_interactionNum
+        self.min_expNum = min_expNum
         super(StarBase, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
                                        target_index, edge_attr,
                                        directed, rename_dict, npartitions)
+
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
+        if True:
+            df = pd.read_csv(self.file_resources["starbase_3.0_lncrna_rna_interactions.csv"], header=0)
+
+            df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
+                "pairGeneName"].str.lower()
+            df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
+                "pairGeneName"].str.replace("-3p.*|-5p.*", "")
+            df = df[df["interactionNum"] >= self.min_interactionNum]
+            df = df[df["expNum"] >= self.min_expNum]
+
+            self.starBase_RNA_RNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
+                                                                    edge_attr=["interactionNum"],
+                                                                    create_using=nx.DiGraph())
+            return self.starBase_RNA_RNA_network
 
 
 class MiRTarBase(Interactions):
