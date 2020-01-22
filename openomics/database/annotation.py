@@ -41,8 +41,6 @@ class Dataset(object):
         """
         self.validate_file_resources(file_resources, path)
 
-        self.data_path = path
-        self.file_resources = file_resources
         self.df = self.load_dataframe(file_resources)
         self.df = self.df.reset_index()
         if col_rename is not None:
@@ -68,6 +66,9 @@ class Dataset(object):
                     raise IOError(filepath)
         else:
             raise IOError(path)
+
+        self.data_path = path
+        self.file_resources = file_resources
 
     def close(self):
         # Close opened file resources
