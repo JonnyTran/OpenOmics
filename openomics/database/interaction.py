@@ -9,7 +9,7 @@ from abc import abstractmethod
 class Interactions(Dataset):
     def __init__(self, path, file_resources, source_col_name=None, target_col_name=None, source_index=None,
                  target_index=None,
-                 edge_attr=None, directed=True, rename_dict=None, npartitions=0):
+                 edge_attr=None, directed=True, relabel_nodes=None):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
@@ -44,8 +44,8 @@ class Interactions(Dataset):
             raise Exception(
                 "Make sure load_network() returns a Networkx Graph and is called with super().__init__() in the constructor.")
 
-        if rename_dict is not None:
-            self.network = nx.relabel_nodes(self.network, rename_dict)
+        if relabel_nodes is not None:
+            self.network = nx.relabel_nodes(self.network, relabel_nodes)
 
         print("{}".format(nx.info(self.network)))
 
@@ -86,7 +86,7 @@ class GeneMania(Interactions):
 
     def __init__(self, path, file_resources=None, source_col_name="Gene_A", target_col_name="Gene_B",
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=None, directed=True, rename_dict=None):
+                 edge_attr=None, directed=True, relabel_nodes=None):
         if edge_attr is None:
             edge_attr = ["Weight"]
         if file_resources is None:
@@ -97,7 +97,7 @@ class GeneMania(Interactions):
                                                                      "identifier_mappings.txt")
 
         super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
-                         edge_attr, directed, rename_dict)
+                         edge_attr, directed, relabel_nodes)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         interactions = pd.read_table(file_resources["COMBINED.DEFAULT_NETWORKS.BP_COMBINING.txt"], low_memory=True)
@@ -121,7 +121,7 @@ class BioGRID(Interactions):
                  target_col_name="Official Symbol Interactor B",
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=None,
-                 directed=False, rename_dict=None):
+                 directed=False, relabel_nodes=None):
         if edge_attr is None:
             edge_attr = ['Score', 'Throughput', 'Qualifications', 'Modification', 'Phenotypes']
         if file_resources is None:
@@ -129,7 +129,7 @@ class BioGRID(Interactions):
             file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"] = os.path.join(path, "BIOGRID-ALL-3.4.162.tab2.txt")
 
         super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
-                         edge_attr, directed, rename_dict)
+                         edge_attr, directed, relabel_nodes)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, species=9606):
         biogrid_df = pd.read_table(file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"],
@@ -159,7 +159,7 @@ class STRING(Interactions, Dataset):
                  source_col_name="protein1", target_col_name="protein2", source_index="protein_name",
                  target_index="protein_name",
                  edge_attr=["combined_score"], directed=False,
-                 rename_dict=COLUMNS_RENAME_DICT, npartitions=0):
+                 relabel_nodes=None):
         if file_resources is None:
             file_resources = {}
             file_resources["protein.links.txt"] = os.path.join(path,
@@ -175,23 +175,23 @@ class STRING(Interactions, Dataset):
         super(STRING, self).__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
                                      target_col_name=target_col_name,
                                      source_index=source_index, target_index=target_index, edge_attr=edge_attr,
-                                     directed=directed, rename_dict=rename_dict, npartitions=npartitions)
+                                     directed=directed, relabel_nodes=relabel_nodes)
+        super(Interactions, self).__init__(path, self.file_resources, col_rename=self.COLUMNS_RENAME_DICT,
+                                           npartitions=0)
+        # self.df = self.load_dataframe(self.file_resources)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         df = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
-
         protein_info = pd.read_table(file_resources["protein.info.txt"])
         self.protein_id2name = protein_info.set_index("protein_external_id")["preferred_name"].to_dict()
-        df["protein1"].replace(self.protein_id2name, inplace=True)
-        df["protein2"].replace(self.protein_id2name, inplace=True)
-
         network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                           edge_attr=edge_attr,
                                           create_using=nx.DiGraph() if directed else nx.Graph())
+        network = nx.relabel_nodes(network, self.protein_id2name)
         return network
 
     def load_dataframe(self, file_resources):
-        df = pd.read_table(file_resources["protein.info.txt"])
+        df = pd.read_table(file_resources["protein.info.txt"], sep=" ", )
         print(df.columns)
         return df
 
@@ -218,7 +218,7 @@ class LncBase(Interactions, Dataset):
     def __init__(self, path, file_resources=None, source_col_name="mirna", target_col_name="geneId",
                  source_index="transcript_name", target_index="gene_id",
                  edge_attr=None, directed=True,
-                 rename_dict=None, organism="Homo sapiens", tissue=None):
+                 relabel_nodes=None, organism="Homo sapiens", tissue=None):
         """
 
         Args:
@@ -238,7 +238,7 @@ class LncBase(Interactions, Dataset):
                                       source_col_name=source_col_name,
                                       target_col_name=target_col_name, source_index=source_index,
                                       target_index=target_index,
-                                      edge_attr=edge_attr, directed=directed, rename_dict=rename_dict)
+                                      edge_attr=edge_attr, directed=directed, relabel_nodes=relabel_nodes)
 
     def get_rename_dict(self, from_index="geneId", to_index="geneName"):
         lncbase_df = pd.read_table(self.file_resources["LncBasev2_download.csv"], low_memory=True)
@@ -270,14 +270,14 @@ class LncReg(Interactions):
     def __init__(self, path, file_resources,
                  source_col_name='A_name_in_paper', target_col_name='B_name_in_paper',
                  source_index="transcript_name", target_index="gene_name",
-                 edge_attr=["relationship", "mechanism", "pmid"], directed=True, rename_dict=None, npartitions=0):
+                 edge_attr=["relationship", "mechanism", "pmid"], directed=True, relabel_nodes=None, npartitions=0):
         if file_resources is None:
             file_resources = {}
             file_resources["data.xlsx"] = os.path.join(path, "data.xlsx")
 
         super(LncReg, self).__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
                                      edge_attr,
-                                     directed, rename_dict, npartitions)
+                                     directed, relabel_nodes, npartitions)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         df = pd.read_excel(self.file_resources["data.xlsx"])
@@ -302,7 +302,7 @@ class lncRInter(Interactions):
                  target_col_name='Interacting partner',
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=None,
-                 directed=True, rename_dict=None, organism="Homo sapiens"):
+                 directed=True, relabel_nodes=None, organism="Homo sapiens"):
         self.organism = organism
 
         if edge_attr is None:
@@ -312,7 +312,7 @@ class lncRInter(Interactions):
             file_resources["human_interactions.txt"] = os.path.join(path, "human_interactions.txt")
 
         super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
-                         edge_attr, directed, rename_dict, )
+                         edge_attr, directed, relabel_nodes, )
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         lncRInter_df = pd.read_table(file_resources["human_interactions.txt"])
@@ -341,7 +341,7 @@ class LncRNA2Target(Interactions):
     def __init__(self, path, file_resources=None, source_col_name="lncrna_symbol",
                  target_col_name="gene_symbol",
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=None, directed=True, rename_dict=None, version="high_throughput", species=9606):
+                 edge_attr=None, directed=True, relabel_nodes=None, version="high_throughput", species=9606):
         """
 
         Args:
@@ -360,7 +360,7 @@ class LncRNA2Target(Interactions):
                                                                                                 "lncRNA_target_from_high_throughput_experiments.txt")
 
         super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
-                         edge_attr, directed, rename_dict, species)
+                         edge_attr, directed, relabel_nodes, species)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         if self.version == "high_throughput":
@@ -406,7 +406,8 @@ class LncRNA2Target(Interactions):
 class lncRNome(Interactions, Dataset):
     def __init__(self, path, file_resources, source_col_name='Gene Name', target_col_name='Binding miRNAs',
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=["miRNA Interaction Site", "Transcript ID"], directed=True, rename_dict=None, npartitions=0):
+                 edge_attr=["miRNA Interaction Site", "Transcript ID"], directed=True, relabel_nodes=None,
+                 npartitions=0):
         if file_resources is None:
             file_resources = {}
             file_resources["miRNA_binding_sites.txt"] = os.path.join(path, "miRNA_binding_sites.txt")
@@ -414,7 +415,7 @@ class lncRNome(Interactions, Dataset):
 
         super(lncRNome, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
                                        target_index, edge_attr,
-                                       directed, rename_dict, npartitions)
+                                       directed, relabel_nodes, npartitions)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         df = pd.read_table(self.file_resources["miRNA_binding_sites.txt"], header=0)
@@ -439,14 +440,14 @@ class NPInter(Interactions):
     def __init__(self, path, file_resources, source_col_name='Gene Name', target_col_name='Binding miRNAs',
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=["miRNA Interaction Site", "Transcript ID"],
-                 directed=True, rename_dict=None, npartitions=0):
+                 directed=True, relabel_nodes=None, npartitions=0):
         if file_resources is None:
             file_resources = {}
             file_resources["interaction_NPInter[v3.0].txt"] = os.path.join(path, "interaction_NPInter[v3.0].txt")
 
         super(NPInter, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
                                       target_index, edge_attr,
-                                      directed, rename_dict, npartitions)
+                                      directed, relabel_nodes, npartitions)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         df = pd.read_table(file_resources["interaction_NPInter[v3.0].txt"], header=0)
@@ -464,7 +465,7 @@ class StarBase(Interactions):
     def __init__(self, path, file_resources, source_col_name="geneName", target_col_name="pairGeneName",
                  source_index="gene_name", target_index="gene_name",
                  min_interactionNum=1, min_expNum=1,
-                 edge_attr=None, directed=True, rename_dict=None, npartitions=0):
+                 edge_attr=None, directed=True, relabel_nodes=None, npartitions=0):
         if file_resources is None:
             file_resources = {}
             file_resources["starbase_3.0_lncrna_rna_interactions.csv"] = \
@@ -473,7 +474,7 @@ class StarBase(Interactions):
         self.min_expNum = min_expNum
         super(StarBase, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
                                        target_index, edge_attr,
-                                       directed, rename_dict, npartitions)
+                                       directed, relabel_nodes, npartitions)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         if True:
@@ -499,7 +500,7 @@ class MiRTarBase(Interactions):
 
     def __init__(self, path, file_resources=None, source_col_name="miRNA", target_col_name="Target Gene",
                  source_index="transcript_name", target_index="gene_name",
-                 edge_attr=None, directed=True, rename_dict=None, species="Homo sapiens",
+                 edge_attr=None, directed=True, relabel_nodes=None, species="Homo sapiens",
                  strip_mirna_name=False):
         if edge_attr is None:
             edge_attr = ["Support Type"]
@@ -514,7 +515,7 @@ class MiRTarBase(Interactions):
                                          source_col_name=source_col_name,
                                          target_col_name=target_col_name, source_index=source_index,
                                          target_index=target_index,
-                                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict, )
+                                         edge_attr=edge_attr, directed=directed, relabel_nodes=relabel_nodes, )
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed=True):
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
@@ -535,7 +536,7 @@ class MiRTarBase(Interactions):
 class TargetScan(Interactions, Dataset):
     def __init__(self, path, file_resources=None, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
                  source_index="transcript_name", target_index="transcript_name",
-                 edge_attr=None, directed=True, rename_dict=None, species=9606,
+                 edge_attr=None, directed=True, relabel_nodes=None, species=9606,
                  strip_mirna_name=False):
         if edge_attr is None:
             edge_attr = ["tissue", "positive_negative"]
@@ -551,7 +552,7 @@ class TargetScan(Interactions, Dataset):
                                          source_col_name=source_col_name,
                                          target_col_name=target_col_name, source_index=source_index,
                                          target_index=target_index,
-                                         edge_attr=edge_attr, directed=directed, rename_dict=rename_dict)
+                                         edge_attr=edge_attr, directed=directed, relabel_nodes=relabel_nodes)
 
     def load_network(self, file_resources, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
                      edge_attr=None, directed=True):
