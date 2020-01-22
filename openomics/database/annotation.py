@@ -373,7 +373,7 @@ class GeneOntology(Dataset):
                               "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
                               "goa_human_isoform.gaf.gz": "goa_human_isoform.gaf.gz"
                               }
-        super().__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
+        super(GeneOntology, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
 
     def load_dataframe(self, file_resources):
         lines = []
@@ -411,9 +411,9 @@ class GENCODE(Dataset):
 
     def get_sequences(self, index, omic=None):
         # Parse lncRNA & mRNA fasta
-        if omic == openomics.transcriptomics.MessengerRNA.name():
+        if omic == openomics.MessengerRNA.name():
             fasta_file = self.file_resources["transcripts.fa"]
-        elif omic == openomics.transcriptomics.LncRNA.name():
+        elif omic == openomics.LncRNA.name():
             fasta_file = self.file_resources["lncRNA_transcripts.fa"]
         else:
             raise Exception("The omic argument must be one of the omic names")
