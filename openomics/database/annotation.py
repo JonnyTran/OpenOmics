@@ -228,8 +228,12 @@ class Annotatable(object):
 
     def annotate_sequences(self, database, index, omic=None):
         # type: (Dataset, str, str) -> None
-        self.annotations["Transcript sequence"] = self.annotations.reset_index()[index].map(
-            database.get_sequences(index=index, omic=omic))
+        if type(self.annotations.index) == pd.MultiIndex:
+            self.annotations['Transcript sequence'] = self.annotations.index.get_level_values(index).map(
+                database.get_sequences(index=index, omic=omic))
+        else:
+            self.annotations["Transcript sequence"] = self.annotations.index.map(
+                database.get_sequences(index=index, omic=omic))
 
     def annotate_expressions(self, database, index, fuzzy_match=False):
         self.annotation_expressions = pd.DataFrame(index=self.annotations.index)
