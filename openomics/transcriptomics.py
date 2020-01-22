@@ -66,7 +66,7 @@ class ExpressionData(object):
 
         # Save samples and features for this omics data
         self.samples = self.expressions.index
-        self.features = self.expressions.columns.tolist()
+        self.features = self.expressions.columns
 
     def preprocess_table(self, df, columns=None, genes_index=None, transposed=True, sort_index=False):
         # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
