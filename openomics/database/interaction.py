@@ -171,6 +171,12 @@ class STRING(Interactions, Dataset):
                                      source_index=source_index, target_index=target_index, edge_attr=edge_attr,
                                      directed=directed, relabel_nodes=relabel_nodes)
 
+        self.file_resources["protein.info.txt"].seek(0)
+        self.df = pd.read_table(file_resources["protein.info.txt"])
+        self.df = self.df.reset_index()
+        self.df = self.df.rename(columns=self.COLUMNS_RENAME_DICT)
+        print("{}: {}".format(self.name(), self.df.columns.tolist()))
+
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         df = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
         protein_info = pd.read_table(file_resources["protein.info.txt"])
