@@ -176,9 +176,6 @@ class STRING(Interactions, Dataset):
                                      target_col_name=target_col_name,
                                      source_index=source_index, target_index=target_index, edge_attr=edge_attr,
                                      directed=directed, relabel_nodes=relabel_nodes)
-        super(Interactions, self).__init__(path, self.file_resources, col_rename=self.COLUMNS_RENAME_DICT,
-                                           npartitions=0)
-        # self.df = self.load_dataframe(self.file_resources)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         df = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
@@ -189,11 +186,6 @@ class STRING(Interactions, Dataset):
                                           create_using=nx.DiGraph() if directed else nx.Graph())
         network = nx.relabel_nodes(network, self.protein_id2name)
         return network
-
-    def load_dataframe(self, file_resources):
-        df = pd.read_table(file_resources["protein.info.txt"], sep=" ", )
-        print(df.columns)
-        return df
 
     def get_sequences(self, index="protein_name", omic=None):
         if hasattr(self, "seq_dict"):
