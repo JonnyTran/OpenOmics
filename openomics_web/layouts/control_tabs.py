@@ -1,7 +1,7 @@
 import dash_core_components as dcc
 import dash_html_components as html
 
-from openomics import MicroRNA, LncRNA, MessengerRNA, ProteinExpression
+from openomics import MicroRNA, LncRNA, MessengerRNA, Protein
 
 
 def control_tabs():
@@ -111,7 +111,7 @@ def control_tabs():
                     dcc.RadioItems(
                         id='data-table-type',
                         options=[
-                            {'label': 'Protein Expression', 'value': ProteinExpression.name()},
+                            {'label': 'Protein Expression', 'value': Protein.name()},
                             {'label': 'miRNA Expression', 'value': MicroRNA.name()},
                             {'label': 'lncRNA Expression', 'value': LncRNA.name()},
                             {'label': 'mRNA Expression', 'value': MessengerRNA.name()},

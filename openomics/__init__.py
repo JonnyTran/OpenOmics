@@ -20,7 +20,7 @@ try:
     )
 
     from .proteomics import (
-        ProteinExpression
+        Protein
     )
 
     from .clinical import ClinicalData
