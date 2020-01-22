@@ -460,9 +460,10 @@ class GENCODE(Dataset):
 
 
 class MirBase(Dataset):
-    def __init__(self, path="ftp://mirbase.org/pub/mirbase/CURRENT/",
-                 file_resources=None, col_rename=None, npartitions=0,
-                 species="Homo sapiens", species_id=9606, agg_sequences="longest", replace_U2T=True):
+    def __init__(self, path="ftp://mirbase.org/pub/mirbase/CURRENT/", file_resources=None, col_rename=None,
+                 npartitions=0,
+                 sequence="hairpin",
+                 species="Homo sapiens", species_id=9606, agg_sequences="longest", replace_U2T=False):
         """
 
         Args:
@@ -479,9 +480,11 @@ class MirBase(Dataset):
             file_resources = {}
             file_resources["aliases.txt"] = "aliases.txt.gz"
             file_resources["mature.fa"] = "mature.fa.gz"
+            file_resources["hairpin.fa"] = "hairpin.fa.gz"
             file_resources["rnacentral.mirbase.tsv"] = \
                 "ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/id_mapping/database_mappings/mirbase.tsv"
 
+        self.sequence = sequence
         self.agg_sequences = agg_sequences
         self.replace_U2T = replace_U2T
         self.species_id = species_id
@@ -518,9 +521,14 @@ class MirBase(Dataset):
             return self.seq_dict
 
         self.seq_dict = {}
-        # print("fasta_file", self.file_resources["mature.fa"])
-        # decompressedFile = get_decompressed_text_gzip(self.file_resources["mature.fa"])
-        for record in SeqIO.parse(self.file_resources["mature.fa"], "fasta"):
+        if self.species == "hairpin":
+            file = self.file_resources["hairpin.fa"]
+        elif self.species == "mature":
+            file = self.file_resources["mature.fa"]
+        else:
+            raise Exception("species must be either 'hairpin' or 'mature'")
+
+        for record in SeqIO.parse(file, "fasta"):
             gene_name = str(record.name)
             species = record.description.split(" ")[3]
             sequence_str = str(record.seq)
