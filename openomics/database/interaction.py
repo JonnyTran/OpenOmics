@@ -163,18 +163,22 @@ class STRING(Interactions, Dataset):
                                                               "protein.info.v11.0/{}.protein.info.v11.0.txt.gz".format(
                                                                   species_id))
             file_resources["protein.sequences.fa"] = os.path.join(path,
-                                                                  "/protein.sequences.v11.0/{}.protein.sequences.v11.0.fa.gz".format(
+                                                                  "protein.sequences.v11.0/{}.protein.sequences.v11.0.fa.gz".format(
                                                                       species_id))
 
-        super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
-                         target_col_name=target_col_name,
-                         source_index=source_index, target_index=target_index, edge_attr=edge_attr,
-                         directed=directed, rename_dict=rename_dict, npartitions=npartitions)
+        super(STRING, self).__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
+                                     target_col_name=target_col_name,
+                                     source_index=source_index, target_index=target_index, edge_attr=edge_attr,
+                                     directed=directed, rename_dict=rename_dict, npartitions=npartitions)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         df = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
-        # df["protein1"] = df["protein1"].str.split(".", expand=True)[1]
-        # df["protein2"] = df["protein2"].str.split(".", expand=True)[1]
+
+        protein_info = pd.read_table(file_resources["protein.info.txt"])
+        self.protein_id2name = protein_info.set_index("protein_external_id")["preferred_name"].to_dict()
+        df["protein1"].replace(self.protein_id2name, inplace=True)
+        df["protein2"].replace(self.protein_id2name, inplace=True)
+
         network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                           edge_attr=edge_attr,
                                           create_using=nx.DiGraph() if directed else nx.Graph())
@@ -182,17 +186,24 @@ class STRING(Interactions, Dataset):
 
     def load_dataframe(self, file_resources):
         df = pd.read_table(file_resources["protein.info.txt"])
+        print(df.columns)
         return df
 
-    def get_sequences(self, index, omic=None):
+    def get_sequences(self, index="protein_name", omic=None):
         if hasattr(self, "seq_dict"):
             return self.seq_dict
 
         self.seq_dict = {}
         for record in SeqIO.parse(self.file_resources["protein.sequences.fa"], "fasta"):
-            gene_name = str(record.name)
+            gene_id = str(record.name)
+            gene_name = self.protein_id2name[gene_id]
             sequence_str = str(record.seq)
-            self.seq_dict[gene_name] = sequence_str
+            if index == "protein_name":
+                key = gene_name
+            elif index == "protein_id":
+                key = gene_id
+
+            self.seq_dict[key] = sequence_str
 
         return self.seq_dict
 
