@@ -41,7 +41,7 @@ class ExpressionData(object):
         self.cohort_name = cohort_name
 
         if isinstance(file_path, pd.DataFrame):
-            self.expressions = file_path
+            df = file_path
         elif "*" in file_path:
             df = self.preprocess_table_glob(file_path, columns, genes_col_name, transposed)
         elif isinstance(file_path, io.StringIO):
