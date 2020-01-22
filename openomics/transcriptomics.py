@@ -41,7 +41,7 @@ class ExpressionData(object):
         self.cohort_name = cohort_name
 
         if "*" in file_path:
-            self.expressions = self.preprocess_table_glob(file_path, columns, genes_col_name, transposed)
+            df = self.preprocess_table_glob(file_path, columns, genes_col_name, transposed)
         elif isinstance(file_path, io.StringIO):
             # TODO implement handling for multiple file ByteIO
             file_path.seek(0)  # Needed since the file was previous read to extract columns information
