@@ -202,28 +202,29 @@ class Annotatable(object):
             columns (list): a list of column name to join to the annotations
             fuzzy_match (bool): default False. Whether to join the annotations by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
         """
-        database_annotations = database.get_annotations(index, columns)
+        database_df = database.get_annotations(index, columns)
         if fuzzy_match:
-            database_annotations.index = database_annotations.index.map(lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
+            database_df.index = database_df.index.map(lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
 
         if index == self.annotations.index.name:
-            self.annotations = self.annotations.join(database_annotations, on=index, rsuffix="_")
+            self.annotations = self.annotations.join(database_df, on=index, rsuffix="_")
         else:
             if type(self.annotations.index) == pd.MultiIndex:
                 old_index = self.annotations.index.names
             else:
                 old_index = self.annotations.index.name
+
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(index, inplace=True)
-            self.annotations = self.annotations.join(database_annotations, on=index, rsuffix="_")
-            self.annotations = self.annotations.reset_index()
+            self.annotations = self.annotations.join(database_df, on=index, rsuffix="_").reset_index()
             self.annotations.set_index(old_index, inplace=True)
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
         duplicate_columns = [col for col in self.annotations.columns if col[-1] == "_"]
-        for col in duplicate_columns:
-            self.annotations[col.strip("_")].fillna(self.annotations[col], inplace=True, axis=0)
-            self.annotations.drop(columns=col, inplace=True)
+        for new_col in duplicate_columns:
+            old_col = new_col.strip("_")
+            self.annotations[old_col].fillna(self.annotations[new_col], inplace=True, axis=0)
+            self.annotations.drop(columns=new_col, inplace=True)
 
     def annotate_sequences(self, database, index, omic=None):
         # type: (Dataset, str, str) -> None
