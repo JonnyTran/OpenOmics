@@ -228,7 +228,7 @@ class Annotatable(object):
 
     def annotate_sequences(self, database, index, omic=None):
         # type: (Dataset, str, str) -> None
-        self.annotations["Transcript sequence"] = self.annotations.index.map(
+        self.annotations["Transcript sequence"] = self.annotations[index].map(
             database.get_sequences(index=index, omic=omic))
 
     def annotate_expressions(self, database, index, fuzzy_match=False):
