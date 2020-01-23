@@ -35,7 +35,7 @@ def generate_TCGA_LUAD_SomaticMutation():
 
 @pytest.fixture
 def generate_TCGA_LUAD_Protein():
-    return Protein("LUAD", file_path=os.path.join(cohort_folder_path, "protein_rppa/protein_RPPA.txt"),
+    return Protein("LUAD", file_path=os.path.join(cohort_folder_path, "protein_RPPA.txt"),
                    gene_index_by="protein_name",
                    columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol")
 
