@@ -529,12 +529,12 @@ class MirBase(Dataset):
             return self.seq_dict
 
         self.seq_dict = {}
-        if self.species == "hairpin":
+        if self.sequence == "hairpin":
             file = self.file_resources["hairpin.fa"]
-        elif self.species == "mature":
+        elif self.sequence == "mature":
             file = self.file_resources["mature.fa"]
         else:
-            raise Exception("species must be either 'hairpin' or 'mature'")
+            raise Exception("sequence must be either 'hairpin' or 'mature'")
 
         for record in SeqIO.parse(file, "fasta"):
             gene_name = str(record.name)
