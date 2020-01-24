@@ -538,10 +538,7 @@ class MirBase(Dataset):
 
         for record in SeqIO.parse(file, "fasta"):
             gene_name = str(record.name)
-            species = record.description.split(" ")[3]
             sequence_str = str(record.seq)
-
-            if species != self.species: continue
 
             if self.replace_U2T:
                 sequence_str = sequence_str.replace("U", "T")
