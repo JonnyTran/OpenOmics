@@ -10,6 +10,22 @@ class DiseaseAssociation(Dataset):
         return self.df.groupby(index)["disease_associations"].apply('|'.join)
 
 
+class MalaCards(DiseaseAssociation):
+    COLUMNS_RENAME_DICT = {"geneSymbol": "gene_name", "maladySlug": "disease_associations"}
+
+    def __init__(self, path="http://zdzlab.einstein.yu.edu/1/hedd/", file_resources=None, **kwargs):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["MalaCards.csv"] = "download.action.php?filename=DataDownload/MalaCards.csv"
+
+        kwargs["col_rename"] = self.COLUMNS_RENAME_DICT
+        super(MalaCards, self).__init__(path, file_resources, **kwargs)
+
+    def load_dataframe(self, file_resources):  # type: (dict) -> pd.DataFrame
+        df = pd.read_csv(file_resources["MalaCards.csv"])
+        return df
+
+
 class DisGeNet(DiseaseAssociation):
     COLUMNS_RENAME_DICT = {"geneSymbol": "gene_name",
                            "diseaseName": "disease_associations"}
