@@ -181,7 +181,7 @@ class STRING(Interactions, Dataset):
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         df = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
         protein_info = pd.read_table(file_resources["protein.info.txt"])
-        self.protein_id2name = protein_info.set_index("protein_external_id")["preferred_name"].to_dict()
+        self.protein_id2name = protein_info.set_genes_index("protein_external_id")["preferred_name"].to_dict()
         network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                           edge_attr=edge_attr,
                                           create_using=nx.DiGraph() if directed else nx.Graph())
@@ -602,8 +602,8 @@ class TargetScan(Interactions, Dataset):
         # map miRBase ID names to miR Family
         # family_interactions_df = pd.merge(family_interactions_df, family_to_miR_df, how='outer', on="miR Family")
 
-        family_to_miR_df.set_index("miR Family", inplace=True)
-        family_interactions_df.set_index("miR Family", inplace=True)
+        family_to_miR_df.set_genes_index("miR Family", inplace=True)
+        family_interactions_df.set_genes_index("miR Family", inplace=True)
         mir_interactions_df = family_interactions_df.join(family_to_miR_df, how='outer', on="miR Family").reset_index()
 
         # Standardize MiRBase ID to miRNA names obtained from RNA-seq hg19
