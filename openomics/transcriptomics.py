@@ -66,9 +66,13 @@ class ExpressionData(object):
 
     def set_genes_index(self, index, old_index):
         assert isinstance(self, Annotatable)
+        # Change gene name columns in expressions
         rename_dict = self.get_rename_dict(from_index=old_index, to_index=index)
         self.expressions.rename(columns=rename_dict, inplace=True)
         self.gene_index = index
+
+        # Change index name in annotations
+        self.set_index(index)
 
     def preprocess_table(self, df, columns=None, genes_index=None, transposed=True, sort_index=False):
         # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
