@@ -50,7 +50,7 @@ class Interactions(Dataset):
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         raise NotImplementedError
 
-    def get_interactions(self, nodelist, data=False, inclusive=True):
+    def get_interactions(self, nodelist=None, data=False, inclusive=True):
         """
 
         Args:
@@ -65,10 +65,13 @@ class Interactions(Dataset):
             edges (OutEdgeView): a NetworkX edgelist
         """
         if hasattr(self, "network"):
+            if nodelist is None:
+                return self.network.edges(data=data)
+
             if inclusive:
                 return self.network.subgraph(nodelist).edges(data=data)
             else:
-                return self.network.edges(nodelist=nodelist, data=data)
+                return self.network.edges(nbunch=nodelist, data=data)
 
         else:
             raise Exception(
