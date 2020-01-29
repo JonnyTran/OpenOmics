@@ -254,7 +254,7 @@ class Annotatable(object):
             database.get_disease_assocs(index=index, ))
 
     def set_index(self, new_index):
-        self.annotations[new_index].fillna(self.annotations.index, axis=0, inplace=True)
+        self.annotations[new_index].fillna(self.annotations.index.to_series(), axis=0, inplace=True)
         self.annotations = self.annotations.reset_index().set_index(new_index)
 
     def get_rename_dict(self, from_index, to_index):
