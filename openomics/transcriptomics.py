@@ -64,9 +64,11 @@ class ExpressionData(object):
         if log2_transform:
             self.expressions = self.expressions.applymap(self.log2_transform)
 
-        # Save samples and features for this omics data
-        self.samples = self.expressions.index
-        self.features = self.expressions.columns
+    def set_genes_index(self, index, old_index):
+        assert isinstance(self, Annotatable)
+        rename_dict = self.get_rename_dict(from_index=old_index, to_index=index)
+        self.expressions.rename(columns=rename_dict, inplace=True)
+        self.gene_index = index
 
     def preprocess_table(self, df, columns=None, genes_index=None, transposed=True, sort_index=False):
         # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
@@ -100,7 +102,7 @@ class ExpressionData(object):
         # Remove entries with unknown geneID
         if genes_index is not None:
             df = df[df[genes_index] != '?']
-            df.set_index(genes_index, inplace=True)
+            df.set_genes_index(genes_index, inplace=True)
 
         # Needed for Dask Delayed
         if sort_index == True:
@@ -147,10 +149,13 @@ class ExpressionData(object):
         raise NotImplementedError
 
     def get_genes_list(self):
-        return self.features
+        return self.expressions.columns
 
     def get_samples_list(self):
-        return self.samples
+        return self.expressions.index
+
+    samples = property(get_samples_list)
+    features = property(get_genes_list)
 
 
 class LncRNA(ExpressionData, Annotatable):
