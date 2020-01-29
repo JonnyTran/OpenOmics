@@ -258,7 +258,7 @@ class Annotatable(object):
 
     def get_rename_dict(self, from_index, to_index):
         dataframe = self.annotations.reset_index()
-        dataframe = dataframe[dataframe[[from_index, to_index]].notnull().all()]
+        dataframe = dataframe[dataframe[[from_index, to_index]].notnull()]
         return pd.Series(dataframe[to_index].values,
                          index=dataframe[from_index]).to_dict()
 
