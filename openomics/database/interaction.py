@@ -64,7 +64,7 @@ class Interactions(Dataset):
         Returns:
             edges (OutEdgeView): a NetworkX edgelist
         """
-        if ~hasattr(self, "network"):
+        if not hasattr(self, "network"):
             raise Exception(
                 "{} does not have network interaction data yet. Must run load_network() and assign self.network field first.".format(
                     self.name()))
