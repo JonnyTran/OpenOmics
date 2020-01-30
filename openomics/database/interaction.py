@@ -64,19 +64,18 @@ class Interactions(Dataset):
         Returns:
             edges (OutEdgeView): a NetworkX edgelist
         """
-        if hasattr(self, "network"):
-            if nodelist is None:
-                return self.network.edges(data=data)
-
-            if inclusive:
-                return self.network.subgraph(nodelist).edges(data=data)
-            else:
-                return self.network.edges(nbunch=nodelist, data=data)
-
-        else:
+        if ~hasattr(self, "network"):
             raise Exception(
                 "{} does not have network interaction data yet. Must run load_network() and assign self.network field first.".format(
                     self.name()))
+
+        if nodelist is None:
+            return self.network.edges(data=data)
+
+        if inclusive:
+            return self.network.subgraph(nodelist).edges(data=data)
+        else:
+            return self.network.edges(nbunch=nodelist, data=data)
 
 
 class GeneMania(Interactions):
@@ -211,10 +210,11 @@ class STRING(Interactions, Dataset):
 
 
 class LncBase(Interactions, Dataset):
-    def __init__(self, path, file_resources=None, source_col_name="mirna", target_col_name="geneId",
+    def __init__(self, path, file_resources=None, organism="Homo sapiens", tissue=None, strip_mirna_name=False,
+                 source_col_name="mirna", target_col_name="geneId",
                  source_index="transcript_name", target_index="gene_id",
                  edge_attr=None, directed=True,
-                 relabel_nodes=None, organism="Homo sapiens", tissue=None):
+                 relabel_nodes=None, ):
         """
 
         Args:
@@ -223,6 +223,7 @@ class LncBase(Interactions, Dataset):
         """
         self.organism = organism
         self.tissue = tissue
+        self.strip_mirna_name = strip_mirna_name
 
         if edge_attr is None:
             edge_attr = ["tissue", "positive_negative"]
@@ -254,6 +255,9 @@ class LncBase(Interactions, Dataset):
             df = df[df["species"].str.lower() == self.organism.lower()]
         if self.tissue is not None:
             df = df[df["tissue"].str.lower() == self.tissue.lower()]
+        if self.strip_mirna_name:
+            df['mirna'] = df['mirna'].str.lower()
+            df['mirna'] = df['mirna'].str.replace("-3p.*|-5p.*", "")
 
         lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                                                edge_attr=edge_attr,
