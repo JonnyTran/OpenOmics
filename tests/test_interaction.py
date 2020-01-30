@@ -1,14 +1,23 @@
-from openomics.database import LncBase, MiRTarBase, STRING
+from openomics.database import MiRTarBase, STRING, LncRNA2Target
 from .test_multiomics import *
 
+
 @pytest.fixture
-def generate_LncBase():
-    return LncBase("/data/datasets/Bioinformatics_ExternalData/lncBase/", )
+def generate_LncRNA2Target():
+    return LncRNA2Target(version="low_throughput")
+
+
+def test_import_LncRNA2Target(generate_LncRNA2Target):
+    assert generate_LncRNA2Target.data_path == "http://123.59.132.21/lncrna2target/data/"
 
 
 @pytest.fixture
 def generate_MiRTarBase():
-    return MiRTarBase("/data/datasets/Bioinformatics_ExternalData/miRTarBase/", target_index="Target Gene")
+    return MiRTarBase()
+
+
+def test_import_MiRTarBase(generate_MiRTarBase):
+    assert generate_MiRTarBase.data_path == "http://mirtarbase.mbc.nctu.edu.tw/cache/download/7.0/"
 
 
 @pytest.fixture
