@@ -2,6 +2,7 @@ import copy
 import difflib
 import gzip
 import os
+import rarfile
 from abc import abstractmethod
 from io import StringIO
 from os.path import expanduser
@@ -57,6 +58,10 @@ class Dataset(object):
                     file_resources[filename] = data_file  # Returns the
                 elif filetype_ext.extension == 'gz':
                     file_resources[filename] = gzip.open(data_file, 'rt')
+                elif filetype_ext.extension == 'rar':
+                    rf = rarfile.RarFile(data_file, 'r')
+                    for f in rf.infolist():
+                        file_resources[filename] = rf.open(f.filename, mode="r")
                 else:
                     file_resources[filename] = data_file
 

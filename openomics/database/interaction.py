@@ -5,8 +5,7 @@ from openomics.database.annotation import *
 
 class Interactions(Dataset):
     def __init__(self, path, file_resources, source_col_name=None, target_col_name=None, source_index=None,
-                 target_index=None,
-                 edge_attr=None, directed=True, relabel_nodes=None):
+                 target_index=None, edge_attr=None, directed=True, relabel_nodes=None):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
         Args:
@@ -28,7 +27,7 @@ class Interactions(Dataset):
         """
         self.validate_file_resources(file_resources, path)
 
-        self.import_folder = path
+        self.data_path = path
         self.file_resources = file_resources
         self.source_index = source_index
         self.target_index = target_index
@@ -338,43 +337,53 @@ class lncRInter(Interactions):
 
 
 class LncRNA2Target(Interactions):
-    def __init__(self, path, file_resources=None, source_col_name="lncrna_symbol",
-                 target_col_name="gene_symbol",
-                 source_index="gene_name", target_index="gene_name",
-                 edge_attr=None, directed=True, relabel_nodes=None, version="high_throughput", species=9606):
+    def __init__(self, path="http://123.59.132.21/lncrna2target/data/", file_resources=None, source_index="gene_name",
+                 target_index="gene_name", edge_attr=None, directed=True, relabel_nodes=None, version="high_throughput",
+                 species_id=9606, species="Homo sapiens"):
         """
 
         Args:
             version (str): one of ["high_throughput", "low_throughput"].
                 The high_throughput version of lncRNA2Target database is v2.0 and low_throughput is v1.0, according to the database's website.
-            species (str, int): one of [9606, "Homo sapiens"].
+            species_id (str, int): one of [9606, "Homo sapiens"].
                 The species column in high_throughput is formatted in int (e.g. 9606) and in low_throughput is in str (e.g. "Homo sapiens")
         """
-        if edge_attr is None:
-            edge_attr = ["P_Value", "direction"]
         self.version = version
+        self.species_id = species_id
         self.species = species
         if file_resources is None:
             file_resources = {}
             file_resources["lncRNA_target_from_high_throughput_experiments.txt"] = os.path.join(path,
-                                                                                                "lncRNA_target_from_high_throughput_experiments.txt")
+                                                                                                "lncrna_target.rar")
+            file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"] = os.path.join(path,
+                                                                                                "lncRNA_target_from_low_throughput_experiments.xlsx")
 
-        super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
-                         edge_attr, directed, relabel_nodes, species)
+        if self.version == "high_throughput":
+            super(LncRNA2Target, self).__init__(path, file_resources, source_col_name="lncrna_symbol",
+                                                target_col_name="gene_symbol", source_index=source_index,
+                                                target_index=target_index,
+                                                edge_attr=edge_attr, directed=directed, relabel_nodes=relabel_nodes)
+        if self.version == "low_throughput":
+            super(LncRNA2Target, self).__init__(path, file_resources, source_col_name="GENCODE_gene_name",
+                                                target_col_name="Target_official_symbol", source_index=source_index,
+                                                target_index=target_index,
+                                                edge_attr=edge_attr, directed=directed, relabel_nodes=relabel_nodes)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         if self.version == "high_throughput":
-            return self.load_network_high_throughput(self, file_resources, source_col_name, target_col_name, edge_attr,
+            return self.load_network_high_throughput(file_resources, source_col_name, target_col_name, edge_attr,
                                                      directed)
         elif self.version == "low_throughput":
-            return self.load_network_low_throughput(self, file_resources, source_col_name, target_col_name, edge_attr,
+            return self.load_network_low_throughput(file_resources, source_col_name, target_col_name, edge_attr,
                                                     directed)
         else:
             raise Exception("LncRNA2Target version argument must be one of 'high_throughput' or 'low_throughput'")
 
-    def load_network_high_throughput(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
+    def load_network_high_throughput(self, file_resources, source_col_name="lncrna_symbol",
+                                     target_col_name="gene_symbol",
+                                     edge_attr=None, directed=True):
         table = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"], low_memory=True)
-        table = table[table["species_id"] == self.species]
+        table = table[table["species_id"] == self.species_id]
 
         table["lncrna_symbol"] = table["lncrna_symbol"].str.upper().replace("LINC", "")
         table["gene_symbol"] = table["gene_symbol"].str.upper()
@@ -498,7 +507,8 @@ class MiRTarBase(Interactions):
                            "Support Type": "Support_Type",
                            "Target Gene": "gene_name"}
 
-    def __init__(self, path, file_resources=None, source_col_name="miRNA", target_col_name="Target Gene",
+    def __init__(self, path="http://mirtarbase.mbc.nctu.edu.tw/cache/download/7.0/", file_resources=None,
+                 source_col_name="miRNA", target_col_name="Target Gene",
                  source_index="transcript_name", target_index="gene_name",
                  edge_attr=None, directed=True, relabel_nodes=None, species="Homo sapiens",
                  strip_mirna_name=False):
