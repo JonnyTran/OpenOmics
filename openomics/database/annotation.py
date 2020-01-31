@@ -126,7 +126,7 @@ class Dataset(object):
                             self.df.columns.tolist())
 
         if index != self.df.index.name and index in self.df.columns:
-            df = df.set_genes_index(index)
+            df = df.set_index(index)
 
         # Groupby index, and Aggregate by all columns by concatenating unique values
         df = df.groupby(index).agg({k: concat_uniques for k in columns})
@@ -220,9 +220,9 @@ class Annotatable(object):
                 old_index = self.annotations.index.name
 
             self.annotations = self.annotations.reset_index()
-            self.annotations.set_genes_index(index, inplace=True)
+            self.annotations.set_index(index, inplace=True)
             self.annotations = self.annotations.join(database_df, on=index, rsuffix="_").reset_index()
-            self.annotations.set_genes_index(old_index, inplace=True)
+            self.annotations.set_index(old_index, inplace=True)
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
         duplicate_columns = [col for col in self.annotations.columns if col[-1] == "_"]
@@ -338,7 +338,7 @@ class GTEx(Dataset):
             sep='\t', header=1, skiprows=1)
         gene_exp_medians["Name"] = gene_exp_medians["Name"].str.replace("[.].*", "")
         gene_exp_medians = gene_exp_medians.rename(columns=self.COLUMNS_RENAME_DICT)  # Must be done here
-        gene_exp_medians.set_genes_index(["gene_id", "gene_name"], inplace=True)
+        gene_exp_medians.set_index(["gene_id", "gene_name"], inplace=True)
         #
         # # Sample attributes (needed to get tissue type)
         # SampleAttributes = pd.read_table(
@@ -515,13 +515,13 @@ class MirBase(Dataset):
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
                                            names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
                                                   "gene name"])
-        rnacentral_mirbase = rnacentral_mirbase.set_genes_index("mirbase id")
+        rnacentral_mirbase = rnacentral_mirbase.set_index("mirbase id")
         rnacentral_mirbase["species"] = rnacentral_mirbase["species"].astype("O")
         if self.species_id is not None:
             rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species"] == self.species_id]
 
         mirbase_aliases = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
-                                        names=["mirbase id", "gene_name"], dtype="O").set_genes_index("mirbase id")
+                                        names=["mirbase id", "gene_name"], dtype="O").set_index("mirbase id")
         mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, how="inner")
 
         # Expanding miRNA names in each MirBase Ascension ID
@@ -729,7 +729,7 @@ class NONCODE(Dataset):
             file_resources["NONCODEv5_Transcript2Gene"] = os.path.join(path, "NONCODEv5_Transcript2Gene")
             file_resources["NONCODEv5_human.func"] = os.path.join(path, "NONCODEv5_human.func")
 
-        super().__init__(path, file_resources, col_rename)
+        super(NONCODE, self).__init__(path, file_resources, col_rename)
 
     def load_dataframe(self, file_resources):
         source_df = dd.read_table(file_resources["NONCODEv5_source"], header=None)
@@ -740,7 +740,7 @@ class NONCODE(Dataset):
 
         self.noncode_func_df = dd.read_table(file_resources["NONCODEv5_human.func"], header=None)
         self.noncode_func_df.columns = ["NONCODE Gene ID", "GO terms"]
-        self.noncode_func_df.set_genes_index("NONCODE Gene ID", inplace=True)
+        self.noncode_func_df.set_index("NONCODE Gene ID", inplace=True)
 
         # Convert to NONCODE transcript ID for the functional annotation data
         self.noncode_func_df["NONCODE Transcript ID"] = self.noncode_func_df.index.map(
