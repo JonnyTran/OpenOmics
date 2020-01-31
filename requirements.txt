@@ -4,7 +4,7 @@ bokeh
 umap
 dask[complete]
 networkx>=2.1
-numpy
+numpy>=1.16.0
 pandas
 matplotlib
 scipy
