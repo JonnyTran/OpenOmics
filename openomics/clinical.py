@@ -55,7 +55,7 @@ class ClinicalData:
             raise IOError(patients_file)
 
         self.patient_barcodes = self.patient[patient_id_col].tolist()
-        self.patient.set_genes_index(patient_id_col, inplace=True)
+        self.patient.set_index(patient_id_col, inplace=True)
 
         # Rename columns
         self.patient.rename({"ajcc_pathologic_tumor_stage": PATHOLOGIC_STAGE,
@@ -105,7 +105,7 @@ class ClinicalData:
                                    na_values=["[Not Available]", "[Unknown]", "[Not Applicable]"],
                                    usecols=columns
                                    )
-        self.drugs.set_genes_index(patient_column, inplace=True)
+        self.drugs.set_index(patient_column, inplace=True)
 
     def add_biospecimen_data(self, file_path="genome.wustl.edu_biospecimen_sample.txt", patient_col_name="bcr_patient_barcode",
                              columns=['bcr_sample_barcode', 'sample_type']):
@@ -117,7 +117,7 @@ class ClinicalData:
                                          usecols=columns
                                          )
         self.sample_barcodes = self.biospecimen[patient_col_name].tolist()
-        self.biospecimen.set_genes_index(patient_col_name, inplace=True)
+        self.biospecimen.set_index(patient_col_name, inplace=True)
 
 
     def get_patient_barcodes(self):
