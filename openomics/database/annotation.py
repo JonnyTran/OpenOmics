@@ -2,7 +2,6 @@ import copy
 import difflib
 import gzip
 import os
-import rarfile
 from abc import abstractmethod
 from io import StringIO
 from os.path import expanduser
@@ -11,6 +10,7 @@ from typing import List, Union
 import dask.dataframe as dd
 import filetype
 import pandas as pd
+import rarfile
 import validators
 from Bio import SeqIO
 from Bio.UniProt import GOA
@@ -276,16 +276,13 @@ class RNAcentral(Dataset):
                            'GO terms': 'go_id'}
 
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/",
-                 file_resources=None, col_rename=None, npartitions=0, species=9606):
+                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0, species=9606):
         self.species = species
 
         if file_resources is None:
             file_resources = {}
             file_resources["rnacentral_rfam_annotations.tsv"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
             file_resources["gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
-
-        if col_rename is None:
-            col_rename = self.COLUMNS_RENAME_DICT
 
         super(RNAcentral, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
 
@@ -333,14 +330,14 @@ class GTEx(Dataset):
             file_resources[
                 "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct"] = "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"
 
-        super(GTEx, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
+        super(GTEx, self).__init__(path, file_resources, col_rename=None, npartitions=npartitions)
 
     def load_dataframe(self, file_resources):  # type: (dict) -> pd.DataFrame
         gene_exp_medians = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"],
             sep='\t', header=1, skiprows=1)
         gene_exp_medians["Name"] = gene_exp_medians["Name"].str.replace("[.].*", "")
-        gene_exp_medians = gene_exp_medians.rename(columns=self.COLUMNS_RENAME_DICT)
+        gene_exp_medians = gene_exp_medians.rename(columns=self.COLUMNS_RENAME_DICT)  # Must be done here
         gene_exp_medians.set_genes_index(["gene_id", "gene_name"], inplace=True)
         #
         # # Sample attributes (needed to get tissue type)
