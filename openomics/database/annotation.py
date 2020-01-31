@@ -483,7 +483,7 @@ class MirBase(Dataset):
     def __init__(self, path="ftp://mirbase.org/pub/mirbase/CURRENT/",
                  sequence="hairpin", species="Homo sapiens", species_id=9606,
                  file_resources=None, col_rename=None,
-                 npartitions=0, agg_sequences="longest", replace_U2T=False):
+                 npartitions=0, agg_sequences="longest", replace_U2T=True):
         """
 
         Args:
