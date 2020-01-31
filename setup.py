@@ -4,29 +4,6 @@ from shutil import rmtree
 
 from setuptools import setup, find_packages, Command
 
-with open('README.rst') as readme_file:
-    readme = readme_file.read()
-
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
-
-# Package meta-data.
-NAME = 'openomics'
-version = '0.7.9'
-DESCRIPTION = 'OpenOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.'
-URL = 'https://github.com/JonnyTran/OpenOmics'
-EMAIL = 'nhat.tran@mavs.uta.edu'
-AUTHOR = 'Jonny Tran'
-
-requirements = [
-    'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py', 'dash'
-]
-
-setup_requirements = ['pytest-runner', 'twine']
-test_requirements = ['pytest', ]
-
-here = os.path.abspath(os.path.dirname(__file__))
-
 
 class UploadCommand(Command):
     """Support setup.py upload."""
@@ -64,6 +41,29 @@ class UploadCommand(Command):
 
         sys.exit()
 
+
+with open('README.rst') as readme_file:
+    readme = readme_file.read()
+
+with open('HISTORY.rst') as history_file:
+    history = history_file.read()
+# Package meta-data.
+NAME = 'openomics'
+version = '0.7.9'
+DESCRIPTION = 'OpenOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.'
+URL = 'https://github.com/JonnyTran/OpenOmics'
+EMAIL = 'nhat.tran@mavs.uta.edu'
+
+AUTHOR = 'Jonny Tran'
+
+requirements = [
+    'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py', 'dash'
+]
+setup_requirements = ['pytest-runner', 'twine']
+
+test_requirements = ['pytest', ]
+
+here = os.path.abspath(os.path.dirname(__file__))
 
 setup(
     name=NAME,
