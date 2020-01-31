@@ -11,15 +11,15 @@ class DiseaseAssociation(Dataset):
 
 
 class MalaCards(DiseaseAssociation):
-    COLUMNS_RENAME_DICT = {"geneSymbol": "gene_name", "maladySlug": "disease_associations"}
+    COLUMNS_RENAME_DICT = {"geneSymbol": "gene_name", "maladyMainName": "disease_associations"}
 
-    def __init__(self, path="http://zdzlab.einstein.yu.edu/1/hedd/", file_resources=None, **kwargs):
+    def __init__(self, path="http://zdzlab.einstein.yu.edu/1/hedd/", file_resources=None,
+                 col_rename=COLUMNS_RENAME_DICT, **kwargs):
         if file_resources is None:
             file_resources = {}
             file_resources["MalaCards.csv"] = "download.action.php?filename=DataDownload/MalaCards.csv"
 
-        kwargs["col_rename"] = self.COLUMNS_RENAME_DICT
-        super(MalaCards, self).__init__(path, file_resources, **kwargs)
+        super(MalaCards, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources):  # type: (dict) -> pd.DataFrame
         df = pd.read_csv(file_resources["MalaCards.csv"])
@@ -31,7 +31,7 @@ class DisGeNet(DiseaseAssociation):
                            "diseaseName": "disease_associations"}
 
     def __init__(self, path="https://www.disgenet.org/static/disgenet_ap1/files/downloads/",
-                 file_resources=None, curated=True,
+                 file_resources=None, curated=True, col_rename=COLUMNS_RENAME_DICT,
                  **kwargs):
         if file_resources is None:
             file_resources = {}
@@ -39,8 +39,7 @@ class DisGeNet(DiseaseAssociation):
             file_resources["all_gene_disease_associations.tsv"] = "all_gene_disease_associations.tsv.gz"
 
         self.curated = curated
-        kwargs["col_rename"] = self.COLUMNS_RENAME_DICT
-        super(DisGeNet, self).__init__(path, file_resources, **kwargs)
+        super(DisGeNet, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources):
         if self.curated:
@@ -59,14 +58,13 @@ class HMDD(DiseaseAssociation):
                            "disease": "disease_associations"}
 
     def __init__(self, path="http://www.cuilab.cn/static/hmdd3/data/",
-                 file_resources=None,
+                 file_resources=None, col_rename=COLUMNS_RENAME_DICT,
                  **kwargs):
         if file_resources is None:
             file_resources = {}
             file_resources["alldata.txt"] = "alldata.txt"
 
-        kwargs["col_rename"] = self.COLUMNS_RENAME_DICT
-        super(HMDD, self).__init__(path, file_resources, **kwargs)
+        super(HMDD, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources):
         df = pd.read_csv(file_resources["alldata.txt"], sep="\t", encoding="unicode_escape")
@@ -79,15 +77,14 @@ class LncRNADisease(DiseaseAssociation):
                            "Disease name": "disease_associations"}
 
     def __init__(self, path="http://www.cuilab.cn/files/images/ldd/",
-                 file_resources=None, species="Human",
+                 file_resources=None, species="Human", col_rename=COLUMNS_RENAME_DICT,
                  **kwargs):
         if file_resources is None:
             file_resources = {}
             file_resources["data_v2017.txt"] = "data_v2017.txt"
 
         self.species = species
-        kwargs["col_rename"] = self.COLUMNS_RENAME_DICT
-        super(LncRNADisease, self).__init__(path, file_resources, **kwargs)
+        super(LncRNADisease, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources):
         df = pd.read_csv(self.file_resources["data_v2017.txt"], header=None, sep="\t", encoding="unicode_escape")

@@ -124,8 +124,9 @@ class BioGRID(Interactions):
             file_resources = {}
             file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"] = os.path.join(path, "BIOGRID-ALL-3.4.162.tab2.txt")
 
-        super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
-                         edge_attr, directed, relabel_nodes)
+        super(BioGRID, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
+                                      target_index,
+                                      edge_attr, directed, relabel_nodes)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, species=9606):
         biogrid_df = pd.read_table(file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"],
@@ -310,8 +311,9 @@ class lncRInter(Interactions):
             file_resources = {}
             file_resources["human_interactions.txt"] = os.path.join(path, "human_interactions.txt")
 
-        super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index,
-                         edge_attr, directed, relabel_nodes, )
+        super(lncRInter, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
+                                        target_index,
+                                        edge_attr, directed, relabel_nodes, )
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         lncRInter_df = pd.read_table(file_resources["human_interactions.txt"])
@@ -503,10 +505,6 @@ class StarBase(Interactions):
 
 
 class MiRTarBase(Interactions):
-    COLUMNS_RENAME_DICT = {"Species (Target Gene)": "species",
-                           "Support Type": "Support_Type",
-                           "Target Gene": "gene_name"}
-
     def __init__(self, path="http://mirtarbase.mbc.nctu.edu.tw/cache/download/7.0/", file_resources=None,
                  source_col_name="miRNA", target_col_name="Target Gene",
                  source_index="transcript_name", target_index="gene_name",
