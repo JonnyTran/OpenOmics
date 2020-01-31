@@ -65,7 +65,7 @@ class ExpressionData(object):
             self.expressions = self.expressions.applymap(self.log2_transform)
 
     def set_genes_index(self, index, old_index):
-        assert isinstance(self, Annotatable)
+        assert isinstance(self, Annotatable) and isinstance(self, ExpressionData)
         # Change gene name columns in expressions
         rename_dict = self.get_rename_dict(from_index=old_index, to_index=index)
         self.expressions.rename(columns=rename_dict, inplace=True)
@@ -106,7 +106,7 @@ class ExpressionData(object):
         # Remove entries with unknown geneID
         if genes_index is not None:
             df = df[df[genes_index] != '?']
-            df.set_genes_index(genes_index, inplace=True)
+            df.set_index(genes_index, inplace=True)
 
         # Needed for Dask Delayed
         if sort_index == True:
