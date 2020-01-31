@@ -10,7 +10,7 @@ try:
     )
 
     from .disease import (
-        DisGeNet, HMDD, LncRNADisease
+        DisGeNet, HMDD, LncRNADisease, MalaCards
     )
 
 except ImportError as e:
