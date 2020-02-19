@@ -2,8 +2,9 @@ from __future__ import print_function, division, absolute_import
 
 try:
     from .annotation import (
-        Annotatable, GENCODE, MirBase, EnsemblGenes, RNAcentral, BioMartManager, GTEx, GeneOntology
+        Annotatable, GENCODE, MirBase, EnsemblGenes, RNAcentral, BioMartManager, GTEx
     )
+    from .ontology import GeneOntology
 
     from .interaction import (
         LncBase, MiRTarBase, TargetScan, LncRNA2Target, BioGRID, GeneMania, lncRInter, lncRNome, STRING

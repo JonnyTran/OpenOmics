@@ -13,7 +13,6 @@ import pandas as pd
 import rarfile
 import validators
 from Bio import SeqIO
-from Bio.UniProt import GOA
 from bioservices import BioMart
 from gtfparse import read_gtf
 
@@ -370,35 +369,6 @@ class GTEx(Dataset):
         # print("gene_transcript_exp_medians \n", gene_transcript_exp_medians)
         return gene_exp_medians
 
-
-class GeneOntology(Dataset):
-    COLUMNS_RENAME_DICT = {
-        "DB_Object_Symbol": "gene_name",
-        "DB_Object_ID": "gene_id",
-        "GO_ID": "go_id"
-    }
-
-    def __init__(self, path="http://geneontology.org/gene-associations/",
-                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0):
-        if file_resources is None:
-            file_resources = {"goa_human.gaf": "goa_human.gaf.gz",
-                              "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
-                              "goa_human_isoform.gaf.gz": "goa_human_isoform.gaf.gz"
-                              }
-        super(GeneOntology, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
-
-    def load_dataframe(self, file_resources):
-        lines = []
-        dfs = []
-        for file in self.file_resources:
-            l = GOA.gafiterator(self.file_resources[file])
-            for line in l:
-                lines.append(line)
-            go_df = pd.DataFrame(lines)
-            dfs.append(go_df)
-
-        go_df = pd.concat(dfs)
-        return go_df
 
 class GENCODE(Dataset):
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
