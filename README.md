@@ -1,4 +1,4 @@
-# OpenOmics 
+# OpenOmics
 [![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
 [![Documentation Status](https://readthedocs.org/projects/openomics/badge/?version=latest)](https://openomics.readthedocs.io/en/latest/?badge=latest)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
@@ -13,12 +13,12 @@ It features support for:
 
 OpenOmics provide an efficient data pipeline bridges the powerful data manipulation library Pandas and distributed processing Dask to a web dashboard interface framework Dash. With an intuitive web interface and easy-than-ever API, OpenOmics addresses the following use cases:
 
-- OpenOmics provides a standard pipeline for dataset indexing, table joining and querying, which are transparent to users. 
+- OpenOmics provides a standard pipeline for dataset indexing, table joining and querying, which are transparent to users.
 - OpenOmics provides efficient support for multiple data types, that supports both interactions and sequence data, and allows users to export to NetworkX graphs or machine learning pipelines.
 - OpenOmics has an easy-to-use API that works seamlessly with the Dash web interface.
 
 
-## Installation via pip: 
+## Installation via pip:
 
     pip install openomics
 
@@ -66,7 +66,7 @@ The microRNA and lncRNA data requires additional external databases, e.g. Target
 
 
 ```python
-from openomics.multiomics import MultiOmicsData
+from openomics.multiomics import MultiOmics
 ```
 
 ## Import TCGA LUAD data downloaded from TCGA-Assembler
@@ -345,7 +345,7 @@ luad_data.match_samples(modalities=["MIR", "GE"])
 
 ```python
 # This function selects only patients with patholotic stages "Stage I" and "Stage II"
-X_multiomics, y = luad_data.load_dataframe(modalities=["GE", "MIR", "LNC"], target=['pathologic_stage'], 
+X_multiomics, y = luad_data.load_dataframe(modalities=["GE", "MIR", "LNC"], target=['pathologic_stage'],
                                      pathologic_stages=['Stage I', 'Stage II'])
 print(X_multiomics['GE'].shape, X_multiomics['MIR'].shape, X_multiomics['LNC'].shape, y.shape)
 ```
@@ -497,10 +497,10 @@ for omic in ["GE", "MIR"]:
     X_train, X_test, Y_train, Y_test = \
         train_test_split(X_multiomics[omic], y, test_size=0.3, random_state=np.random.randint(0, 10000), stratify=y)
     print(X_train.shape, X_test.shape)
-    
+
 
     X_train = scaler.transform(X_train)
-    
+
     model = LinearSVC(C=1e-2, penalty='l1', class_weight='balanced', dual=False, multi_class="ovr")
 #     model = sklearn.linear_model.LogisticRegression(C=1e-0, penalty='l1', fit_intercept=False, class_weight="balanced")
 #     model = SVC(C=1e0, kernel="rbf", class_weight="balanced", decision_function_shape="ovo")
@@ -517,23 +517,23 @@ for omic in ["GE", "MIR"]:
     NONZERO 0
     Training accuracy 0.6929133858267716
                  precision    recall  f1-score   support
-    
+
         Stage I       0.69      1.00      0.82        75
        Stage II       0.00      0.00      0.00        34
-    
+
     avg / total       0.47      0.69      0.56       109
-    
+
     MIR
     (254, 1870) (109, 1870)
     NONZERO 0
     Training accuracy 0.6929133858267716
                  precision    recall  f1-score   support
-    
+
         Stage I       0.69      1.00      0.82        75
        Stage II       0.00      0.00      0.00        34
-    
+
     avg / total       0.47      0.69      0.56       109
-    
+
 
 Features
 --------
