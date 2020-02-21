@@ -1,7 +1,7 @@
 biopython
 large-image
 bokeh
-umap
+umap-learn
 dask[complete]
 networkx>=2.1
 numpy>=1.16.0
@@ -27,3 +27,4 @@ filetype
 gtfparse
 scikit-allel
 rarfile
+filetype
