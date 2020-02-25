@@ -1,5 +1,6 @@
 import pandas as pd
 from Bio.UniProt import GOA
+from goatools.obo_parser import OBOReader
 
 from .annotation import Dataset
 
@@ -25,7 +26,11 @@ class GeneOntology(Dataset):
         lines = []
         dfs = []
         for file in self.file_resources:
-            if file == "go-basic.obo": continue
+            if file == "go-basic.obo":
+                go_terms = []
+                for term in OBOReader(self.file_resources[file]):
+                    go_terms.append({"id": term.id, "name": term.name, "namespace": term.namespace})
+                self.go_terms = pd.DataFrame(go_terms)
 
             l = GOA.gafiterator(self.file_resources[file])
             for line in l:
