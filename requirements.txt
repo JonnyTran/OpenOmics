@@ -28,3 +28,4 @@ gtfparse
 scikit-allel
 rarfile
 filetype
+goatools
