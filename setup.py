@@ -2,6 +2,7 @@ import os
 import sys
 from shutil import rmtree
 
+import pandas as pd
 from setuptools import setup, find_packages, Command
 
 
@@ -56,9 +57,7 @@ EMAIL = 'nhat.tran@mavs.uta.edu'
 
 AUTHOR = 'Jonny Tran'
 
-requirements = [
-    'numpy', 'pandas', 'networkx>=2.1', 'dask', 'biopython', 'bioservices', 'h5py', 'dash'
-]
+requirements = pd.read_table("./requirements.txt", header=None)[0].tolist()
 setup_requirements = ['pytest-runner', 'twine']
 
 test_requirements = ['pytest', ]
