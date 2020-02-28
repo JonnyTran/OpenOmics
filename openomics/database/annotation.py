@@ -398,7 +398,7 @@ class GENCODE(Dataset):
 
         for fasta_file in file_resources:
             if '.fa' in fasta_file:
-                for record in SeqIO.parse(fasta_file, "fasta"):
+                for record in SeqIO.parse(file_resources[fasta_file], "fasta"):
                     gene_id = record.id.split("|")[1]
                     gene_name = record.id.split("|")[5]
                     transcript_id = record.id.split("|")[0]
