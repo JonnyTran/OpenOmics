@@ -376,6 +376,7 @@ class GENCODE(Dataset):
                  replace_U2T=True):
         if file_resources is None:
             file_resources = {"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
+                              "basic.annotation.gtf": "gencode.v32.basic.annotation.gtf.gz",
                               "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
                               "transcripts.fa": "gencode.v32.transcripts.fa.gz"}
 
@@ -385,11 +386,16 @@ class GENCODE(Dataset):
         super(GENCODE, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
 
     def load_dataframe(self, file_resources):
-        # Parse lncRNA gtf
-        df = read_gtf(file_resources["long_noncoding_RNAs.gtf"])  # Returns a dask dataframe
-        df['gene_id'] = df['gene_id'].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
-        df['transcript_id'] = df['transcript_id'].str.replace("[.].*", "")
-        return df
+        dfs = []
+        for gtf_file in file_resources:
+            if ".gtf" in gtf_file:
+                # Parse lncRNA gtf
+                df = read_gtf(file_resources[gtf_file])  # Returns a dask dataframe
+                df['gene_id'] = df['gene_id'].str.replace("[.].*",
+                                                          "")  # Removing .# ENGS gene version number at the end
+                df['transcript_id'] = df['transcript_id'].str.replace("[.].*", "")
+                dfs.append(df)
+        return pd.concat(dfs)
 
     def get_sequences(self, index, omic=None):
         # Parse lncRNA & mRNA fasta
