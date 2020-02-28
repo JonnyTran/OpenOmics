@@ -18,7 +18,7 @@ class GeneOntology(Dataset):
             file_resources = {"goa_human.gaf": "goa_human.gaf.gz",
                               "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
                               "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
-                              "goa_human_isoform.gaf.gz": "goa_human_isoform.gaf.gz"
+                              "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz"
                               }
         super(GeneOntology, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
 
@@ -26,17 +26,18 @@ class GeneOntology(Dataset):
         lines = []
         dfs = []
         for file in self.file_resources:
-            if file == "go-basic.obo":
+            if ".obo" in file:
                 go_terms = []
                 for term in OBOReader(self.file_resources[file]):
                     go_terms.append({"id": term.id, "name": term.name, "namespace": term.namespace})
                 self.go_terms = pd.DataFrame(go_terms)
-
-            l = GOA.gafiterator(self.file_resources[file])
-            for line in l:
-                lines.append(line)
-            go_df = pd.DataFrame(lines)
-            dfs.append(go_df)
+            elif ".gaf" in file:
+                for line in GOA.gafiterator(self.file_resources[file]):
+                    lines.append(line)
+                go_df = pd.DataFrame(lines)
+                dfs.append(go_df)
+            else:
+                raise Exception("file_resources[{}] must either be .gaf or .obo".format(file))
 
         go_df = pd.concat(dfs)
         return go_df
