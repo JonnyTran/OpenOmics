@@ -1,9 +1,11 @@
 from abc import abstractmethod
 
 import networkx as nx
+from Bio import SeqIO
 
 from openomics.database.annotation import *
 from openomics.database.base import Dataset
+from openomics.database.sequence import SequenceDataset
 
 
 class Interactions(Dataset):
@@ -148,7 +150,7 @@ class BioGRID(Interactions):
         return biogrid_grn
 
 
-class STRING(Interactions, Dataset):
+class STRING(Interactions, SequenceDataset):
     COLUMNS_RENAME_DICT = {
         "protein_external_id": "protein_id",
         "preferred_name": "protein_name",
@@ -193,7 +195,7 @@ class STRING(Interactions, Dataset):
         network = nx.relabel_nodes(network, self.protein_id2name)
         return network
 
-    def get_sequences(self, index="protein_name", omic=None):
+    def get_sequences(self, index="protein_name", omic=None, agg_sequences=None):
         if hasattr(self, "seq_dict"):
             return self.seq_dict
 
