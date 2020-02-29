@@ -9,7 +9,7 @@ import pandas as pd
 import rarfile
 import validators
 
-from openomics.utils.df import concat_uniques
+from openomics.utils.df import concat
 from openomics.utils.io import get_pkg_data_filename
 
 
@@ -119,7 +119,7 @@ class Dataset(object):
             df = df.set_index(index)
 
         # Groupby index, and Aggregate by all columns by concatenating unique values
-        df = df.groupby(index).agg({k: concat_uniques for k in columns})
+        df = df.groupby(index).agg({k: concat for k in columns})
 
         if df.index.duplicated().sum() > 0:
             raise ValueError("DataFrame must not have duplicates in index")
