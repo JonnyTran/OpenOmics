@@ -416,7 +416,7 @@ class GENCODE(Dataset):
 
         entries_df = pd.DataFrame(entries)
         if self.replace_U2T:
-            entries_df["sequence_str"] = entries_df["sequence_str"].replace("U", "T")
+            entries_df["sequence"] = entries_df["sequence"].replace("U", "T")
         if self.remove_version_num:
             entries_df['gene_id'] = entries_df['gene_id'].str.replace("[.].*", "")
             entries_df['transcript_id'] = entries_df['transcript_id'].str.replace("[.].*", "")
