@@ -392,20 +392,11 @@ class GENCODE(Dataset):
             if '.gtf' in gtf_file:
                 # Parse lncRNA gtf
                 df = read_gtf(file_resources[gtf_file])  # Returns a dask dataframe
-                print("Done reading", gtf_file)
                 dfs.append(df)
         annotation_df = pd.concat(dfs)
 
-        for fasta_file in file_resources:
-            if '.fa' in fasta_file:
-                fasta_df = self.read_fasta(file_resources[fasta_file])
-                print("Done reading", fasta_file)
-                transcript_id2seq = fasta_df.set_index("transcript_id")["sequence_str"].to_dict()
-                annotation_df["Transcript sequence"] = annotation_df["transcript_id"].replace(transcript_id2seq)
-
         if self.remove_version_num:
-            annotation_df['gene_id'] = annotation_df['gene_id'].str.replace("[.].*",
-                                                                            "")  # Remove .# ENGS gene version number
+            annotation_df['gene_id'] = annotation_df['gene_id'].str.replace("[.].*", "")
             annotation_df['transcript_id'] = annotation_df['transcript_id'].str.replace("[.].*", "")
         return annotation_df
 
@@ -418,12 +409,18 @@ class GENCODE(Dataset):
                            "transcript_name": record.id.split("|")[4],
                            "transcript_length": record.id.split("|")[6],
                            "transcript_biotype": record.id.split("|")[7],
-                           "sequence_str": str(record.seq),
+                           "sequence": str(record.seq),
                            }
-            if self.replace_U2T:
-                record_dict["sequence_str"] = record_dict["sequence_str"].replace("U", "T")
+
             entries.append(record_dict)
-        return pd.DataFrame(entries)
+
+        entries_df = pd.DataFrame(entries)
+        if self.replace_U2T:
+            entries_df["sequence_str"] = entries_df["sequence_str"].replace("U", "T")
+        if self.remove_version_num:
+            entries_df['gene_id'] = entries_df['gene_id'].str.replace("[.].*", "")
+            entries_df['transcript_id'] = entries_df['transcript_id'].str.replace("[.].*", "")
+        return entries_df
 
     def get_sequences(self, index, omic=None):
         # Parse lncRNA & mRNA fasta
@@ -434,50 +431,42 @@ class GENCODE(Dataset):
         else:
             raise Exception("The omic argument must be one of the omic names")
 
-        seq_dict = {}
-        for record in SeqIO.parse(fasta_file, "fasta"):
-            gene_id = record.id.split("|")[1].split(".")[0]
-            gene_name = record.id.split("|")[5]
-            transcript_id = record.id.split("|")[0].split(".")[0]
-            transcript_name = record.id.split("|")[4]
-            transcript_length = record.id.split("|")[6]
-            transcript_biotype = record.id.split("|")[7]
-            sequence_str = str(record.seq)
+        entries_df = self.read_fasta(fasta_file)
 
-            if index == "gene_id":
-                key = gene_id
-            elif index == "gene_name":
-                key = gene_name
-            elif index == "transcript_id":
-                key = transcript_id
-            elif index == "transcript_name":
-                key = transcript_name
-            else:
-                raise Exception("The level argument must be one of 'gene_id', 'transcript_id', or 'gene_name', or 'transcript_name'")
+        if index == "gene_id":
+            key = "gene_id"
+        elif index == "gene_name":
+            key = "gene_name"
+        elif index == "transcript_id":
+            key = "transcript_id"
+        elif index == "transcript_name":
+            key = "transcript_name"
+        else:
+            raise Exception(
+                "The level argument must be one of 'gene_id', 'transcript_id', or 'gene_name', or 'transcript_name'")
 
-            if self.replace_U2T:
-                sequence_str = sequence_str.replace("U", "T")
+        return entries_df.set_index(key)["sequence"]
 
-            # If index by gene, then select/aggregate transcript sequences either by "shortest", "longest" or "all"
-            if "gene" in index and self.agg_sequences == "shortest":
-                if key not in seq_dict:
-                    seq_dict[key] = sequence_str
-                else:
-                    if len(seq_dict[key]) > len(sequence_str):
-                        seq_dict[key] = sequence_str
-            elif "gene" in index and self.agg_sequences == "longest":
-                if key not in seq_dict:
-                    seq_dict[key] = sequence_str
-                else:
-                    if len(seq_dict[key]) < len(sequence_str):
-                        seq_dict[key] = sequence_str
-            elif "gene" in index and self.agg_sequences == "all":
-                if key not in seq_dict:
-                    seq_dict[key] = [sequence_str, ]
-                else:
-                    seq_dict[key].append(sequence_str)
-            else:
+        # If index by gene, then select/aggregate transcript sequences either by "shortest", "longest" or "all"
+        if "gene" in index and self.agg_sequences == "shortest":
+            if key not in seq_dict:
                 seq_dict[key] = sequence_str
+            else:
+                if len(seq_dict[key]) > len(sequence_str):
+                    seq_dict[key] = sequence_str
+        elif "gene" in index and self.agg_sequences == "longest":
+            if key not in seq_dict:
+                seq_dict[key] = sequence_str
+            else:
+                if len(seq_dict[key]) < len(sequence_str):
+                    seq_dict[key] = sequence_str
+        elif "gene" in index and self.agg_sequences == "all":
+            if key not in seq_dict:
+                seq_dict[key] = [sequence_str, ]
+            else:
+                seq_dict[key].append(sequence_str)
+        else:
+            seq_dict[key] = sequence_str
 
         return seq_dict
 
