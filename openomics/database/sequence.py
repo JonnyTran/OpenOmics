@@ -216,6 +216,6 @@ class MirBase(SequenceDataset):
 
         fasta_df = self.read_fasta(file)
 
-        self.seq_dict = fasta_df.set_index(index)["sequence"].arg(self.get_aggregator(agg_sequences))
+        self.seq_dict = fasta_df.set_index(index)["sequence"].agg(self.get_aggregator(agg_sequences))
 
         return self.seq_dict
