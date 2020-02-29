@@ -4,8 +4,9 @@ try:
     from .base import Annotatable
 
     from .annotation import (
-        GENCODE, MirBase, EnsemblGenes, RNAcentral, BioMartManager, GTEx
+        EnsemblGenes, RNAcentral, BioMartManager, GTEx
     )
+    from .sequence import GENCODE, MirBase
     from .ontology import GeneOntology
 
     from .interaction import (

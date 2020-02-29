@@ -208,7 +208,7 @@ class Annotatable(object):
             self.annotations.drop(columns=new_col, inplace=True)
 
 
-    def annotate_sequences(self, database, index, omic=None, agg_sequences="longest", **kwargs):
+    def annotate_sequences(self, database, index, agg_sequences="longest", omic=None, **kwargs):
         # type: (Dataset, str, str) -> None
         # assert isinstance(database, SequenceDataset)
         if omic is None:
