@@ -400,8 +400,7 @@ class GENCODE(Dataset):
             if '.fa' in fasta_file:
                 fasta_df = self.read_fasta(file_resources[fasta_file])
                 print("Done reading", fasta_file)
-                transcript_id2seq = fasta_df.set_index("transcript_id")["sequence_str"]
-
+                transcript_id2seq = fasta_df.set_index("transcript_id")["sequence_str"].to_dict()
                 annotation_df["Transcript sequence"] = annotation_df["transcript_id"].replace(transcript_id2seq)
 
         if self.remove_version_num:
