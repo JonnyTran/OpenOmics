@@ -32,9 +32,20 @@ class SequenceDataset(Dataset):
                 The index
             omic (str): {"lncRNA", "microRNA", "messengerRNA"}
             agg_sequences (str): {"all", "shortest", "longest"}
-            **kwargs: passes to SequenceDataset.get_sequences()
+            **kwargs: any additional argument to pass to SequenceDataset.get_sequences()
         """
         raise NotImplementedError
+
+    def get_aggregator(self, agg_sequences):
+        if agg_sequences == "all":
+            agg_func = lambda x: list(x)
+        elif agg_sequences == "shortest":
+            agg_func = lambda x: min(x, key=len)
+        elif agg_sequences == "longest":
+            agg_func = lambda x: max(x, key=len)
+        else:
+            raise Exception("agg_sequences argument must be one of {'all', 'shortest', 'longest'}")
+        return agg_func
 
 
 class GENCODE(SequenceDataset):
@@ -91,14 +102,7 @@ class GENCODE(SequenceDataset):
 
     def get_sequences(self, index, omic, agg_sequences, biotypes=None):
         # type: (str, str, str, List[str]) -> None
-        if agg_sequences == "all":
-            agg_func = lambda x: list(x)
-        elif agg_sequences == "shortest":
-            agg_func = lambda x: min(x, key=len)
-        elif agg_sequences == "longest":
-            agg_func = lambda x: max(x, key=len)
-        else:
-            raise Exception("agg_sequences argument must be one of {'all', 'shortest', 'longest'}")
+        agg_func = self.get_aggregator(agg_sequences)
 
         # Parse lncRNA & mRNA fasta
         if omic == openomics.MessengerRNA.name():
@@ -212,6 +216,6 @@ class MirBase(SequenceDataset):
 
         fasta_df = self.read_fasta(file)
 
-        self.seq_dict = fasta_df.set_index(index)["sequence"]
+        self.seq_dict = fasta_df.set_index(index)["sequence"].arg(self.get_aggregator(agg_sequences))
 
         return self.seq_dict
