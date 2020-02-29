@@ -1,5 +1,3 @@
-from .base import Dataset
-from abc import abstractmethod
 from abc import abstractmethod
 
 from .base import Dataset
@@ -15,10 +13,12 @@ class SequenceDataset(Dataset):
     @abstractmethod
     def get_sequences(self, index, omic, agg_sequences, **kwargs):
         """
-        Returns a dictionary where keys are
+        Returns a dictionary where keys are 'index' and values are sequence(s).
         Args:
-            omic (str): {"lncRNA", "microRNA", "messengerRNA"}
             index (str): {"gene_id", "gene_name", "transcript_id", "transcript_name"}
                 The index
+            omic (str): {"lncRNA", "microRNA", "messengerRNA"}
+            agg_sequences (str): {"all", "shortest", "longest"}
+            **kwargs: passes to SequenceDataset.get_sequences()
         """
         raise NotImplementedError

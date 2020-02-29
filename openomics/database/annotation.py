@@ -173,6 +173,7 @@ class GENCODE(SequenceDataset):
         return entries_df
 
     def get_sequences(self, index, omic, agg_sequences, biotypes=None):
+        # type: (str, str, str, List[str]) -> None
         if agg_sequences == "all":
             agg_func = lambda x: list(x)
         elif agg_sequences == "shortest":

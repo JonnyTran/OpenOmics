@@ -207,9 +207,13 @@ class Annotatable(object):
             self.annotations[old_col].fillna(self.annotations[new_col], inplace=True, axis=0)
             self.annotations.drop(columns=new_col, inplace=True)
 
+
     def annotate_sequences(self, database, index, omic=None, agg_sequences="longest", **kwargs):
         # type: (Dataset, str, str) -> None
         # assert isinstance(database, SequenceDataset)
+        if omic is None:
+            omic = self.name()
+
         sequences_entries = database.get_sequences(index=index, omic=omic, agg_sequences=agg_sequences, **kwargs)
 
         if type(self.annotations.index) == pd.MultiIndex:
