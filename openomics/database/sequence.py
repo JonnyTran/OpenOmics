@@ -152,9 +152,8 @@ class MirBase(SequenceDataset):
         self.sequence = sequence
         self.species_id = species_id
         self.species = species
-        super(MirBase, self).__init__(path=path, file_resource=file_resources, col_rename=col_rename,
-                                      npartitions=npartitions,
-                                      replace_U2T=replace_U2T)
+        super(MirBase, self).__init__(path=path, file_resources=file_resources, col_rename=col_rename,
+                                      npartitions=npartitions, replace_U2T=replace_U2T)
 
     def load_dataframe(self, file_resources):
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
