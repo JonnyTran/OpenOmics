@@ -13,6 +13,6 @@ def concat_uniques(df_column):
 def concat(df_column):
     df_column = df_column.dropna().astype(str)
     if not df_column.empty:
-        return "|".join(df_column)
+        return list(df_column)
     else:
         return None
