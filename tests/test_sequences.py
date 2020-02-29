@@ -1,6 +1,5 @@
-import pytest
-
 from openomics.database import GENCODE, MirBase
+from .test_multiomics import *
 
 
 @pytest.fixture
