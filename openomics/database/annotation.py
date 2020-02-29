@@ -408,8 +408,8 @@ class GENCODE(Dataset):
                     sequence_str = str(record.seq)
                     if self.replace_U2T: sequence_str = sequence_str.replace("U", "T")
 
-                    annotation_df.loc[
-                        annotation_df["transcript_id"] == transcript_id, "Transcript sequence"] = sequence_str
+                    annotation_df.loc[annotation_df["transcript_id"] == transcript_id,
+                                      "Transcript sequence"] = sequence_str
 
         if self.remove_version_num:
             annotation_df['gene_id'] = annotation_df['gene_id'].str.replace("[.].*",
