@@ -2,7 +2,7 @@ import pandas as pd
 from Bio.UniProt import GOA
 from goatools.obo_parser import OBOReader
 
-from .annotation import Dataset
+from .base import Dataset
 
 
 class GeneOntology(Dataset):

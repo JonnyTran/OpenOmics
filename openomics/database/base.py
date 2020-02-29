@@ -6,6 +6,7 @@ from abc import abstractmethod
 
 import filetype
 import pandas as pd
+import rarfile
 import validators
 
 from openomics.utils.df import concat_uniques
@@ -28,24 +29,31 @@ class Dataset(object):
             npartitions (int): [0-n], default 0
                 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
         """
-        # If downloading data from ftp/html path
-        if path is None:
-            path = ""
+        self.validate_file_resources(file_resources, path)
 
-        if validators.url(path) or any(
-            [validators.url(file_path) for file_path in file_resources.values()]):
+        self.df = self.load_dataframe(file_resources)
+        self.df = self.df.reset_index()
+        if col_rename is not None:
+            self.df = self.df.rename(columns=col_rename)
+        print("{}: {}".format(self.name(), self.df.columns.tolist()))
+
+    def validate_file_resources(self, file_resources, path):
+        if validators.url(path):
             for filename, filepath in copy.copy(file_resources).items():
-                # Download the files and replace the file_resource paths
-                data_file = get_pkg_data_filename(path, filepath)
-                extension = filetype.guess(data_file).extension
+                data_file = get_pkg_data_filename(path, filepath)  # Download file and replace the file_resource path
+                filetype_ext = filetype.guess(data_file)
 
-                if extension == 'gz':
-                    file_resources[filename] = gzip.open(data_file, 'r')
+                if filetype_ext is None:  # This if-clause is needed incase when filetype_ext is None, causing the next clause to fail
+                    file_resources[filename] = data_file  # Returns the
+                elif filetype_ext.extension == 'gz':
+                    file_resources[filename] = gzip.open(data_file, 'rt')
+                elif filetype_ext.extension == 'rar':
+                    rf = rarfile.RarFile(data_file, 'r')
+                    for f in rf.infolist():
+                        file_resources[filename] = rf.open(f.filename, mode="r")
                 else:
                     file_resources[filename] = data_file
-            print(file_resources)
 
-        # If using local data
         elif os.path.isdir(path) and os.path.exists(path):
             for _, filepath in file_resources.items():
                 if not os.path.exists(filepath):
@@ -55,17 +63,14 @@ class Dataset(object):
 
         self.data_path = path
         self.file_resources = file_resources
-        self.df = self.load_dataframe(file_resources)
-        self.df = self.df.reset_index()
-        if col_rename is not None:
-            self.df = self.df.rename(columns=col_rename)
-        print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
+    def close(self):
         # Close opened file resources
-        for filename, filepath in file_resources.items():
-            if type(file_resources[filename]) != str:
-                file_resources[filename].close()
+        for filename, filepath in self.file_resources.items():
+            if type(self.file_resources[filename]) != str:
+                self.file_resources[filename].close()
 
+    @abstractmethod
     def load_dataframe(self, file_resources):
         # type: (dict) -> pd.DataFrame
         """
@@ -80,6 +85,9 @@ class Dataset(object):
     @classmethod
     def name(cls):
         return cls.__name__
+
+    def list_databases(self):
+        return DEFAULT_LIBRARIES
 
     def get_annotations(self, index, columns):
         # type: (str, List[str]) -> Union[pd.DataFrame, dd.DataFrame]
@@ -117,6 +125,11 @@ class Dataset(object):
             raise ValueError("DataFrame must not have duplicates in index")
         return df
 
+    def get_expressions(self, index):
+        return self.df.groupby(
+            index).median()  # TODO if index by gene, aggregate medians of transcript-level expressions
+
+    @abstractmethod
     def get_rename_dict(self, from_index, to_index):
         """
         Used to retrieve a lookup dictionary to convert from one index to another, e.g., gene_id to gene_name
@@ -130,17 +143,8 @@ class Dataset(object):
         """
         raise NotImplementedError
 
-    def get_sequences(self, index, omic=None):
-        """
-        Returns a dictionary where keys are
-        Args:
-            omic (str): {"lncRNA", "microRNA", "messengerRNA"}
-            index (str): {"gene_id", "gene_name", "transcript_id", "transcript_name"}
-                The index
-        """
-        raise NotImplementedError
 
-
+# from .sequence import SequenceDataset
 class Annotatable(object):
     """
     This class provides an interface for the omics to annotate external data downloaded from various databases. These data will be imported as attribute information to the genes, or interactions between the genes.
@@ -154,6 +158,12 @@ class Annotatable(object):
             return self.annotations
         else:
             raise Exception("Must run initialize_annotations() first.")
+
+    def get_annotation_expressions(self):
+        if hasattr(self, "annotation_expressions"):
+            return self.annotation_expressions
+        else:
+            raise Exception("Must run annotate_expressions() first.")
 
     def initialize_annotations(self, gene_list, index):
         if gene_list is None:
@@ -173,36 +183,102 @@ class Annotatable(object):
             columns (list): a list of column name to join to the annotations
             fuzzy_match (bool): default False. Whether to join the annotations by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
         """
-        database_annotations = database.get_annotations(index, columns)
+        database_df = database.get_annotations(index, columns)
         if fuzzy_match:
-            database_annotations.index = database_annotations.index.map(
-                lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
+            database_df.index = database_df.index.map(lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
 
         if index == self.annotations.index.name:
-            self.annotations = self.annotations.join(database_annotations, on=index, rsuffix="_")
+            self.annotations = self.annotations.join(database_df, on=index, rsuffix="_")
         else:
-            old_index = self.annotations.index.name
+            if type(self.annotations.index) == pd.MultiIndex:
+                old_index = self.annotations.index.names
+            else:
+                old_index = self.annotations.index.name
+
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(index, inplace=True)
-            self.annotations = self.annotations.join(database_annotations, on=index, rsuffix="_")
-            self.annotations = self.annotations.reset_index()
+            self.annotations = self.annotations.join(database_df, on=index, rsuffix="_").reset_index()
             self.annotations.set_index(old_index, inplace=True)
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
         duplicate_columns = [col for col in self.annotations.columns if col[-1] == "_"]
-        for col in duplicate_columns:
-            self.annotations[col.strip("_")].fillna(self.annotations[col], inplace=True, axis=0)
-            self.annotations.drop(columns=col, inplace=True)
+        for new_col in duplicate_columns:
+            old_col = new_col.strip("_")
+            self.annotations[old_col].fillna(self.annotations[new_col], inplace=True, axis=0)
+            self.annotations.drop(columns=new_col, inplace=True)
 
-    def annotate_sequences(self, database, index, omic):
+    def annotate_sequences(self, database, index, omic=None, agg_sequences="longest", **kwargs):
         # type: (Dataset, str, str) -> None
-        self.annotations["Transcript sequence"] = self.annotations.index.map(
-            database.get_sequences(index=index, omic=omic))
+        # assert isinstance(database, SequenceDataset)
+        sequences_entries = database.get_sequences(index=index, omic=omic, agg_sequences=agg_sequences, **kwargs)
+
+        if type(self.annotations.index) == pd.MultiIndex:
+            self.annotations['Transcript sequence'] = self.annotations.index.get_level_values(index).map(
+                sequences_entries)
+        else:
+            self.annotations["Transcript sequence"] = self.annotations.index.map(sequences_entries)
+
+    def annotate_expressions(self, database, index, fuzzy_match=False):
+        self.annotation_expressions = pd.DataFrame(index=self.annotations.index)
+
+        if self.annotations.index.name == index:
+            self.annotation_expressions = self.annotation_expressions.join(
+                database.get_expressions(index=index))
+        else:
+            raise Exception("index argument must be one of", database.df.index)
 
     def annotate_interactions(self, database, index):
-        # type: (Dataset, str) -> None
+        # type: (Interactions, str) -> None
         raise NotImplementedError
 
     def annotate_diseases(self, database, index):
-        # type: (Dataset, str) -> None
-        raise NotImplementedError
+        # type: (DiseaseAssociation, str) -> None
+        self.annotations["disease_associations"] = self.annotations.index.map(
+            database.get_disease_assocs(index=index, ))
+
+    def set_index(self, new_index):
+        self.annotations[new_index].fillna(self.annotations.index.to_series(), axis=0, inplace=True)
+        self.annotations = self.annotations.reset_index().set_index(new_index)
+
+    def get_rename_dict(self, from_index, to_index):
+        dataframe = self.annotations.reset_index()
+        dataframe = dataframe[dataframe[to_index].notnull()]
+        return pd.Series(dataframe[to_index].values,
+                         index=dataframe[from_index]).to_dict()
+
+
+DEFAULT_LIBRARIES = ["10KImmunomes"
+                     "BioGRID"
+                     "CCLE"
+                     "DisGeNET"
+                     "ENSEMBL"
+                     "GENCODE"
+                     "GeneMania"
+                     "GeneOntology"
+                     "GlobalBiobankEngine"
+                     "GTEx"
+                     "HMDD_miRNAdisease"
+                     "HPRD_PPI"
+                     "HUGO_Gene_names"
+                     "HumanBodyMapLincRNAs"
+                     "IntAct"
+                     "lncBase"
+                     "LNCipedia"
+                     "LncReg"
+                     "lncRInter"
+                     "lncrna2target"
+                     "lncRNA_data_repository"
+                     "lncrnadisease"
+                     "lncRNome"
+                     "mirbase"
+                     "miRTarBase"
+                     "NHLBI_Exome_Sequencing_Project"
+                     "NONCODE"
+                     "NPInter"
+                     "PIRD"
+                     "RegNetwork"
+                     "RISE_RNA_Interactions"
+                     "RNAcentral"
+                     "StarBase_v2.0"
+                     "STRING_PPI"
+                     "TargetScan"]

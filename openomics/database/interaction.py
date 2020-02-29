@@ -1,9 +1,9 @@
+from abc import abstractmethod
+
 import networkx as nx
 
 from openomics.database.annotation import *
 from openomics.database.base import Dataset
-
-from abc import abstractmethod
 
 
 class Interactions(Dataset):
@@ -48,11 +48,8 @@ class Interactions(Dataset):
 
         print("{}".format(nx.info(self.network)))
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}(num_nodes={self.network.number_of_nodes()}, num_edges={self.network.number_of_edges()})"
-
     @abstractmethod
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed) -> nx.Graph:
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         raise NotImplementedError
 
     def get_interactions(self, nodelist=None, data=False, inclusive=True):
@@ -533,7 +530,6 @@ class MiRTarBase(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed=True):
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
-        print(df.info())
         if self.species:
             df = df[df["Species (Target Gene)"].str.lower() == self.species.lower()]
 
