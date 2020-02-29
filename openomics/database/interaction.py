@@ -1,6 +1,9 @@
+from abc import abstractmethod
+
 import networkx as nx
 
 from openomics.database.annotation import *
+from openomics.database.base import Dataset
 
 
 class Interactions(Dataset):

@@ -1,8 +1,10 @@
 from __future__ import print_function, division, absolute_import
 
 try:
+    from .base import Annotatable
+
     from .annotation import (
-        Annotatable, GENCODE, MirBase, EnsemblGenes, RNAcentral, BioMartManager, GTEx
+        GENCODE, MirBase, EnsemblGenes, RNAcentral, BioMartManager, GTEx
     )
     from .ontology import GeneOntology
 
