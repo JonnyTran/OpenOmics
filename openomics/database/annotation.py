@@ -403,9 +403,9 @@ class GENCODE(Dataset):
     def read_fasta(self, fasta_file):
         entries = []
         for record in SeqIO.parse(fasta_file, "fasta"):
-            record_dict = {"gene_id": record.id.split("|")[1].split(".")[0],
+            record_dict = {"gene_id": record.id.split("|")[1],
                            "gene_name": record.id.split("|")[5],
-                           "transcript_id": record.id.split("|")[0].split(".")[0],
+                           "transcript_id": record.id.split("|")[0],
                            "transcript_name": record.id.split("|")[4],
                            "transcript_length": record.id.split("|")[6],
                            "transcript_biotype": record.id.split("|")[7],
@@ -422,7 +422,7 @@ class GENCODE(Dataset):
             entries_df['transcript_id'] = entries_df['transcript_id'].str.replace("[.].*", "")
         return entries_df
 
-    def get_sequences(self, index, omic=None):
+    def get_sequences(self, index, omic):
         # Parse lncRNA & mRNA fasta
         if omic == openomics.MessengerRNA.name():
             fasta_file = self.file_resources["transcripts.fa"]
@@ -433,42 +433,14 @@ class GENCODE(Dataset):
 
         entries_df = self.read_fasta(fasta_file)
 
-        if index == "gene_id":
-            key = "gene_id"
-        elif index == "gene_name":
-            key = "gene_name"
-        elif index == "transcript_id":
-            key = "transcript_id"
-        elif index == "transcript_name":
-            key = "transcript_name"
+        if "gene" in index:
+            entries_df.groupby(index)["sequence"]
+        elif "transcript" in index:
+            return entries_df.groupby(index)["sequence"].first()
         else:
             raise Exception(
                 "The level argument must be one of 'gene_id', 'transcript_id', or 'gene_name', or 'transcript_name'")
 
-        return entries_df.set_index(key)["sequence"]
-
-        # If index by gene, then select/aggregate transcript sequences either by "shortest", "longest" or "all"
-        if "gene" in index and self.agg_sequences == "shortest":
-            if key not in seq_dict:
-                seq_dict[key] = sequence_str
-            else:
-                if len(seq_dict[key]) > len(sequence_str):
-                    seq_dict[key] = sequence_str
-        elif "gene" in index and self.agg_sequences == "longest":
-            if key not in seq_dict:
-                seq_dict[key] = sequence_str
-            else:
-                if len(seq_dict[key]) < len(sequence_str):
-                    seq_dict[key] = sequence_str
-        elif "gene" in index and self.agg_sequences == "all":
-            if key not in seq_dict:
-                seq_dict[key] = [sequence_str, ]
-            else:
-                seq_dict[key].append(sequence_str)
-        else:
-            seq_dict[key] = sequence_str
-
-        return seq_dict
 
     def get_rename_dict(self, from_index, to_index):
         ensembl_id_to_gene_name = pd.Series(self.df['gene_name'].values,
