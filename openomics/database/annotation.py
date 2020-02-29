@@ -398,24 +398,33 @@ class GENCODE(Dataset):
 
         for fasta_file in file_resources:
             if '.fa' in fasta_file:
-                for record in SeqIO.parse(file_resources[fasta_file], "fasta"):
-                    gene_id = record.id.split("|")[1]
-                    gene_name = record.id.split("|")[5]
-                    transcript_id = record.id.split("|")[0]
-                    transcript_name = record.id.split("|")[4]
-                    transcript_length = record.id.split("|")[6]
-                    transcript_biotype = record.id.split("|")[7]
-                    sequence_str = str(record.seq)
-                    if self.replace_U2T: sequence_str = sequence_str.replace("U", "T")
+                fasta_df = self.read_fasta(file_resources[fasta_file])
+                print("Done reading", fasta_file)
+                transcript_id2seq = fasta_df.set_index("transcript_id")["sequence_str"]
 
-                    annotation_df.loc[annotation_df["transcript_id"] == transcript_id,
-                                      "Transcript sequence"] = sequence_str
+                annotation_df["Transcript sequence"] = annotation_df["transcript_id"].replace(transcript_id2seq)
 
         if self.remove_version_num:
             annotation_df['gene_id'] = annotation_df['gene_id'].str.replace("[.].*",
                                                                             "")  # Remove .# ENGS gene version number
             annotation_df['transcript_id'] = annotation_df['transcript_id'].str.replace("[.].*", "")
         return annotation_df
+
+    def read_fasta(self, fasta_file):
+        entries = []
+        for record in SeqIO.parse(fasta_file, "fasta"):
+            record_dict = {"gene_id": record.id.split("|")[1].split(".")[0],
+                           "gene_name": record.id.split("|")[5],
+                           "transcript_id": record.id.split("|")[0].split(".")[0],
+                           "transcript_name": record.id.split("|")[4],
+                           "transcript_length": record.id.split("|")[6],
+                           "transcript_biotype": record.id.split("|")[7],
+                           "sequence_str": str(record.seq),
+                           }
+            if self.replace_U2T:
+                record_dict["sequence_str"] = record_dict["sequence_str"].replace("U", "T")
+            entries.append(record_dict)
+        return pd.DataFrame(entries)
 
     def get_sequences(self, index, omic=None):
         # Parse lncRNA & mRNA fasta
