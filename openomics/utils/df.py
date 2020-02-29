@@ -9,10 +9,9 @@ def concat_uniques(df_column):
     else:
         return None
 
-
 def concat(df_column):
     df_column = df_column.dropna().astype(str)
     if not df_column.empty:
-        return list(df_column)
+        return "|".join(df_column)
     else:
         return None
