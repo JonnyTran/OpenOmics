@@ -392,7 +392,7 @@ class GENCODE(Dataset):
             if '.gtf' in gtf_file:
                 # Parse lncRNA gtf
                 df = read_gtf(file_resources[gtf_file])  # Returns a dask dataframe
-
+                print("Done reading", gtf_file)
                 dfs.append(df)
         annotation_df = pd.concat(dfs)
 
