@@ -192,7 +192,7 @@ class MirBase(SequenceDataset):
                            "mirbase id": record.description.split(" ")[1],
                            "mir_name": record.description.split(" ")[5],
                            "species": " ".join(record.description.split(" ")[2:4]),
-                           "sequence": str(record.seq),
+                           "sequence": "".join(record.seq) if isinstance(record.seq, list) else str(record.seq),
                            }
 
             entries.append(record_dict)
