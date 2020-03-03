@@ -259,7 +259,6 @@ class EnsemblSomaticVariation(EnsemblGenes):
 
 
 class NONCODE(Dataset):
-    # TODO need more fix
     def __init__(self, path, file_resources=None, col_rename=None):
         if file_resources is None:
             file_resources = {}
