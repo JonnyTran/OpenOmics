@@ -11,84 +11,19 @@ from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
 class MultiOmics:
     def __init__(self, cohort_name):
-        # type: (str, List[str]) -> None
+        # type: (List[str]) -> None
         """
         Load all multi-omics data from a given cohort_folder path.
 
 
         Args:
             cohort_name (str): the clinical cohort name
-            import_clinical (bool, ClinicalData):
         """
         self.cohort_name = cohort_name
         self.omics_list = []
 
-        # This is a data dictionary accessor to retrieve DataFrame's
+        # This is a data dictionary accessor to retrieve individual -omic data
         self.data = {}
-
-        # if "GE" in omics:
-        #     table_path_GE = os.path.join(cohort_folder, "gene_exp", "geneExp.txt")
-        #     self.GE = MessengerRNA(cohort_name, table_path_GE, columns="GeneSymbol|TCGA", index="GeneSymbol")
-        #     self.data["GE"] = self.GE.expressions
-
-            # try:
-            #
-            #     self.GE.process_HUGO_protein_coding_genes_info(
-            #         os.path.join(external_data_path, "HUGO_Gene_names", "gene_with_protein_product.txt"))
-            #
-            #     self.GE.process_GO_genes_info(os.path.join(external_data_path, "GeneOntology"))
-            #
-            #     self.GE.process_RegNet_gene_regulatory_network(
-            #         grn_file_path=os.path.join(external_data_path, "RegNetwork", "human.source"))
-            #
-            #     self.GE.process_DisGeNET_gene_disease_associations(
-            #         disgenet_folder_path=os.path.join(external_data_path, "DisGeNET"))
-            #
-            #     self.GE.process_starBase_RNA_RNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
-            # except FileNotFoundError as e:
-            #     print(e)
-
-        # if "SNP" in omics:
-        #     file_path_SNP = os.path.join(cohort_folder, "somatic/", "somaticMutation_geneLevel.txt")
-        #     self.SNP = SomaticMutation(cohort_name, file_path_SNP)
-        #     self.data["SNP"] = self.SNP.expressions
-        #
-        # if "MIR" in omics:
-        #     file_path_MIR = os.path.join(cohort_folder, "mirna/", "miRNAExp__RPM.txt")
-        #     self.MIR = MicroRNA(cohort_name, file_path_MIR)
-        #     self.data["MIR"] = self.MIR.expressions
-
-            # try:
-            #     self.MIR.process_mirnadisease_associations(
-            #         HMDD_miRNAdisease_path=os.path.join(external_data_path, "HMDD_miRNAdisease"))
-            #
-            #     # self.MIR.process_HUGO_miRNA_gene_info(
-            #     #     HUGO_folder_path=os.path.join(external_data_path, "HUGO_Gene_names"))
-            #     # self.MIR.process_RNAcentral_annotation_info(
-            #     #     RNAcentral_folder_path=os.path.join(external_data_path, "RNAcentral"))
-            #
-
-        # if "LNC" in omics:
-        #     file_path_LNC = os.path.join(cohort_folder, "lncrna", "TCGA-rnaexpr.tsv")
-        #     self.LNC = LncRNA(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", index="Gene_ID")
-        #     self.data["LNC"] = self.LNC.expressions
-
-            # try:
-            #     self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
-            #     self.LNC.process_lncRNome_gene_info(os.path.join(external_data_path, "lncRNome"))
-            #     self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
-            #     self.LNC.process_starBase_lncRNA_RNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
-            #     self.LNC.process_LncReg_lncRNA_RNA_regulatory_interactions(
-            #         LncReg_folder_path=os.path.join(external_data_path, "LncReg"))
-            #     self.LNC.process_NPInter_ncRNA_RNA_regulatory_interactions(
-            #         NPInter_folder_path=os.path.join(external_data_path, "NPInter"))
-            #     self.LNC.process_lncrnadisease_associations(
-            #         lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
-
-        # if "PRO" in omics:
-            # self.PRO.process_HPRD_PPI_network(
-            #     ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
-            #                                     "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
 
     def remote_duplate_genes(self):
         """
