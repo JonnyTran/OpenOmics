@@ -19,8 +19,8 @@ dash
 dash-daq
 dash-bootstrap-components
 gunicorn
-six==1.10
-lxml==4.3.5
+six
+lxml
 validators
 sqlalchemy
 filetype
