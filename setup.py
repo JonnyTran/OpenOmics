@@ -74,22 +74,22 @@ setup(
     license='MIT license',
     install_requires=requirements,
     setup_requires=setup_requirements,
-    extras_require={
-            ':python_version == "2.7"': [
-                'six==1.10',
-                'lxml==4.3.5'
-            ],
-        },
+    # extras_require={
+    #         ':python_version == "2.7"': [
+    #             'six==1.10',
+    #             'lxml==4.3.5'
+    #         ],
+    #     },
     test_suite='tests',
     tests_require=test_requirements,
     classifiers=[
-            'Development Status :: 2 - Pre-Alpha',
-            'Intended Audience :: Developers',
-            'License :: OSI Approved :: MIT License',
-            'Natural Language :: English',
-            "Programming Language :: Python :: 2",
-            'Programming Language :: Python :: 2.7',
-            'Programming Language :: Python :: 3',
+        'Development Status :: 2 - Pre-Alpha',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: MIT License',
+        'Natural Language :: English',
+        "Programming Language :: Python :: 2",
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
             'Programming Language :: Python :: 3.5',
             'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: 3.7',
