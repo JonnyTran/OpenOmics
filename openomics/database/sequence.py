@@ -9,7 +9,7 @@ from .base import Dataset
 
 
 class SequenceDataset(Dataset):
-    def __init__(self, replace_U2T=True, **kwargs):
+    def __init__(self, replace_U2T=False, **kwargs):
         self.replace_U2T = replace_U2T
 
         super(SequenceDataset, self).__init__(**kwargs)
