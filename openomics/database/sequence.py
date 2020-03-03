@@ -36,9 +36,9 @@ class SequenceDataset(Dataset):
         """
         raise NotImplementedError
 
-    def get_aggregator(self, agg_sequences):
+    def get_aggregator(self, agg_sequences=None):
         if agg_sequences == "all":
-            agg_func = lambda x: list(x)
+            agg_func = lambda x: list(x) if not isinstance(x, str) else x
         elif agg_sequences == "shortest":
             agg_func = lambda x: min(x, key=len)
         elif agg_sequences == "longest":
