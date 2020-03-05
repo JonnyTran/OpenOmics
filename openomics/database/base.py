@@ -157,13 +157,13 @@ class Annotatable(object):
         if hasattr(self, "annotations"):
             return self.annotations
         else:
-            raise Exception("Must run initialize_annotations() first.")
+            raise Exception("{} must run initialize_annotations() first.".format(self.name()))
 
     def get_annotation_expressions(self):
         if hasattr(self, "annotation_expressions"):
             return self.annotation_expressions
         else:
-            raise Exception("Must run annotate_expressions() first.")
+            raise Exception("{} must run annotate_expressions() first.".format(self.name()))
 
     def initialize_annotations(self, gene_list, index):
         if gene_list is None:
