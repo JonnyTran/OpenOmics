@@ -15,10 +15,11 @@ class SequenceDataset(Dataset):
         super(SequenceDataset, self).__init__(**kwargs)
 
     @abstractmethod
-    def read_fasta(self, fasta_file):
+    def read_fasta(self, fasta_file, replace_U2T):
         """
         Returns a pandas DataFrame containing the fasta sequence entries. With a column named 'sequence'.
         Args:
+            replace_U2T:
             fasta_file (str): path to the fasta file, usually as self.file_resources[<file_name>]
         """
         raise NotImplementedError
@@ -78,7 +79,7 @@ class GENCODE(SequenceDataset):
             annotation_df['transcript_id'] = annotation_df['transcript_id'].str.replace("[.].*", "")
         return annotation_df
 
-    def read_fasta(self, fasta_file):
+    def read_fasta(self, fasta_file, replace_U2T):
         entries = []
         for record in SeqIO.parse(fasta_file, "fasta"):
             record_dict = {"gene_id": record.id.split("|")[1],
@@ -93,8 +94,8 @@ class GENCODE(SequenceDataset):
             entries.append(record_dict)
 
         entries_df = pd.DataFrame(entries)
-        if self.replace_U2T:
-            entries_df["sequence"] = entries_df["sequence"].replace("U", "T")
+        if replace_U2T:
+            entries_df["sequence"] = entries_df["sequence"].str.replace("U", "T")
         if self.remove_version_num:
             entries_df['gene_id'] = entries_df['gene_id'].str.replace("[.].*", "")
             entries_df['transcript_id'] = entries_df['transcript_id'].str.replace("[.].*", "")
@@ -112,7 +113,7 @@ class GENCODE(SequenceDataset):
         else:
             raise Exception("omic argument must be one of {'MessengerRNA', 'LncRNA'}")
 
-        entries_df = self.read_fasta(fasta_file)
+        entries_df = self.read_fasta(fasta_file, self.replace_U2T)
 
         if "gene" in index:
             if biotypes:
@@ -184,7 +185,7 @@ class MirBase(SequenceDataset):
 
         return mirbase_aliases
 
-    def read_fasta(self, fasta_file):
+    def read_fasta(self, fasta_file, replace_U2T):
         entries = []
         for record in SeqIO.parse(fasta_file, "fasta"):
             record_dict = {"gene_id": record.id,
@@ -192,14 +193,14 @@ class MirBase(SequenceDataset):
                            "mirbase id": record.description.split(" ")[1],
                            "mir_name": record.description.split(" ")[5],
                            "species": " ".join(record.description.split(" ")[2:4]),
-                           "sequence": "".join(record.seq) if isinstance(record.seq, list) else str(record.seq),
+                           "sequence": str(record.seq),
                            }
 
             entries.append(record_dict)
 
         entries_df = pd.DataFrame(entries)
-        if self.replace_U2T:
-            entries_df["sequence"] = entries_df["sequence"].replace("U", "T")
+        if replace_U2T:
+            entries_df["sequence"] = entries_df["sequence"].str.replace("U", "T")
         return entries_df
 
     def get_sequences(self, index="gene_name", omic=None, agg_sequences="all"):
@@ -214,7 +215,7 @@ class MirBase(SequenceDataset):
         else:
             raise Exception("sequence must be either 'hairpin' or 'mature'")
 
-        fasta_df = self.read_fasta(file)
+        fasta_df = self.read_fasta(file, self.replace_U2T)
 
         self.seq_dict = fasta_df.set_index(index)["sequence"].agg(self.get_aggregator(agg_sequences))
 
