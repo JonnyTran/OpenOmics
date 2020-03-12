@@ -1,17 +1,17 @@
+import pandas as pd
 
-def concat_uniques(df_column):
-    before_shape = df_column.shape
-    df_column = df_column.dropna().astype(str)
-    assert before_shape == df_column.shape
 
-    if not df_column.empty:
-        return "|".join(df_column.unique())
+def concat_uniques(series: pd.Series):
+    series = series.dropna().astype(str)
+    if not series.empty:
+        return "|".join(series.unique())
     else:
         return None
 
-def concat(df_column):
-    df_column = df_column.dropna().astype(str)
-    if not df_column.empty:
-        return "|".join(df_column)
+
+def concat(series: pd.Series):
+    series = series.dropna().astype(str)
+    if not series.empty:
+        return "|".join(series)
     else:
         return None
