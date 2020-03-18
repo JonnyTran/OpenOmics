@@ -8,6 +8,7 @@ import filetype
 import pandas as pd
 import rarfile
 import validators
+import zipfile
 
 from openomics.utils.df import concat
 from openomics.utils.io import get_pkg_data_filename
@@ -50,12 +51,14 @@ class Dataset(object):
                     file_resources[filename] = gzip.open(data_file, 'rt')
 
                 elif filetype_ext.extension == 'zip':
-                    file_resources[filename] = gzip.open(data_file, 'rt')
+                    zf = zipfile.ZipFile(data_file, 'r')
+                    for f in zf.infolist():
+                        file_resources[filename] = zf.open(f.filename, mode='r')
 
                 elif filetype_ext.extension == 'rar':
                     rf = rarfile.RarFile(data_file, 'r')
                     for f in rf.infolist():
-                        file_resources[filename] = rf.open(f.filename, mode="r")
+                        file_resources[filename] = rf.open(f.filename, mode='r')
                 else:
                     file_resources[filename] = data_file
 
