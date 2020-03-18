@@ -22,13 +22,16 @@ class Interactions(Dataset):
                 Column name of DataFrame to be used as the source node names.
             target_col_name (str):
                 Column name of DataFrame to be used as the target node names.
+            source_index (str):
+                One of {"gene_name", "gene_id", "transcript_name", "transcript_id", "protein_name", "protein_id"}
+            target_index (str):
+                One of {"gene_name", "gene_id", "transcript_name", "transcript_id", "protein_name", "protein_id"}
             edge_attr (list):
                 A list of column names to be included as attributes for each edge (source-target pairs).
             directed (bool): default True,
                 Whether to create a directed or an undirected network.
-            col_rename (dict): default None,
-                A dictionary to rename columns in the data table. If None, then automatically load defaults.
-            npartitions:
+            relabel_nodes (dict): default None,
+                A dictionary to rename nodes in the network.
         """
         self.validate_file_resources(file_resources, path)
 
@@ -119,16 +122,15 @@ class GeneMania(Interactions):
 class BioGRID(Interactions):
     "https://downloads.thebiogrid.org/File/BioGRID/Release-Archive/BIOGRID-3.5.182/BIOGRID-ALL-3.5.182.tab2.zip"
 
-    def __init__(self, path="https://downloads.thebiogrid.org/Download/BioGRID/Release-Archive/BIOGRID-3.5.182/",
+    def __init__(self, path="https://downloads.thebiogrid.org/Download/BioGRID/Latest-Release/",
                  file_resources=None, source_col_name="Official Symbol Interactor A",
                  target_col_name="Official Symbol Interactor B",
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=['Score', 'Throughput', 'Qualifications', 'Modification', 'Phenotypes'],
+                 edge_attr=['Score', 'Throughput', 'Qualifications', 'Modification', 'Phenotypes', 'Tags'],
                  directed=False, relabel_nodes=None):
-
         if file_resources is None:
             file_resources = {}
-            file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"] = os.path.join(path, "BIOGRID-ALL-3.5.182.tab2.zip")
+            file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"] = os.path.join(path, "BIOGRID-ALL-LATEST.tab2.zip")
 
         super(BioGRID, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
                                       target_index,
@@ -136,10 +138,10 @@ class BioGRID(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, species=9606):
         biogrid_df = pd.read_table(file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"],
-                                   # na_values=["-"],
-                                   # usecols=['Official Symbol Interactor A',
-                                   #          'Official Symbol Interactor B', 'Organism Interactor A', 'Score',
-                                   #          'Throughput', 'Qualifications', 'Modification', 'Phenotypes'],
+                                   na_values=["-"],
+                                   usecols=['Official Symbol Interactor A',
+                                            'Official Symbol Interactor B', 'Organism Interactor A', 'Score',
+                                            'Throughput', 'Qualifications', 'Modification', 'Phenotypes'],
                                    low_memory=True)
 
         print("{}: {}".format(self.name(), biogrid_df.columns.tolist()))

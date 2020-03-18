@@ -27,5 +27,6 @@ filetype
 gtfparse
 scikit-allel
 rarfile
+zipfile
 filetype
 goatools
