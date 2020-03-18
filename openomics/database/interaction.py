@@ -130,18 +130,18 @@ class BioGRID(Interactions):
                  directed=False, relabel_nodes=None):
         if file_resources is None:
             file_resources = {}
-            file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"] = os.path.join(path, "BIOGRID-ALL-LATEST.tab2.zip")
+            file_resources["BIOGRID-ALL-LATEST.tab2.zip"] = os.path.join(path, "BIOGRID-ALL-LATEST.tab2.zip")
 
         super(BioGRID, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
                                       target_index,
                                       edge_attr, directed, relabel_nodes)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, species=9606):
-        biogrid_df = pd.read_table(file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"],
+        biogrid_df = pd.read_table(file_resources["BIOGRID-ALL-LATEST.tab2.zip"],
                                    na_values=["-"],
-                                   usecols=['Official Symbol Interactor A',
-                                            'Official Symbol Interactor B', 'Organism Interactor A', 'Score',
-                                            'Throughput', 'Qualifications', 'Modification', 'Phenotypes'],
+                                   # usecols=['Official Symbol Interactor A', 'Official Symbol Interactor B',
+                                   #          'Organism Interactor A', 'Score', 'Throughput', 'Qualifications',
+                                   #          'Modification', 'Phenotypes'],
                                    low_memory=True)
 
         print("{}: {}".format(self.name(), biogrid_df.columns.tolist()))
