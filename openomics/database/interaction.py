@@ -134,8 +134,12 @@ class BioGRID(Interactions):
                                       edge_attr, directed, relabel_nodes)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, species=9606):
+        with file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"] as file:
+            lines = file.readline()
+            print(lines)
+
         biogrid_df = pd.read_table(file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"],
-                                   na_values=["-"],
+                                   # na_values=["-"],
                                    # usecols=['Official Symbol Interactor A',
                                    #          'Official Symbol Interactor B', 'Organism Interactor A', 'Score',
                                    #          'Throughput', 'Qualifications', 'Modification', 'Phenotypes'],
