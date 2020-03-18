@@ -117,8 +117,9 @@ class GeneMania(Interactions):
 
 
 class BioGRID(Interactions):
+    "https://downloads.thebiogrid.org/File/BioGRID/Release-Archive/BIOGRID-3.5.182/BIOGRID-ALL-3.5.182.tab2.zip"
 
-    def __init__(self, path="https://downloads.thebiogrid.org/BioGRID/Release-Archive/BIOGRID-3.5.182/",
+    def __init__(self, path="https://downloads.thebiogrid.org/Download/BioGRID/Release-Archive/BIOGRID-3.5.182/",
                  file_resources=None, source_col_name="Official Symbol Interactor A",
                  target_col_name="Official Symbol Interactor B",
                  source_index="gene_name", target_index="gene_name",
@@ -139,7 +140,7 @@ class BioGRID(Interactions):
             for i in range(50):
                 lines = file.readline()
                 print(lines)
-
+        file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"].seek(0)
         biogrid_df = pd.read_table(file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"],
                                    # na_values=["-"],
                                    # usecols=['Official Symbol Interactor A',
