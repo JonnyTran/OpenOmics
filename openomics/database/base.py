@@ -45,8 +45,13 @@ class Dataset(object):
 
                 if filetype_ext is None:  # This if-clause is needed incase when filetype_ext is None, causing the next clause to fail
                     file_resources[filename] = data_file  # Returns the
+
                 elif filetype_ext.extension == 'gz':
                     file_resources[filename] = gzip.open(data_file, 'rt')
+
+                elif filetype_ext.extension == 'zip':
+                    file_resources[filename] = gzip.open(data_file, 'rt')
+
                 elif filetype_ext.extension == 'rar':
                     rf = rarfile.RarFile(data_file, 'r')
                     for f in rf.infolist():
