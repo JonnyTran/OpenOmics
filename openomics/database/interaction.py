@@ -118,7 +118,8 @@ class GeneMania(Interactions):
 
 class BioGRID(Interactions):
 
-    def __init__(self, path, file_resources=None, source_col_name="Official Symbol Interactor A",
+    def __init__(self, path="https://downloads.thebiogrid.org/BioGRID/Release-Archive/BIOGRID-3.5.182/",
+                 file_resources=None, source_col_name="Official Symbol Interactor A",
                  target_col_name="Official Symbol Interactor B",
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=None,
@@ -127,7 +128,7 @@ class BioGRID(Interactions):
             edge_attr = ['Score', 'Throughput', 'Qualifications', 'Modification', 'Phenotypes']
         if file_resources is None:
             file_resources = {}
-            file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"] = os.path.join(path, "BIOGRID-ALL-3.4.162.tab2.txt")
+            file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"] = os.path.join(path, "BIOGRID-ALL-3.5.182.tab2.zip")
 
         super(BioGRID, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
                                       target_index,
@@ -140,6 +141,8 @@ class BioGRID(Interactions):
                                             'Official Symbol Interactor B', 'Organism Interactor A', 'Score',
                                             'Throughput', 'Qualifications', 'Modification', 'Phenotypes'],
                                    low_memory=True)
+
+        print("{}: {}".format(self.name(), biogrid_df.columns.tolist()))
 
         biogrid_df = biogrid_df[biogrid_df["Organism Interactor A"] == species]
         # biogrid_df = biogrid_df[biogrid_df["Throughput"] == "High Throughput"]
@@ -183,11 +186,10 @@ class STRING(Interactions, SequenceDataset):
         self.df = pd.read_table(file_resources["protein.info.txt"])
         self.df = self.df.reset_index()
         self.df = self.df.rename(columns=self.COLUMNS_RENAME_DICT)
-        print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         protein_interactions = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
-        print("{}} edge attributes: {}".format(self.name(), protein_interactions.columns))
+        print("{}: {}".format(self.name(), protein_interactions.columns.tolist()))
         protein_info = pd.read_table(file_resources["protein.info.txt"])
         self.protein_id2name = protein_info.set_index("protein_external_id")["preferred_name"].to_dict()
         network = nx.from_pandas_edgelist(protein_interactions, source=source_col_name, target=target_col_name,
