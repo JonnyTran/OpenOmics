@@ -186,10 +186,11 @@ class STRING(Interactions, SequenceDataset):
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
-        df = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
+        protein_interactions = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
+        print("{}} edge attributes: {}".format(self.name(), protein_interactions.columns))
         protein_info = pd.read_table(file_resources["protein.info.txt"])
         self.protein_id2name = protein_info.set_index("protein_external_id")["preferred_name"].to_dict()
-        network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
+        network = nx.from_pandas_edgelist(protein_interactions, source=source_col_name, target=target_col_name,
                                           edge_attr=edge_attr,
                                           create_using=nx.DiGraph() if directed else nx.Graph())
         network = nx.relabel_nodes(network, self.protein_id2name)
@@ -200,6 +201,7 @@ class STRING(Interactions, SequenceDataset):
             return self.seq_dict
 
         self.seq_dict = {}
+        collisions = 0
         for record in SeqIO.parse(self.file_resources["protein.sequences.fa"], "fasta"):
             gene_id = str(record.name)
             gene_name = self.protein_id2name[gene_id]
@@ -209,8 +211,12 @@ class STRING(Interactions, SequenceDataset):
             elif index == "protein_id":
                 key = gene_id
 
+            if key in self.seq_dict:
+                collisions += 1
+
             self.seq_dict[key] = sequence_str
 
+        print("Seq {} collisions: {}".format(index, collisions))
         return self.seq_dict
 
 
@@ -286,6 +292,7 @@ class LncReg(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         df = pd.read_excel(self.file_resources["data.xlsx"])
+        print(self.name(), df.columns.tolist())
 
         df = df[df["species"] == "Homo sapiens"]
         df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
@@ -323,7 +330,7 @@ class lncRInter(Interactions):
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         lncRInter_df = pd.read_table(file_resources["human_interactions.txt"])
         lncRInter_df = lncRInter_df[lncRInter_df["Organism"] == self.organism]
-
+        print(self.name(), lncRInter_df.columns.tolist())
         # Data cleaning
         lncRInter_df.loc[lncRInter_df["Interacting partner"].str.contains("MIR"), "Interacting partner"] = \
             lncRInter_df.loc[
@@ -391,6 +398,7 @@ class LncRNA2Target(Interactions):
                                      edge_attr=None, directed=True):
         table = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"], low_memory=True)
         table = table[table["species_id"] == self.species_id]
+        print(self.name(), table.columns.tolist())
 
         table["lncrna_symbol"] = table["lncrna_symbol"].str.upper().replace("LINC", "")
         table["gene_symbol"] = table["gene_symbol"].str.upper()
@@ -406,6 +414,7 @@ class LncRNA2Target(Interactions):
                                     edge_attr=None, directed=True):
         table = pd.read_excel(file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"])
         table = table[table["Species"] == self.species]
+        print(self.name(), table.columns.tolist())
 
         table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-")
         table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("--", "-")
@@ -435,6 +444,7 @@ class lncRNome(Interactions, Dataset):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         df = pd.read_table(self.file_resources["miRNA_binding_sites.txt"], header=0)
+        print(self.name(), df.columns.tolist())
 
         df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
         df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "")
@@ -467,6 +477,7 @@ class NPInter(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
         df = pd.read_table(file_resources["interaction_NPInter[v3.0].txt"], header=0)
+        print(self.name(), df.columns.tolist())
 
         lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source=source_col_name,
                                                                        target=target_col_name,
@@ -493,20 +504,19 @@ class StarBase(Interactions):
                                        directed, relabel_nodes, npartitions)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
-        if True:
-            df = pd.read_csv(self.file_resources["starbase_3.0_lncrna_rna_interactions.csv"], header=0)
+        df = pd.read_csv(self.file_resources["starbase_3.0_lncrna_rna_interactions.csv"], header=0)
 
-            df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
-                "pairGeneName"].str.lower()
-            df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
-                "pairGeneName"].str.replace("-3p.*|-5p.*", "")
-            df = df[df["interactionNum"] >= self.min_interactionNum]
-            df = df[df["expNum"] >= self.min_expNum]
+        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
+            "pairGeneName"].str.lower()
+        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
+            "pairGeneName"].str.replace("-3p.*|-5p.*", "")
+        df = df[df["interactionNum"] >= self.min_interactionNum]
+        df = df[df["expNum"] >= self.min_expNum]
 
-            self.starBase_RNA_RNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
-                                                                    edge_attr=["interactionNum"],
-                                                                    create_using=nx.DiGraph())
-            return self.starBase_RNA_RNA_network
+        self.starBase_RNA_RNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
+                                                                edge_attr=["interactionNum"],
+                                                                create_using=nx.DiGraph())
+        return self.starBase_RNA_RNA_network
 
 
 class MiRTarBase(Interactions):
@@ -532,6 +542,8 @@ class MiRTarBase(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed=True):
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
+        print(self.name(), df.columns.tolist())
+
         if self.species:
             df = df[df["Species (Target Gene)"].str.lower() == self.species.lower()]
 
