@@ -134,9 +134,11 @@ class BioGRID(Interactions):
                                       edge_attr, directed, relabel_nodes)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, species=9606):
+
         with open(file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"]) as file:
-            lines = file.readline()
-            print(lines)
+            for i in range(5):
+                lines = file.readline()
+                print(lines)
 
         biogrid_df = pd.read_table(file_resources["BIOGRID-ALL-X.X.XXX.tab2.txt"],
                                    # na_values=["-"],
