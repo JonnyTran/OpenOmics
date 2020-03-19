@@ -6,10 +6,9 @@ from Bio.UniProt import GOA
 from goatools.obo_parser import OBOReader
 
 from .base import Dataset
-from .interaction import Interactions
 
 
-class GeneOntology(Dataset, Interactions):
+class GeneOntology(Dataset):
     COLUMNS_RENAME_DICT = {
         "DB_Object_Symbol": "gene_name",
         "DB_Object_ID": "gene_id",
