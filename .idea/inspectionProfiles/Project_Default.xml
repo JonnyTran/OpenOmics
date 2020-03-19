@@ -19,7 +19,7 @@
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>
-          <list size="15">
+          <list size="16">
             <item index="0" class="java.lang.String" itemvalue="python-dotenv" />
             <item index="1" class="java.lang.String" itemvalue="awscli" />
             <item index="2" class="java.lang.String" itemvalue="pkg_resources" />
@@ -35,6 +35,7 @@
             <item index="12" class="java.lang.String" itemvalue="gzip" />
             <item index="13" class="java.lang.String" itemvalue="gunicorn" />
             <item index="14" class="java.lang.String" itemvalue="zipfile" />
+            <item index="15" class="java.lang.String" itemvalue="obonet" />
           </list>
         </value>
       </option>
