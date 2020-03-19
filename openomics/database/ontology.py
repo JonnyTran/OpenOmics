@@ -1,3 +1,4 @@
+import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
@@ -29,6 +30,7 @@ class GeneOntology(Dataset, Interactions):
         self.network = self.load_network(file_resources=file_resources, source_col_name=None,
                                          target_col_name=None,
                                          edge_attr=None, directed=True)
+        print("{}".format(nx.info(self.network)))
 
     def load_dataframe(self, file_resources):
         go_annotation_dfs = []
@@ -57,16 +59,19 @@ class GeneOntology(Dataset, Interactions):
         go_graph = obonet.read_obo(file_resources["go-basic.obo"])
         return go_graph
 
-    def add_predecessor_terms(self, annotations: pd.Series, return_str=True):
-        if annotations.dtypes == np.object and annotations.str.contains("\||;", regex=True).any():
-            go_terms_annotations = annotations.str.split("|")
-        else:
-            go_terms_annotations = annotations
-
-        go_terms_parents = go_terms_annotations.map(
-            lambda terms: list(set(terms) | {parent for term in terms \
-                                             for parent in self.network.predecessors(term)}) \
+    def get_predecessor_terms(self, annotation: pd.Series):
+        go_terms_parents = annotation.map(
+            lambda terms: list({parent for term in terms for parent in self.network.predecessors(term)}) \
                 if isinstance(terms, list) else None)
+        return go_terms_parents
+
+    def add_predecessor_terms(self, annotation: pd.Series, return_str=True):
+        if annotation.dtypes == np.object and annotation.str.contains("\||;", regex=True).any():
+            go_terms_annotations = annotation.str.split("|")
+        else:
+            go_terms_annotations = annotation
+
+        go_terms_parents = go_terms_annotations + self.get_predecessor_terms(annotation)
 
         if return_str:
             go_terms_parents = go_terms_parents.map(

@@ -12,7 +12,7 @@ class Interactions(Dataset):
     def __init__(self, path, file_resources, source_col_name=None, target_col_name=None, source_index=None,
                  target_index=None, edge_attr=None, directed=True, relabel_nodes=None):
         """
-        This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
+        This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotation, functional annotation, sequences, and disease associations.
         Args:
             path (str):
                 The folder path containing the data files.

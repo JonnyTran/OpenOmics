@@ -2,13 +2,13 @@ import copy
 import difflib
 import gzip
 import os
+import zipfile
 from abc import abstractmethod
 
 import filetype
 import pandas as pd
 import rarfile
 import validators
-import zipfile
 
 from openomics.utils.df import concat
 from openomics.utils.io import get_pkg_data_filename
@@ -19,7 +19,7 @@ class Dataset(object):
 
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=0):
         """
-        This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotations, functional annotations, sequences, and disease associations.
+        This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotation, functional annotation, sequences, and disease associations.
         Args:
             path (str):
                 The folder or url path containing the data file resources. If url path, the files will be downloaded and cached to the user's home folder (at ~/.astropy/).
@@ -162,7 +162,7 @@ class Annotatable(object):
         pass
 
     def get_annotations(self):
-        if hasattr(self, "annotations"):
+        if hasattr(self, "annotation"):
             return self.annotations
         else:
             raise Exception("{} must run initialize_annotations() first.".format(self.name()))
@@ -183,13 +183,13 @@ class Annotatable(object):
     def annotate_genomics(self, database, index, columns, fuzzy_match=False):
         # type: (Dataset, str, List[str], bool) -> None
         """
-        Performs a left outer join between the annotations and Database's DataFrame, on the index key. The index argument must be column present in both DataFrames.
+        Performs a left outer join between the annotation and Database's DataFrame, on the index key. The index argument must be column present in both DataFrames.
         If there exists overlapping column in the join, then the fillna() is used to fill NaN values in the old column with non-NaN values from the new column.
         Args:
-            database (openomics.annotation.Database): Database which contains annotations
-            index (str): The column name which exists in both the annotations and Database's DataFrame
-            columns (list): a list of column name to join to the annotations
-            fuzzy_match (bool): default False. Whether to join the annotations by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
+            database (openomics.annotation.Database): Database which contains annotation
+            index (str): The column name which exists in both the annotation and Database's DataFrame
+            columns (list): a list of column name to join to the annotation
+            fuzzy_match (bool): default False. Whether to join the annotation by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
         """
         database_df = database.get_annotations(index, columns)
         if fuzzy_match:

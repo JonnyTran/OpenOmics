@@ -45,7 +45,7 @@ class MultiOmics:
             omic_data (openomics.transcriptomics.ExpressionData):
                 The omic to add, e.g., MessengerRNA, MicroRNA, LncRNA, etc.
             initialize_annotations (bool): default True.
-                If true, initializes the annotations dataframe in the omic object
+                If true, initializes the annotation dataframe in the omic object
         """
         self.__dict__[omic_data.name()] = omic_data
 
@@ -55,7 +55,7 @@ class MultiOmics:
         # dictionary as data accessor to the expression data
         self.data[omic_data.name()] = omic_data.expressions
 
-        # Initialize annotations
+        # Initialize annotation
         if initialize_annotations:
             omic_data.initialize_annotations(gene_list=None, index=omic_data.gene_index)
 

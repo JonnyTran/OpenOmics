@@ -71,7 +71,7 @@ class ExpressionData(object):
         self.expressions.rename(columns=rename_dict, inplace=True)
         self.gene_index = index
 
-        # Change index name in annotations
+        # Change index name in annotation
         self.set_index(index)
 
     def preprocess_table(self, df, columns=None, genes_index=None, transposed=True, sort_index=False):
