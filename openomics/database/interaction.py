@@ -29,9 +29,9 @@ class Interactions(Dataset):
             edge_attr (list):
                 A list of column names to be included as attributes for each edge (source-target pairs).
             directed (bool): default True,
-                Whether to create a directed or an undirected go_graph.
+                Whether to create a directed or an undirected network.
             relabel_nodes (dict): default None,
-                A dictionary to rename nodes in the go_graph.
+                A dictionary to rename nodes in the network.
         """
         self.validate_file_resources(file_resources, path)
 
@@ -71,9 +71,9 @@ class Interactions(Dataset):
         Returns:
             edges (OutEdgeView): a NetworkX edgelist
         """
-        if not hasattr(self, "go_graph"):
+        if not hasattr(self, "network"):
             raise Exception(
-                "{} does not have go_graph interaction data yet. Must run load_network() and assign self.go_graph field first.".format(
+                "{} does not have network interaction data yet. Must run load_network() and assign self.network field first.".format(
                     self.name()))
 
         if nodelist is None:

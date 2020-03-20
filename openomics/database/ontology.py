@@ -18,14 +18,14 @@ class GeneOntology(Dataset):
                  file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0):
         if file_resources is None:
             file_resources = {
-                "go.obo": "http://purl.obolibrary.org/obo/go.obo",
+                "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
                 "goa_human.gaf": "goa_human.gaf.gz",
                 "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
                 "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz"
             }
         super(GeneOntology, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
 
-        print("go_graph {}".format(nx.info(self.go_graph)))
+        print("network {}".format(nx.info(self.network)))
 
     def load_dataframe(self, file_resources):
         go_annotation_dfs = []
@@ -40,8 +40,8 @@ class GeneOntology(Dataset):
 
         for file in file_resources:
             if ".obo" in file:
-                self.go_graph = obonet.read_obo(file_resources[file])
-                go_terms = pd.DataFrame.from_dict(self.go_graph.nodes, orient='index', dtype="object")
+                self.network = obonet.read_obo(file_resources[file])
+                go_terms = pd.DataFrame.from_dict(self.network.nodes, orient='index', dtype="object")
 
                 go_annotations["go_name"] = go_annotations["GO_ID"].map(go_terms["name"])
                 go_annotations["namespace"] = go_annotations["GO_ID"].map(go_terms["namespace"])
@@ -51,7 +51,7 @@ class GeneOntology(Dataset):
 
     def get_predecessor_terms(self, annotation: pd.Series):
         go_terms_parents = annotation.map(
-            lambda terms: list({parent for term in terms for parent in self.go_graph.predecessors(term)}) \
+            lambda terms: list({parent for term in terms for parent in self.network.predecessors(term)}) \
                 if isinstance(terms, list) else None)
         return go_terms_parents
 
