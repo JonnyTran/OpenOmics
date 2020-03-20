@@ -45,6 +45,7 @@ class GeneOntology(Dataset):
 
                 go_annotations["go_name"] = go_annotations["GO_ID"].map(go_terms["name"])
                 go_annotations["namespace"] = go_annotations["GO_ID"].map(go_terms["namespace"])
+                go_annotations["is_a"] = go_annotations["GO_ID"].map(go_terms["is_a"])
 
         return go_annotations
 
