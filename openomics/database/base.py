@@ -162,7 +162,7 @@ class Annotatable(object):
         pass
 
     def get_annotations(self):
-        if hasattr(self, "annotation"):
+        if hasattr(self, "annotations"):
             return self.annotations
         else:
             raise Exception("{} must run initialize_annotations() first.".format(self.name()))
