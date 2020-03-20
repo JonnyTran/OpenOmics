@@ -126,7 +126,7 @@ class BioGRID(Interactions):
                  file_resources=None, source_col_name="Official Symbol Interactor A",
                  target_col_name="Official Symbol Interactor B",
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=['Score', 'Throughput', 'Qualifications', 'Modification', 'Phenotypes', 'Tags'],
+                 edge_attr=['Score', 'Throughput', 'Experimental System', 'Experimental System Type'],
                  directed=False, relabel_nodes=None):
         if file_resources is None:
             file_resources = {}
