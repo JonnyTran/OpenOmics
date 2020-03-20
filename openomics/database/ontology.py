@@ -59,7 +59,7 @@ class GeneOntology(Dataset):
                     terms, list) else None)
         else:
             filtered_annotation = annotation.str.split("|").map(
-                lambda terms: [term for term in terms if terms in self.network] if isinstance(terms, list) else None)
+                lambda terms: [term for term in terms if term in self.network] if isinstance(terms, list) else None)
 
         return filtered_annotation
 
