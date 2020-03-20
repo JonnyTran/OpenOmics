@@ -54,12 +54,12 @@ class GeneOntology(Dataset):
             biological_process_terms = set(
                 self.df[self.df["namespace"] == "biological_process"]["go_id"].unique())
             filtered_annotation = annotation.map(
-                lambda terms: list(
-                    set(term for term in terms if terms in self.network) & biological_process_terms) \
-                    if isinstance(terms, list) else None)
+                lambda x: list(
+                    set(term for term in x if term in self.network) & biological_process_terms) \
+                    if isinstance(x, list) else None)
         else:
             filtered_annotation = annotation.map(
-                lambda terms: [term for term in terms if term in self.network] if isinstance(terms, list) else None)
+                lambda x: [term for term in x if term in self.network] if isinstance(x, list) else None)
 
         return filtered_annotation
 
