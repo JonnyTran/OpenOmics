@@ -18,7 +18,7 @@ class GeneOntology(Dataset):
                  file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0):
         if file_resources is None:
             file_resources = {
-                "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
+                "go.obo": "http://purl.obolibrary.org/obo/go.obo",
                 "goa_human.gaf": "goa_human.gaf.gz",
                 "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
                 "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz"
@@ -42,6 +42,7 @@ class GeneOntology(Dataset):
             if ".obo" in file:
                 self.go_graph = obonet.read_obo(file_resources[file])
                 go_terms = pd.DataFrame.from_dict(self.go_graph.nodes, orient='index', dtype="object")
+
                 go_annotations["go_name"] = go_annotations["GO_ID"].map(go_terms["name"])
                 go_annotations["namespace"] = go_annotations["GO_ID"].map(go_terms["namespace"])
 
