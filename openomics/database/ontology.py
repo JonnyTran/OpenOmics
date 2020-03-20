@@ -49,6 +49,18 @@ class GeneOntology(Dataset):
 
         return go_annotations
 
+    def filter_terms(self, annotation, namespace=None):
+        if namespace:
+            biological_process_terms = set(
+                self.df[self.df["namespace"] == "biological_process"]["go_id"].unique())
+            filtered_annotation = annotation.str.split("|").map(
+                lambda x: list(set(term for term in x if x in self.network) & biological_process_terms) if x else None)
+        else:
+            filtered_annotation = annotation.str.split("|").map(
+                lambda x: [term for term in x if x in self.network] if x else None)
+
+        return filtered_annotation
+
     def get_predecessor_terms(self, annotation: pd.Series):
         go_terms_parents = annotation.map(
             lambda terms: list({parent for term in terms for parent in self.network.predecessors(term)}) \
