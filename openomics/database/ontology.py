@@ -65,8 +65,8 @@ class GeneOntology(Dataset):
 
     def get_predecessor_terms(self, annotation: pd.Series):
         go_terms_parents = annotation.map(
-            lambda terms: list({parent for term in terms for parent in self.network.predecessors(term)}) \
-                if isinstance(terms, list) else None)
+            lambda x: list({parent for term in x for parent in self.network.predecessors(term)}) \
+                if isinstance(x, list) else None)
         return go_terms_parents
 
     def add_predecessor_terms(self, annotation: pd.Series, return_str=True):
@@ -81,4 +81,14 @@ class GeneOntology(Dataset):
             go_terms_parents = go_terms_parents.map(
                 lambda x: "|".join(x) if isinstance(x, list) else None)
 
+        return go_terms_parents
+
+    def remove_predecessor_terms(self, annotation: pd.Series):
+        go_node_list = np.array(self.network.nodes)
+        adj = nx.adj_matrix(self.network, nodelist=go_node_list)
+        leaf_terms = go_node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
+
+        go_terms_parents = annotation.map(
+            lambda x: list({term for term in x if term not in leaf_terms}) \
+                if isinstance(x, list) else None)
         return go_terms_parents
