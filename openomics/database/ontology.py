@@ -51,17 +51,23 @@ class GeneOntology(Dataset):
 
         return go_annotations
 
+    def filter_network(self, namespace):
+        terms = self.df[self.df["namespace"] == namespace]["go_id"].unique()
+        print("{} terms: {}".format(namespace, len(terms)))
+        self.network = self.network.subgraph(nodes=list(terms))
+        self.node_list = np.array(list(terms))
+
     def filter_terms(self, annotation: pd.Series, namespace=None):
         if namespace:
             biological_process_terms = set(
                 self.df[self.df["namespace"] == "biological_process"]["go_id"].unique())
             filtered_annotation = annotation.map(
                 lambda x: list(
-                    set(term for term in x if term in self.network) & biological_process_terms) \
+                    set(term for term in x if term in self.node_list) & biological_process_terms) \
                     if isinstance(x, list) else None)
         else:
             filtered_annotation = annotation.map(
-                lambda x: [term for term in x if term in self.network] if isinstance(x, list) else None)
+                lambda x: [term for term in x if term in self.node_list] if isinstance(x, list) else None)
 
         return filtered_annotation
 
