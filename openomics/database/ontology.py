@@ -110,7 +110,7 @@ class GeneOntology(Dataset):
             adjacency_matrix = nx.adj_matrix(self.network, nodelist=node_list)
             self.adjacency_matrix = adjacency_matrix
 
-        if node_list is None or node_list == self.node_list:
+        if node_list is None or list(node_list) == list(self.node_list):
             return adjacency_matrix
         elif set(node_list) < set(self.node_list):
             return slice_adj(adjacency_matrix, list(self.node_list), node_list, None)
