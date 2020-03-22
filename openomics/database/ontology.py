@@ -26,6 +26,7 @@ class GeneOntology(Dataset):
             }
         super(GeneOntology, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
 
+    def info(self):
         print("network {}".format(nx.info(self.network)))
 
     def load_dataframe(self, file_resources):
@@ -57,17 +58,9 @@ class GeneOntology(Dataset):
         self.network = self.network.subgraph(nodes=list(terms))
         self.node_list = np.array(list(terms))
 
-    def filter_terms(self, annotation: pd.Series, namespace=None):
-        if namespace:
-            biological_process_terms = set(
-                self.df[self.df["namespace"] == "biological_process"]["go_id"].unique())
-            filtered_annotation = annotation.map(
-                lambda x: list(
-                    set(term for term in x if term in self.node_list) & biological_process_terms) \
-                    if isinstance(x, list) else None)
-        else:
-            filtered_annotation = annotation.map(
-                lambda x: [term for term in x if term in self.node_list] if isinstance(x, list) else None)
+    def filter_annotation(self, annotation: pd.Series):
+        filtered_annotation = annotation.map(
+            lambda x: [term for term in x if term in self.node_list] if isinstance(x, list) else None)
 
         return filtered_annotation
 

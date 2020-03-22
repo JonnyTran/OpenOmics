@@ -51,6 +51,7 @@ class Interactions(Dataset):
         if relabel_nodes is not None:
             self.network = nx.relabel_nodes(self.network, relabel_nodes)
 
+    def info(self):
         print("{}".format(nx.info(self.network)))
 
     @abstractmethod
