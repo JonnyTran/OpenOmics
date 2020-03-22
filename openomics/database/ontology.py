@@ -17,6 +17,10 @@ class GeneOntology(Dataset):
 
     def __init__(self, path="http://geneontology.org/gene-associations/",
                  file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0):
+        """
+        Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
+        functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
+        """
         if file_resources is None:
             file_resources = {
                 "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
@@ -60,7 +64,7 @@ class GeneOntology(Dataset):
 
     def filter_annotation(self, annotation: pd.Series):
         filtered_annotation = annotation.map(
-            lambda x: [term for term in x if term in self.node_list] if isinstance(x, list) else None)
+            lambda x: list(set(x) & set(self.node_list)) if isinstance(x, list) else None)
 
         return filtered_annotation
 
