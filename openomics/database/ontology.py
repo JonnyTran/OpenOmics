@@ -95,7 +95,7 @@ class GeneOntology(Dataset):
         leaf_terms = self.get_child_terms()
 
         go_terms_parents = annotation.map(
-            lambda x: list({term for term in x if term not in leaf_terms}) \
+            lambda x: list({term for term in x if term in leaf_terms}) \
                 if isinstance(x, list) else None)
         return go_terms_parents
 
