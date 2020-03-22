@@ -5,6 +5,7 @@ import pandas as pd
 from Bio.UniProt import GOA
 
 from .base import Dataset
+from ..utils.df import slice_adj
 
 
 class GeneOntology(Dataset):
@@ -41,6 +42,7 @@ class GeneOntology(Dataset):
         for file in file_resources:
             if ".obo" in file:
                 self.network = obonet.read_obo(file_resources[file])
+                self.node_list = np.array(self.network.nodes)
                 go_terms = pd.DataFrame.from_dict(self.network.nodes, orient='index', dtype="object")
 
                 go_annotations["go_name"] = go_annotations["GO_ID"].map(go_terms["name"])
@@ -84,15 +86,35 @@ class GeneOntology(Dataset):
         return go_terms_parents
 
     def remove_predecessor_terms(self, annotation: pd.Series):
-        leaf_terms = self.get_leaf_terms()
+        leaf_terms = self.get_child_terms()
 
         go_terms_parents = annotation.map(
             lambda x: list({term for term in x if term not in leaf_terms}) \
                 if isinstance(x, list) else None)
         return go_terms_parents
 
-    def get_leaf_terms(self):
-        go_node_list = np.array(self.network.nodes)
-        adj = nx.adj_matrix(self.network, nodelist=go_node_list)
-        leaf_terms = go_node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
+    def get_child_terms(self):
+        adj = self.get_adjacency_matrix(self.node_list)
+        leaf_terms = self.node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
         return leaf_terms
+
+    def get_parent_terms(self):
+        adj = self.get_adjacency_matrix(self.node_list)
+        parent_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[1]]
+        return parent_terms
+
+    def get_adjacency_matrix(self, node_list):
+        if hasattr(self, "adjacency_matrix"):
+            adjacency_matrix = self.adjacency_matrix
+        else:
+            adjacency_matrix = nx.adj_matrix(self.network, nodelist=node_list)
+            self.adjacency_matrix = adjacency_matrix
+
+        if node_list is None or node_list == self.node_list:
+            return adjacency_matrix
+        elif set(node_list) < set(self.node_list):
+            return slice_adj(adjacency_matrix, list(self.node_list), node_list, None)
+        elif not (set(node_list) < set(self.node_list)):
+            raise Exception("A node in node_l is not in self.node_list.")
+
+        return adjacency_matrix
