@@ -30,14 +30,14 @@ class Dataset(object):
             npartitions (int): [0-n], default 0
                 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
         """
+        self.verbose = verbose
+
         self.validate_file_resources(file_resources, path)
 
         self.df = self.load_dataframe(file_resources)
         self.df = self.df.reset_index()
         if col_rename is not None:
             self.df = self.df.rename(columns=col_rename)
-
-        self.verbose = verbose
 
         self.info() if verbose else None
 
