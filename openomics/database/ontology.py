@@ -84,11 +84,15 @@ class GeneOntology(Dataset):
         return go_terms_parents
 
     def remove_predecessor_terms(self, annotation: pd.Series):
-        go_node_list = np.array(self.network.nodes)
-        adj = nx.adj_matrix(self.network, nodelist=go_node_list)
-        leaf_terms = go_node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
+        leaf_terms = self.get_leaf_terms()
 
         go_terms_parents = annotation.map(
             lambda x: list({term for term in x if term not in leaf_terms}) \
                 if isinstance(x, list) else None)
         return go_terms_parents
+
+    def get_leaf_terms(self):
+        go_node_list = np.array(self.network.nodes)
+        adj = nx.adj_matrix(self.network, nodelist=go_node_list)
+        leaf_terms = go_node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
+        return leaf_terms
