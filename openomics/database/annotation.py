@@ -21,7 +21,7 @@ class RNAcentral(Dataset):
                            'GO terms': 'go_id'}
 
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/",
-                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0, species=9606):
+                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0, species=9606, verbose=False):
         self.species = species
 
         if file_resources is None:
@@ -29,7 +29,8 @@ class RNAcentral(Dataset):
             file_resources["rnacentral_rfam_annotations.tsv"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
             file_resources["gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
 
-        super(RNAcentral, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
+        super(RNAcentral, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions,
+                                         verbose=verbose)
 
     def load_dataframe(self, file_resources):
         go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
@@ -64,7 +65,7 @@ class GTEx(Dataset):
     }
 
     def __init__(self, path="https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/",
-                 file_resources=None, col_rename=None, npartitions=0):
+                 file_resources=None, col_rename=None, npartitions=0, verbose=False):
         if file_resources is None:
             file_resources = {}
 
@@ -75,7 +76,7 @@ class GTEx(Dataset):
             file_resources[
                 "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct"] = "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"
 
-        super(GTEx, self).__init__(path, file_resources, col_rename=None, npartitions=npartitions)
+        super(GTEx, self).__init__(path, file_resources, col_rename=None, npartitions=npartitions, verbose=verbose)
 
     def load_dataframe(self, file_resources):  # type: (dict) -> pd.DataFrame
         gene_exp_medians = pd.read_csv(
@@ -259,14 +260,14 @@ class EnsemblSomaticVariation(EnsemblGenes):
 
 
 class NONCODE(Dataset):
-    def __init__(self, path, file_resources=None, col_rename=None):
+    def __init__(self, path, file_resources=None, col_rename=None, verbose=False):
         if file_resources is None:
             file_resources = {}
             file_resources["NONCODEv5_source"] = os.path.join(path, "NONCODEv5_source")
             file_resources["NONCODEv5_Transcript2Gene"] = os.path.join(path, "NONCODEv5_Transcript2Gene")
             file_resources["NONCODEv5_human.func"] = os.path.join(path, "NONCODEv5_human.func")
 
-        super(NONCODE, self).__init__(path, file_resources, col_rename)
+        super(NONCODE, self).__init__(path, file_resources, col_rename, verbose=verbose)
 
     def load_dataframe(self, file_resources):
         source_df = dd.read_table(file_resources["NONCODEv5_source"], header=None)

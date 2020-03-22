@@ -16,7 +16,7 @@ class GeneOntology(Dataset):
     }
 
     def __init__(self, path="http://geneontology.org/gene-associations/",
-                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0):
+                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0, verbose=False):
         """
         Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
         functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
@@ -28,7 +28,8 @@ class GeneOntology(Dataset):
                 "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
                 "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz"
             }
-        super(GeneOntology, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions)
+        super(GeneOntology, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions,
+                                           verbose=verbose)
 
     def info(self):
         print("network {}".format(nx.info(self.network)))

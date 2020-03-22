@@ -10,7 +10,7 @@ from openomics.database.sequence import SequenceDataset
 
 class Interactions(Dataset):
     def __init__(self, path, file_resources, source_col_name=None, target_col_name=None, source_index=None,
-                 target_index=None, edge_attr=None, directed=True, relabel_nodes=None):
+                 target_index=None, edge_attr=None, directed=True, relabel_nodes=None, verbose=False):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotation, functional annotation, sequences, and disease associations.
         Args:
@@ -50,6 +50,9 @@ class Interactions(Dataset):
 
         if relabel_nodes is not None:
             self.network = nx.relabel_nodes(self.network, relabel_nodes)
+
+        self.verbose = verbose
+        self.info() if verbose else None
 
     def info(self):
         print("{}".format(nx.info(self.network)))

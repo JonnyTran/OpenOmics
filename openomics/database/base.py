@@ -17,7 +17,7 @@ from openomics.utils.io import get_pkg_data_filename
 class Dataset(object):
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field
 
-    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0):
+    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotation, functional annotation, sequences, and disease associations.
         Args:
@@ -36,12 +36,19 @@ class Dataset(object):
         self.df = self.df.reset_index()
         if col_rename is not None:
             self.df = self.df.rename(columns=col_rename)
+
+        self.verbose = verbose
+
+        self.info() if verbose else None
+
+    def info(self):
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
     def validate_file_resources(self, file_resources, path):
         if validators.url(path):
             for filename, filepath in copy.copy(file_resources).items():
-                data_file = get_pkg_data_filename(path, filepath)  # Download file and replace the file_resource path
+                data_file = get_pkg_data_filename(path, filepath,
+                                                  self.verbose)  # Download file and replace the file_resource path
                 filetype_ext = filetype.guess(data_file)
 
                 if filetype_ext is None:  # This if-clause is needed incase when filetype_ext is None, causing the next clause to fail
