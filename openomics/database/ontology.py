@@ -64,15 +64,16 @@ class GeneOntology(Dataset):
         self.node_list = np.array(list(terms))
 
     def filter_annotation(self, annotation: pd.Series):
+        go_terms = set(self.node_list)
         filtered_annotation = annotation.map(
-            lambda x: list(set(x) & set(self.node_list)) if isinstance(x, list) else None)
+            lambda x: list(set(x) & go_terms) if isinstance(x, list) else [])
 
         return filtered_annotation
 
     def get_predecessor_terms(self, annotation: pd.Series):
         go_terms_parents = annotation.map(
             lambda x: list({parent for term in x for parent in self.network.predecessors(term)}) \
-                if isinstance(x, list) else None)
+                if isinstance(x, list) else [])
         return go_terms_parents
 
     def add_predecessor_terms(self, annotation: pd.Series, return_str=True):
@@ -85,7 +86,7 @@ class GeneOntology(Dataset):
 
         if return_str:
             go_terms_parents = go_terms_parents.map(
-                lambda x: "|".join(x) if isinstance(x, list) else None)
+                lambda x: "|".join(x) if isinstance(x, list) else [])
 
         return go_terms_parents
 
@@ -93,7 +94,7 @@ class GeneOntology(Dataset):
         leaf_terms = self.get_child_terms()
 
         go_terms_parents = annotation.map(
-            lambda x: list(set(x) & set(leaf_terms)) if isinstance(x, list) else None)
+            lambda x: list(set(x) & set(leaf_terms)) if isinstance(x, list) else [])
         return go_terms_parents
 
     def get_child_terms(self):
