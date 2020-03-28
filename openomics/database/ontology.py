@@ -8,11 +8,82 @@ from .base import Dataset
 from ..utils.df import slice_adj
 
 
-class HumanPhenotypeOntology(Dataset):
+class Ontology(Dataset):
+    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
+        self.network, self.node_list = self.load_network(file_resources)
+        super(Ontology, self).__init__(path, file_resources, col_rename, npartitions, verbose)
+
+    def load_network(self, file_resources) -> (nx.Graph, list):
+        raise NotImplementedError
+
+    def get_adjacency_matrix(self, node_list):
+        if hasattr(self, "adjacency_matrix"):
+            adjacency_matrix = self.adjacency_matrix
+        else:
+            adjacency_matrix = nx.adj_matrix(self.network, nodelist=node_list)
+            self.adjacency_matrix = adjacency_matrix
+
+        if node_list is None or list(node_list) == list(self.node_list):
+            return adjacency_matrix
+        elif set(node_list) < set(self.node_list):
+            return slice_adj(adjacency_matrix, list(self.node_list), node_list, None)
+        elif not (set(node_list) < set(self.node_list)):
+            raise Exception("A node in node_list is not in self.node_list.")
+
+        return adjacency_matrix
+
+    def filter_network(self, namespace):
+        raise NotImplementedError
+
+    def filter_annotation(self, annotation: pd.Series):
+        go_terms = set(self.node_list)
+        filtered_annotation = annotation.map(
+            lambda x: list(set(x) & go_terms) if isinstance(x, list) else [])
+
+        return filtered_annotation
+
+    def get_child_nodes(self):
+        adj = self.get_adjacency_matrix(self.node_list)
+        leaf_terms = self.node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
+        return leaf_terms
+
+    def get_root_nodes(self):
+        adj = self.get_adjacency_matrix(self.node_list)
+        parent_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[1]]
+        return parent_terms
+
+    def get_dfs_paths(self, root_nodes: list):
+        """
+        Return all depth-first search paths from root node(s) to children node by traversing the ontology directed graph.
+        Args:
+            root_nodes: ["GO:0008150"] if biological processes, ["GO:0003674"] if molecular_function, or ["GO:0005575"] if cellular_component
+
+        Returns: pd.DataFrame of all paths starting from the root nodes.
+        """
+        if not isinstance(root_nodes, list):
+            root_nodes = list(root_nodes)
+
+        paths = list(dfs_path(self.network, root_nodes))
+        paths = list(flatten_list(paths))
+
+        paths_df = pd.DataFrame(paths)
+        paths_df = paths_df[~paths_df.duplicated(keep="first")]
+
+        return paths_df
+
+    def remove_predecessor_terms(self, annotation: pd.Series):
+        leaf_terms = self.get_child_nodes()
+
+        go_terms_parents = annotation.map(
+            lambda x: list(set(x) & set(leaf_terms)) if isinstance(x, list) else [])
+        return go_terms_parents
+
+
+class HumanPhenotypeOntology(Ontology):
     pass
 
 
-class GeneOntology(Dataset):
+class GeneOntology(Ontology):
     COLUMNS_RENAME_DICT = {
         "DB_Object_Symbol": "gene_name",
         "DB_Object_ID": "gene_id",
@@ -49,31 +120,27 @@ class GeneOntology(Dataset):
 
         go_annotations = pd.concat(go_annotation_dfs)
 
-        for file in file_resources:
-            if ".obo" in file:
-                self.network = obonet.read_obo(file_resources[file])
-                self.network = self.network.reverse(copy=True)
-                self.node_list = np.array(self.network.nodes)
-                go_terms = pd.DataFrame.from_dict(self.network.nodes, orient='index', dtype="object")
+        go_terms = pd.DataFrame.from_dict(self.network.nodes, orient='index', dtype="object")
 
-                go_annotations["go_name"] = go_annotations["GO_ID"].map(go_terms["name"])
-                go_annotations["namespace"] = go_annotations["GO_ID"].map(go_terms["namespace"])
-                go_annotations["is_a"] = go_annotations["GO_ID"].map(go_terms["is_a"])
+        go_annotations["go_name"] = go_annotations["GO_ID"].map(go_terms["name"])
+        go_annotations["namespace"] = go_annotations["GO_ID"].map(go_terms["namespace"])
+        go_annotations["is_a"] = go_annotations["GO_ID"].map(go_terms["is_a"])
 
         return go_annotations
 
+    def load_network(self, file_resources):
+        for file in file_resources:
+            if ".obo" in file:
+                network = obonet.read_obo(file_resources[file])
+                network = network.reverse(copy=True)
+                node_list = np.array(network.nodes)
+        return network, node_list
+
     def filter_network(self, namespace):
         terms = self.df[self.df["namespace"] == namespace]["go_id"].unique()
-        print("{} terms: {}".format(namespace, len(terms)))
+        print("{} terms: {}".format(namespace, len(terms))) if self.verbose else None
         self.network = self.network.subgraph(nodes=list(terms))
         self.node_list = np.array(list(terms))
-
-    def filter_annotation(self, annotation: pd.Series):
-        go_terms = set(self.node_list)
-        filtered_annotation = annotation.map(
-            lambda x: list(set(x) & go_terms) if isinstance(x, list) else [])
-
-        return filtered_annotation
 
     def get_predecessor_terms(self, annotation: pd.Series):
         go_terms_parents = annotation.map(
@@ -95,35 +162,24 @@ class GeneOntology(Dataset):
 
         return go_terms_parents
 
-    def remove_predecessor_terms(self, annotation: pd.Series):
-        leaf_terms = self.get_child_terms()
 
-        go_terms_parents = annotation.map(
-            lambda x: list(set(x) & set(leaf_terms)) if isinstance(x, list) else [])
-        return go_terms_parents
+def dfs_path(graph, path):
+    node = path[-1]
+    successors = list(graph.successors(node))
+    if len(successors) > 0:
+        for child in successors:
+            yield list(dfs_path(graph, path + [child]))
+    else:
+        yield path
 
-    def get_child_terms(self):
-        adj = self.get_adjacency_matrix(self.node_list)
-        leaf_terms = self.node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
-        return leaf_terms
 
-    def get_parent_terms(self):
-        adj = self.get_adjacency_matrix(self.node_list)
-        parent_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[1]]
-        return parent_terms
-
-    def get_adjacency_matrix(self, node_list):
-        if hasattr(self, "adjacency_matrix"):
-            adjacency_matrix = self.adjacency_matrix
-        else:
-            adjacency_matrix = nx.adj_matrix(self.network, nodelist=node_list)
-            self.adjacency_matrix = adjacency_matrix
-
-        if node_list is None or list(node_list) == list(self.node_list):
-            return adjacency_matrix
-        elif set(node_list) < set(self.node_list):
-            return slice_adj(adjacency_matrix, list(self.node_list), node_list, None)
-        elif not (set(node_list) < set(self.node_list)):
-            raise Exception("A node in node_l is not in self.node_list.")
-
-        return adjacency_matrix
+def flatten_list(list_in):
+    if isinstance(list_in, list):
+        for l in list_in:
+            if isinstance(list_in[0], list):
+                for y in flatten_list(l):
+                    yield y
+            elif isinstance(list_in[0], str):
+                yield list_in
+    else:
+        yield list_in
