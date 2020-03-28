@@ -8,6 +8,10 @@ from .base import Dataset
 from ..utils.df import slice_adj
 
 
+class HumanPhenotypeOntology(Dataset):
+    pass
+
+
 class GeneOntology(Dataset):
     COLUMNS_RENAME_DICT = {
         "DB_Object_Symbol": "gene_name",
@@ -48,6 +52,7 @@ class GeneOntology(Dataset):
         for file in file_resources:
             if ".obo" in file:
                 self.network = obonet.read_obo(file_resources[file])
+                self.network = self.network.reverse(copy=True)
                 self.node_list = np.array(self.network.nodes)
                 go_terms = pd.DataFrame.from_dict(self.network.nodes, orient='index', dtype="object")
 
