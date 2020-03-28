@@ -52,11 +52,12 @@ class Ontology(Dataset):
         parent_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[1]]
         return parent_terms
 
-    def get_dfs_paths(self, root_nodes: list):
+    def get_dfs_paths(self, root_nodes: list, filter=False):
         """
         Return all depth-first search paths from root node(s) to children node by traversing the ontology directed graph.
         Args:
-            root_nodes: ["GO:0008150"] if biological processes, ["GO:0003674"] if molecular_function, or ["GO:0005575"] if cellular_component
+            root_nodes (list): ["GO:0008150"] if biological processes, ["GO:0003674"] if molecular_function, or ["GO:0005575"] if cellular_component
+            filter (bool): whether to remove duplicated paths that end up at the same leaf nodes
 
         Returns: pd.DataFrame of all paths starting from the root nodes.
         """
@@ -68,6 +69,9 @@ class Ontology(Dataset):
 
         paths_df = pd.DataFrame(paths)
         paths_df = paths_df[~paths_df.duplicated(keep="first")]
+
+        if filter:
+            paths_df = filter_dfs_paths(paths_df)
 
         return paths_df
 
@@ -183,3 +187,14 @@ def flatten_list(list_in):
                 yield list_in
     else:
         yield list_in
+
+
+def filter_dfs_paths(paths_df: pd.Dataframe):
+    idx = {}
+    for col in sorted(paths_df.columns[:-1], reverse=True):
+        idx[col] = ~(paths_df[col].notnull() & paths_df[col].duplicated(keep="first") & paths_df[col + 1].isnull())
+
+    idx = pd.DataFrame(idx)
+
+    paths_df = paths_df[idx.all(axis=1)]
+    return paths_df
