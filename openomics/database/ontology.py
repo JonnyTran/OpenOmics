@@ -189,7 +189,7 @@ def flatten_list(list_in):
         yield list_in
 
 
-def filter_dfs_paths(paths_df: pd.Dataframe):
+def filter_dfs_paths(paths_df: pd.DataFrame):
     idx = {}
     for col in sorted(paths_df.columns[:-1], reverse=True):
         idx[col] = ~(paths_df[col].notnull() & paths_df[col].duplicated(keep="first") & paths_df[col + 1].isnull())
