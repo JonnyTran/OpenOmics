@@ -52,12 +52,12 @@ class Ontology(Dataset):
         parent_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[1]]
         return parent_terms
 
-    def get_dfs_paths(self, root_nodes: list, filter=False):
+    def get_dfs_paths(self, root_nodes: list, filter_duplicates=False):
         """
         Return all depth-first search paths from root node(s) to children node by traversing the ontology directed graph.
         Args:
             root_nodes (list): ["GO:0008150"] if biological processes, ["GO:0003674"] if molecular_function, or ["GO:0005575"] if cellular_component
-            filter (bool): whether to remove duplicated paths that end up at the same leaf nodes
+            filter_duplicates (bool): whether to remove duplicated paths that end up at the same leaf nodes
 
         Returns: pd.DataFrame of all paths starting from the root nodes.
         """
@@ -70,7 +70,7 @@ class Ontology(Dataset):
         paths_df = pd.DataFrame(paths)
         paths_df = paths_df[~paths_df.duplicated(keep="first")]
 
-        if filter:
+        if filter_duplicates:
             paths_df = filter_dfs_paths(paths_df)
 
         return paths_df
@@ -81,6 +81,22 @@ class Ontology(Dataset):
         go_terms_parents = annotation.map(
             lambda x: list(set(x) & set(leaf_terms)) if isinstance(x, list) else [])
         return go_terms_parents
+
+    def get_node_color(self, file="~/Bioinformatics_ExternalData/GeneOntology/go_colors_biological.csv"):
+        go_colors = pd.read_csv(file)
+
+        def selectgo(x):
+            terms = [term for term in x if isinstance(term, str)]
+            if len(terms) > 0:
+                return terms[-1]
+            else:
+                return None
+
+        go_colors["node"] = go_colors[[col for col in go_colors.columns if col.isdigit()]].apply(selectgo, axis=1)
+        go_id_colors = go_colors[go_colors["node"].notnull()].set_index("node")["HCL.color"]
+        go_id_colors = go_id_colors[~go_id_colors.index.duplicated(keep="first")]
+        print(go_id_colors.unique().shape, go_colors["HCL.color"].unique().shape)
+        return go_id_colors
 
 
 class HumanPhenotypeOntology(Ontology):
