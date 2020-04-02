@@ -33,6 +33,7 @@ class Interactions(Dataset):
             relabel_nodes (dict): default None,
                 A dictionary to rename nodes in the network.
         """
+        self.verbose = verbose
         self.validate_file_resources(file_resources, path)
 
         self.data_path = path
@@ -51,7 +52,6 @@ class Interactions(Dataset):
         if relabel_nodes is not None:
             self.network = nx.relabel_nodes(self.network, relabel_nodes)
 
-        self.verbose = verbose
         self.info() if verbose else None
 
     def info(self):
