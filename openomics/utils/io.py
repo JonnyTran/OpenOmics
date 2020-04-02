@@ -10,7 +10,7 @@ from astropy.utils import data
 from requests.adapters import HTTPAdapter
 
 
-def get_pkg_data_filename(dataurl, file, verbose=False):
+def get_pkg_data_filename(dataurl, file):
     """
     Downloads a remote file given the url, then caches it to the user's home folder.
     Args:
@@ -24,7 +24,7 @@ def get_pkg_data_filename(dataurl, file, verbose=False):
     if validators.url(file):
         dataurl, file = os.path.split(file)
         dataurl = dataurl + "/"
-    print("Fetching file from:", dataurl, file) if verbose else None
+    print("Fetching file from:", dataurl, file)
 
     with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
         return data.get_pkg_data_filename(file, package="openomics.database", show_progress=True)
