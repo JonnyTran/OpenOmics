@@ -174,7 +174,7 @@ class STRING(Interactions, SequenceDataset):
         if file_resources is None:
             file_resources = {}
             file_resources["protein.links.txt"] = os.path.join(path,
-                                                               "protein.links.v11.0/{}.protein.actions.v11.0.txt.gz".format(
+                                                               "protein.actions.v11.0/{}.protein.actions.v11.0.txt.gz".format(
                                                                    species_id))
             file_resources["protein.info.txt"] = os.path.join(path,
                                                               "protein.info.v11.0/{}.protein.info.v11.0.txt.gz".format(
