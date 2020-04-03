@@ -164,11 +164,11 @@ class GeneOntology(Ontology):
 
     def get_predecessor_terms(self, annotation: pd.Series):
         go_terms_parents = annotation.map(
-            lambda x: list({parent for term in x for parent in self.network.predecessors(term)}) \
+            lambda x: list({parent for term in x for parent in flatten(traverse_predecessors(self.network, term))}) \
                 if isinstance(x, list) else [])
         return go_terms_parents
 
-    def add_predecessor_terms(self, annotation: pd.Series, return_str=True):
+    def add_predecessor_terms(self, annotation: pd.Series, return_str=False):
         if annotation.dtypes == np.object and annotation.str.contains("\||;", regex=True).any():
             go_terms_annotations = annotation.str.split("|")
         else:
@@ -183,6 +183,18 @@ class GeneOntology(Ontology):
         return go_terms_parents
 
 
+def traverse_predecessors(graph, node):
+    parents = dict(graph.pred[node])
+    for parent, v in parents.items():
+        if list(v.keys())[0] == "is_a":
+            yield [parent] + list(traverse_predecessors(graph, parent))
+
+
+def flatten(lst):
+    return sum(([x] if not isinstance(x, list) else flatten(x)
+                for x in lst), [])
+
+
 def dfs_path(graph, path):
     node = path[-1]
     successors = list(graph.successors(node))
@@ -191,7 +203,6 @@ def dfs_path(graph, path):
             yield list(dfs_path(graph, path + [child]))
     else:
         yield path
-
 
 def flatten_list(list_in):
     if isinstance(list_in, list):

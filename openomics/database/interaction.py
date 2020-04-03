@@ -197,7 +197,9 @@ class STRING(Interactions, SequenceDataset):
         self.df = self.df.rename(columns=self.COLUMNS_RENAME_DICT)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
-        protein_interactions = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
+        # protein_interactions = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
+        protein_interactions = pd.read_table(file_resources["protein.actions.txt"], sep="\t", low_memory=True)
+
         print("{}: {}".format(self.name(), protein_interactions.columns.tolist()))
         protein_info = pd.read_table(file_resources["protein.info.txt"])
         self.protein_id2name = protein_info.set_index("protein_external_id")["preferred_name"].to_dict()
