@@ -44,10 +44,11 @@ class Dataset(object):
     def info(self):
         print("{}: {}".format(self.name(), self.df.columns.tolist()))
 
-    def validate_file_resources(self, file_resources, path):
+    def validate_file_resources(self, file_resources, path, verbose=False):
         if validators.url(path):
             for filename, filepath in copy.copy(file_resources).items():
-                data_file = get_pkg_data_filename(path, filepath)  # Download file and replace the file_resource path
+                data_file = get_pkg_data_filename(path, filepath,
+                                                  verbose=verbose)  # Download file and replace the file_resource path
                 filetype_ext = filetype.guess(data_file)
 
                 if filetype_ext is None:  # This if-clause is needed incase when filetype_ext is None, causing the next clause to fail
