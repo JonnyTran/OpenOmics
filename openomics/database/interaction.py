@@ -33,8 +33,7 @@ class Interactions(Dataset):
             relabel_nodes (dict): default None,
                 A dictionary to rename nodes in the network.
         """
-        self.verbose = verbose
-        self.validate_file_resources(file_resources, path)
+        self.validate_file_resources(file_resources, path, verbose=verbose)
 
         self.data_path = path
         self.file_resources = file_resources
@@ -52,6 +51,7 @@ class Interactions(Dataset):
         if relabel_nodes is not None:
             self.network = nx.relabel_nodes(self.network, relabel_nodes)
 
+        self.verbose = verbose
         self.info() if verbose else None
 
     def info(self):
@@ -170,7 +170,7 @@ class STRING(Interactions, SequenceDataset):
                  source_col_name="protein1", target_col_name="protein2", source_index="protein_name",
                  target_index="protein_name",
                  edge_attr=["combined_score"], directed=False,
-                 relabel_nodes=None):
+                 relabel_nodes=None, verbose=False):
         if file_resources is None:
             file_resources = {}
             file_resources["protein.actions.txt"] = os.path.join(path,
@@ -189,7 +189,7 @@ class STRING(Interactions, SequenceDataset):
         super(STRING, self).__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
                                      target_col_name=target_col_name,
                                      source_index=source_index, target_index=target_index, edge_attr=edge_attr,
-                                     directed=directed, relabel_nodes=relabel_nodes)
+                                     directed=directed, relabel_nodes=relabel_nodes, verbose=verbose)
 
         self.file_resources["protein.info.txt"].seek(0)
         self.df = pd.read_table(file_resources["protein.info.txt"])
