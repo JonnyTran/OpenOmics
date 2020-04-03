@@ -162,9 +162,9 @@ class GeneOntology(Ontology):
         self.network = self.network.subgraph(nodes=list(terms))
         self.node_list = np.array(list(terms))
 
-    def get_predecessor_terms(self, annotation: pd.Series):
+    def get_predecessor_terms(self, annotation: pd.Series, type="is_a"):
         go_terms_parents = annotation.map(
-            lambda x: list({parent for term in x for parent in flatten(traverse_predecessors(self.network, term))}) \
+            lambda x: list({parent for term in x for parent in flatten(self.traverse_predecessors(term, type))}) \
                 if isinstance(x, list) else [])
         return go_terms_parents
 
@@ -182,12 +182,11 @@ class GeneOntology(Ontology):
 
         return go_terms_parents
 
-
-def traverse_predecessors(graph, node):
-    parents = dict(graph.pred[node])
-    for parent, v in parents.items():
-        if list(v.keys())[0] == "is_a":
-            yield [parent] + list(traverse_predecessors(graph, parent))
+    def traverse_predecessors(self, node, type="is_a"):
+        parents = dict(self.network.pred[node])
+        for parent, v in parents.items():
+            if list(v.keys())[0] in type:
+                yield [parent] + list(self.traverse_predecessors(parent))
 
 
 def flatten(lst):
