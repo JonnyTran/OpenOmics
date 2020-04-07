@@ -24,7 +24,7 @@ class Ontology(Dataset):
         self.network, self.node_list = self.load_network(file_resources)
         super(Ontology, self).__init__(path, file_resources, col_rename, npartitions, verbose)
 
-    def load_network(self, file_resources) -> (nx.Graph, list):
+    def load_network(self, file_resources) -> (nx.MultiDiGraph, list):
         raise NotImplementedError
 
     def get_adjacency_matrix(self, node_list):
@@ -75,7 +75,7 @@ class Ontology(Dataset):
         if not isinstance(root_nodes, list):
             root_nodes = list(root_nodes)
 
-        paths = list(dfs_path(self.network, root_nodes))
+        paths = list(dfs_path(self.network.reverse(copy=True), root_nodes))
         paths = list(flatten_list(paths))
 
         paths_df = pd.DataFrame(paths)
