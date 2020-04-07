@@ -11,7 +11,8 @@ from ..utils.df import slice_adj
 class Ontology(Dataset):
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
         """
-        Manages input processing . There ontology network is G(V,E) where there exists e_ij for parent i to child j.
+        Manages dataset input processing from tables and construct an ontology network from obo file. There ontology
+        network is G(V,E) where there exists e_ij for child i to parent j to present "node i is_a node j".
 
         Args:
             path:
@@ -54,12 +55,12 @@ class Ontology(Dataset):
 
     def get_child_nodes(self):
         adj = self.get_adjacency_matrix(self.node_list)
-        leaf_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[1]]
+        leaf_terms = self.node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
         return leaf_terms
 
     def get_root_nodes(self):
         adj = self.get_adjacency_matrix(self.node_list)
-        parent_terms = self.node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
+        parent_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[1]]
         return parent_terms
 
     def get_dfs_paths(self, root_nodes: list, filter_duplicates=False):
@@ -162,7 +163,7 @@ class GeneOntology(Ontology):
         for file in file_resources:
             if ".obo" in file:
                 network = obonet.read_obo(file_resources[file])
-                network = network.reverse(copy=True)
+                # network = network.reverse(copy=True)
                 node_list = np.array(network.nodes)
         return network, node_list
 
@@ -178,9 +179,10 @@ class GeneOntology(Ontology):
         self.node_list = np.array(list(terms))
 
     def get_predecessor_terms(self, annotation: pd.Series, type="is_a"):
+
         go_terms_parents = annotation.map(
-            lambda x: list({parent for term in x for parent in flatten(self.traverse_predecessors(term, type))}) \
-                if isinstance(x, list) else [])
+            lambda x: list({parent for term in x for parent in list(nx.descendants(self.network, term))}) \
+                if isinstance(x, list) else [])  # flatten(self.traverse_predecessors(term, type))}) \
         return go_terms_parents
 
     def add_predecessor_terms(self, annotation: pd.Series, return_str=False):
