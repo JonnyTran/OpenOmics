@@ -199,19 +199,20 @@ class GeneOntology(Ontology):
 
         return go_terms_parents
 
-    def traverse_predecessors(self, seed_node, type="is_a"):
-        """
-        Returns all successor terms from seed_node by traversing the ontology network with edges == `type`.
-        Args:
-            seed_node: seed node of the traversal
-            type: the ontology type to include
-        Returns:
-            generator of list of lists for each dfs branches.
-        """
-        parents = dict(self.network.pred[seed_node])
-        for parent, v in parents.items():
-            if list(v.keys())[0] in type:
-                yield [parent] + list(self.traverse_predecessors(parent))
+
+def traverse_predecessors(network, seed_node, type="is_a"):
+    """
+    Returns all successor terms from seed_node by traversing the ontology network with edges == `type`.
+    Args:
+        seed_node: seed node of the traversal
+        type: the ontology type to include
+    Returns:
+        generator of list of lists for each dfs branches.
+    """
+    parents = dict(network.pred[seed_node])
+    for parent, v in parents.items():
+        if list(v.keys())[0] in type:
+            yield [parent] + list(traverse_predecessors(network, parent, type))
 
 
 def flatten(lst):
