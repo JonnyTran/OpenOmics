@@ -44,12 +44,12 @@ class Ontology(Dataset):
 
     def get_child_nodes(self):
         adj = self.get_adjacency_matrix(self.node_list)
-        leaf_terms = self.node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
+        leaf_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[1]]
         return leaf_terms
 
     def get_root_nodes(self):
         adj = self.get_adjacency_matrix(self.node_list)
-        parent_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[1]]
+        parent_terms = self.node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
         return parent_terms
 
     def get_dfs_paths(self, root_nodes: list, filter_duplicates=False):
@@ -157,6 +157,11 @@ class GeneOntology(Ontology):
         return network, node_list
 
     def filter_network(self, namespace):
+        """
+        Filter the subgraph node_list to only `namespace` terms.
+        Args:
+            namespace: one of {"biological_process", "cellular_component", "molecular_function"}
+        """
         terms = self.df[self.df["namespace"] == namespace]["go_id"].unique()
         print("{} terms: {}".format(namespace, len(terms))) if self.verbose else None
         self.network = self.network.subgraph(nodes=list(terms))
@@ -182,8 +187,16 @@ class GeneOntology(Ontology):
 
         return go_terms_parents
 
-    def traverse_predecessors(self, node, type="is_a"):
-        parents = dict(self.network.pred[node])
+    def traverse_predecessors(self, seed_node, type="is_a"):
+        """
+        Returns all successor terms from seed_node by traversing the ontology network with edges == `type`.
+        Args:
+            seed_node: seed node of the traversal
+            type: the ontology type to include
+        Returns:
+            generator of list of lists for each dfs branches.
+        """
+        parents = dict(self.network.pred[seed_node])
         for parent, v in parents.items():
             if list(v.keys())[0] in type:
                 yield [parent] + list(self.traverse_predecessors(parent))
