@@ -60,7 +60,7 @@ class Ontology(Dataset):
 
     def get_root_nodes(self):
         adj = self.get_adjacency_matrix(self.node_list)
-        parent_terms = self.node_list[adj.sum(axis=1) == 0]
+        parent_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[1]]
         return parent_terms
 
     def get_dfs_paths(self, root_nodes: list, filter_duplicates=False):
