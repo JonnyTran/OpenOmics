@@ -10,6 +10,16 @@ from ..utils.df import slice_adj
 
 class Ontology(Dataset):
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
+        """
+        Manages input processing . There ontology network is G(V,E) where there exists e_ij for parent i to child j.
+
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            npartitions:
+            verbose:
+        """
         self.network, self.node_list = self.load_network(file_resources)
         super(Ontology, self).__init__(path, file_resources, col_rename, npartitions, verbose)
 
