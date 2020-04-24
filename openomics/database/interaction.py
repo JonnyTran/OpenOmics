@@ -167,9 +167,9 @@ class STRING(Interactions, SequenceDataset):
 
     def __init__(self, path="https://stringdb-static.org/download/", file_resources=None,
                  species_id="9606",
-                 source_col_name="protein1", target_col_name="protein2", source_index="protein_name",
+                 source_col_name="item_id_a", target_col_name="item_id_b", source_index="protein_name",
                  target_index="protein_name",
-                 edge_attr=["combined_score"], directed=False,
+                 edge_attr=["score"], directed=False,
                  relabel_nodes=None, verbose=False):
         if file_resources is None:
             file_resources = {}
