@@ -9,15 +9,6 @@ __email__ = 'nhat.tran@mavs.uta.edu'
 __version__ = '0.7.9'
 
 # from . import database
-from .clinical import ClinicalData
-
-from .multiomics import (
-    MultiOmics
-)
-
-from .visualization import (
-    umap
-)
 
 from .transcriptomics import (
     ExpressionData, MessengerRNA, MicroRNA, LncRNA,
@@ -29,4 +20,14 @@ from .genomics import (
 
 from .proteomics import (
     Protein
+)
+
+from .clinical import ClinicalData
+
+from .multiomics import (
+    MultiOmics
+)
+
+from .visualization import (
+    umap
 )
