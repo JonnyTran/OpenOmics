@@ -34,7 +34,7 @@ class DNAMethylation(ExpressionData, Annotatable):
         return cls.__name__
 
 
-class CopyNumberVariation(ExpressionData, openomics.database.annotation.Annotatable):
+class CopyNumberVariation(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by, sample_index_by="sample_barcode",
                  transposed=True,
                  log2_transform=False, npartitions=0):
