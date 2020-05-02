@@ -8,31 +8,25 @@ __author__ = """Nhat (Jonny) Tran"""
 __email__ = 'nhat.tran@mavs.uta.edu'
 __version__ = '0.7.9'
 
-try:
-    # from . import database
-    from .clinical import ClinicalData
+# from . import database
+from .clinical import ClinicalData
 
-    from .multiomics import (
-        MultiOmics
-    )
+from .multiomics import (
+    MultiOmics
+)
 
-    from .visualization import (
-        umap
-    )
+from .visualization import (
+    umap
+)
 
-    from .transcriptomics import (
-        ExpressionData, MessengerRNA, MicroRNA, LncRNA,
-    )
+from .transcriptomics import (
+    ExpressionData, MessengerRNA, MicroRNA, LncRNA,
+)
 
-    from .genomics import (
-        SomaticMutation, DNAMethylation, CopyNumberVariation
-    )
+from .genomics import (
+    SomaticMutation, DNAMethylation, CopyNumberVariation
+)
 
-    from .proteomics import (
-        Protein
-    )
-
-
-
-except ImportError as e:
-    raise ImportError(str(e))
+from .proteomics import (
+    Protein
+)
