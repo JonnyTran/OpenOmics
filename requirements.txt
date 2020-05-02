@@ -20,7 +20,6 @@ dash-daq
 dash-bootstrap-components
 gunicorn
 six
-lxml
 validators
 sqlalchemy
 filetype
