@@ -1,12 +1,12 @@
-import openomics
 from openomics import ExpressionData
+from openomics.database import Annotatable
 
 
-class SingleNucleotideVariants(ExpressionData, openomics.database.annotation.Annotatable):
+class SingleNucleotideVariants(ExpressionData, Annotatable):
     pass
 
 
-class SomaticMutation(ExpressionData, openomics.database.annotation.Annotatable):
+class SomaticMutation(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by, sample_index_by="sample_barcode",
                  transposed=True,
                  log2_transform=False, npartitions=0):
@@ -20,7 +20,7 @@ class SomaticMutation(ExpressionData, openomics.database.annotation.Annotatable)
         return cls.__name__
 
 
-class DNAMethylation(ExpressionData, openomics.database.annotation.Annotatable):
+class DNAMethylation(ExpressionData, Annotatable):
     def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by, sample_index_by="sample_barcode",
                  transposed=True,
                  log2_transform=False, npartitions=0):
