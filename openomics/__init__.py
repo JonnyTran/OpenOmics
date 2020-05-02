@@ -35,9 +35,4 @@ try:
 
 
 except ImportError as e:
-    msg = (
-        "OpenOmics requirements are not installed.\n\n"
-        "Please pip install as follows:\n\n"
-        "  pip install openomics --upgrade  # or pip install"
-    )
-    raise ImportError(str(e) + "\n\n" + msg)
+    raise ImportError(str(e))
