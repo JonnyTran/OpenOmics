@@ -9,7 +9,7 @@ __email__ = 'nhat.tran@mavs.uta.edu'
 __version__ = '0.7.9'
 
 try:
-    # from . import database
+    from . import database
 
     from .transcriptomics import (
         ExpressionData, MessengerRNA, MicroRNA, LncRNA,
