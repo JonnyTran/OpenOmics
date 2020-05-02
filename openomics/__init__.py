@@ -24,9 +24,9 @@ try:
         ExpressionData, MessengerRNA, MicroRNA, LncRNA,
     )
 
-    from .genomics import (
-        SomaticMutation, DNAMethylation, CopyNumberVariation
-    )
+    # from .genomics import (
+    #     SomaticMutation, DNAMethylation, CopyNumberVariation
+    # )
 
     from .proteomics import (
         Protein
