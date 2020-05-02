@@ -10,18 +10,19 @@ def generate_LncRNA2Target():
 def test_import_LncRNA2Target(generate_LncRNA2Target):
     assert generate_LncRNA2Target.data_path == "http://123.59.132.21/lncrna2target/data/"
 
+
 @pytest.fixture
 def generate_MiRTarBase():
     return MiRTarBase()
 
+
 def test_import_MiRTarBase(generate_MiRTarBase):
     assert generate_MiRTarBase.data_path == "http://mirtarbase.mbc.nctu.edu.tw/cache/download/7.0/"
 
+
 @pytest.fixture
 def generate_STRING():
-    return STRING(path="https://stringdb-static.org/download/",
-                  species_id="9606",
-                  source_col_name="protein1", target_col_name="protein2", )
+    return STRING(edge_attr=["score"])
 
 
 def test_import_STRING(generate_STRING):
