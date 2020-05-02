@@ -1,8 +1,6 @@
 from __future__ import print_function, division, absolute_import
 
 try:
-    from .base import Annotatable
-
     from .annotation import (
         EnsemblGenes, RNAcentral, BioMartManager, GTEx
     )
@@ -16,6 +14,8 @@ try:
     from .disease import (
         DisGeNet, HMDD, LncRNADisease, MalaCards
     )
+
+    from .base import Annotatable
 
 except ImportError as e:
     msg = (
