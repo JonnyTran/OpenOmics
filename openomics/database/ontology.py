@@ -200,7 +200,7 @@ class GeneOntology(Ontology):
         return go_terms_parents
 
 
-def traverse_predecessors(network, seed_node, type="is_a"):
+def traverse_predecessors(network, seed_node, type=["is_a", "part_of"]):
     """
     Returns all successor terms from seed_node by traversing the ontology network with edges == `type`.
     Args:
