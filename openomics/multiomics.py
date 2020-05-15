@@ -20,8 +20,8 @@ class MultiOmics:
             cohort_name (str): the clinical cohort name
             import_clinical (bool, ClinicalData):
         """
-        self.cohort_name = cohort_name
-        self.omics_list = []
+        self._cohort_name = cohort_name
+        self._omics = []
 
         # This is a data dictionary accessor to retrieve individual -omic data
         self.data = {}
@@ -30,8 +30,8 @@ class MultiOmics:
         """
         Removes duplicate genes between any omics such that the index across all omics has no duplicates.
         """
-        for omic_A in self.omics_list:
-            for omic_B in self.omics_list:
+        for omic_A in self._omics:
+            for omic_B in self._omics:
                 if omic_A != omic_B:
                     self.__getattribute__(omic_A).drop_genes(set(self.__getattribute__(omic_A).get_genes_list()) & set(
                         self.__getattribute__(omic_B).get_genes_list()))
@@ -49,8 +49,8 @@ class MultiOmics:
         """
         self.__dict__[omic_data.name()] = omic_data
 
-        if omic_data.name not in self.omics_list:
-            self.omics_list.append(omic_data.name())
+        if omic_data.name not in self._omics:
+            self._omics.append(omic_data.name())
 
         # dictionary as data accessor to the expression data
         self.data[omic_data.name()] = omic_data.expressions
@@ -68,7 +68,7 @@ class MultiOmics:
         if type(clinical_data) == ClinicalData:
             self.clinical = clinical_data
         else:
-            self.clinical = ClinicalData(self.cohort_name, clinical_data)
+            self.clinical = ClinicalData(self._cohort_name, clinical_data)
 
         self.data["PATIENTS"] = self.clinical.patient
         if hasattr(self.clinical, "biospecimen"):
@@ -77,7 +77,7 @@ class MultiOmics:
             self.data["DRUGS"] = self.clinical.drugs
 
     def get_omics_list(self):
-        return self.omics_list
+        return self._omics
 
     def build_samples(self, agg_by="union"):
         """
@@ -86,11 +86,11 @@ class MultiOmics:
         Args:
             agg_by (str): ["union", "intersection"]
         """
-        if len(self.omics_list) < 1:  # make sure at least one ExpressionData present
+        if len(self._omics) < 1:  # make sure at least one ExpressionData present
             print("build_samples() does nothing. Must add at least one omic to this MultiOmics object.")
 
         all_samples = pd.Index([])
-        for omic in self.omics_list:
+        for omic in self._omics:
             if agg_by == "union":
                 all_samples = all_samples.union(self.data[omic].index)
             elif agg_by == "intersection":
@@ -146,7 +146,7 @@ class MultiOmics:
     def __dir__(self):
         return list(self.data.keys())
 
-    def match_samples(self, omics):
+    def match_samples(self, omics) -> pd.Index:
         """
         Return the index of bcr_sample_barcodes of the intersection of samples from all modalities
 
@@ -191,38 +191,38 @@ class MultiOmics:
         """
 
         if omics == 'all' or omics is None:
-            omics = self.omics_list
-        elif omics:
-            omics = omics
-        else:
-            raise Exception("Need to specify which multi-omics to retrieve")
+            omics = self._omics
 
-        matched_samples = self.match_samples(omics)
-        if not (samples_barcode is None):
+        if len(omics) > 1:
+            matched_samples = self.match_samples(omics)
+
+        if samples_barcode is not None:
             matched_samples = samples_barcode
 
-        # Build targets clinical data
-        y = self.get_patients_clinical(matched_samples)
+        if hasattr(self, "clinical") and isinstance(self.clinical, ClinicalData):
+            # Build targets clinical data
+            y = self.get_patients_clinical(matched_samples)
 
-        # Select only samples with certain cancer stage or subtype
-        if pathologic_stages:
-            y = y[y[PATHOLOGIC_STAGE].isin(pathologic_stages)]
-        if histological_subtypes:
-            y = y[y[HISTOLOGIC_SUBTYPE].isin(histological_subtypes)]
-        if predicted_subtypes:
-            y = y[y[PREDICTED_SUBTYPE].isin(predicted_subtypes)]
-        if tumor_normal:
-            y = y[y[TUMOR_NORMAL].isin(tumor_normal)]
-        # TODO if normal_matched:
-        #     target =
+            # Select only samples with certain cancer stage or subtype
+            if pathologic_stages:
+                y = y[y[PATHOLOGIC_STAGE].isin(pathologic_stages)]
+            if histological_subtypes:
+                y = y[y[HISTOLOGIC_SUBTYPE].isin(histological_subtypes)]
+            if predicted_subtypes:
+                y = y[y[PREDICTED_SUBTYPE].isin(predicted_subtypes)]
+            if tumor_normal:
+                y = y[y[TUMOR_NORMAL].isin(tumor_normal)]
+            # TODO if normal_matched:
+            #     target =
 
-        # Filter y target column labels
-        y = y.filter(target)
-        y.dropna(axis=0, inplace=True)
+            # Filter y target column labels
+            y = y.filter(target)
+            y.dropna(axis=0, inplace=True)
+            matched_samples = y.index
+        else:
+            y = None
 
-        matched_samples = y.index
-
-        # Build data matrix for each omic, indexed by matched_samples
+        # Build expression matrix for each omic, indexed by matched_samples
         X_multiomics = {}
         for omic in omics:
             X_multiomics[omic] = self.data[omic].loc[matched_samples, self[omic].get_genes_list()]
