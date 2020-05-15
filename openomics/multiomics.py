@@ -189,12 +189,10 @@ class MultiOmics:
             (X, y): Returns X, a dictionary containing the multiomics data that have data
 
         """
-
         if omics == 'all' or omics is None:
             omics = self._omics
 
-        if len(omics) > 1:
-            matched_samples = self.match_samples(omics)
+        matched_samples = self.match_samples(omics)
 
         if samples_barcode is not None:
             matched_samples = samples_barcode
@@ -212,8 +210,6 @@ class MultiOmics:
                 y = y[y[PREDICTED_SUBTYPE].isin(predicted_subtypes)]
             if tumor_normal:
                 y = y[y[TUMOR_NORMAL].isin(tumor_normal)]
-            # TODO if normal_matched:
-            #     target =
 
             # Filter y target column labels
             y = y.filter(target)
