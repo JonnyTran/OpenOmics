@@ -188,39 +188,6 @@ class LncRNA(ExpressionData, Annotatable):
     def name(cls):
         return cls.__name__
 
-    def preprocess_table(self, df, columns=None, genes_index=None, transposed=True, sort_index=False):
-        """
-        Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
-
-        TANRIC LNCRNA expression values are log2 transformed
-        :param transposed:
-        """
-
-        # Replacing ENSG Gene ID to the lncRNA gene symbol name
-        df[genes_index] = df[genes_index].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
-        df = df[~df[genes_index].duplicated(keep='first')]  # Remove duplicate genes
-
-        # Drop NA gene rows
-        df.dropna(axis=0, inplace=True)
-
-        # Transpose matrix to patients rows and genes columns
-        df.index = df[genes_index]
-        df = df.T.iloc[1:, :]
-
-        # Change index string to bcr_sample_barcode standard
-        def change_patient_barcode(s):
-            if "Normal" in s:
-                return s[s.find('TCGA'):] + "-11A"
-            elif "Tumor" in s:
-                return s[s.find('TCGA'):] + "-01A"
-            else:
-                return s
-
-        df.index = df.index.map(change_patient_barcode)
-        df.index.name = "gene_id"
-
-        return df
-
 
 class MessengerRNA(ExpressionData, Annotatable):
     def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None,
