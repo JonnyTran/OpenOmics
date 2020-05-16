@@ -9,6 +9,7 @@ import pandas as pd
 from dask import delayed
 
 from .database import Annotatable
+from .utils.df import drop_duplicate_columns
 
 
 class ExpressionData(object):
@@ -51,7 +52,22 @@ class ExpressionData(object):
             self.expressions = self.expressions.applymap(self.log2_transform)
 
     def load_dataframe(self, data, transposed, columns, genes_index):
+        """
+        Reading table data inputs to create a DataFrame.
+
+        Args:
+            data: either a file path, a glob file path (e.g. "table-*.tsv"), a pandas.DataFrame, or a dask DataFrame.
+            transposed: True if table oriented with samples
+            columns:
+            genes_index:
+
+        Returns:
+
+        """
         if isinstance(data, pd.DataFrame):
+            df = data
+            df.reset_index(inplace=True)
+        elif isinstance(data, dd.DataFrame):
             df = data
         elif "*" in data:
             df = self.load_dataframe_glob(data, columns, genes_index, transposed)
@@ -103,11 +119,10 @@ class ExpressionData(object):
             df = df.filter(regex=columns)
 
         # Cut TCGA column names to sample barcode, discarding aliquot info
-        df = df.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x)
+        # df = df.rename(columns=lambda x: x[:16] if ("TCGA" in x) else x)
 
         # Drop duplicate sample names
-        _, i = np.unique(df.columns, return_index=True)
-        df = df.iloc[:, i]
+        df = drop_duplicate_columns(df)
 
         # Drop NA geneID rows
         df.dropna(axis=0, inplace=True)
@@ -124,13 +139,12 @@ class ExpressionData(object):
         # Select only numerical columns
         df = df.select_dtypes(include="number")
 
-        # Transpose dataframe to patient rows and geneID columns
+        # Transpose dataframe to sample rows and gene columns
         if transposed:
             df = df.T
 
-        # Drop duplicate columns names (Gene symbols with same name)
-        _, i = np.unique(df.columns, return_index=True)
-        df = df.iloc[:, i]
+        # Drop duplicate genes
+        df = drop_duplicate_columns(df)
 
         return df
 

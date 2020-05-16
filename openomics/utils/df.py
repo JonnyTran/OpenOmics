@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 
@@ -8,6 +9,11 @@ def concat_uniques(series: pd.Series):
     else:
         return None
 
+
+def drop_duplicate_columns(df):
+    _, i = np.unique(df.columns, return_index=True)
+    df = df.iloc[:, i]
+    return df
 
 def concat(series: pd.Series):
     series = series.dropna().astype(str)
