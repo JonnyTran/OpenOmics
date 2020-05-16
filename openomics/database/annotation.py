@@ -14,6 +14,44 @@ DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
 
+class TANRIC(Dataset):
+    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
+        super(TANRIC, self).__init__(path, file_resources, col_rename, npartitions, verbose)
+
+    def load_dataframe(self, file_resources):
+        pass
+
+    def get_expressions(self, genes_index):
+        """
+        Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
+        TANRIC LNCRNA expression values are log2 transformed
+        """
+        df = pd.read_table(self.file_resources["TCGA-LUAD-rnaexpr.tsv"])
+        df[genes_index] = df[genes_index].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
+        df = df[~df[genes_index].duplicated(keep='first')]  # Remove duplicate genes
+
+        # Drop NA gene rows
+        df.dropna(axis=0, inplace=True)
+
+        # Transpose matrix to patients rows and genes columns
+        df.index = df[genes_index]
+        df = df.T.iloc[1:, :]
+
+        # Change index string to bcr_sample_barcode standard
+        def change_patient_barcode(s):
+            if "Normal" in s:
+                return s[s.find('TCGA'):] + "-11A"
+            elif "Tumor" in s:
+                return s[s.find('TCGA'):] + "-01A"
+            else:
+                return s
+
+        df.index = df.index.map(change_patient_barcode)
+        df.index.name = "gene_id"
+
+        return df
+
+
 class ProteinAtlas(Dataset):
     COLUMNS_RENAME_DICT = {
         "Gene": "protein_name",
