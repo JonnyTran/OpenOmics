@@ -10,17 +10,18 @@ def concat_uniques(series: pd.Series):
         return None
 
 
-def drop_duplicate_columns(df):
-    _, i = np.unique(df.columns, return_index=True)
-    df = df.iloc[:, i]
-    return df
-
 def concat(series: pd.Series):
     series = series.dropna().astype(str)
     if not series.empty:
         return "|".join(series)
     else:
         return None
+
+
+def drop_duplicate_columns(df):
+    _, i = np.unique(df.columns, return_index=True)
+    df = df.iloc[:, i]
+    return df
 
 
 def slice_adj(adj, node_list: list, nodes_A, nodes_B=None):
