@@ -134,7 +134,7 @@ class Dataset(object):
             df = df.set_index(index)
 
         if items is not None:
-            df = df.loc[items]
+            df = df.loc[items.dropna()]
 
         # Groupby index, and Aggregate by all columns by concatenating unique values
         df = df.groupby(index).agg({k: concat_uniques for k in columns})
