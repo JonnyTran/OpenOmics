@@ -1,7 +1,7 @@
 from __future__ import print_function, division, absolute_import
 
 from .annotation import (
-    EnsemblGenes, RNAcentral, BioMartManager, GTEx
+    EnsemblGenes, RNAcentral, BioMartManager, GTEx, ProteinAtlas
 )
 from .base import Annotatable
 from .disease import (
