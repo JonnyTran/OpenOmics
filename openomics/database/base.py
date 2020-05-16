@@ -114,7 +114,7 @@ class Dataset(object):
         Args:
             index (str): The index column name of the Dataframe
             columns (list): a list of column names
-            items (list): an items in `index` to select by. (this saves computing cost)
+            items (list): a list of items in the column `index` to select (this saves computing cost).
         Returns:
             df (DataFrame): A dataframe to be used for annotation
 
@@ -134,7 +134,8 @@ class Dataset(object):
             df = df.set_index(index)
 
         if items is not None:
-            df = df.loc[items.dropna()]
+            items = df.index & items
+            df = df.loc[items]
 
         # Groupby index, and Aggregate by all columns by concatenating unique values
         df = df.groupby(index).agg({k: concat_uniques for k in columns})
