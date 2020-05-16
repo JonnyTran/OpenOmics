@@ -20,7 +20,8 @@ class ProteinAtlas(Dataset):
         "Ensembl": "gene_id",
     }
 
-    def __init__(self, path="https://www.proteinatlas.org/download/", file_resources=None, col_rename=None,
+    def __init__(self, path="https://www.proteinatlas.org/download/", file_resources=None,
+                 col_rename=COLUMNS_RENAME_DICT,
                  npartitions=0, verbose=False):
         if file_resources is None:
             file_resources = {}
