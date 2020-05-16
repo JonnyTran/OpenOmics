@@ -14,6 +14,40 @@ DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
 
+class ProteinAtlas(Dataset):
+    COLUMNS_RENAME_DICT = {
+        "Gene": "gene_name",
+        "Ensembl": "gene_id",
+    }
+
+    def __init__(self, path="https://www.proteinatlas.org/download/", file_resources=None, col_rename=None,
+                 npartitions=0, verbose=False):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["proteinatlas.tsv"] = "proteinatlas.tsv.zip"
+
+        super(ProteinAtlas, self).__init__(path, file_resources, col_rename, npartitions, verbose)
+
+    def load_dataframe(self, file_resources):
+        df = pd.read_table(file_resources["proteinatlas.tsv"])
+
+        return df
+
+    def get_expressions(self, index="gene_name", type="Tissue RNA"):
+        """
+        Returns (NX) expressions from the proteinatlas.tsv table.
+        Args:
+            index: a column name to index by. If column contain multiple values, then aggregate by median values.
+            type: one of {"Tissue RNA", "Cell RNA", "Blood RNA", "Brain RNA", "RNA - "}. If "RNA - ", then select all types of expressions.
+
+        Returns:
+            expressions (pd.DataFrame):
+        """
+        expressions = self.df.filter(regex=type).groupby(
+            index).median()
+        return expressions
+
+
 class RNAcentral(Dataset):
     COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
                            'gene symbol': 'gene_name',
