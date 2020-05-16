@@ -148,7 +148,7 @@ class ExpressionData(object):
 
         return df
 
-    def set_genes_index(self, index, old_index):
+    def set_genes_index(self, index: str, old_index: str):
         assert isinstance(self, Annotatable) and isinstance(self, ExpressionData)
         # Change gene name columns in expressions
         rename_dict = self.get_rename_dict(from_index=old_index, to_index=index)
