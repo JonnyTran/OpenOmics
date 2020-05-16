@@ -16,7 +16,7 @@ DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
 class ProteinAtlas(Dataset):
     COLUMNS_RENAME_DICT = {
-        "Gene": "gene_name",
+        "Gene": "protein_name",
         "Ensembl": "gene_id",
     }
 
@@ -44,7 +44,8 @@ class ProteinAtlas(Dataset):
         Returns:
             expressions (pd.DataFrame):
         """
-        expressions = self.df.filter(regex=type).groupby(
+        columns = "|".join([type, index])
+        expressions = self.df.filter(regex=columns).groupby(
             index).median()
         return expressions
 
