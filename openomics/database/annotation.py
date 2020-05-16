@@ -101,7 +101,8 @@ class RNAcentral(Dataset):
         if file_resources is None:
             file_resources = {}
             file_resources["rnacentral_rfam_annotations.tsv"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
-            file_resources["gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
+            file_resources["database_mappings/gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
+            file_resources["database_mappings/mirbase.tsv"] = "id_mapping/database_mappings/mirbase.tsv"
 
         super(RNAcentral, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions,
                                          verbose=verbose)
@@ -111,25 +112,30 @@ class RNAcentral(Dataset):
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True, n=2)[0]
 
-        gencode_id = pd.read_table(file_resources["gencode.tsv"],
-                                   low_memory=True, header=None,
-                                   names=["RNAcentral id", "database", "external id", "species", "RNA type",
-                                          "gene symbol"])
+        gene_ids = []
+        for file in file_resources:
+            if "database_mappings" in file:
+                id_mapping = pd.read_table(file_resources[file],
+                                           low_memory=True, header=None,
+                                           names=["RNAcentral id", "database", "external id", "species", "RNA type",
+                                                  "gene symbol"])
+                gene_ids.append(id_mapping)
+        gene_ids = pd.concat(gene_ids, join="inner")
 
-        gencode_id["species"] = gencode_id["species"].astype("O")
+        gene_ids["species"] = gene_ids["species"].astype("O")
         if self.species is not None:
-            gencode_id = gencode_id[gencode_id["species"] == self.species]
+            gene_ids = gene_ids[gene_ids["species"] == self.species]
 
-        lnc_go_terms = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
+        lnc_go_terms = go_terms[go_terms["RNAcentral id"].isin(gene_ids["RNAcentral id"])].groupby("RNAcentral id")[
             "GO terms"].apply(lambda x: "|".join(x.unique()))
-        lnc_rfams = go_terms[go_terms["RNAcentral id"].isin(gencode_id["RNAcentral id"])].groupby("RNAcentral id")[
+        lnc_rfams = go_terms[go_terms["RNAcentral id"].isin(gene_ids["RNAcentral id"])].groupby("RNAcentral id")[
             "Rfams"].apply(lambda x: "|".join(x.unique()))
 
-        gencode_id["GO terms"] = gencode_id["RNAcentral id"].map(lnc_go_terms)
-        gencode_id["Rfams"] = gencode_id["RNAcentral id"].map(lnc_rfams)
-        gencode_id = gencode_id[gencode_id["GO terms"].notnull() | gencode_id["Rfams"].notnull()]
+        gene_ids["GO terms"] = gene_ids["RNAcentral id"].map(lnc_go_terms)
+        gene_ids["Rfams"] = gene_ids["RNAcentral id"].map(lnc_rfams)
+        gene_ids = gene_ids[gene_ids["GO terms"].notnull() | gene_ids["Rfams"].notnull()]
 
-        return gencode_id
+        return gene_ids
 
 
 class GTEx(Dataset):
