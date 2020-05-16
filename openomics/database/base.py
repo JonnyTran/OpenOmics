@@ -104,7 +104,7 @@ class Dataset(object):
     def list_databases(self):
         return DEFAULT_LIBRARIES
 
-    def get_annotations(self, index, columns):
+    def get_annotations(self, index, columns, items=None):
         # type: (str, List[str]) -> Union[pd.DataFrame, dd.DataFrame]
         """
         Returns the Database's DataFrame such that it's indexed by :param index:, which then applies a groupby operation
@@ -114,7 +114,7 @@ class Dataset(object):
         Args:
             index (str): The index column name of the Dataframe
             columns (list): a list of column names
-
+            items (list): an items in `index` to select by. (this saves computing cost)
         Returns:
             df (DataFrame): A dataframe to be used for annotation
 
@@ -132,6 +132,9 @@ class Dataset(object):
 
         if index != self.df.index.name and index in self.df.columns:
             df = df.set_index(index)
+
+        if items is not None:
+            df = df.loc[items]
 
         # Groupby index, and Aggregate by all columns by concatenating unique values
         df = df.groupby(index).agg({k: concat_uniques for k in columns})
@@ -198,10 +201,19 @@ class Annotatable(object):
             columns (list): a list of column name to join to the annotation
             fuzzy_match (bool): default False. Whether to join the annotation by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
         """
-        database_df = database.get_annotations(index, columns)
+        # Get dataframe table form database
+        if index in self.annotations.columns:
+            index_items = pd.Index(self.annotations[index].unique())
+        elif index == self.annotations.index.name:
+            index_items = self.annotations.index
+        else:
+            index_items = None
+        database_df = database.get_annotations(index, columns=columns, items=index_items)
+
         if fuzzy_match:
             database_df.index = database_df.index.map(lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
 
+        # Join columns from `database` to `annotations`
         if index == self.annotations.index.name:
             self.annotations = self.annotations.join(database_df, on=index, rsuffix="_")
         else:
