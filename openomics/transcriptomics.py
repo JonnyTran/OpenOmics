@@ -177,10 +177,10 @@ class ExpressionData(object):
 
 
 class LncRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, data, transposed, columns=None, genes_col_name=None, gene_index_by=None,
+    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None,
                  sample_index_by="sample_index", log2_transform=False, npartitions=None):
         super(LncRNA, self).__init__(cohort_name, data=data, transposed=transposed, columns=columns,
-                                     genes_col_name=genes_col_name, gene_index_by=gene_index_by,
+                                     gene_index_by=gene_index_by,
                                      sample_index_by=sample_index_by, log2_transform=log2_transform,
                                      npartitions=npartitions)
 
@@ -188,8 +188,7 @@ class LncRNA(ExpressionData, Annotatable):
     def name(cls):
         return cls.__name__
 
-    def preprocess_table(self, df, columns, genes_index, transposed):
-        # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
+    def preprocess_table(self, df, columns=None, genes_index=None, transposed=True, sort_index=False):
         """
         Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
 
@@ -248,10 +247,10 @@ class LncRNA(ExpressionData, Annotatable):
 
 
 class MessengerRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, data, transposed, columns=None, genes_col_name=None, gene_index_by=None,
+    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None,
                  sample_index_by="sample_index", log2_transform=False, npartitions=None):
         super(MessengerRNA, self).__init__(cohort_name, data=data, transposed=transposed, columns=columns,
-                                           genes_col_name=genes_col_name, gene_index_by=gene_index_by,
+                                           gene_index_by=gene_index_by,
                                            sample_index_by=sample_index_by, log2_transform=log2_transform,
                                            npartitions=npartitions)
 
@@ -261,10 +260,10 @@ class MessengerRNA(ExpressionData, Annotatable):
 
 
 class MicroRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, data, transposed, columns=None, genes_col_name=None, gene_index_by=None,
+    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None,
                  sample_index_by="sample_index", log2_transform=False, npartitions=None):
         super(MicroRNA, self).__init__(cohort_name, data=data, transposed=transposed, columns=columns,
-                                       genes_col_name=genes_col_name, gene_index_by=gene_index_by,
+                                       gene_index_by=gene_index_by,
                                        sample_index_by=sample_index_by, log2_transform=log2_transform,
                                        npartitions=npartitions)
 
