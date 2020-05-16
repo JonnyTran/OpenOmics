@@ -104,7 +104,7 @@ class Dataset(object):
     def list_databases(self):
         return DEFAULT_LIBRARIES
 
-    def get_annotations(self, index, columns, items=None):
+    def get_annotations(self, index, columns):
         # type: (str, List[str]) -> Union[pd.DataFrame, dd.DataFrame]
         """
         Returns the Database's DataFrame such that it's indexed by :param index:, which then applies a groupby operation
@@ -132,11 +132,6 @@ class Dataset(object):
 
         if index != self.df.index.name and index in self.df.columns:
             df = df.set_index(index)
-
-        if items is not None:
-            items = df.index & items
-            print("items", len(items))
-            df = df.loc[items]
 
         # Groupby index, and Aggregate by all columns by concatenating unique values
         df = df.groupby(index).agg({k: concat_uniques for k in columns})
@@ -204,13 +199,7 @@ class Annotatable(object):
             fuzzy_match (bool): default False. Whether to join the annotation by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
         """
         # Get dataframe table form database
-        if index in self.annotations.columns:
-            index_items = pd.Index(self.annotations[index].unique())
-        elif index == self.annotations.index.name:
-            index_items = self.annotations.index
-        else:
-            index_items = None
-        database_df = database.get_annotations(index, columns=columns, items=index_items)
+        database_df = database.get_annotations(index, columns=columns)
 
         if fuzzy_match:
             database_df.index = database_df.index.map(lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
