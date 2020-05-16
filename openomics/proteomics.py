@@ -6,13 +6,11 @@ from .transcriptomics import ExpressionData
 
 
 class Protein(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by, sample_index_by="sample_barcode",
-                 transposed=True,
-                 log2_transform=False, npartitions=0):
-        super(Protein, self).__init__(cohort_name, file_path, columns=columns, genes_col_name=genes_col_name,
+    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None,
+                 sample_index_by="sample_index", log2_transform=False, npartitions=None):
+        super(Protein, self).__init__(cohort_name, data, transposed=transposed, columns=columns,
                                       gene_index_by=gene_index_by,
-                                      sample_index_by=sample_index_by, transposed=transposed,
-                                      log2_transform=log2_transform,
+                                      sample_index_by=sample_index_by, log2_transform=log2_transform,
                                       npartitions=npartitions)
 
     @classmethod

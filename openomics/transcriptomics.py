@@ -12,8 +12,8 @@ from .database import Annotatable
 
 
 class ExpressionData(object):
-    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index_by=None,
-                 sample_index_by="sample_index", transposed=True, log2_transform=False, npartitions=None):
+    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None,
+                 sample_index_by="sample_index", log2_transform=False, npartitions=None):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of any quantitative -omics data that is in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame from file with the user-specified columns and genes column name, then tranpose it such that the rows are samples and columns are gene/transcript/peptides.
@@ -21,18 +21,16 @@ class ExpressionData(object):
         The dataframe should only contain numeric values besides the genes_col_name and the sample barcode id indices.
         Args:
             cohort_name (str): the unique cohort code name string
-            file_path (str, byte-like, Pandas DataFrame):
+            data (str, byte-like, pandas.DataFrame):
                 Path or file stream of the table file to import. If a pandas DataFrame is passed, then import this dataframe and skip preprocessing steps.
+            transposed (bool): default True
+                True if sample names are columns and rows are genes. False if the table has samples for row index, and gene names as columns.
             columns (str): a regex string
                 A regex string to import column names from the table. Columns names imported are string match, separated by "|".
-            genes_col_name (str):
-                Index column name of expression data which is used to index the genes list
             gene_index_by (str): {"gene_id", "transcript_id", "peptide_id", "gene_name", "trascript_name", "peptide_name"}
                 Chooses the level of the gene/transcript/peptide of the genes list in this expression data. The expression DataFrame's index will be renamed to this.
             sample_index_by (str): {"sample_index", "patient_index"}
                 Chooses the level of the patient/sample/aliquot indexing.
-            transposed (bool): default True
-                True if sample names are columns and rows are genes. False if the table has samples for row index, and gene names as columns.
             log2_transform (bool): default False
                 Whether to log2 transform the expression values
             npartitions (int): [0-n], default 0
@@ -40,20 +38,8 @@ class ExpressionData(object):
         """
         self.cohort_name = cohort_name
 
-        if isinstance(file_path, pd.DataFrame):
-            df = file_path
-        elif "*" in file_path:
-            df = self.preprocess_table_glob(file_path, columns, genes_col_name, transposed)
-        elif isinstance(file_path, io.StringIO):
-            # TODO implement handling for multiple file ByteIO
-            file_path.seek(0)  # Needed since the file was previous read to extract columns information
-            df = pd.read_table(file_path)
-        elif type(file_path) == str and os.path.isfile(file_path):
-            df = pd.read_table(file_path, sep=None)
-        else:
-            raise IOError(file_path)
-
-        self.expressions = self.preprocess_table(df, columns, genes_col_name, transposed)
+        df = self.load_dataframe(data, transposed=transposed, columns=columns, genes_index=gene_index_by)
+        self.expressions = self.preprocess_table(df, columns=columns, genes_index=gene_index_by, transposed=transposed)
         if npartitions:
             self.expressions = dd.from_pandas(self.expressions, npartitions=npartitions)
 
@@ -64,15 +50,38 @@ class ExpressionData(object):
         if log2_transform:
             self.expressions = self.expressions.applymap(self.log2_transform)
 
-    def set_genes_index(self, index, old_index):
-        assert isinstance(self, Annotatable) and isinstance(self, ExpressionData)
-        # Change gene name columns in expressions
-        rename_dict = self.get_rename_dict(from_index=old_index, to_index=index)
-        self.expressions.rename(columns=rename_dict, inplace=True)
-        self.gene_index = index
+    def load_dataframe(self, data, transposed, columns, genes_index):
+        if isinstance(data, pd.DataFrame):
+            df = data
+        elif "*" in data:
+            df = self.load_dataframe_glob(data, columns, genes_index, transposed)
+        elif isinstance(data, io.StringIO):
+            # TODO implement handling for multiple file ByteIO
+            data.seek(0)  # Needed since the file was previous read to extract columns information
+            df = pd.read_table(data)
+        elif type(data) == str and os.path.isfile(data):
+            df = pd.read_table(data, sep=None)
+        else:
+            raise IOError(data)
+        return df
 
-        # Change index name in annotation
-        self.set_index(index)
+    def load_dataframe_glob(self, glob_path, columns, genes_index, transposed):
+        # type: (str, str, str, bool) -> dd.DataFrame
+        """
+
+        :param glob_path:
+        :param columns:
+        :param genes_index:
+        :param transposed:
+        :return:
+        """
+        lazy_dataframes = []
+        for file_path in glob(glob_path):
+            df = delayed(pd.read_table)(file_path, )
+            df = delayed(self.preprocess_table)(df, columns, genes_index, transposed, True)
+            lazy_dataframes.append(df)
+
+        return dd.from_delayed(lazy_dataframes, divisions=None)
 
     def preprocess_table(self, df, columns=None, genes_index=None, transposed=True, sort_index=False):
         # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
@@ -120,25 +129,20 @@ class ExpressionData(object):
         _, i = np.unique(df.columns, return_index=True)
         df = df.iloc[:, i]
 
+        # Select only numerical columns
+        df = df.select_dtypes(include="number")
+
         return df
 
-    def preprocess_table_glob(self, glob_path, columns, genes_index, transposed):
-        # type: (str, str, str, bool) -> dd.DataFrame
-        """
+    def set_genes_index(self, index, old_index):
+        assert isinstance(self, Annotatable) and isinstance(self, ExpressionData)
+        # Change gene name columns in expressions
+        rename_dict = self.get_rename_dict(from_index=old_index, to_index=index)
+        self.expressions.rename(columns=rename_dict, inplace=True)
+        self.gene_index = index
 
-        :param glob_path:
-        :param columns:
-        :param genes_index:
-        :param transposed:
-        :return:
-        """
-        lazy_dataframes = []
-        for file_path in glob(glob_path):
-            df = delayed(pd.read_table)(file_path, )
-            df = delayed(self.preprocess_table)(df, columns, genes_index, transposed, True)
-            lazy_dataframes.append(df)
-
-        return dd.from_delayed(lazy_dataframes, divisions=None)
+        # Change index name in annotation
+        self.set_index(index)
 
     def log2_transform(self, x):
         return np.log2(x + 1)
@@ -152,24 +156,33 @@ class ExpressionData(object):
     def name(cls):
         raise NotImplementedError
 
-    def get_genes_list(self):
-        return self.expressions.columns
+    def get_genes_list(self, level=None):
+        index = self.expressions.columns
 
-    def get_samples_list(self):
-        return self.expressions.index
+        if isinstance(index, pd.MultiIndex):
+            return index.get_level_values(self.gene_index if level is None else level)
+        else:
+            return index
+
+    def get_samples_list(self, level=None):
+        index = self.expressions.index
+        if isinstance(index, pd.MultiIndex):
+            return index.get_level_values(self.gene_index if level is None else level)
+        else:
+            return index
+        return index
 
     samples = property(get_samples_list)
     features = property(get_genes_list)
 
 
 class LncRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by=None,
-                 sample_index_by="sample_barcode",
-                 transposed=True, log2_transform=False, npartitions=0):
-        super(LncRNA, self).__init__(cohort_name, file_path=file_path, columns=columns, genes_col_name=genes_col_name,
-                                     gene_index_by=gene_index_by, sample_index_by=sample_index_by,
-                                     transposed=transposed,
-                                     log2_transform=log2_transform, npartitions=npartitions)
+    def __init__(self, cohort_name, data, transposed, columns=None, genes_col_name=None, gene_index_by=None,
+                 sample_index_by="sample_index", log2_transform=False, npartitions=None):
+        super(LncRNA, self).__init__(cohort_name, data=data, transposed=transposed, columns=columns,
+                                     genes_col_name=genes_col_name, gene_index_by=gene_index_by,
+                                     sample_index_by=sample_index_by, log2_transform=log2_transform,
+                                     npartitions=npartitions)
 
     @classmethod
     def name(cls):
@@ -234,16 +247,12 @@ class LncRNA(ExpressionData, Annotatable):
     #     return lncBase_lncRNA_miRNA_network.edges(data=data)
 
 
-
 class MessengerRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns, genes_col_name, gene_index_by=None,
-                 sample_index_by="sample_barcode",
-                 transposed=True,
-                 log2_transform=False, npartitions=0):
-        super(MessengerRNA, self).__init__(cohort_name, file_path=file_path, columns=columns,
+    def __init__(self, cohort_name, data, transposed, columns=None, genes_col_name=None, gene_index_by=None,
+                 sample_index_by="sample_index", log2_transform=False, npartitions=None):
+        super(MessengerRNA, self).__init__(cohort_name, data=data, transposed=transposed, columns=columns,
                                            genes_col_name=genes_col_name, gene_index_by=gene_index_by,
-                                           sample_index_by=sample_index_by,
-                                           transposed=transposed, log2_transform=log2_transform,
+                                           sample_index_by=sample_index_by, log2_transform=log2_transform,
                                            npartitions=npartitions)
 
     @classmethod
@@ -251,18 +260,14 @@ class MessengerRNA(ExpressionData, Annotatable):
         return cls.__name__
 
 
-
 class MicroRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, file_path, columns=None, genes_col_name=None, gene_index_by=None,
-                 sample_index_by="sample_barcode",
-                 transposed=True,
-                 log2_transform=False, npartitions=0):
-        super(MicroRNA, self).__init__(cohort_name, file_path=file_path, columns=columns, genes_col_name=genes_col_name,
-                                       gene_index_by=gene_index_by, sample_index_by=sample_index_by,
-                                       transposed=transposed,
-                                       log2_transform=log2_transform, npartitions=npartitions)
+    def __init__(self, cohort_name, data, transposed, columns=None, genes_col_name=None, gene_index_by=None,
+                 sample_index_by="sample_index", log2_transform=False, npartitions=None):
+        super(MicroRNA, self).__init__(cohort_name, data=data, transposed=transposed, columns=columns,
+                                       genes_col_name=genes_col_name, gene_index_by=gene_index_by,
+                                       sample_index_by=sample_index_by, log2_transform=log2_transform,
+                                       npartitions=npartitions)
 
     @classmethod
     def name(cls):
         return cls.__name__
-

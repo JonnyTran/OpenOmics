@@ -12,32 +12,32 @@ cohort_folder_path = "tests/data/TCGA_LUAD"
 
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA():
-    return MessengerRNA("LUAD", file_path=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"),
+    return MessengerRNA("LUAD", data=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"), transposed=True,
                         columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index_by="gene_name")
 
 @pytest.fixture
 def generate_TCGA_LUAD_MicroRNA():
-    return MicroRNA("LUAD", file_path=os.path.join(cohort_folder_path, "LUAD__miRNAExp__RPM.txt"),
+    return MicroRNA("LUAD", data=os.path.join(cohort_folder_path, "LUAD__miRNAExp__RPM.txt"), transposed=True,
                     columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index_by="gene_name")
+
 
 @pytest.fixture
 def generate_TCGA_LUAD_LncRNA():
-    return LncRNA("LUAD", file_path=os.path.join(cohort_folder_path, "TCGA-rnaexpr.tsv"), columns="Gene_ID|TCGA",
-                  genes_col_name="Gene_ID", gene_index_by="gene_id")
+    return LncRNA("LUAD", data=os.path.join(cohort_folder_path, "TCGA-rnaexpr.tsv"), transposed=True,
+                  columns="Gene_ID|TCGA", genes_col_name="Gene_ID", gene_index_by="gene_id")
 
 
 @pytest.fixture
 def generate_TCGA_LUAD_SomaticMutation():
-    return SomaticMutation("LUAD", file_path=os.path.join(cohort_folder_path, "LUAD__somaticMutation_geneLevel.txt"),
-                           columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index_by="gene_name",
-                           )
+    return SomaticMutation("LUAD", data=os.path.join(cohort_folder_path, "LUAD__somaticMutation_geneLevel.txt"),
+                           transposed=True, columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol",
+                           gene_index_by="gene_name")
 
 
 @pytest.fixture
 def generate_TCGA_LUAD_Protein():
-    return Protein("LUAD", file_path=os.path.join(cohort_folder_path, "protein_RPPA.txt"),
-                   gene_index_by="protein_name",
-                   columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol")
+    return Protein("LUAD", data=os.path.join(cohort_folder_path, "protein_RPPA.txt"), transposed=True,
+                   columns="GeneSymbol|TCGA", genes_col_name="GeneSymbol", gene_index_by="protein_name")
 
 
 def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA):
