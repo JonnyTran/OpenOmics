@@ -66,7 +66,7 @@ class ExpressionData(object):
         """
         if isinstance(data, pd.DataFrame):
             df = data
-            df.reset_index(inplace=True)
+            df = df.reset_index()
         elif isinstance(data, dd.DataFrame):
             df = data
         elif "*" in data:
