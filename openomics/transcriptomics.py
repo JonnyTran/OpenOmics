@@ -14,7 +14,7 @@ from .utils.df import drop_duplicate_columns
 
 class ExpressionData(object):
     def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None,
-                 sample_index_by="sample_index", log2_transform=False, npartitions=None):
+                 sample_index_by="sample_index", log2_transform=False, dropna=False, npartitions=None):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of any quantitative -omics data that is in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame from file with the user-specified columns and genes column name, then tranpose it such that the rows are samples and columns are gene/transcript/peptides.
@@ -40,7 +40,8 @@ class ExpressionData(object):
         self.cohort_name = cohort_name
 
         df = self.load_dataframe(data, transposed=transposed, columns=columns, genes_index=gene_index_by)
-        self.expressions = self.preprocess_table(df, columns=columns, genes_index=gene_index_by, transposed=transposed)
+        self.expressions = self.preprocess_table(df, columns=columns, genes_index=gene_index_by, transposed=transposed,
+                                                 dropna=dropna)
         if npartitions:
             self.expressions = dd.from_pandas(self.expressions, npartitions=npartitions)
 
@@ -99,7 +100,7 @@ class ExpressionData(object):
 
         return dd.from_delayed(lazy_dataframes, divisions=None)
 
-    def preprocess_table(self, df, columns=None, genes_index=None, transposed=True, sort_index=False):
+    def preprocess_table(self, df, columns=None, genes_index=None, transposed=True, sort_index=False, dropna=True):
         # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
         """
         This function preprocesses the expression table files where columns are samples and rows are gene/transcripts
@@ -125,7 +126,8 @@ class ExpressionData(object):
         df = drop_duplicate_columns(df)
 
         # Drop NA geneID rows
-        df.dropna(axis=0, inplace=True)
+        if dropna:
+            df.dropna(axis=0, inplace=True)
 
         # Remove entries with unknown geneID
         if genes_index is not None:
