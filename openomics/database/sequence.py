@@ -162,8 +162,7 @@ class MirBase(SequenceDataset):
 
     def load_dataframe(self, file_resources):
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
-                                           names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
-                                                  "gene name"])
+                                           names=["RNAcentral id", "database", "mirbase id", "species", "RNA type"])
         rnacentral_mirbase = rnacentral_mirbase.set_index("mirbase id")
         rnacentral_mirbase["species"] = rnacentral_mirbase["species"].astype("O")
         if self.species_id is not None:
