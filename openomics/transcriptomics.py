@@ -13,14 +13,15 @@ from .utils.df import drop_duplicate_columns
 
 
 class ExpressionData(object):
-    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None,
-                 sample_index_by="sample_index", log2_transform=False, dropna=False, npartitions=None):
+    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None, sample_index_by="sample_index",
+                 log2_transform=False, dropna=False, npartitions=None):
         """
         .. class:: ExpressionData
         An abstract class that handles importing of any quantitative -omics data that is in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame from file with the user-specified columns and genes column name, then tranpose it such that the rows are samples and columns are gene/transcript/peptides.
         The user will also specify the index argument, which specifies if the genes are ensembl genes ID or gene name, or transcripts id/names. The user should be careful about choosing the right genes index which makes it easier to annotate functional, sequence, and interaction data to it.
         The dataframe should only contain numeric values besides the genes_col_name and the sample barcode id indices.
         Args:
+            dropna:
             cohort_name (str): the unique cohort code name string
             data (str, byte-like, pandas.DataFrame):
                 Path or file stream of the table file to import. If a pandas DataFrame is passed, then import this dataframe and skip preprocessing steps.
@@ -193,12 +194,11 @@ class ExpressionData(object):
 
 
 class LncRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None,
-                 sample_index_by="sample_index", log2_transform=False, npartitions=None):
+    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None, sample_index_by="sample_index",
+                 log2_transform=False, dropna=False, npartitions=None):
         super(LncRNA, self).__init__(cohort_name, data=data, transposed=transposed, columns=columns,
-                                     gene_index_by=gene_index_by,
-                                     sample_index_by=sample_index_by, log2_transform=log2_transform,
-                                     npartitions=npartitions)
+                                     gene_index_by=gene_index_by, sample_index_by=sample_index_by,
+                                     log2_transform=log2_transform, dropna=dropna, npartitions=npartitions)
 
     @classmethod
     def name(cls):
@@ -206,12 +206,11 @@ class LncRNA(ExpressionData, Annotatable):
 
 
 class MessengerRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None,
-                 sample_index_by="sample_index", log2_transform=False, npartitions=None):
+    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None, sample_index_by="sample_index",
+                 log2_transform=False, dropna=False, npartitions=None):
         super(MessengerRNA, self).__init__(cohort_name, data=data, transposed=transposed, columns=columns,
-                                           gene_index_by=gene_index_by,
-                                           sample_index_by=sample_index_by, log2_transform=log2_transform,
-                                           npartitions=npartitions)
+                                           gene_index_by=gene_index_by, sample_index_by=sample_index_by,
+                                           log2_transform=log2_transform, dropna=dropna, npartitions=npartitions)
 
     @classmethod
     def name(cls):
@@ -219,12 +218,11 @@ class MessengerRNA(ExpressionData, Annotatable):
 
 
 class MicroRNA(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None,
-                 sample_index_by="sample_index", log2_transform=False, npartitions=None):
+    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None, sample_index_by="sample_index",
+                 log2_transform=False, dropna=False, npartitions=None):
         super(MicroRNA, self).__init__(cohort_name, data=data, transposed=transposed, columns=columns,
-                                       gene_index_by=gene_index_by,
-                                       sample_index_by=sample_index_by, log2_transform=log2_transform,
-                                       npartitions=npartitions)
+                                       gene_index_by=gene_index_by, sample_index_by=sample_index_by,
+                                       log2_transform=log2_transform, dropna=dropna, npartitions=npartitions)
 
     @classmethod
     def name(cls):

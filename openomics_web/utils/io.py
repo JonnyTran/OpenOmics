@@ -43,17 +43,13 @@ def get_expression_data(list_of_contents, list_of_names, data_type, cohort_name=
     file = handle_filestreams(list_of_contents, list_of_names)
 
     if data_type == MicroRNA.name():
-        expression_data = MicroRNA(cohort_name, file, transposed=transposed, columns=columns,
-                                   genes_col_name=genes_col_name)
+        expression_data = MicroRNA(cohort_name, file, transposed=transposed, columns=columns)
     elif data_type == MessengerRNA.name():
-        expression_data = MessengerRNA(cohort_name, file, transposed=transposed, columns=columns,
-                                       genes_col_name=genes_col_name)
+        expression_data = MessengerRNA(cohort_name, file, transposed=transposed, columns=columns)
     elif data_type == LncRNA.name():
-        expression_data = LncRNA(cohort_name, file, transposed=transposed, columns=columns,
-                                 genes_col_name=genes_col_name)
+        expression_data = LncRNA(cohort_name, file, transposed=transposed, columns=columns)
     elif data_type == Protein.name():
-        expression_data = Protein(cohort_name, file, transposed=transposed, columns=columns,
-                                  genes_col_name=genes_col_name)
+        expression_data = Protein(cohort_name, file, transposed=transposed, columns=columns)
 
     return expression_data
 
