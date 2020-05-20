@@ -80,9 +80,9 @@ class Ontology(Dataset):
             paths = list(flatten_list(paths))
 
         paths_df = pd.DataFrame(paths)
-        paths_df = paths_df[~paths_df.duplicated(keep="first")]
 
         if filter_duplicates:
+            paths_df = paths_df[~paths_df.duplicated(keep="first")]
             paths_df = filter_dfs_paths(paths_df)
 
         return paths_df
