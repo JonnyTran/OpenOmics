@@ -63,7 +63,7 @@ class Ontology(Dataset):
         parent_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[0]]
         return parent_terms
 
-    def get_dfs_paths(self, root_nodes: list, filter_duplicates=False):
+    def get_dfs_paths(self, root_nodes: list, filter_duplicates=False, flatten=False):
         """
         Return all depth-first search paths from root node(s) to children node by traversing the ontology directed graph.
         Args:
@@ -76,7 +76,8 @@ class Ontology(Dataset):
             root_nodes = list(root_nodes)
 
         paths = list(dfs_path(self.network.reverse(copy=True), root_nodes))
-        paths = list(flatten_list(paths))
+        if flatten:
+            paths = list(flatten_list(paths))
 
         paths_df = pd.DataFrame(paths)
         paths_df = paths_df[~paths_df.duplicated(keep="first")]
