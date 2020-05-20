@@ -264,5 +264,6 @@ def write_taxonomy(network, root_nodes, file_path):
 
     for root_node in root_nodes:
         for node, children in nx.traversal.bfs_successors(network, root_node):
-            file.write(node + "\t" + "\t".join(children) + "\n")
+            if len(children) > 0:
+                file.write(node + "\t" + "\t".join(children) + "\n")
     file.close()
