@@ -63,7 +63,7 @@ class Ontology(Dataset):
         parent_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[0]]
         return parent_terms
 
-    def get_dfs_paths(self, root_nodes: list, filter_duplicates=False, flatten=False):
+    def get_dfs_paths(self, root_nodes: list, filter_duplicates=False):
         """
         Return all depth-first search paths from root node(s) to children node by traversing the ontology directed graph.
         Args:
@@ -76,9 +76,7 @@ class Ontology(Dataset):
             root_nodes = list(root_nodes)
 
         paths = list(dfs_path(self.network.reverse(copy=True), root_nodes))
-        if flatten:
-            paths = list(flatten_list(paths))
-
+        paths = list(flatten_list(paths))
         paths_df = pd.DataFrame(paths)
 
         if filter_duplicates:
@@ -251,3 +249,20 @@ def filter_dfs_paths(paths_df: pd.DataFrame):
 
     paths_df = paths_df[idx.all(axis=1)]
     return paths_df
+
+
+def write_taxonomy(network, root_nodes, file_path):
+    """
+
+    Args:
+        network: A network with edge(i, j) where i is a node and j is a child of i.
+        root_nodes (list): a list of node names
+        file_path (str):
+    """
+    file = open(file_path, "a")
+    file.write("Root\t" + "\t".join(root_nodes) + "\n")
+
+    for root_node in root_nodes:
+        for node, children in nx.traversal.bfs_successors(network, root_node):
+            file.write(node + "\t" + "\t".join(children) + "\n")
+    file.close()
