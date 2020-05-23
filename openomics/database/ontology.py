@@ -9,6 +9,8 @@ from ..utils.df import slice_adj
 
 
 class Ontology(Dataset):
+    DELIM = "|"
+
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
         """
         Manages dataset input processing from tables and construct an ontology network from obo file. There ontology
@@ -22,6 +24,7 @@ class Ontology(Dataset):
             verbose:
         """
         self.network, self.node_list = self.load_network(file_resources)
+
         super(Ontology, self).__init__(path, file_resources, col_rename, npartitions, verbose)
 
     def load_network(self, file_resources) -> (nx.MultiDiGraph, list):
@@ -87,6 +90,8 @@ class Ontology(Dataset):
 
     def remove_predecessor_terms(self, annotation: pd.Series):
         leaf_terms = self.get_child_nodes()
+        if not annotation.map(lambda x: isinstance(x, list)).any():
+            annotation = annotation.str.split(self.DELIM)
 
         go_terms_parents = annotation.map(
             lambda x: list(set(x) & set(leaf_terms)) if isinstance(x, list) else [])
