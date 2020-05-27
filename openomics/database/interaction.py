@@ -31,7 +31,7 @@ class Interactions(Dataset):
             directed (bool): default True,
                 Whether to create a directed or an undirected network.
             relabel_nodes (dict): default None,
-                A dictionary to rename nodes in the network.
+                A dictionary to rename nodes in the network, where the nodes with name <dict[key]> will be renamed to <dict[value]>
         """
         self.validate_file_resources(file_resources, path, verbose=verbose)
 
@@ -49,7 +49,7 @@ class Interactions(Dataset):
                 "Make sure load_network() returns a Networkx Graph and is called with super().__init__() in the constructor.")
 
         if relabel_nodes is not None:
-            self.network = nx.relabel_nodes(self.network, relabel_nodes)
+            self.network = nx.relabel_nodes(self.network, mapping=relabel_nodes)
 
         self.verbose = verbose
         self.info() if verbose else None
