@@ -409,7 +409,7 @@ class LncRNA2Target(Interactions):
     def load_network_high_throughput(self, file_resources, source_col_name="lncrna_symbol",
                                      target_col_name="gene_symbol",
                                      edge_attr=None, directed=True):
-        table = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"], low_memory=True)
+        table = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"])
         table = table[table["species_id"] == self.species_id]
         print(self.name(), table.columns.tolist())
 
