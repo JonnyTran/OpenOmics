@@ -480,7 +480,7 @@ class NPInter(Interactions):
     def __init__(self, path="http://bigdata.ibp.ac.cn/npinter4/download/", file_resources=None,
                  source_col_name='ncName', target_col_name='tarName',
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=["tarType", "Transcript ID", "organism", "tissueOrCell", "tag", "class", "level"],
+                 edge_attr=["tarType", "organism", "tissueOrCell", "tag", "class", "level"],
                  directed=True, relabel_nodes=None, npartitions=0):
         if file_resources is None:
             file_resources = {}
