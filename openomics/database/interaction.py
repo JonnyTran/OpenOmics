@@ -477,20 +477,22 @@ class lncRNome(Interactions, Dataset):
 
 class NPInter(Interactions):
 
-    def __init__(self, path, file_resources, source_col_name='Gene Name', target_col_name='Binding miRNAs',
+    def __init__(self, path="http://bigdata.ibp.ac.cn/npinter4/download/", file_resources=None,
+                 source_col_name='ncName', target_col_name='tarName',
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=["miRNA Interaction Site", "Transcript ID"],
+                 edge_attr=["tarType", "Transcript ID", "organism", "tissueOrCell", "tag", "class", "level"],
                  directed=True, relabel_nodes=None, npartitions=0):
         if file_resources is None:
             file_resources = {}
-            file_resources["interaction_NPInter[v3.0].txt"] = os.path.join(path, "interaction_NPInter[v3.0].txt")
+            file_resources["interaction_NPInterv4.expr.txt"] = os.path.join(path,
+                                                                            "file/interaction_NPInterv4.expr.txt.gz")
 
         super(NPInter, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
                                       target_index, edge_attr,
                                       directed, relabel_nodes, npartitions)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
-        df = pd.read_table(file_resources["interaction_NPInter[v3.0].txt"], header=0)
+        df = pd.read_table(file_resources["interaction_NPInterv4.expr.txt"], header=0)
         print(self.name(), df.columns.tolist())
 
         lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source=source_col_name,
