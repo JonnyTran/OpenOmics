@@ -112,7 +112,7 @@ class Interactions(Dataset):
                 df = df[df[key] == values]
 
             print(f"Removed {n_rows - df.shape[0]} rows with {key} != {values}")
-            
+
         assert df.shape[0] > 0, f"Dataframe is empty because of filter: {filters}"
         return df
 
@@ -525,7 +525,7 @@ class NPInter(Interactions):
         df = pd.read_table(file_resources["interaction_NPInterv4.expr.txt"], header=0)
         print(self.name(), df.columns.tolist())
         df["ncName"] = df["ncName"].str.upper()
-        df["gene_name"] = df["gene_name"].str.upper()
+        df["tarName"] = df["tarName"].str.upper()
 
         df = self.filter_values(df, filters)
 
