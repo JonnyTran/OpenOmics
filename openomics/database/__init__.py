@@ -8,7 +8,7 @@ from .disease import (
     DisGeNet, HMDD, LncRNADisease, MalaCards
 )
 from .interaction import (
-    LncBase, MiRTarBase, TargetScan, LncRNA2Target, BioGRID, GeneMania, lncRInter, lncRNome, STRING
+    LncBase, MiRTarBase, TargetScan, LncRNA2Target, BioGRID, GeneMania, lncRInter, lncRNome, STRING, NPInter
 )
 from .ontology import GeneOntology
 from .sequence import GENCODE, MirBase
