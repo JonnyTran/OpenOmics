@@ -109,8 +109,8 @@ class Interactions(Dataset):
             elif isinstance(values, str):
                 df = df[df[key].str.contains(values, case=case)]
             else:
-                df = df[df[key] == values
-                        ]
+                df = df[df[key] == values]
+
             print(f"Removed {n_rows - df.shape[0]} rows with {key} != {values}")
         return df
 
