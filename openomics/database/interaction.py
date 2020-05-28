@@ -118,7 +118,7 @@ class Interactions(Dataset):
 class GeneMania(Interactions):
     def __init__(self, path, file_resources=None, source_col_name="Gene_A", target_col_name="Gene_B",
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=None, directed=True, relabel_nodes=None):
+                 edge_attr=None, filters=None, directed=True, relabel_nodes=None):
         if edge_attr is None:
             edge_attr = ["Weight"]
         if file_resources is None:
@@ -128,9 +128,11 @@ class GeneMania(Interactions):
             file_resources["identifier_mappings.txt"] = os.path.join(path,
                                                                      "identifier_mappings.txt")
 
-        super(GeneMania, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
-                                        target_index,
-                                        edge_attr, directed, relabel_nodes)
+        super(GeneMania, self).__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
+                                        target_col_name=target_col_name, source_index=source_index,
+                                        target_index=target_index,
+                                        edge_attr=edge_attr, filters=filters, directed=directed,
+                                        relabel_nodes=relabel_nodes)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         interactions = pd.read_table(file_resources["COMBINED.DEFAULT_NETWORKS.BP_COMBINING.txt"], low_memory=True)
@@ -138,8 +140,8 @@ class GeneMania(Interactions):
 
         # Rename ENSG ID's to gene names
         identifier = identifier[identifier["Source"] == "Gene Name"]
-        identifier_map = pd.Series(identifier["Name"].values, index=identifier["Preferred_Name"]).to_dict()
-        interactions.replace(identifier_map, inplace=True)
+        id_mapping = pd.Series(identifier["Name"].values, index=identifier["Preferred_Name"]).to_dict()
+        interactions.replace(id_mapping, inplace=True)
 
         genemania_RNA_RNA_network = nx.from_pandas_edgelist(interactions, source=source_col_name,
                                                             target=target_col_name,
