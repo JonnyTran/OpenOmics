@@ -526,9 +526,9 @@ class NPInter(Interactions):
         print(self.name(), df.columns.tolist())
         df["ncName"] = df["ncName"].str.upper()
         df["ncName"] = df["ncName"].str.strip("LNCRNA-")
-        df["ncName"] = df["ncName"].str.strip("-")
-        df["ncName"] = df["ncName"].str.replace("MIR-", "hsa-mir-")
-        df["ncName"] = df["ncName"].str.replace("MICRORNA-", "hsa-mir-")
+        df["ncName"] = df["ncName"].str.replace("MALAT-1", "MALAT1")
+        df["ncName"] = df["ncName"].str.strip("MIR-", "hsa-mir-")
+        df["ncName"] = df["ncName"].str.strip("MICRORNA-", "hsa-mir-")
         df["tarName"] = df["tarName"].str.upper()
 
         df = self.filter_values(df, filters)
