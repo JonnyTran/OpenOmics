@@ -112,6 +112,8 @@ class Interactions(Dataset):
                 df = df[df[key] == values]
 
             print(f"Removed {n_rows - df.shape[0]} rows with {key} != {values}")
+            
+        assert df.shape[0] > 0, f"Dataframe is empty because of filter: {filters}"
         return df
 
 
