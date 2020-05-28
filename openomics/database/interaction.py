@@ -522,11 +522,13 @@ class NPInter(Interactions):
                                       relabel_nodes=relabel_nodes, verbose=verbose)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
-        df = pd.read_table(file_resources["interaction_NPInterv4.expr.txt"], header=0)
+        df = pd.read_table(file_resources["interaction_NPInterv4.expr.txt"], header=0, na_values=["-"])
         print(self.name(), df.columns.tolist())
         df["ncName"] = df["ncName"].str.upper()
         df["ncName"] = df["ncName"].str.strip("LNCRNA-")
         df["ncName"] = df["ncName"].str.strip("-")
+        df["ncName"] = df["ncName"].str.replace("MIR-", "hsa-mir-")
+        df["ncName"] = df["ncName"].str.replace("MICRORNA-", "hsa-mir-")
         df["tarName"] = df["tarName"].str.upper()
 
         df = self.filter_values(df, filters)
