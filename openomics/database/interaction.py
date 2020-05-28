@@ -111,9 +111,9 @@ class Interactions(Dataset):
             else:
                 df = df[df[key] == values]
 
-            print(f"Removed {n_rows - df.shape[0]} rows with {key} != {values}")
+            print(f"INFO: Removed {n_rows - df.shape[0]} rows with `{key}` != {values}")
 
-        assert df.shape[0] > 0, f"Dataframe is empty because of filter: {filters}"
+        assert df.shape[0] > 0, f"ERROR: Dataframe is empty because of filter: {filters}"
         return df
 
 
@@ -507,7 +507,7 @@ class NPInter(Interactions):
     def __init__(self, path="http://bigdata.ibp.ac.cn/npinter4/download/", file_resources=None,
                  source_col_name='ncName', target_col_name='tarName',
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=["tarType", "organism", "tissueOrCell", "tag", "class", "level"],
+                 edge_attr=["tarType", "tissueOrCell", "tag", "level"],
                  filters=None,
                  directed=True, relabel_nodes=None, verbose=False):
         if file_resources is None:
@@ -525,6 +525,8 @@ class NPInter(Interactions):
         df = pd.read_table(file_resources["interaction_NPInterv4.expr.txt"], header=0)
         print(self.name(), df.columns.tolist())
         df["ncName"] = df["ncName"].str.upper()
+        df["ncName"] = df["ncName"].str.strip("LNCRNA-")
+        df["ncName"] = df["ncName"].str.strip("-")
         df["tarName"] = df["tarName"].str.upper()
 
         df = self.filter_values(df, filters)
