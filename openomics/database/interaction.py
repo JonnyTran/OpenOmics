@@ -111,7 +111,7 @@ class Interactions(Dataset):
             else:
                 df = df[df[key] == values
                         ]
-            print(f"Removed {df.shape[0] - n_rows} rows with {key} != {values}")
+            print(f"Removed {n_rows - df.shape[0]} rows with {key} != {values}")
         return df
 
 
@@ -156,7 +156,7 @@ class BioGRID(Interactions):
                  target_col_name="Official Symbol Interactor B",
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=['Score', 'Throughput', 'Experimental System', 'Experimental System Type'],
-                 filters=False, directed=False, relabel_nodes=None):
+                 filters={"Organism Interactor A": 9606}, directed=False, relabel_nodes=None):
         if file_resources is None:
             file_resources = {}
             file_resources["BIOGRID-ALL-LATEST.tab2.zip"] = os.path.join(path, "BIOGRID-ALL-LATEST.tab2.zip")
@@ -506,6 +506,7 @@ class NPInter(Interactions):
                  source_col_name='ncName', target_col_name='tarName',
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=["tarType", "organism", "tissueOrCell", "tag", "class", "level"],
+                 filters=None,
                  directed=True, relabel_nodes=None, verbose=False):
         if file_resources is None:
             file_resources = {}
@@ -514,7 +515,8 @@ class NPInter(Interactions):
 
         super(NPInter, self).__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
                                       target_col_name=target_col_name, source_index=source_index,
-                                      target_index=target_index, edge_attr=edge_attr, directed=directed,
+                                      target_index=target_index, edge_attr=edge_attr, filters=filters,
+                                      directed=directed,
                                       relabel_nodes=relabel_nodes, verbose=verbose)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
