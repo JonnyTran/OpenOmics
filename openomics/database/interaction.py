@@ -413,7 +413,8 @@ class LncRNA2Target(Interactions):
         table = table[table["species_id"] == self.species_id]
         print(self.name(), table.columns.tolist())
 
-        table["lncrna_symbol"] = table["lncrna_symbol"].str.upper().replace("LINC", "")
+        table["lncrna_symbol"] = table["lncrna_symbol"].str.upper()
+        table["lncrna_symbol"] = table["lncrna_symbol"].str.replace("LINC", "")
         table["gene_symbol"] = table["gene_symbol"].str.upper()
         lncrna2target_high_throughput_network = nx.from_pandas_edgelist(table,
                                                                         source=source_col_name,
