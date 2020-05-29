@@ -94,7 +94,7 @@ class Ontology(Dataset):
             annotation = annotation.str.split(self.DELIM)
 
         go_terms_parents = annotation.map(
-            lambda x: list(set(x) & set(leaf_terms)) if isinstance(x, list) else [])
+            lambda x: list(set(x) & set(leaf_terms)) if isinstance(x, list) else None)
         return go_terms_parents
 
     def get_node_color(self, file="~/Bioinformatics_ExternalData/GeneOntology/go_colors_biological.csv"):
@@ -199,7 +199,7 @@ class GeneOntology(Ontology):
 
         if return_str:
             go_terms_parents = go_terms_parents.map(
-                lambda x: "|".join(x) if isinstance(x, list) else [])
+                lambda x: "|".join(x) if isinstance(x, list) else None)
 
         return go_terms_parents
 
