@@ -60,6 +60,10 @@ class Interactions(Dataset):
     def info(self):
         print("{}".format(nx.info(self.network)))
 
+    @classmethod
+    def name(cls):
+        return cls.__name__
+
     @abstractmethod
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         raise NotImplementedError
