@@ -66,6 +66,19 @@ class Interactions(Dataset):
 
     @abstractmethod
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
+        """
+        Handles data processing from `file_resources` to a Pandas DataFrame which contain edgelist data, then constructs
+        and return a NetworkX Graph.
+        Args:
+            file_resources: a dict of file name and file path/object
+            source_col_name (str): column name of the dataframe for source in the edge
+            target_col_name (str): column name of the dataframe for target in the edge
+            edge_attr (list): list of str for column data to include in each edge
+            directed (bool): True to return a DiGraph(), else Graph()
+            filters: A dict of {column name: column values} to filter the dataframe
+        Returns:
+            network: a NetworkX Graph or DiGraph
+        """
         raise NotImplementedError
 
     def get_interactions(self, nodelist=None, data=False, inclusive=True):
