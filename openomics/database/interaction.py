@@ -45,6 +45,8 @@ class Interactions(Dataset):
         self.network = self.load_network(file_resources=file_resources, source_col_name=source_col_name,
                                          target_col_name=target_col_name,
                                          edge_attr=edge_attr, directed=directed, filters=filters)
+        assert isinstance(self.network, nx.Graph), f"load_network must return a NetworkX Graph or DiGraph but instead " \
+                                                   f"returns {self.network}"
         self.network.name = self.name()
 
         if self.network is None:
