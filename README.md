@@ -6,8 +6,14 @@
 [![codecov](https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg)](https://codecov.io/gh/JonnyTran/OpenOmics)
 [![Updates](https://pyup.io/repos/github/JonnyTran/OpenOmics/shield.svg)](https://pyup.io/repos/github/JonnyTran/OpenOmics/)
 
-This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data. 
-By providing a series of data manipulation tools, open-omics facilitates the common coding tasks when preparing data for bioinformatics analysis.
+OpenOmics is a Python library to assist integration of multiomics bioinformatics data. It features support for genomics, transcriptomics, proteomics, and clinical data, as well as integration of popular annotation, interaction, disease-association databases. By providing an API of data manipulation tools as well as a web interface, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
+
+OpenOmics provide an efficient data pipeline bridges the powerful data manipulation library Pandas and distributed processing Dask to a web dashboard interface framework Dash. With an intuitive web interface and easy-than-ever API, OpenOmics addresses the following use cases:
+
+OpenOmics provides a standard pipeline for dataset indexing, table joining and querying, which are transparent to users. 
+OpenOmics provides efficient support for multiple data types, that supports both interactions and sequence data, and allows users to export to NetworkX graphs or machine learning pipelines.
+OpenOmics has an easy-to-use API that works seamlessly with the Dash web interface.
+
 
 ## Installation via pip: 
 
