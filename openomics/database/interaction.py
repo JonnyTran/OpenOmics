@@ -50,8 +50,11 @@ class Interactions(Dataset):
 
         print("{}".format(nx.info(self.network)))
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(num_nodes={self.network.number_of_nodes()}, num_edges={self.network.number_of_edges()})"
+
     @abstractmethod
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed):
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed) -> nx.Graph:
         raise NotImplementedError
 
     def get_interactions(self, nodelist, data=False, inclusive=False):

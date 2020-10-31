@@ -58,6 +58,9 @@ class ExpressionData(object):
         self.samples = self.expressions.index
         self.features = self.expressions.columns.tolist()
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(samples={len(self.samples)}, features={len(self.features)})"
+
     def preprocess_table(self, df, columns, genes_index, transposed):
         # type: (pd.DataFrame, str, str, bool) -> pd.DataFrame
         """

@@ -85,22 +85,25 @@ class MultiOmics:
         #     self.LNC = LncRNA(cohort_name, file_path_LNC, columns="Gene_ID|TCGA", index="Gene_ID")
         #     self.data["LNC"] = self.LNC.expressions
 
-            # try:
-            #     self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
-            #     self.LNC.process_lncRNome_gene_info(os.path.join(external_data_path, "lncRNome"))
-            #     self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
-            #     self.LNC.process_starBase_lncRNA_RNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
-            #     self.LNC.process_LncReg_lncRNA_RNA_regulatory_interactions(
-            #         LncReg_folder_path=os.path.join(external_data_path, "LncReg"))
-            #     self.LNC.process_NPInter_ncRNA_RNA_regulatory_interactions(
-            #         NPInter_folder_path=os.path.join(external_data_path, "NPInter"))
-            #     self.LNC.process_lncrnadisease_associations(
-            #         lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
+        # try:
+        #     self.LNC.process_lncRNome_miRNA_binding_sites(os.path.join(external_data_path, "lncRNome"))
+        #     self.LNC.process_lncRNome_gene_info(os.path.join(external_data_path, "lncRNome"))
+        #     self.LNC.process_starBase_miRNA_lncRNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
+        #     self.LNC.process_starBase_lncRNA_RNA_interactions(os.path.join(external_data_path, "StarBase v2.0"))
+        #     self.LNC.process_LncReg_lncRNA_RNA_regulatory_interactions(
+        #         LncReg_folder_path=os.path.join(external_data_path, "LncReg"))
+        #     self.LNC.process_NPInter_ncRNA_RNA_regulatory_interactions(
+        #         NPInter_folder_path=os.path.join(external_data_path, "NPInter"))
+        #     self.LNC.process_lncrnadisease_associations(
+        #         lncrnadisease_folder_path=os.path.join(external_data_path, "lncrnadisease"))
 
         # if "PRO" in omics:
-            # self.PRO.process_HPRD_PPI_network(
-            #     ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
-            #                                     "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
+        # self.PRO.process_HPRD_PPI_network(
+        #     ppi_data_file_path=os.path.join(external_data_path, "HPRD_PPI",
+        #                                     "BINARY_PROTEIN_PROTEIN_INTERACTIONS.txt"))
+
+    def __repr__(self):
+        return f"MultiOmics({{k: v for k, v in self.data}})"
 
     def remote_duplate_genes(self):
         """
@@ -162,7 +165,6 @@ class MultiOmics:
             self.data["SAMPLES"] = self.clinical.samples.index
         else:
             self.data["SAMPLES"] = all_samples
-
 
     def __getitem__(self, item):
         # type: (str) -> object
