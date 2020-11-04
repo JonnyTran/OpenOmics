@@ -8,7 +8,6 @@ import filetype
 import pandas as pd
 import validators
 
-from openomics.database.annotation import DEFAULT_LIBRARIES
 from openomics.utils.df import concat_uniques
 from openomics.utils.io import get_pkg_data_filename
 
@@ -76,9 +75,6 @@ class Dataset(object):
     @classmethod
     def name(cls):
         return cls.__name__
-
-    def list_databases(self):
-        return DEFAULT_LIBRARIES
 
     def get_annotations(self, index, columns):
         # type: (str, List[str]) -> Union[pd.DataFrame, dd.DataFrame]
