@@ -23,13 +23,14 @@ class RNAcentral(Dataset):
                            'external id': 'transcript_id',
                            'GO terms': 'go_id'}
 
-    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, species=9606):
+    def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/",
+                 file_resources=None, col_rename=None, npartitions=0, species=9606):
         self.species = species
 
         if file_resources is None:
             file_resources = {}
             file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(path,
-                                                                             "go_annotations/rnacentral_rfam_annotations.tsv")
+                                                                             "go_annotations/rnacentral_rfam_annotations.tsv.gz")
             file_resources["gencode.tsv"] = os.path.join(path, "id_mapping/database_mappings/gencode.tsv")
             print(file_resources)
 
