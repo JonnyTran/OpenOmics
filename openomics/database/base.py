@@ -60,7 +60,6 @@ class Dataset(object):
             if type(file_resources[filename]) != str:
                 file_resources[filename].close()
 
-    @abstractmethod
     def load_dataframe(self, file_resources):
         # type: (dict) -> pd.DataFrame
         """
