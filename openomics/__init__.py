@@ -22,6 +22,10 @@ try:
         MessengerRNA, MicroRNA, LncRNA
     )
 
+    from .proteomics import (
+        Protein
+    )
+
     # from .database import (
     #     annotation,
     #     disease,
