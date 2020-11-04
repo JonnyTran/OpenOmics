@@ -10,10 +10,6 @@ __version__ = '0.7.7'
 try:
     from .clinical import ClinicalData
 
-    from .multiomics import (
-        MultiOmics
-    )
-
     from .genomics import (
         SomaticMutation, DNAMethylation, CopyNumberVariation
     )
@@ -24,6 +20,10 @@ try:
 
     from .proteomics import (
         Protein
+    )
+
+    from .multiomics import (
+        MultiOmics
     )
 
     # from .database import (
