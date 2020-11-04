@@ -111,7 +111,6 @@ class Dataset(object):
             raise ValueError("DataFrame must not have duplicates in index")
         return df
 
-    @abstractmethod
     def get_rename_dict(self, from_index, to_index):
         """
         Used to retrieve a lookup dictionary to convert from one index to another, e.g., gene_id to gene_name
@@ -125,7 +124,6 @@ class Dataset(object):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def get_sequences(self, index, omic=None):
         """
         Returns a dictionary where keys are
