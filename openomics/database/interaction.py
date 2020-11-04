@@ -3,6 +3,8 @@ import networkx as nx
 from openomics.database.annotation import *
 from openomics.database.base import Dataset
 
+from abc import abstractmethod
+
 
 class Interactions(Dataset):
     def __init__(self, path, file_resources, source_col_name, target_col_name, source_index, target_index,
