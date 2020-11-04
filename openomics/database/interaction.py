@@ -340,6 +340,7 @@ class MiRTarBase(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed=True):
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
+        print(df.info())
         if self.species:
             df = df[df["Species (Target Gene)"].str.lower() == self.species.lower()]
 
