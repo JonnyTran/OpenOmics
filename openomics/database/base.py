@@ -29,6 +29,9 @@ class Dataset(object):
                 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
         """
         # If downloading data from ftp/html path
+        if path is None:
+            path = ""
+
         if validators.url(path) or any(
             [validators.url(file_path) for file_path in file_resources.values()]):
             for filename, filepath in copy.copy(file_resources).items():
