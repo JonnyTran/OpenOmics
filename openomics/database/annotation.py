@@ -31,6 +31,7 @@ class RNAcentral(Dataset):
             file_resources["rnacentral_rfam_annotations.tsv"] = os.path.join(path,
                                                                              "go_annotations/rnacentral_rfam_annotations.tsv")
             file_resources["gencode.tsv"] = os.path.join(path, "id_mapping/database_mappings/gencode.tsv")
+            print(file_resources)
 
         if col_rename is None:
             col_rename = self.COLUMNS_RENAME_DICT
