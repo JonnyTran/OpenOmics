@@ -1,5 +1,4 @@
-
-from openomics.database.annotation import *
+from openomics.database.base import Dataset
 
 
 class DiseaseAssociation(Dataset):

@@ -1,7 +1,7 @@
 
 import os
 
-from openomics.database.annotation import Dataset
+from openomics.database.base import Dataset
 
 
 class GeneOntology(Dataset):

@@ -7,6 +7,7 @@ from dask import delayed
 from pandas import Series
 
 from openomics.database.annotation import *
+from openomics.database.base import Annotatable
 
 
 class ExpressionData(object):

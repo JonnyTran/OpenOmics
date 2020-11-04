@@ -1,7 +1,7 @@
 import networkx as nx
 import pandas as pd
 
-from openomics.database.annotation import Annotatable
+from openomics.database.base import Annotatable
 from openomics.transcriptomics import ExpressionData
 
 
