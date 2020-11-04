@@ -28,7 +28,8 @@ class Dataset(object):
             npartitions (int): [0-n], default 0
                 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
         """
-        if validators.url(path):
+        # Download data from ftp/html path
+        if validators.url(path) or any([validators.url(file) for file in file_resources]):
             for filename, filepath in copy.copy(file_resources).items():
                 # Download the files and replace the file_resource paths
                 data_file = get_pkg_data_filename(path, filepath)
@@ -40,6 +41,7 @@ class Dataset(object):
                     file_resources[filename] = data_file
             print(file_resources)
 
+        # If using local data
         elif os.path.isdir(path) and os.path.exists(path):
             for _, filepath in file_resources.items():
                 if not os.path.exists(filepath):
