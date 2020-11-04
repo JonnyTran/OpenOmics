@@ -409,12 +409,14 @@ class MessengerRNA(ExpressionData, Annotatable):
     def name(cls):
         return cls.__name__
 
+    def __repr__(self):
+        return super().__repr__()
+
     def process_HUGO_protein_coding_genes_info(self, hugo_protein_gene_names_path):
         self.hugo_protein_gene_names_path = hugo_protein_gene_names_path
         self.hugo_protein_genes_info = pd.read_table(self.hugo_protein_gene_names_path,
                                                      usecols=["symbol", "locus_type", "gene_family", "gene_family_id",
                                                               "location"])
-
 
     def process_GO_genes_info(self, gene_ontology_folder_path):
         self.gene_ontology_file_path = os.path.join(gene_ontology_folder_path, "goa_human.gaf")
