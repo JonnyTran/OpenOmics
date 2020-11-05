@@ -9,7 +9,7 @@
 OpenOmics is a Python library to assist integration of heterogeneous multi-omics bioinformatics data. By providing an API of data manipulation tools as well as a web interface, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
 It features support for:
 - Genomics, Transcriptomics, Proteomics, and Clinical data.
-- Integration with popular annotation, interaction, disease-association databases.
+- Harmonization with 20+ popular annotation, interaction, disease-association databases.
 
 OpenOmics also has an efficient data pipeline that bridges the popular data manipulation library like Pandas and distributed processing like Dask to the Dash web dashboard interface. With an intuitive web interface and easy-than-ever API, OpenOmics addresses the following use cases:
 
