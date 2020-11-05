@@ -51,9 +51,11 @@ def ExpressionDataTable(df):
                     sort_by=[],
 
                     style_as_list_view=True,
-                    style_cell={'textAlign': 'left',
-                                # "maxWidth": '100px',
-                                },
+                    style_cell={
+                        'overflow': 'hidden',
+                        'textOverflow': 'clip',
+                        'whiteSpace': 'normal'
+                    },
                     style_data={'width': '30px'},
                     style_data_conditional=[
                         {'if': {'row_index': 'odd'},
@@ -66,6 +68,10 @@ def ExpressionDataTable(df):
                                  'marginBottom': '10px',
                                  'overflowX': 'scroll'
                                  },
+                    style_header={
+                        'backgroundColor': 'white',
+                        'fontWeight': 'bold'
+                    },
 
                     row_selectable="multi",
                     selected_rows=[],

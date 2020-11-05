@@ -18,7 +18,6 @@ class MultiOmics:
 
         Args:
             cohort_name (str): the clinical cohort name
-            import_clinical (bool, ClinicalData):
         """
         self._cohort_name = cohort_name
         self._omics = []

@@ -6,17 +6,8 @@
 [![codecov](https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg)](https://codecov.io/gh/JonnyTran/OpenOmics)
 [![Updates](https://pyup.io/repos/github/JonnyTran/OpenOmics/shield.svg)](https://pyup.io/repos/github/JonnyTran/OpenOmics/)
 
-OpenOmics is a Python library to assist integration of multiomics bioinformatics data. By providing an API of data manipulation tools as well as a web interface, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
-It features support for:
-- Genomics, Transcriptomics, Proteomics, and Clinical data.
-- Integration with popular annotation, interaction, disease-association databases.
-
-OpenOmics provide an efficient data pipeline bridges the powerful data manipulation library Pandas and distributed processing Dask to a web dashboard interface framework Dash. With an intuitive web interface and easy-than-ever API, OpenOmics addresses the following use cases:
-
-- OpenOmics provides a standard pipeline for dataset indexing, table joining and querying, which are transparent to users.
-- OpenOmics provides efficient support for multiple data types, that supports both interactions and sequence data, and allows users to export to NetworkX graphs or machine learning pipelines.
-- OpenOmics has an easy-to-use API that works seamlessly with the Dash web interface.
-
+This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data.
+By providing a series of data manipulation tools, open-omics facilitates the common coding tasks when preparing data for bioinformatics analysis.
 
 ## Installation via pip:
 
@@ -66,7 +57,7 @@ The microRNA and lncRNA data requires additional external databases, e.g. Target
 
 
 ```python
-from openomics.multiomics import MultiOmics
+from openomics import MultiOmics
 ```
 
 ## Import TCGA LUAD data downloaded from TCGA-Assembler
@@ -80,7 +71,7 @@ folder_path ="./data/tcga-assembler/LUAD/"
 
 ```python
 # Load all modalities: Gene Expression, MicroRNA expression lncRNA expression, Copy Number Variation, Somatic Mutation, DNA Methylation, and Protein Expression data
-luad_data = MultiOmicsData(cancer_type="LUAD", folder_path=folder_path,
+luad_data = MultiOmics(cancer_type="LUAD", folder_path=folder_path,
                            modalities=["GE", "MIR", "LNC", "CNV", "SNP", "PRO"])
 
 ```
@@ -345,7 +336,8 @@ luad_data.match_samples(modalities=["MIR", "GE"])
 
 ```python
 # This function selects only patients with patholotic stages "Stage I" and "Stage II"
-X_multiomics, y = luad_data.load_dataframe(,
+X_multiomics, y = luad_data.load_dataframe(modalities=["GE", "MIR", "LNC"], target=['pathologic_stage'],
+                                     pathologic_stages=['Stage I', 'Stage II'])
 print(X_multiomics['GE'].shape, X_multiomics['MIR'].shape, X_multiomics['LNC'].shape, y.shape)
 ```
 
