@@ -21,7 +21,6 @@ class ExpressionData(object):
         The user will also specify the index argument, which specifies if the genes are ensembl genes ID or gene name, or transcripts id/names. The user should be careful about choosing the right genes index which makes it easier to annotate functional, sequence, and interaction data to it.
         The dataframe should only contain numeric values besides the genes_col_name and the sample barcode id indices.
         Args:
-            dropna:
             cohort_name (str): the unique cohort code name string
             data (str, byte-like, pandas.DataFrame):
                 Path or file stream of the table file to import. If a pandas DataFrame is passed, then import this dataframe and skip preprocessing steps.
@@ -35,6 +34,8 @@ class ExpressionData(object):
                 Chooses the level of the patient/sample/aliquot indexing.
             log2_transform (bool): default False
                 Whether to log2 transform the expression values
+            dropna (bool):
+                Whether to drop rows with null values
             npartitions (int): [0-n], default 0
                 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
         """
