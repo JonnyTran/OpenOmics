@@ -4,6 +4,7 @@ from os.path import expanduser
 
 from bioservices import BioMart
 
+import openomics
 from openomics.database.base import Dataset
 from openomics.utils.df import concat_uniques
 from openomics.utils.io import mkdirs
@@ -11,7 +12,7 @@ from openomics.utils.io import mkdirs
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
-if os.environ["MODIN_ENGINE"] == "dask":
+if openomics.__BACKEND__ == "dask":
     import dask.dataframe as dd
 else:
     import pandas as pd

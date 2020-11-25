@@ -8,6 +8,8 @@ __author__ = """Nhat (Jonny) Tran"""
 __email__ = 'nhat.tran@mavs.uta.edu'
 __version__ = '0.7.9'
 
+__BACKEND__ = "pandas"
+
 from . import database
 
 from .transcriptomics import (
@@ -31,3 +33,9 @@ from .multiomics import (
 from .visualization import (
     umap
 )
+
+
+def set_backend(new):
+    global __BACKEND__
+    assert new in ["dask", "pandas"]
+    __BACKEND__ = new
