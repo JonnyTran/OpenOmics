@@ -1,7 +1,12 @@
 import io
 import os
 
-import pandas as pd
+import openomics
+
+if openomics.__BACKEND__ == "dask":
+    import dask.dataframe as pd
+else:
+    import pandas as pd
 
 TUMOR = "Tumor"
 NORMAL = "Normal"

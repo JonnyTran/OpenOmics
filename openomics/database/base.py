@@ -6,7 +6,6 @@ import zipfile
 from abc import abstractmethod
 
 import filetype
-import pandas as pd
 import rarfile
 import validators
 
