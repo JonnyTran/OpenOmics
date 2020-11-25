@@ -1,12 +1,17 @@
 from typing import List, Dict, Union
 
-import pandas as pd
-
 from .clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, TUMOR_NORMAL, PREDICTED_SUBTYPE
 from .genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
 from .imageomics import WholeSlideImage
 from .proteomics import Protein
 from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
+
+import openomics
+
+if openomics.__BACKEND__ == "dask":
+    import dask.dataframe as pd
+else:
+    import pandas as pd
 
 
 class MultiOmics:
