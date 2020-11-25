@@ -6,13 +6,7 @@ from .imageomics import WholeSlideImage
 from .proteomics import Protein
 from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
-import openomics
-
-if openomics.__BACKEND__ == "dask":
-    import dask.dataframe as pd
-else:
-    import pandas as pd
-
+from openomics import backend as pd
 
 class MultiOmics:
     def __init__(self, cohort_name):

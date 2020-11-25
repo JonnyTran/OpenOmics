@@ -12,12 +12,7 @@ import validators
 from openomics.utils.df import concat_uniques
 from openomics.utils.io import get_pkg_data_filename
 
-import openomics
-
-if openomics.__BACKEND__ == "dask":
-    import dask.dataframe as pd
-else:
-    import pandas as pd
+from openomics import backend as pd
 
 
 class Dataset(object):

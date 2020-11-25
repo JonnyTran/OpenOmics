@@ -11,11 +11,7 @@ from openomics.utils.io import mkdirs
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
-import openomics
-if openomics.__BACKEND__ == "dask":
-    import dask.dataframe as pd
-else:
-    import pandas as pd
+from openomics import backend as pd
 
 class TANRIC(Dataset):
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
@@ -353,13 +349,13 @@ class NONCODE(Dataset):
         super(NONCODE, self).__init__(path, file_resources, col_rename, verbose=verbose)
 
     def load_dataframe(self, file_resources):
-        source_df = dd.read_table(file_resources["NONCODEv5_source"], header=None)
+        source_df = pd.read_table(file_resources["NONCODEv5_source"], header=None)
         source_df.columns = ["NONCODE Transcript ID", "name type", "Gene ID"]
 
-        transcript2gene_df = dd.read_table(file_resources["NONCODEv5_Transcript2Gene"], header=None)
+        transcript2gene_df = pd.read_table(file_resources["NONCODEv5_Transcript2Gene"], header=None)
         transcript2gene_df.columns = ["NONCODE Transcript ID", "NONCODE Gene ID"]
 
-        self.noncode_func_df = dd.read_table(file_resources["NONCODEv5_human.func"], header=None)
+        self.noncode_func_df = pd.read_table(file_resources["NONCODEv5_human.func"], header=None)
         self.noncode_func_df.columns = ["NONCODE Gene ID", "GO terms"]
         self.noncode_func_df.set_index("NONCODE Gene ID", inplace=True)
 
