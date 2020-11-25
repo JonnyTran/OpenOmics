@@ -5,6 +5,7 @@ import openomics
 
 if openomics.__BACKEND__ == "dask":
     import dask.dataframe as pd
+    print("Using dask")
 else:
     import pandas as pd
 
