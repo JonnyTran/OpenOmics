@@ -12,6 +12,9 @@ PATHOLOGIC_STAGE = "pathologic_stage"
 TUMOR_NORMAL = 'tumor_normal'
 PREDICTED_SUBTYPE = 'predicted_subtype'
 
+print(pd)
+
+
 class ClinicalData:
     pathologic_stage_map = {'Stage IA': 'Stage I', 'Stage IB': 'Stage I',
                             'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
