@@ -2,8 +2,6 @@ import os
 from io import StringIO
 from os.path import expanduser
 
-import dask.dataframe as dd
-import pandas as pd
 from bioservices import BioMart
 
 from openomics.database.base import Dataset
@@ -13,6 +11,10 @@ from openomics.utils.io import mkdirs
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
+if os.environ["MODIN_ENGINE"] == "dask":
+    import dask.dataframe as dd
+else:
+    import pandas as pd
 
 class TANRIC(Dataset):
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):

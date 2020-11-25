@@ -25,16 +25,6 @@ class MultiOmics:
         # This is a data dictionary accessor to retrieve individual -omic data
         self.data = {}
 
-    def remote_duplate_genes(self):
-        """
-        Removes duplicate genes between any omics such that the index across all omics has no duplicates.
-        """
-        for omic_A in self._omics:
-            for omic_B in self._omics:
-                if omic_A != omic_B:
-                    self.__getattribute__(omic_A).drop_genes(set(self.__getattribute__(omic_A).get_genes_list()) & set(
-                        self.__getattribute__(omic_B).get_genes_list()))
-
     def add_omic(self, omic_data, initialize_annotations=True):
         # type: (ExpressionData, bool) -> None
         """
@@ -78,33 +68,11 @@ class MultiOmics:
     def get_omics_list(self):
         return self._omics
 
-    def build_samples(self, agg_by="union"):
-        """
-        Running this function will build a dataframe for all samples across the different omics (either by a union or intersection). Then,
-
-        Args:
-            agg_by (str): ["union", "intersection"]
-        """
-        if len(self._omics) < 1:  # make sure at least one ExpressionData present
-            print("build_samples() does nothing. Must add at least one omic to this MultiOmics object.")
-
-        all_samples = pd.Index([])
-        for omic in self._omics:
-            if agg_by == "union":
-                all_samples = all_samples.union(self.data[omic].index)
-            elif agg_by == "intersection":
-                all_samples = all_samples.intersection(self.data[omic].index)
-
-        if hasattr(self, "clinical"):
-            self.clinical.build_clinical_samples(all_samples)
-            self.data["SAMPLES"] = self.clinical.samples.index
-        else:
-            self.data["SAMPLES"] = all_samples
-
     def __getitem__(self, item):
         # type: (str) -> object
         """
         This function allows the MultiOmicData class objects to access individual omics by a dictionary lookup, e.g.
+        openomics["MicroRNA"]
 
         Args:
             item (str): a string of the class name
@@ -141,6 +109,39 @@ class MultiOmics:
             return self.clinical.drugs
         else:
             raise Exception('String accessor must be one of {"MessengerRNA", "MicroRNA", "LncRNA", "Protein", etc.}')
+
+    def remove_duplicate_genes(self):
+        """
+        Removes duplicate genes between any omics such that the gene index across all omics has no duplicates.
+        """
+        for omic_A in self._omics:
+            for omic_B in self._omics:
+                if omic_A != omic_B:
+                    self.__getattribute__(omic_A).drop_genes(set(self.__getattribute__(omic_A).get_genes_list()) & set(
+                        self.__getattribute__(omic_B).get_genes_list()))
+
+    def build_samples(self, agg_by="union"):
+        """
+        Running this function will build a dataframe for all samples across the different omics (either by a union or intersection). Then,
+
+        Args:
+            agg_by (str): ["union", "intersection"]
+        """
+        if len(self._omics) < 1:  # make sure at least one ExpressionData present
+            print("build_samples() does nothing. Must add at least one omic to this MultiOmics object.")
+
+        all_samples = pd.Index([])
+        for omic in self._omics:
+            if agg_by == "union":
+                all_samples = all_samples.union(self.data[omic].index)
+            elif agg_by == "intersection":
+                all_samples = all_samples.intersection(self.data[omic].index)
+
+        if hasattr(self, "clinical"):
+            self.clinical.build_clinical_samples(all_samples)
+            self.data["SAMPLES"] = self.clinical.samples.index
+        else:
+            self.data["SAMPLES"] = all_samples
 
     def __dir__(self):
         return list(self.data.keys())
