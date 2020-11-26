@@ -1,4 +1,6 @@
 from __future__ import print_function, division, absolute_import
+import sys, imp
+
 import pandas as pd
 import dask.dataframe as dd
 
@@ -49,26 +51,5 @@ def set_backend(new):
     else:
         backend = pd
 
-    from . import database
-
-    from .transcriptomics import (
-        ExpressionData, MessengerRNA, MicroRNA, LncRNA,
-    )
-
-    from .genomics import (
-        SomaticMutation, DNAMethylation, CopyNumberVariation
-    )
-
-    from .proteomics import (
-        Protein
-    )
-
-    from .clinical import ClinicalData
-
-    from .multiomics import (
-        MultiOmics
-    )
-
-    from .visualization import (
-        umap
-    )
+    for module in sys.modules.values():
+        imp.reload(module)
