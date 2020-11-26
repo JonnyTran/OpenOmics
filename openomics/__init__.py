@@ -48,3 +48,27 @@ def set_backend(new):
         backend = dd
     else:
         backend = pd
+
+    from . import database
+
+    from .transcriptomics import (
+        ExpressionData, MessengerRNA, MicroRNA, LncRNA,
+    )
+
+    from .genomics import (
+        SomaticMutation, DNAMethylation, CopyNumberVariation
+    )
+
+    from .proteomics import (
+        Protein
+    )
+
+    from .clinical import ClinicalData
+
+    from .multiomics import (
+        MultiOmics
+    )
+
+    from .visualization import (
+        umap
+    )
