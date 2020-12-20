@@ -7,10 +7,10 @@
 [![Updates](https://pyup.io/repos/github/JonnyTran/OpenOmics/shield.svg)](https://pyup.io/repos/github/JonnyTran/OpenOmics/)
 
 This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data.
-By providing a series of data manipulation tools, open-omics facilitates the common coding tasks when preparing data for bioinformatics analysis.
+By providing a series of data manipulation tools, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
 
-## What is OpenOmics?
-OpenOmics is a Python library to assist integration of heterogeneous multi-omics bioinformatics data. By providing an API of data manipulation tools as well as a web interface, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
+## Features
+OpenOmics assist integration of heterogeneous multi-omics bioinformatics data. By providing an API of data manipulation tools as well as a web interface, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
 It features support for:
 - Genomics, Transcriptomics, Proteomics, and Clinical data.
 - Harmonization with 20+ popular annotation, interaction, disease-association databases.
