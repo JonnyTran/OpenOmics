@@ -17,20 +17,19 @@ class ClinicalData:
                             'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
                             'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
 
-    def __init__(self, cohort_name, patients_file, patient_id_col="bcr_patient_barcode", columns=None):
+    def __init__(self, patients_file, patient_id_col="bcr_patient_barcode", columns=None):
         """
         This class manages the clinical data tables to handle the phenotype, treatment, and sample data associated to a
         patient.
 
         Args:
-            cohort_name (str): the unique cohort code name string
             patients_file (str): path to the patients clinical data file
             patient_id_col (str): the patient's ID column name
             columns (list): default None.
                 Specifies the columns to import, if None, then import all columns. Example: ['bcr_patient_barcode', 'gender', 'race', 'histologic_diagnosis', 'tumor_status', 'death_days_to',
                           'ajcc_pathologic_tumor_stage']
         """
-        self.cohort_name = cohort_name
+        # self.cohort_name = cohort_name
         self.patient_column = patient_id_col
 
         if columns and patient_id_col not in columns:

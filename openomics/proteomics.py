@@ -6,11 +6,12 @@ from .transcriptomics import ExpressionData
 
 
 class Protein(ExpressionData, Annotatable):
-    def __init__(self, cohort_name, data, transposed, columns=None, gene_index_by=None, sample_index_by="sample_index",
-                 log2_transform=False, dropna=False, npartitions=None):
-        super(Protein, self).__init__(cohort_name, data, transposed=transposed, columns=columns,
-                                      gene_index_by=gene_index_by, sample_index_by=sample_index_by,
-                                      log2_transform=log2_transform, dropna=dropna, npartitions=npartitions)
+    def __init__(self, data, transpose, gene_index=None, usecols=None, gene_level=None, sample_level="sample_index",
+                 transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
+        super(Protein, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
+                                      gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
+                                      dropna=dropna,
+                                      npartitions=npartitions, cohort_name=cohort_name)
 
     @classmethod
     def name(cls):
@@ -20,4 +21,3 @@ class Protein(ExpressionData, Annotatable):
         HPRD_PPI = pd.read_table(ppi_data_file_path, header=None)
         self.HPRD_PPI_network = nx.from_pandas_edgelist(HPRD_PPI, source=0, target=3,
                                                         create_using=nx.DiGraph())
-

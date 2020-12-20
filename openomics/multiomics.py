@@ -1,16 +1,15 @@
 from typing import List, Dict, Union
 
+from openomics import backend as pd
 from .clinical import ClinicalData, HISTOLOGIC_SUBTYPE, PATHOLOGIC_STAGE, TUMOR_NORMAL, PREDICTED_SUBTYPE
 from .genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
 from .imageomics import WholeSlideImage
 from .proteomics import Protein
 from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
-from openomics import backend as pd
 
 class MultiOmics:
     def __init__(self, cohort_name):
-        # type: (List[str]) -> None
         """
         Load all multi-omics data from a given cohort_folder path.
 
@@ -56,7 +55,7 @@ class MultiOmics:
         if type(clinical_data) == ClinicalData:
             self.clinical = clinical_data
         else:
-            self.clinical = ClinicalData(self._cohort_name, clinical_data)
+            self.clinical = ClinicalData(clinical_data)
 
         self.data["PATIENTS"] = self.clinical.patient
         if hasattr(self.clinical, "biospecimen"):
