@@ -144,7 +144,7 @@ class GeneOntology(Ontology):
     def info(self):
         print("network {}".format(nx.info(self.network)))
 
-    def load_dataframe(self, file_resources):
+    def load_dataframe(self, file_resources, npartitions=None):
         go_annotation_dfs = []
         for file in file_resources:
             if ".gaf" in file:

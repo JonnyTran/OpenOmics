@@ -28,7 +28,7 @@ class MalaCards(DiseaseAssociation):
 
         super(MalaCards, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
-    def load_dataframe(self, file_resources):  # type: (dict) -> pd.DataFrame
+    def load_dataframe(self, file_resources, npartitions=None):  # type: (dict) -> pd.DataFrame
         df = pd.read_csv(file_resources["MalaCards.csv"])
         return df
 
@@ -48,7 +48,7 @@ class DisGeNet(DiseaseAssociation):
         self.curated = curated
         super(DisGeNet, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
-    def load_dataframe(self, file_resources):
+    def load_dataframe(self, file_resources, npartitions=None):
         if self.curated:
             df = pd.read_table(file_resources["curated_gene_disease_associations.tsv"],
                                usecols=["geneSymbol", "diseaseName", "score"])
@@ -73,7 +73,7 @@ class HMDD(DiseaseAssociation):
 
         super(HMDD, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
-    def load_dataframe(self, file_resources):
+    def load_dataframe(self, file_resources, npartitions=None):
         df = pd.read_csv(file_resources["alldata.txt"], sep="\t", encoding="unicode_escape")
         df["disease"] = df["disease"].str.lower()
         return df
@@ -93,7 +93,7 @@ class LncRNADisease(DiseaseAssociation):
         self.species = species
         super(LncRNADisease, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
-    def load_dataframe(self, file_resources):
+    def load_dataframe(self, file_resources, npartitions=None):
         df = pd.read_csv(self.file_resources["data_v2017.txt"], header=None, sep="\t", encoding="unicode_escape")
         df.columns = ["LncRNA name", "Disease name", "Dysfunction type", "Description", "Chr",
                       "Start", "End", "Strand", "Species", "Alias", "Sequence", "Reference"]

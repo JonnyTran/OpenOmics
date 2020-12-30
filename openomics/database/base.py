@@ -88,12 +88,13 @@ class Dataset(object):
                 self.file_resources[filename].close()
 
     @abstractmethod
-    def load_dataframe(self, file_resources):
-        # type: (dict) -> pd.DataFrame
+    def load_dataframe(self, file_resources, npartitions=None):
+        # type: (dict, int) -> pd.DataFrame
         """
         Handles data preprocessing given the file_resources input, and returns a DataFrame.
 
         Args:
+            npartitions:
             file_resources (dict): A dict with keys as filenames and values as full file path.
             **kwargs: Optional
         """

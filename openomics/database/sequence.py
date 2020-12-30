@@ -1,12 +1,13 @@
 from abc import abstractmethod
 
 import pandas as pd
+import dask.dataframe as dd
 from Bio import SeqIO
-from gtfparse import read_gtf
+# from gtfparse import read_gtf
 
 import openomics
 from .base import Dataset
-
+from ..utils.read_gtf import read_gtf
 
 class SequenceDataset(Dataset):
     def __init__(self, replace_U2T=False, **kwargs):
@@ -62,21 +63,25 @@ class GENCODE(SequenceDataset):
         self.remove_version_num = remove_version_num
 
         super(GENCODE, self).__init__(path=path, file_resources=file_resources, col_rename=col_rename,
-                                      npartitions=npartitions,
-                                      replace_U2T=replace_U2T)
+                                      replace_U2T=replace_U2T, npartitions=npartitions)
 
-    def load_dataframe(self, file_resources):
+    def load_dataframe(self, file_resources, npartitions=None):
         dfs = []
         for gtf_file in file_resources:
             if '.gtf' in gtf_file:
                 # Parse lncRNA gtf
-                df = read_gtf(file_resources[gtf_file])  # Returns a dask dataframe
+                df = read_gtf(file_resources[gtf_file], )  # Returns a dask dataframe
                 dfs.append(df)
-        annotation_df = pd.concat(dfs)
+
+        if npartitions:
+            annotation_df = dd.concat(dfs)
+        else:
+            annotation_df = pd.concat(dfs)
 
         if self.remove_version_num:
             annotation_df['gene_id'] = annotation_df['gene_id'].str.replace("[.].*", "")
             annotation_df['transcript_id'] = annotation_df['transcript_id'].str.replace("[.].*", "")
+
         return annotation_df
 
     def read_fasta(self, fasta_file, replace_U2T):
@@ -160,7 +165,7 @@ class MirBase(SequenceDataset):
         super(MirBase, self).__init__(path=path, file_resources=file_resources, col_rename=col_rename,
                                       npartitions=npartitions, replace_U2T=replace_U2T)
 
-    def load_dataframe(self, file_resources):
+    def load_dataframe(self, file_resources, npartitions=None):
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
                                            names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
                                                   "NA"])

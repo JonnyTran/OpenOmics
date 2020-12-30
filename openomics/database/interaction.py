@@ -516,7 +516,7 @@ class lncRNome(Interactions, Dataset):
 
         return lncRNome_miRNA_binding_sites_network
 
-    def load_dataframe(self, file_resources):
+    def load_dataframe(self, file_resources, npartitions=None):
         return pd.read_table(self.file_resources["general_information.txt"], header=0,
                              usecols=["Gene Name", "Transcript Name", "Transcript Type", "Location", "Strand"])
 

@@ -41,6 +41,7 @@ import re
 from collections import defaultdict
 
 import pandas as pd
+import dask.dataframe as dd
 
 GTF_HEADER  = ['seqname', 'source', 'feature', 'start', 'end', 'score',
                'strand', 'frame']
@@ -49,7 +50,7 @@ R_COMMA     = re.compile(r'\s*,\s*')
 R_KEYVALUE  = re.compile(r'(\s+|\s*=\s*)')
 
 
-def dataframe(filename):
+def dataframe(filename, npartitions):
     """Open an optionally gzipped GTF file and return a pandas.DataFrame.
     """
     # Each column is a list stored as a value in this dict.
@@ -66,7 +67,11 @@ def dataframe(filename):
         for key in result.keys():
             result[key].append(line.get(key, None))
 
-    return pd.DataFrame(result)
+    df = pd.DataFrame(result)
+    if npartitions:
+        return dd.from_pandas(df)
+    else:
+        return df
 
 
 def lines(filename):

@@ -17,12 +17,12 @@ It features support for:
 
 OpenOmics also has an efficient data pipeline that bridges the popular data manipulation library like Pandas and distributed processing like Dask to the Dash web dashboard interface. With an intuitive web interface and easy-than-ever API, OpenOmics addresses the following use cases:
 
-- Provides a standard pipeline for dataset indexing, table joining and querying, which are transparent to users. 
-- Multiple data types that supports both interactions and sequence data, and allows users to export to NetworkX graphs or down-stream machine learning.
+- Provides a standard pipeline for dataset indexing, table joining and querying, which are transparent to users.
+- Multiple data types that supports both interactions and sequence data, and allows users to export to NetworkX graphs
+  or down-stream machine learning.
 - An easy-to-use API that works seamlessly with the Dash web interface.
 
-
-## Installation via pip: 
+## Installation via pip:
 
     pip install openomics
 
@@ -310,11 +310,9 @@ luad_data.match_samples(modalities=["MIR", "GE"])
 
 ## To prepare the data for classification
 
-
 ```python
 # This function selects only patients with patholotic stages "Stage I" and "Stage II"
-X_multiomics, y = luad_data.load_dataframe(modalities=["GE", "MIR", "LNC"], target=['pathologic_stage'],
-                                     pathologic_stages=['Stage I', 'Stage II'])
+X_multiomics, y = luad_data.load_dataframe()
 print(X_multiomics['GE'].shape, X_multiomics['MIR'].shape, X_multiomics['LNC'].shape, y.shape)
 ```
 

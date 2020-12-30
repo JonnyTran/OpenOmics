@@ -17,7 +17,7 @@ class TANRIC(Dataset):
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
         super(TANRIC, self).__init__(path, file_resources, col_rename, npartitions, verbose)
 
-    def load_dataframe(self, file_resources):
+    def load_dataframe(self, file_resources, npartitions=None):
         pass
 
     def get_expressions(self, genes_index):
@@ -66,7 +66,7 @@ class ProteinAtlas(Dataset):
 
         super(ProteinAtlas, self).__init__(path, file_resources, col_rename, npartitions, verbose)
 
-    def load_dataframe(self, file_resources):
+    def load_dataframe(self, file_resources, npartitions=None):
         df = pd.read_table(file_resources["proteinatlas.tsv"])
 
         return df
@@ -106,7 +106,7 @@ class RNAcentral(Dataset):
         super(RNAcentral, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions,
                                          verbose=verbose)
 
-    def load_dataframe(self, file_resources):
+    def load_dataframe(self, file_resources, npartitions=None):
         go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True, n=2)[0]
@@ -157,7 +157,7 @@ class GTEx(Dataset):
 
         super(GTEx, self).__init__(path, file_resources, col_rename=None, npartitions=npartitions, verbose=verbose)
 
-    def load_dataframe(self, file_resources):  # type: (dict) -> pd.DataFrame
+    def load_dataframe(self, file_resources, npartitions=None):  # type: (dict) -> pd.DataFrame
         gene_exp_medians = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"],
             sep='\t', header=1, skiprows=1)
@@ -253,14 +253,13 @@ class EnsemblGenes(BioMartManager, Dataset):
                           'gene_biotype', 'transcript_biotype', ]
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.df = self.load_dataframe(datasets=dataset, attributes=attributes, host=self.host,
-                                      filename=self.filename)
+        self.df = self.load_dataframe()
 
         self.df.rename(columns=self.COLUMNS_RENAME_DICT,
                        inplace=True)
         print(self.name(), self.df.columns.tolist())
 
-    def load_dataframe(self, datasets, attributes, host, filename=None, ):
+    def load_dataframe(self, file_resources, npartitions=None):
         return self.retrieve_dataset(host, datasets, attributes, filename)
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
@@ -285,8 +284,7 @@ class EnsemblGeneSequences(EnsemblGenes):
                           'coding']
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.df = self.load_dataframe(datasets=dataset, filename=self.filename, host=self.host,
-                                      attributes=attributes, )
+        self.df = self.load_dataframe()
         self.df.rename(columns=self.COLUMNS_RENAME_DICT,
                        inplace=True)
 
@@ -301,8 +299,7 @@ class EnsemblTranscriptSequences(EnsemblGenes):
                           '5utr', '3utr']
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.df = self.load_dataframe(datasets=dataset, attributes=attributes, host=self.host,
-                                      filename=self.filename)
+        self.df = self.load_dataframe()
         self.df.rename(columns=self.COLUMNS_RENAME_DICT,
                        inplace=True)
 
@@ -319,8 +316,7 @@ class EnsemblSNP(EnsemblGenes):
                           'chr_name', 'chrom_start', 'chrom_end']
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.df = self.load_dataframe(datasets=dataset, attributes=attributes, host=self.host,
-                                      filename=self.filename)
+        self.df = self.load_dataframe()
 
 
 class EnsemblSomaticVariation(EnsemblGenes):
@@ -334,8 +330,7 @@ class EnsemblSomaticVariation(EnsemblGenes):
                           'somatic_chromosome_start', 'somatic_chromosome_end']
         self.filename = "{}.{}".format(dataset, self.__class__.__name__)
         self.host = host
-        self.df = self.load_dataframe(datasets=dataset, attributes=attributes, host=self.host,
-                                      filename=self.filename)
+        self.df = self.load_dataframe()
 
 
 class NONCODE(Dataset):
@@ -348,7 +343,7 @@ class NONCODE(Dataset):
 
         super(NONCODE, self).__init__(path, file_resources, col_rename, verbose=verbose)
 
-    def load_dataframe(self, file_resources):
+    def load_dataframe(self, file_resources, npartitions=None):
         source_df = pd.read_table(file_resources["NONCODEv5_source"], header=None)
         source_df.columns = ["NONCODE Transcript ID", "name type", "Gene ID"]
 
