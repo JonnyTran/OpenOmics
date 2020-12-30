@@ -177,7 +177,7 @@ class GeneOntology(Ontology):
         Args:
             namespace: one of {"biological_process", "cellular_component", "molecular_function"}
         """
-        terms = self.df[self.df["namespace"] == namespace]["go_id"].unique()
+        terms = self.data[self.data["namespace"] == namespace]["go_id"].unique()
         print("{} terms: {}".format(namespace, len(terms))) if self.verbose else None
         self.network = self.network.subgraph(nodes=list(terms))
         self.node_list = np.array(list(terms))

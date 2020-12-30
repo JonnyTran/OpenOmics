@@ -129,8 +129,8 @@ class GENCODE(SequenceDataset):
                 "The level argument must be one of {'gene_id', 'transcript_id', or 'gene_name', or 'transcript_name'}")
 
     def get_rename_dict(self, from_index='gene_id', to_index='gene_name'):
-        ensembl_id_to_gene_name = pd.Series(self.df[to_index].values,
-                                            index=self.df[from_index]).to_dict()
+        ensembl_id_to_gene_name = pd.Series(self.data[to_index].values,
+                                            index=self.data[from_index]).to_dict()
         return ensembl_id_to_gene_name
 
 

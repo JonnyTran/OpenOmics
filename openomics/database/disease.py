@@ -10,7 +10,7 @@ class DiseaseAssociation(Dataset):
 
     @abstractmethod
     def get_disease_assocs(self, index="gene_name"):
-        return self.df.groupby(index)["disease_associations"].apply(list)
+        return self.data.groupby(index)["disease_associations"].apply(list)
 
 
 class OMIM(DiseaseAssociation):

@@ -82,7 +82,7 @@ class ProteinAtlas(Dataset):
             expressions (pd.DataFrame):
         """
         columns = "|".join([type, index])
-        expressions = self.df.filter(regex=columns).groupby(
+        expressions = self.data.filter(regex=columns).groupby(
             index).median()
         return expressions
 

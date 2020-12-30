@@ -31,19 +31,20 @@ class Dataset(object):
             npartitions (int): [0-n], default 0
                 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
         """
+        self.npartitions = npartitions
         self.verbose = verbose
 
         self.validate_file_resources(file_resources, path)
 
-        self.df = self.load_dataframe(file_resources)
-        self.df = self.df.reset_index()
+        self.data = self.load_dataframe(file_resources)
+        self.data = self.data.reset_index()
         if col_rename is not None:
-            self.df = self.df.rename(columns=col_rename)
+            self.data = self.data.rename(columns=col_rename)
 
         self.info() if verbose else None
 
     def info(self):
-        print("{}: {}".format(self.name(), self.df.columns.tolist()))
+        print("{}: {}".format(self.name(), self.data.columns.tolist()))
 
     def validate_file_resources(self, file_resources, path, verbose=False):
         if validators.url(path):
@@ -122,16 +123,16 @@ class Dataset(object):
         """
         if columns is not None:
             if index in columns:
-                df = self.df[columns]
+                df = self.data[columns]
                 columns.pop(columns.index(index))
             else:
-                df = self.df[columns + [index]]
+                df = self.data[columns + [index]]
         else:
             raise Exception(
                 "The columns argument must be a list such that it's subset of the following columns in the dataframe",
-                self.df.columns.tolist())
+                self.data.columns.tolist())
 
-        if index != self.df.index.name and index in self.df.columns:
+        if index != self.data.index.name and index in self.data.columns:
             df = df.set_index(index)
 
         # Groupby index, and Aggregate by all columns by concatenating unique values
@@ -142,7 +143,7 @@ class Dataset(object):
         return df
 
     def get_expressions(self, index):
-        return self.df.groupby(
+        return self.data.groupby(
             index).median()  # TODO if index by gene, aggregate medians of transcript-level expressions
 
     @abstractmethod
@@ -248,7 +249,7 @@ class Annotatable(object):
             self.annotation_expressions = self.annotation_expressions.join(
                 database.get_expressions(index=index))
         else:
-            raise Exception("index argument must be one of", database.df.index)
+            raise Exception("index argument must be one of", database.data.index)
 
     def annotate_interactions(self, database, index):
         # type: (Interactions, str) -> None
