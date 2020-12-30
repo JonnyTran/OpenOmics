@@ -6,20 +6,21 @@
 [![codecov](https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg)](https://codecov.io/gh/JonnyTran/OpenOmics)
 [![Updates](https://pyup.io/repos/github/JonnyTran/OpenOmics/shield.svg)](https://pyup.io/repos/github/JonnyTran/OpenOmics/)
 
-This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data.
-By providing a series of data manipulation tools, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
+This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical data (aka multi-omics data).
+By providing a series of scalable data-frame manipulation tools, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
 
 ## Features
-OpenOmics assist in integration of heterogeneous multi-omics bioinformatics data. By providing an API of data manipulation tools as well as a web interface, the library facilitates the common coding tasks when preparing data for bioinformatics analysis.
+OpenOmics assist in integration of heterogeneous multi-omics bioinformatics data. The library provides a Python API as well as an interactive Dash web interface.
 It features support for:
 - Genomics, Transcriptomics, Proteomics, and Clinical data.
 - Harmonization with 20+ popular annotation, interaction, disease-association databases.
 
-OpenOmics also has an efficient data pipeline that bridges the popular data manipulation library like Pandas and distributed processing like Dask to the Dash web dashboard interface. With an intuitive web interface and easy-than-ever API, OpenOmics addresses the following use cases:
+OpenOmics also has an efficient data pipeline that bridges the popular data manipulation Pandas library and Dask distributed processing to address the following use cases:
 
-- Provides a standard pipeline for dataset indexing, table joining and querying, which are transparent to users. 
+- Provides a standard pipeline for dataset indexing, table joining and querying, which are transparent and customizable for end-users. 
 - Multiple data types that supports both interactions and sequence data, and allows users to export to NetworkX graphs or down-stream machine learning.
-- An easy-to-use API that works seamlessly with the Dash web interface.
+- An easy-to-use API that works seamlessly with external Galaxy tool interface or built-in Dash web interface.
+- Efficient dataset disk storage featuring Parquet data structures.
 
 
 ## Installation via pip: 
