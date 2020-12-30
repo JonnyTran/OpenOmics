@@ -24,9 +24,9 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 
 ## Installation via pip: 
 
-    pip install openomics
+>>> pip install openomics
 
-\
+<br/>
 # How to use OpenOmics:
 
 
