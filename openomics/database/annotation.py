@@ -12,6 +12,7 @@ DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
 from openomics import backend as pd
+import dask.dataframe as dd
 
 class TANRIC(Dataset):
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
@@ -196,152 +197,15 @@ class GTEx(Dataset):
         return gene_exp_medians
 
 
-class BioMartManager:
-    def __init__(self, dataset, attributes, host, filename):
-        pass
-
-    def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None):
-        bm = BioMart(host=host)
-        bm.new_query()
-        bm.add_dataset_to_xml(dataset)
-        for at in attributes:
-            bm.add_attribute_to_xml(at)
-        xml_query = bm.get_xml()
-
-        print("Querying {} from {} with attributes {}...".format(dataset, host, attributes))
-        results = bm.query(xml_query)
-        df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True)
-
-        if cache:
-            self.cache_dataset(dataset, df, save_filename)
-        return df
-
-    def cache_dataset(self, dataset, dataframe, save_filename):
-        if not os.path.exists(DEFAULT_CACHE_PATH):
-            mkdirs(DEFAULT_CACHE_PATH)
-
-        if save_filename is None:
-            save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(dataset))
-
-        dataframe.to_csv(save_filename, sep="\t", index=False)
-        return save_filename
-
-    def retrieve_dataset(self, host, dataset, attributes, filename):
-        filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(filename))
-        if os.path.exists(filename):
-            df = pd.read_csv(filename, sep="\t", low_memory=True)
-        else:
-            df = self.query_biomart(host=host, dataset=dataset, attributes=attributes,
-                                    cache=True, save_filename=filename)
-        return df
-
-
-class EnsemblGenes(BioMartManager, Dataset):
-    COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
-                           'external_gene_name': 'gene_name',
-                           'ensembl_transcript_id': 'transcript_id',
-                           'external_transcript_name': 'transcript_name',
-                           'rfam': 'Rfams'}
-
-    def __init__(self, dataset="hsapiens_gene_ensembl",
-                 attributes=None,
-                 host="www.ensembl.org", filename=False):
-        if attributes is None:
-            attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id',
-                          'external_transcript_name',
-                          'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
-                          'gene_biotype', 'transcript_biotype', ]
-        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        self.host = host
-        self.df = self.load_dataframe()
-
-        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
-                       inplace=True)
-        print(self.name(), self.df.columns.tolist())
-
-    def load_dataframe(self, file_resources, npartitions=None):
-        return self.retrieve_dataset(host, datasets, attributes, filename)
-
-    def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
-        geneid_to_genename = self.df[self.df[to_index].notnull()]\
-            .groupby(from_index)[to_index] \
-            .apply(concat_uniques).to_dict()
-        return geneid_to_genename
-
-    def get_functional_annotations(self, omic, index):
-        geneid_to_go = self.df[self.df["go_id"].notnull()]\
-            .groupby(index)["go_id"]\
-            .apply(lambda x: "|".join(x.unique())).to_dict()
-        return geneid_to_go
-
-
-class EnsemblGeneSequences(EnsemblGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl",
-                 attributes=None,
-                 host="www.ensembl.org", filename=False):
-        if attributes is None:
-            attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon',
-                          'coding']
-        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        self.host = host
-        self.df = self.load_dataframe()
-        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
-                       inplace=True)
-
-
-class EnsemblTranscriptSequences(EnsemblGenes):
-    def __init__(self, dataset="hsapiens_gene_ensembl",
-                 attributes=None,
-                 host="www.ensembl.org", filename=False):
-        if attributes is None:
-            attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank',
-                          'coding_transcript_flank',
-                          '5utr', '3utr']
-        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        self.host = host
-        self.df = self.load_dataframe()
-        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
-                       inplace=True)
-
-
-class EnsemblSNP(EnsemblGenes):
-    def __init__(self, dataset="hsapiens_snp",
-                 attributes=None,
-                 host="www.ensembl.org", filename=False):
-        if attributes is None:
-            attributes = ['synonym_name', 'variation_names', 'minor_allele',
-                          'associated_variant_risk_allele',
-                          'ensembl_gene_stable_id', 'ensembl_transcript_stable_id',
-                          'phenotype_name',
-                          'chr_name', 'chrom_start', 'chrom_end']
-        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        self.host = host
-        self.df = self.load_dataframe()
-
-
-class EnsemblSomaticVariation(EnsemblGenes):
-    def __init__(self, dataset="hsapiens_snp_som",
-                 attributes=None,
-                 host="www.ensembl.org", filename=False):
-        if attributes is None:
-            attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
-                          'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
-                          'somatic_mapweight',
-                          'somatic_chromosome_start', 'somatic_chromosome_end']
-        self.filename = "{}.{}".format(dataset, self.__class__.__name__)
-        self.host = host
-        self.df = self.load_dataframe()
-
-
 class NONCODE(Dataset):
-    def __init__(self, path, file_resources=None, col_rename=None, verbose=False):
+    def __init__(self, path, file_resources=None, col_rename=None, verbose=False, npartitions=None):
         if file_resources is None:
             file_resources = {}
             file_resources["NONCODEv5_source"] = os.path.join(path, "NONCODEv5_source")
             file_resources["NONCODEv5_Transcript2Gene"] = os.path.join(path, "NONCODEv5_Transcript2Gene")
             file_resources["NONCODEv5_human.func"] = os.path.join(path, "NONCODEv5_human.func")
 
-        super(NONCODE, self).__init__(path, file_resources, col_rename, verbose=verbose)
+        super(NONCODE, self).__init__(path, file_resources, col_rename, verbose=verbose, npartitions=npartitions)
 
     def load_dataframe(self, file_resources, npartitions=None):
         source_df = pd.read_table(file_resources["NONCODEv5_source"], header=None)
@@ -367,3 +231,147 @@ class NONCODE(Dataset):
                       index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
 
 
+class BioMartManager:
+    def __init__(self, dataset, attributes, host, filename):
+        pass  # Does not instantiate
+
+    def retrieve_dataset(self, host, dataset, attributes, filename, npartitions=None):
+        filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(filename))
+        if os.path.exists(filename):
+            if npartitions:
+                df = dd.read_csv(filename, sep="\t")
+            else:
+                df = pd.read_csv(filename, sep="\t", low_memory=True)
+        else:
+            df = self.query_biomart(host=host, dataset=dataset, attributes=attributes,
+                                    cache=True, save_filename=filename)
+        return df
+
+    def cache_dataset(self, dataset, dataframe, save_filename):
+        if not os.path.exists(DEFAULT_CACHE_PATH):
+            mkdirs(DEFAULT_CACHE_PATH)
+
+        if save_filename is None:
+            save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(dataset))
+
+        dataframe.to_csv(save_filename, sep="\t", index=False)
+        return save_filename
+
+    def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None,
+                      npartitions=None):
+        bm = BioMart(host=host)
+        bm.new_query()
+        bm.add_dataset_to_xml(dataset)
+        for at in attributes:
+            bm.add_attribute_to_xml(at)
+        xml_query = bm.get_xml()
+
+        print("Querying {} from {} with attributes {}...".format(dataset, host, attributes))
+        results = bm.query(xml_query)
+
+        if npartitions:
+            df = dd.read_csv(StringIO(results), header=None, names=attributes, sep="\t")
+        else:
+            df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True)
+
+        if cache:
+            self.cache_dataset(dataset, df, save_filename)
+        return df
+
+
+class EnsemblGenes(BioMartManager, Dataset):
+    COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
+                           'external_gene_name': 'gene_name',
+                           'ensembl_transcript_id': 'transcript_id',
+                           'external_transcript_name': 'transcript_name',
+                           'rfam': 'Rfams'}
+
+    def __init__(self, biomart="hsapiens_gene_ensembl",
+                 attributes=None, host="www.ensembl.org", npartitions=None):
+        # Do not call super().__init__()
+        if attributes is None:
+            attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id',
+                          'external_transcript_name',
+                          'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
+                          'gene_biotype', 'transcript_biotype', ]
+        self.filename = "{}.{}".format(biomart, self.__class__.__name__)
+        self.host = host
+        self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
+                                 filename=self.filename, npartitions=npartitions)
+
+        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
+                       inplace=True)
+        print(self.name(), self.df.columns.tolist())
+
+    def load_data(self, dataset, attributes, host, filename=None, npartitions=None):
+        return self.retrieve_dataset(host, dataset, attributes, filename, npartitions=npartitions)
+
+    def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
+        geneid_to_genename = self.df[self.df[to_index].notnull()] \
+            .groupby(from_index)[to_index] \
+            .apply(concat_uniques).to_dict()
+        return geneid_to_genename
+
+    def get_functional_annotations(self, index):
+        geneid_to_go = self.df[self.df["go_id"].notnull()] \
+            .groupby(index)["go_id"] \
+            .apply(lambda x: "|".join(x.unique())).to_dict()
+        return geneid_to_go
+
+
+class EnsemblGeneSequences(EnsemblGenes):
+    def __init__(self, biomart="hsapiens_gene_ensembl",
+                 attributes=None, host="www.ensembl.org", npartitions=None):
+        if attributes is None:
+            attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon',
+                          'coding']
+        self.filename = "{}.{}".format(biomart, self.__class__.__name__)
+        self.host = host
+        self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
+                                 filename=self.filename, npartitions=npartitions)
+        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
+                       inplace=True)
+
+
+class EnsemblTranscriptSequences(EnsemblGenes):
+    def __init__(self, biomart="hsapiens_gene_ensembl",
+                 attributes=None, host="www.ensembl.org", npartitions=None):
+        if attributes is None:
+            attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank',
+                          'coding_transcript_flank',
+                          '5utr', '3utr']
+        self.filename = "{}.{}".format(biomart, self.__class__.__name__)
+        self.host = host
+        self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
+                                 filename=self.filename, npartitions=npartitions)
+        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
+                       inplace=True)
+
+
+class EnsemblSNP(EnsemblGenes):
+    def __init__(self, biomart="hsapiens_snp",
+                 attributes=None, host="www.ensembl.org", npartitions=None):
+        if attributes is None:
+            attributes = ['synonym_name', 'variation_names', 'minor_allele',
+                          'associated_variant_risk_allele',
+                          'ensembl_gene_stable_id', 'ensembl_transcript_stable_id',
+                          'phenotype_name',
+                          'chr_name', 'chrom_start', 'chrom_end']
+        self.filename = "{}.{}".format(biomart, self.__class__.__name__)
+        self.host = host
+        self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
+                                 filename=self.filename, npartitions=npartitions)
+
+
+class EnsemblSomaticVariation(EnsemblGenes):
+    def __init__(self, biomart="hsapiens_snp_som",
+                 attributes=None, host="www.ensembl.org", npartitions=None):
+        if attributes is None:
+            attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
+                          'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',
+                          'somatic_mapweight',
+                          'somatic_chromosome_start', 'somatic_chromosome_end']
+        self.filename = "{}.{}".format(biomart, self.__class__.__name__)
+        self.host = host
+        self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
+                                 filename=self.filename, npartitions=npartitions)

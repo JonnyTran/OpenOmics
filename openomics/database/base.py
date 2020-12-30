@@ -18,7 +18,7 @@ from openomics import backend as pd
 class Dataset(object):
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field
 
-    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
+    def __init__(self, path, file_resources=None, col_rename=None, npartitions=None, verbose=False):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotation, functional annotation, sequences, and disease associations.
         Args:
@@ -36,7 +36,7 @@ class Dataset(object):
 
         self.validate_file_resources(file_resources, path)
 
-        self.data = self.load_dataframe(file_resources)
+        self.data = self.load_dataframe(file_resources, npartitions=npartitions)
         self.data = self.data.reset_index()
         if col_rename is not None:
             self.data = self.data.rename(columns=col_rename)

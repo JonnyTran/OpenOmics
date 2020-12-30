@@ -70,7 +70,7 @@ class GENCODE(SequenceDataset):
         for gtf_file in file_resources:
             if '.gtf' in gtf_file:
                 # Parse lncRNA gtf
-                df = read_gtf(file_resources[gtf_file], )  # Returns a dask dataframe
+                df = read_gtf(file_resources[gtf_file], npartitions=npartitions)  # Returns a dask dataframe
                 dfs.append(df)
 
         if npartitions:
@@ -169,6 +169,7 @@ class MirBase(SequenceDataset):
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
                                            names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
                                                   "NA"])
+
         rnacentral_mirbase = rnacentral_mirbase.set_index("mirbase id")
         rnacentral_mirbase["species"] = rnacentral_mirbase["species"].astype("O")
         if self.species_id is not None:
