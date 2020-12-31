@@ -52,9 +52,8 @@ class ExpressionData(object):
         if npartitions and isinstance(self.expressions, pd.DataFrame):
             self.expressions = dd.from_pandas(self.expressions, npartitions=npartitions)
 
+        self.gene_index = gene_index
         self.gene_level = gene_level
-        if gene_level is not None and type(gene_level) is str:
-            self.expressions.index.name = gene_level
 
         self.sample_level = sample_level
         self.expressions.index.name = self.sample_level
@@ -63,10 +62,6 @@ class ExpressionData(object):
             self.expressions = self.expressions.applymap(transform_fn)
         elif transform_fn == "log2":
             self.expressions = self.expressions.applymap(lambda x: np.log2(x + 1))
-
-    @property
-    def gene_index(self):
-        return self.expressions.index.name
 
     def load_dataframe(self, data, transpose, usecols, gene_index):
         """
