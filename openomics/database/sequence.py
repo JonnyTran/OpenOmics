@@ -179,16 +179,19 @@ class MirBase(SequenceDataset):
 
         mirbase_aliases = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
                                         names=["mirbase id", "gene_name"], dtype="O").set_index("mirbase id")
-        if npartitions:
-            mirbase_aliases = dd.from_pandas(mirbase_aliases, npartitions=npartitions)
-
         mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, how="inner")
 
         # Expanding miRNA names in each MirBase Ascension ID
-        mirna_names = mirbase_aliases.apply(lambda x: pd.Series(x['gene_name'].split(";")[:-1]),
-                                            axis=1).stack().reset_index(
-            level=1, drop=True)
+        mirna_names = mirbase_aliases \
+            .apply(lambda x: pd.Series(x['gene_name'].split(";")[:-1]), axis=1) \
+            .stack() \
+            .reset_index(level=1, drop=True)
+
         mirna_names.name = "gene_name"
+
+        if npartitions:
+            mirbase_aliases = dd.from_pandas(mirbase_aliases, npartitions=npartitions)
+
         mirbase_aliases = mirbase_aliases.drop('gene_name', axis=1).join(mirna_names)
 
         # mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.lower()

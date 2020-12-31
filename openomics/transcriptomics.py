@@ -26,7 +26,7 @@ class ExpressionData(object):
             data (str, byte-like, pandas.DataFrame):
                 Path or file stream of the table file to import. If a pandas DataFrame is passed, then import this dataframe and skip preprocessing steps.
             transpose (bool):
-                True if sample names are columns and rows are genes. False if the table has samples for row index, and gene names as columns.
+                True if given data table has samples or columns and variables for rows. False if the table has samples for row index, and gene names as columns.
             gene_index (str):
                 The column name of gene/transcript/protein to index by.
             usecols (str): a regex string
@@ -52,8 +52,10 @@ class ExpressionData(object):
         if npartitions and isinstance(self.expressions, pd.DataFrame):
             self.expressions = dd.from_pandas(self.expressions, npartitions=npartitions)
 
-        self.gene_index = gene_index
         self.gene_level = gene_level
+        if gene_level is not None and type(gene_level) is str:
+            self.expressions.index.name = gene_level
+
         self.sample_level = sample_level
         self.expressions.index.name = self.sample_level
 
@@ -61,6 +63,10 @@ class ExpressionData(object):
             self.expressions = self.expressions.applymap(transform_fn)
         elif transform_fn == "log2":
             self.expressions = self.expressions.applymap(lambda x: np.log2(x + 1))
+
+    @property
+    def gene_index(self):
+        return self.expressions.index
 
     def load_dataframe(self, data, transpose, usecols, gene_index):
         """

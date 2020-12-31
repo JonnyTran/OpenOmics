@@ -14,23 +14,23 @@ cohort_folder_path = "tests/data/TCGA_LUAD"
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA():
     return MessengerRNA(data=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"), transpose=True,
-                        usecols="GeneSymbol|TCGA", gene_index="gene_name")
+                        usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
 
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA_dask():
     return MessengerRNA(data=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"), transpose=True,
-                        usecols="GeneSymbol|TCGA", gene_index="gene_name", npartitions=4)
+                        usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name", npartitions=4)
 
 @pytest.fixture
 def generate_TCGA_LUAD_MicroRNA():
     return MicroRNA(data=os.path.join(cohort_folder_path, "LUAD__miRNAExp__RPM.txt"), transpose=True,
-                    usecols="GeneSymbol|TCGA", gene_index="gene_name")
+                    usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
 
 
 @pytest.fixture
 def generate_TCGA_LUAD_LncRNA():
     return LncRNA(data=os.path.join(cohort_folder_path, "TCGA-rnaexpr.tsv"), transpose=True,
-                  usecols="Gene_ID|TCGA", gene_index="gene_id")
+                  usecols="Gene_ID|TCGA", gene_index="Gene_ID", gene_level="gene_id")
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def generate_TCGA_LUAD_SomaticMutation():
 @pytest.fixture
 def generate_TCGA_LUAD_Protein():
     return Protein(data=os.path.join(cohort_folder_path, "protein_RPPA.txt"), transpose=True,
-                   usecols="GeneSymbol|TCGA", gene_index="protein_name")
+                   usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="protein_name")
 
 
 def test_import_MessengerRNA_Dask(generate_TCGA_LUAD_MessengerRNA_dask):
