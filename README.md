@@ -86,9 +86,40 @@ Each data is stored as a Pandas DataFrame. Below are all the data imported for T
     LncRNA (546, 12727)
     Protein (364, 154)
     
+## Annotate GENCODE genomic annotations
+```python
+# Import GENCODE database (from URL)
+from openomics.database import GENCODE
 
+gencode = GENCODE(path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
+                  file_resources={"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
+                                  "basic.annotation.gtf": "gencode.v32.basic.annotation.gtf.gz",
+                                  "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
+                                  "transcripts.fa": "gencode.v32.transcripts.fa.gz"},
+                  remove_version_num=True, 
+                  npartitions=5)
 
-## Each multi-omics and clinical data can be accessed through luad_data.data[""], for instance:
+# Annotate LncRNAs with GENCODE by gene_id
+luad_data.LncRNA.annotate_genomics(gencode, index="gene_id", 
+                                   columns=['feature', 'start', 'end', 'strand', 'tag', 'havana_gene'])
+
+luad_data.LncRNA.annotations.info()
+```
+    <class 'pandas.core.frame.DataFrame'>
+    Index: 13729 entries, ENSG00000082929 to ENSG00000284600
+    Data columns (total 6 columns):
+     #   Column       Non-Null Count  Dtype 
+    ---  ------       --------------  ----- 
+     0   feature      13729 non-null  object
+     1   start        13729 non-null  object
+     2   end          13729 non-null  object
+     3   strand       13729 non-null  object
+     4   tag          13729 non-null  object
+     5   havana_gene  13729 non-null  object
+    dtypes: object(6)
+    memory usage: 1.4+ MB
+
+## Each multi-omics and clinical data can be accessed through luad_data.data[], like:
 
 
 ```python
