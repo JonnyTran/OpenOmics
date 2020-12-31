@@ -48,7 +48,7 @@ folder_path = "tests/data/TCGA_LUAD/" # Located at https://github.com/BioMeCIS-L
 Load the multiomics: Gene Expression, MicroRNA expression lncRNA expression, Copy Number Variation, Somatic Mutation, DNA Methylation, and Protein Expression data
 
 ```python
-
+from openomics import MessengerRNA, MicroRNA, LncRNA, SomaticMutation, Protein
 mRNA = MessengerRNA(data=folder_path+"LUAD__geneExp.txt", transpose=True,
                     usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
 miRNA = MicroRNA(data=folder_path+"LUAD__miRNAExp__RPM.txt"), transpose=True,
