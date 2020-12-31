@@ -80,14 +80,14 @@ luad_data.build_samples()
 Each data is stored as a Pandas DataFrame. Below are all the data imported for TCGA LUAD. For each, the first number represents the number of samples, the second number is the number of features.
 
     PATIENTS (522, 5)
-    DRUGS (461, 4)
-    GE (576, 20472)
-    SNP (587, 21070)
-    MIR (494, 1870)
-    LNC (546, 12727)
-    CNV (1107, 22516)
-    PRO (364, 154)
     SAMPLES (1160, 6)
+    DRUGS (461, 4)
+    MessengerRNA (576, 20472)
+    SomaticMutation (587, 21070)
+    MicroRNA (494, 1870)
+    LncRNA (546, 12727)
+    Protein (364, 154)
+    
 
 
 ## Each multi-omics and clinical data can be accessed through luad_data.data[""], for instance:
@@ -96,9 +96,6 @@ Each data is stored as a Pandas DataFrame. Below are all the data imported for T
 ```python
 luad_data.data["PATIENTS"]
 ```
-
-
-
 
 <div>
 
@@ -171,7 +168,7 @@ luad_data.data["PATIENTS"]
 
 
 ```python
-luad_data.data["GE"]
+luad_data.data["MessengerRNA"]
 ```
 
 
@@ -313,7 +310,7 @@ luad_data.data["GE"]
 
 
 ```python
-luad_data.match_samples(modalities=["MIR", "GE"])
+luad_data.match_samples(modalities=["MicroRNA", "MessengerRNA"])
 ```
 
 
@@ -337,9 +334,9 @@ luad_data.match_samples(modalities=["MIR", "GE"])
 
 ```python
 # This function selects only patients with patholotic stages "Stage I" and "Stage II"
-X_multiomics, y = luad_data.load_dataframe(modalities=["GE", "MIR", "LNC"], target=['pathologic_stage'],
+X_multiomics, y = luad_data.load_dataframe(modalities=["MessengerRNA", "MicroRNA", "LncRNA"], target=['pathologic_stage'],
                                      pathologic_stages=['Stage I', 'Stage II'])
-print(X_multiomics['GE'].shape, X_multiomics['MIR'].shape, X_multiomics['LNC'].shape, y.shape)
+print(X_multiomics['MessengerRNA'].shape, X_multiomics['MicroRNA'].shape, X_multiomics['LncRNA'].shape, y.shape)
 ```
 
     (336, 20472) (336, 1870) (336, 12727) (336, 1)
@@ -434,9 +431,9 @@ y
 ```python
 def expression_val_transform(x):
     return np.log2(x+1)
-X_multiomics['GE'] = X_multiomics['GE'].applymap(expression_val_transform)
-X_multiomics['MIR'] = X_multiomics['MIR'].applymap(expression_val_transform)
-# X_multiomics['LNC'] = X_multiomics['LNC'].applymap(expression_val_transform)
+X_multiomics['MessengerRNA'] = X_multiomics['MessengerRNA'].applymap(expression_val_transform)
+X_multiomics['MicroRNA'] = X_multiomics['MicroRNA'].applymap(expression_val_transform)
+# X_multiomics['LncRNA'] = X_multiomics['LncRNA'].applymap(expression_val_transform)
 ```
 
 ## Classification of Cancer Stage
@@ -481,7 +478,7 @@ binarizer.transform(y)
 
 
 ```python
-for omic in ["GE", "MIR"]:
+for omic in ["MessengerRNA", "MicroRNA"]:
     print(omic)
     scaler = sklearn.preprocessing.StandardScaler(copy=True, with_mean=True, with_std=False)
     scaler.fit(X_multiomics[omic])
@@ -504,7 +501,7 @@ for omic in ["GE", "MIR"]:
 
 ```
 
-    GE
+    MessengerRNA
     (254, 20472) (109, 20472)
     NONZERO 0
     Training accuracy 0.6929133858267716
@@ -515,7 +512,7 @@ for omic in ["GE", "MIR"]:
 
     avg / total       0.47      0.69      0.56       109
 
-    MIR
+    MicroRNA
     (254, 1870) (109, 1870)
     NONZERO 0
     Training accuracy 0.6929133858267716
