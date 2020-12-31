@@ -548,11 +548,6 @@ for omic in ["MessengerRNA", "MicroRNA"]:
     avg / total       0.47      0.69      0.56       109
 
 
-Features
---------
-
-* TODO
-
 Credits
 -------
 
