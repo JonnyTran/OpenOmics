@@ -49,6 +49,8 @@ Load the multiomics: Gene Expression, MicroRNA expression lncRNA expression, Cop
 
 ```python
 from openomics import MessengerRNA, MicroRNA, LncRNA, SomaticMutation, Protein
+
+# Load each expression dataframe
 mRNA = MessengerRNA(data=folder_path+"LUAD__geneExp.txt", transpose=True,
                     usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
 miRNA = MicroRNA(data=folder_path+"LUAD__miRNAExp__RPM.txt"), transpose=True,
@@ -60,7 +62,7 @@ som = SomaticMutation(data=folder_path+"LUAD__somaticMutation_geneLevel.txt"),
 pro = Protein(data=folder_path+"protein_RPPA.txt"), transpose=True,
               usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="protein_name")
 
-
+# Create an integrated MultiOmics dataset
 luad_data = MultiOmics(cohort_name="LUAD")
 luad_data.add_clinical_data(
     clinical_data=folder_path+"nationwidechildrens.org_clinical_patient_luad.txt")
@@ -85,7 +87,7 @@ Each data is stored as a Pandas DataFrame. Below are all the data imported for T
     LncRNA (546, 12727)
     Protein (364, 154)
     
-## Annotate GENCODE genomic annotations
+## Annotate LncRNAs with GENCODE genomic annotations
 ```python
 # Import GENCODE database (from URL)
 from openomics.database import GENCODE
