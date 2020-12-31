@@ -47,10 +47,8 @@ from openomics import MultiOmics
 folder_path = "tests/data/TCGA_LUAD/" # Located in openomics repo folder
 ```
 
-
-
+## Load the multiomics: Gene Expression, MicroRNA expression lncRNA expression, Copy Number Variation, Somatic Mutation, DNA Methylation, and Protein Expression data
 ```python
-# Load all modalities: Gene Expression, MicroRNA expression lncRNA expression, Copy Number Variation, Somatic Mutation, DNA Methylation, and Protein Expression data
 
 mRNA = MessengerRNA(data=folder_path+"LUAD__geneExp.txt", transpose=True,
                     usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
