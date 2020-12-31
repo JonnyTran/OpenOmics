@@ -40,20 +40,41 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 from openomics import MultiOmics
 ```
 
-## Import TCGA LUAD data downloaded from TCGA-Assembler
+## Import TCGA LUAD data included in tests dataset (preprocessed from TCGA-Assembler)
 
 
 ```python
-folder_path ="./data/tcga-assembler/LUAD/"
+folder_path = "tests/data/TCGA_LUAD/" # Located in openomics repo folder
 ```
 
 
 
 ```python
 # Load all modalities: Gene Expression, MicroRNA expression lncRNA expression, Copy Number Variation, Somatic Mutation, DNA Methylation, and Protein Expression data
-luad_data = MultiOmics(cancer_type="LUAD", folder_path=folder_path,
-                           modalities=["GE", "MIR", "LNC", "CNV", "SNP", "PRO"])
 
+mRNA = MessengerRNA(data=folder_path+"LUAD__geneExp.txt", transpose=True,
+                    usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
+miRNA = MicroRNA(data=folder_path+"LUAD__miRNAExp__RPM.txt"), transpose=True,
+                 usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
+lncRNA = LncRNA(data=folder_path+"TCGA-rnaexpr.tsv"), transpose=True,
+                usecols="Gene_ID|TCGA", gene_index="Gene_ID", gene_level="gene_id")
+som = SomaticMutation(data=folder_path+"LUAD__somaticMutation_geneLevel.txt"),
+                      transpose=True, usecols="GeneSymbol|TCGA", gene_index="gene_name")
+pro = Protein(data=folder_path+"protein_RPPA.txt"), transpose=True,
+              usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="protein_name")
+
+
+luad_data = MultiOmics(cohort_name="LUAD")
+luad_data.add_clinical_data(
+    clinical_data=folder_path+"nationwidechildrens.org_clinical_patient_luad.txt")
+    
+luad_data.add_omic(mRNA)
+luad_data.add_omic(miRNA)
+luad_data.add_omic(lncRNA)
+luad_data.add_omic(som)
+luad_data.add_omic(pro)
+
+luad_data.build_samples()
 ```
 
 Each data is stored as a Pandas DataFrame. Below are all the data imported for TCGA LUAD. For each, the first number represents the number of samples, the second number is the number of features.
