@@ -22,6 +22,8 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 - Multiple data types that supports both interactions and sequence data, and allows users to export to NetworkX graphs or down-stream machine learning.
 - An easy-to-use API that works seamlessly with external Galaxy tool interface or the built-in Dash web interface.
 
+<br/>
+
 ## Installation via pip: 
 
     pip install openomics
