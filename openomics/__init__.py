@@ -15,7 +15,7 @@ __version__ = '0.7.9'
 __BACKEND__ = "pandas"
 backend = pd
 
-from . import database
+from . import database, utils
 
 from .transcriptomics import (
     ExpressionData, MessengerRNA, MicroRNA, LncRNA,

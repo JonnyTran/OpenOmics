@@ -59,8 +59,7 @@ class ProteinAtlas(Dataset):
     }
 
     def __init__(self, path="https://www.proteinatlas.org/download/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT,
-                 npartitions=0, verbose=False):
+                 col_rename=COLUMNS_RENAME_DICT, npartitions=0, verbose=False):
         if file_resources is None:
             file_resources = {}
             file_resources["proteinatlas.tsv"] = "proteinatlas.tsv.zip"
@@ -68,7 +67,10 @@ class ProteinAtlas(Dataset):
         super(ProteinAtlas, self).__init__(path, file_resources, col_rename, npartitions, verbose)
 
     def load_dataframe(self, file_resources, npartitions=None):
-        df = pd.read_table(file_resources["proteinatlas.tsv"])
+        if npartitions:
+            df = dd.read_table(file_resources["proteinatlas.tsv"])
+        else:
+            df = pd.read_table(file_resources["proteinatlas.tsv"])
 
         return df
 

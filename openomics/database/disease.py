@@ -28,7 +28,8 @@ class MalaCards(DiseaseAssociation):
 
         super(MalaCards, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
-    def load_dataframe(self, file_resources, npartitions=None):  # type: (dict) -> pd.DataFrame
+    def load_dataframe(self, file_resources, npartitions=None):
+        # type: (dict, int) -> pd.DataFrame
         df = pd.read_csv(file_resources["MalaCards.csv"])
         return df
 

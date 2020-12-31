@@ -25,7 +25,8 @@ class Ontology(Dataset):
         """
         self.network, self.node_list = self.load_network(file_resources)
 
-        super(Ontology, self).__init__(path, file_resources, col_rename, npartitions, verbose)
+        super(Ontology, self).__init__(path=path, file_resources=file_resources, col_rename=col_rename,
+                                       npartitions=npartitions, verbose=verbose)
 
     def load_network(self, file_resources) -> (nx.MultiDiGraph, list):
         raise NotImplementedError

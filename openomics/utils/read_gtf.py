@@ -13,6 +13,7 @@
 from __future__ import print_function, division, absolute_import
 import logging
 from os.path import exists
+from collections import OrderedDict
 
 from six import string_types
 from six.moves import intern
@@ -348,7 +349,7 @@ def read_gtf(
             chunksize=chunksize,
             restrict_attribute_columns=usecols)
     else:
-        result_df = parse_gtf(result_df, npartitions=npartitions, features=features)
+        result_df = parse_gtf(filepath_or_buffer, npartitions=npartitions, features=features)
 
     for column_name, column_type in list(column_converters.items()):
         result_df[column_name] = [

@@ -7,7 +7,7 @@ from Bio import SeqIO
 
 import openomics
 from .base import Dataset
-from ..utils.read_gtf import read_gtf
+from openomics.utils.read_gtf import read_gtf
 
 class SequenceDataset(Dataset):
     def __init__(self, replace_U2T=False, **kwargs):
@@ -16,10 +16,11 @@ class SequenceDataset(Dataset):
         super(SequenceDataset, self).__init__(**kwargs)
 
     @abstractmethod
-    def read_fasta(self, fasta_file, replace_U2T):
+    def read_fasta(self, fasta_file, replace_U2T, npartitions=None):
         """
         Returns a pandas DataFrame containing the fasta sequence entries. With a column named 'sequence'.
         Args:
+            npartitions:
             replace_U2T:
             fasta_file (str): path to the fasta file, usually as self.file_resources[<file_name>]
         """
@@ -38,12 +39,12 @@ class SequenceDataset(Dataset):
         """
         raise NotImplementedError
 
-    def get_aggregator(self, agg_sequences=None):
-        if agg_sequences == "all":
+    def get_aggregator(self, agg=None):
+        if agg == "all":
             agg_func = lambda x: list(x) if not isinstance(x, str) else x
-        elif agg_sequences == "shortest":
+        elif agg == "shortest":
             agg_func = lambda x: min(x, key=len)
-        elif agg_sequences == "longest":
+        elif agg == "longest":
             agg_func = lambda x: max(x, key=len)
         else:
             raise Exception("agg_sequences argument must be one of {'all', 'shortest', 'longest'}")
@@ -69,8 +70,7 @@ class GENCODE(SequenceDataset):
         dfs = []
         for gtf_file in file_resources:
             if '.gtf' in gtf_file:
-                # Parse lncRNA gtf
-                df = read_gtf(file_resources[gtf_file], npartitions=npartitions)  # Returns a dask dataframe
+                df = read_gtf(file_resources[gtf_file], npartitions=npartitions)
                 dfs.append(df)
 
         if npartitions:
@@ -84,7 +84,7 @@ class GENCODE(SequenceDataset):
 
         return annotation_df
 
-    def read_fasta(self, fasta_file, replace_U2T):
+    def read_fasta(self, fasta_file, replace_U2T, npartitions=None):
         entries = []
         for record in SeqIO.parse(fasta_file, "fasta"):
             record_dict = {"gene_id": record.id.split("|")[1],
@@ -93,12 +93,14 @@ class GENCODE(SequenceDataset):
                            "transcript_name": record.id.split("|")[4],
                            "transcript_length": record.id.split("|")[6],
                            "transcript_biotype": record.id.split("|")[7],
-                           "sequence": str(record.seq),
-                           }
+                           "sequence": str(record.seq), }
 
             entries.append(record_dict)
 
         entries_df = pd.DataFrame(entries)
+        if npartitions:
+            entries_df = dd.from_pandas(entries_df)
+
         if replace_U2T:
             entries_df["sequence"] = entries_df["sequence"].str.replace("U", "T")
         if self.remove_version_num:
@@ -177,6 +179,9 @@ class MirBase(SequenceDataset):
 
         mirbase_aliases = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
                                         names=["mirbase id", "gene_name"], dtype="O").set_index("mirbase id")
+        if npartitions:
+            mirbase_aliases = dd.from_pandas(mirbase_aliases, npartitions=npartitions)
+
         mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, how="inner")
 
         # Expanding miRNA names in each MirBase Ascension ID
@@ -191,7 +196,7 @@ class MirBase(SequenceDataset):
 
         return mirbase_aliases
 
-    def read_fasta(self, fasta_file, replace_U2T):
+    def read_fasta(self, fasta_file, replace_U2T, npartitions=None):
         entries = []
         for record in SeqIO.parse(fasta_file, "fasta"):
             record_dict = {"gene_id": record.id,
@@ -205,6 +210,9 @@ class MirBase(SequenceDataset):
             entries.append(record_dict)
 
         entries_df = pd.DataFrame(entries)
+        if npartitions:
+            entries_df = dd.from_pandas(entries_df)
+
         if replace_U2T:
             entries_df["sequence"] = entries_df["sequence"].str.replace("U", "T")
         return entries_df
