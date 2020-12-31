@@ -1,3 +1,4 @@
+import logging
 from abc import abstractmethod
 
 import pandas as pd
@@ -222,7 +223,7 @@ class MirBase(SequenceDataset):
 
     def get_sequences(self, index="gene_name", omic=None, agg_sequences="all"):
         if hasattr(self, "seq_dict"):
-            print("Using cached self.seq_dict")
+            logging.info("Using cached sequences dict")
             return self.seq_dict
 
         if self.sequence == "hairpin":
