@@ -21,8 +21,6 @@ class ExpressionData(object):
         The user will also specify the index argument, which specifies if the genes are ensembl genes ID or gene name, or transcripts id/names. The user should be careful about choosing the right genes index which makes it easier to annotate functional, sequence, and interaction data to it.
         The dataframe should only contain numeric values besides the genes_col_name and the sample barcode id indices.
         Args:
-            gene_level:
-            cohort_name (str): the unique cohort code name string
             data (str, byte-like, pandas.DataFrame):
                 Path or file stream of the table file to import. If a pandas DataFrame is passed, then import this dataframe and skip preprocessing steps.
             transpose (bool):
@@ -41,8 +39,12 @@ class ExpressionData(object):
                 Whether to drop rows with null values
             npartitions (int): [0-n], default 0
                 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
+            cohort_name (str):
+                The unique cohort code name string.
         """
         self.cohort_name = cohort_name
+        self.gene_level = gene_level
+        self.sample_level = sample_level
 
         df = self.load_dataframe(data, transpose=transpose, usecols=usecols, gene_index=gene_index)
         self.expressions = self.preprocess_table(df, usecols=usecols, gene_index=gene_index, transposed=transpose,
@@ -52,16 +54,19 @@ class ExpressionData(object):
         if npartitions and isinstance(self.expressions, pd.DataFrame):
             self.expressions = dd.from_pandas(self.expressions, npartitions=npartitions)
 
-        self.gene_index = gene_index
-        self.gene_level = gene_level
+        if gene_level is not None:
+            self.expressions.columns.name = gene_level
 
-        self.sample_level = sample_level
         self.expressions.index.name = self.sample_level
 
         if callable(transform_fn):
             self.expressions = self.expressions.applymap(transform_fn)
         elif transform_fn == "log2":
             self.expressions = self.expressions.applymap(lambda x: np.log2(x + 1))
+
+    @property
+    def gene_index(self):
+        return self.expressions.columns.name
 
     def load_dataframe(self, data, transpose, usecols, gene_index):
         """

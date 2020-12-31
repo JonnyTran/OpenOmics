@@ -6,14 +6,14 @@ from .test_multiomics import *
 def generate_LncRNA2Target():
     return LncRNA2Target(version="low_throughput")
 
-
 def test_import_LncRNA2Target(generate_LncRNA2Target):
     assert generate_LncRNA2Target.data_path is not None
 
 
 @pytest.fixture
 def generate_MiRTarBase():
-    return MiRTarBase()
+    return MiRTarBase(path="/data/datasets/Bioinformatics_ExternalData/miRTarBase/", strip_mirna_name=True,
+                      filters={"Species (Target Gene)": "Homo sapiens"})
 
 
 def test_import_MiRTarBase(generate_MiRTarBase):

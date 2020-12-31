@@ -199,7 +199,7 @@ def parse_gtf(
             skip_blank_lines=True,
             error_bad_lines=True,
             warn_bad_lines=True,
-            chunksize=chunksize,
+            # chunksize=chunksize,
             engine="c",
             dtype={
                 "start": np.int64,
