@@ -35,19 +35,18 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 
 ## Importing the openomics library
 
-
 ```python
 from openomics import MultiOmics
 ```
 
-## Import TCGA LUAD data included in tests dataset (preprocessed from TCGA-Assembler)
-
+Import TCGA LUAD data included in tests dataset (preprocessed from TCGA-Assembler)
 
 ```python
-folder_path = "tests/data/TCGA_LUAD/" # Located in openomics repo folder
+folder_path = "tests/data/TCGA_LUAD/" # Located at https://github.com/BioMeCIS-Lab/OpenOmics/tree/master/tests
 ```
 
-## Load the multiomics: Gene Expression, MicroRNA expression lncRNA expression, Copy Number Variation, Somatic Mutation, DNA Methylation, and Protein Expression data
+Load the multiomics: Gene Expression, MicroRNA expression lncRNA expression, Copy Number Variation, Somatic Mutation, DNA Methylation, and Protein Expression data
+
 ```python
 
 mRNA = MessengerRNA(data=folder_path+"LUAD__geneExp.txt", transpose=True,
@@ -119,7 +118,7 @@ luad_data.LncRNA.annotations.info()
     dtypes: object(6)
     memory usage: 1.4+ MB
 
-## Each multi-omics and clinical data can be accessed through luad_data.data[], like:
+Each multi-omics and clinical data can be accessed through luad_data.data[], like:
 
 
 ```python
@@ -342,9 +341,6 @@ luad_data.data["MessengerRNA"]
 luad_data.match_samples(modalities=["MicroRNA", "MessengerRNA"])
 ```
 
-
-
-
     Index(['TCGA-05-4384-01A', 'TCGA-05-4390-01A', 'TCGA-05-4396-01A',
            'TCGA-05-4405-01A', 'TCGA-05-4410-01A', 'TCGA-05-4415-01A',
            'TCGA-05-4417-01A', 'TCGA-05-4424-01A', 'TCGA-05-4425-01A',
@@ -355,7 +351,6 @@ luad_data.match_samples(modalities=["MicroRNA", "MessengerRNA"])
            'TCGA-NJ-A55R-01A', 'TCGA-NJ-A7XG-01A', 'TCGA-O1-A52J-01A',
            'TCGA-S2-AA1A-01A'],
           dtype='object', length=465)
-
 
 
 ## To prepare the data for classification
@@ -374,8 +369,6 @@ print(X_multiomics['MessengerRNA'].shape, X_multiomics['MicroRNA'].shape, X_mult
 ```python
 y
 ```
-
-
 
 
 <div>
