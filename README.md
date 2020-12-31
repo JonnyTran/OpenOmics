@@ -2,79 +2,130 @@
 [![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
 [![Documentation Status](https://readthedocs.org/projects/openomics/badge/?version=latest)](https://openomics.readthedocs.io/en/latest/?badge=latest)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Build Status](https://travis-ci.com/JonnyTran/OpenOmics.svg?branch=master)](https://travis-ci.com/JonnyTran/OpenOmics)
-[![codecov](https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg)](https://codecov.io/gh/JonnyTran/OpenOmics)
-[![Updates](https://pyup.io/repos/github/JonnyTran/OpenOmics/shield.svg)](https://pyup.io/repos/github/JonnyTran/OpenOmics/)
+[![Build Status](https://travis-ci.com/BioMeCIS-Lab/OpenOmics.svg?branch=master)](https://travis-ci.com/BioMeCIS-Lab/OpenOmics)
+[![codecov](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg)](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics)
+[![Updates](https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/shield.svg)](https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/)
 
-This Python package provide a series of tool to integrate and query the genomics, transcriptomics, proteomics, and clinical TCGA data.
-By providing a series of data manipulation tools, open-omics facilitates the common coding tasks when preparing data for bioinformatics analysis.
+This Python package provide a series of tools to integrate and query the genomics, transcriptomics, proteomics, and clinical data (aka multi-omics data).
+With scalable data-frame manipulation tools, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
 
-## Installation via pip:
-OpenOmics is a Python library to assist integration of heterogeneous multi-omics bioinformatics data. By providing an API of data manipulation tools as well as a web interface, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
+## Features
+OpenOmics assist in integration of heterogeneous multi-omics bioinformatics data. The library provides a Python API as well as an interactive Dash web interface.
 It features support for:
 - Genomics, Transcriptomics, Proteomics, and Clinical data.
 - Harmonization with 20+ popular annotation, interaction, disease-association databases.
 
-OpenOmics also has an efficient data pipeline that bridges the popular data manipulation library like Pandas and distributed processing like Dask to the Dash web dashboard interface. With an intuitive web interface and easy-than-ever API, OpenOmics addresses the following use cases:
+OpenOmics also has an efficient data pipeline that bridges the popular data manipulation Pandas library and Dask distributed processing to address the following use cases:
 
-- Provides a standard pipeline for dataset indexing, table joining and querying, which are transparent to users.
-- Multiple data types that supports both interactions and sequence data, and allows users to export to NetworkX graphs
-  or down-stream machine learning.
-- An easy-to-use API that works seamlessly with the Dash web interface.
+- Provides a standard pipeline for dataset indexing, table joining and querying, which are transparent and customizable for end-users. 
+- Efficient disk storage for large multi-omics dataset with Parquet data structures.
+- Multiple data types that supports both interactions and sequence data, and allows users to export to NetworkX graphs or down-stream machine learning.
+- An easy-to-use API that works seamlessly with external Galaxy tool interface or the built-in Dash web interface.
 
-## Installation via pip:
+<br/>
+
+## Installation via pip: 
 
     pip install openomics
 
+<br/>
 
 # How to use OpenOmics:
 
 
 ## Importing the openomics library
 
-
 ```python
 from openomics import MultiOmics
 ```
 
-## Import TCGA LUAD data downloaded from TCGA-Assembler
-
+Import TCGA LUAD data included in tests dataset (preprocessed from TCGA-Assembler)
 
 ```python
-folder_path ="./data/tcga-assembler/LUAD/"
+folder_path = "tests/data/TCGA_LUAD/" # Located at https://github.com/BioMeCIS-Lab/OpenOmics/tree/master/tests
 ```
 
-
+Load the multiomics: Gene Expression, MicroRNA expression lncRNA expression, Copy Number Variation, Somatic Mutation, DNA Methylation, and Protein Expression data
 
 ```python
-# Load all modalities: Gene Expression, MicroRNA expression lncRNA expression, Copy Number Variation, Somatic Mutation, DNA Methylation, and Protein Expression data
-luad_data = MultiOmics(cancer_type="LUAD", folder_path=folder_path,
-                           modalities=["GE", "MIR", "LNC", "CNV", "SNP", "PRO"])
+from openomics import MessengerRNA, MicroRNA, LncRNA, SomaticMutation, Protein
 
+# Load each expression dataframe
+mRNA = MessengerRNA(data=folder_path+"LUAD__geneExp.txt", transpose=True,
+                    usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
+miRNA = MicroRNA(data=folder_path+"LUAD__miRNAExp__RPM.txt"), transpose=True,
+                 usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
+lncRNA = LncRNA(data=folder_path+"TCGA-rnaexpr.tsv"), transpose=True,
+                usecols="Gene_ID|TCGA", gene_index="Gene_ID", gene_level="gene_id")
+som = SomaticMutation(data=folder_path+"LUAD__somaticMutation_geneLevel.txt"),
+                      transpose=True, usecols="GeneSymbol|TCGA", gene_index="gene_name")
+pro = Protein(data=folder_path+"protein_RPPA.txt"), transpose=True,
+              usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="protein_name")
+
+# Create an integrated MultiOmics dataset
+luad_data = MultiOmics(cohort_name="LUAD")
+luad_data.add_clinical_data(
+    clinical_data=folder_path+"nationwidechildrens.org_clinical_patient_luad.txt")
+    
+luad_data.add_omic(mRNA)
+luad_data.add_omic(miRNA)
+luad_data.add_omic(lncRNA)
+luad_data.add_omic(som)
+luad_data.add_omic(pro)
+
+luad_data.build_samples()
 ```
 
 Each data is stored as a Pandas DataFrame. Below are all the data imported for TCGA LUAD. For each, the first number represents the number of samples, the second number is the number of features.
 
     PATIENTS (522, 5)
-    DRUGS (461, 4)
-    GE (576, 20472)
-    SNP (587, 21070)
-    MIR (494, 1870)
-    LNC (546, 12727)
-    CNV (1107, 22516)
-    PRO (364, 154)
     SAMPLES (1160, 6)
+    DRUGS (461, 4)
+    MessengerRNA (576, 20472)
+    SomaticMutation (587, 21070)
+    MicroRNA (494, 1870)
+    LncRNA (546, 12727)
+    Protein (364, 154)
+    
+## Annotate LncRNAs with GENCODE genomic annotations
+```python
+# Import GENCODE database (from URL)
+from openomics.database import GENCODE
 
+gencode = GENCODE(path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
+                  file_resources={"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
+                                  "basic.annotation.gtf": "gencode.v32.basic.annotation.gtf.gz",
+                                  "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
+                                  "transcripts.fa": "gencode.v32.transcripts.fa.gz"},
+                  remove_version_num=True, 
+                  npartitions=5)
 
-## Each multi-omics and clinical data can be accessed through luad_data.data[""], for instance:
+# Annotate LncRNAs with GENCODE by gene_id
+luad_data.LncRNA.annotate_genomics(gencode, index="gene_id", 
+                                   columns=['feature', 'start', 'end', 'strand', 'tag', 'havana_gene'])
+
+luad_data.LncRNA.annotations.info()
+```
+    <class 'pandas.core.frame.DataFrame'>
+    Index: 13729 entries, ENSG00000082929 to ENSG00000284600
+    Data columns (total 6 columns):
+     #   Column       Non-Null Count  Dtype 
+    ---  ------       --------------  ----- 
+     0   feature      13729 non-null  object
+     1   start        13729 non-null  object
+     2   end          13729 non-null  object
+     3   strand       13729 non-null  object
+     4   tag          13729 non-null  object
+     5   havana_gene  13729 non-null  object
+    dtypes: object(6)
+    memory usage: 1.4+ MB
+
+Each multi-omics and clinical data can be accessed through luad_data.data[], like:
 
 
 ```python
 luad_data.data["PATIENTS"]
 ```
-
-
-
 
 <div>
 
@@ -147,7 +198,7 @@ luad_data.data["PATIENTS"]
 
 
 ```python
-luad_data.data["GE"]
+luad_data.data["MessengerRNA"]
 ```
 
 
@@ -289,11 +340,8 @@ luad_data.data["GE"]
 
 
 ```python
-luad_data.match_samples(modalities=["MIR", "GE"])
+luad_data.match_samples(modalities=["MicroRNA", "MessengerRNA"])
 ```
-
-
-
 
     Index(['TCGA-05-4384-01A', 'TCGA-05-4390-01A', 'TCGA-05-4396-01A',
            'TCGA-05-4405-01A', 'TCGA-05-4410-01A', 'TCGA-05-4415-01A',
@@ -307,13 +355,14 @@ luad_data.match_samples(modalities=["MIR", "GE"])
           dtype='object', length=465)
 
 
-
 ## To prepare the data for classification
+
 
 ```python
 # This function selects only patients with patholotic stages "Stage I" and "Stage II"
-X_multiomics, y = luad_data.load_dataframe()
-print(X_multiomics['GE'].shape, X_multiomics['MIR'].shape, X_multiomics['LNC'].shape, y.shape)
+X_multiomics, y = luad_data.load_dataframe(modalities=["MessengerRNA", "MicroRNA", "LncRNA"], target=['pathologic_stage'],
+                                     pathologic_stages=['Stage I', 'Stage II'])
+print(X_multiomics['MessengerRNA'].shape, X_multiomics['MicroRNA'].shape, X_multiomics['LncRNA'].shape, y.shape)
 ```
 
     (336, 20472) (336, 1870) (336, 12727) (336, 1)
@@ -322,8 +371,6 @@ print(X_multiomics['GE'].shape, X_multiomics['MIR'].shape, X_multiomics['LNC'].s
 ```python
 y
 ```
-
-
 
 
 <div>
@@ -408,9 +455,9 @@ y
 ```python
 def expression_val_transform(x):
     return np.log2(x+1)
-X_multiomics['GE'] = X_multiomics['GE'].applymap(expression_val_transform)
-X_multiomics['MIR'] = X_multiomics['MIR'].applymap(expression_val_transform)
-# X_multiomics['LNC'] = X_multiomics['LNC'].applymap(expression_val_transform)
+X_multiomics['MessengerRNA'] = X_multiomics['MessengerRNA'].applymap(expression_val_transform)
+X_multiomics['MicroRNA'] = X_multiomics['MicroRNA'].applymap(expression_val_transform)
+# X_multiomics['LncRNA'] = X_multiomics['LncRNA'].applymap(expression_val_transform)
 ```
 
 ## Classification of Cancer Stage
@@ -455,7 +502,7 @@ binarizer.transform(y)
 
 
 ```python
-for omic in ["GE", "MIR"]:
+for omic in ["MessengerRNA", "MicroRNA"]:
     print(omic)
     scaler = sklearn.preprocessing.StandardScaler(copy=True, with_mean=True, with_std=False)
     scaler.fit(X_multiomics[omic])
@@ -478,7 +525,7 @@ for omic in ["GE", "MIR"]:
 
 ```
 
-    GE
+    MessengerRNA
     (254, 20472) (109, 20472)
     NONZERO 0
     Training accuracy 0.6929133858267716
@@ -489,7 +536,7 @@ for omic in ["GE", "MIR"]:
 
     avg / total       0.47      0.69      0.56       109
 
-    MIR
+    MicroRNA
     (254, 1870) (109, 1870)
     NONZERO 0
     Training accuracy 0.6929133858267716
@@ -500,11 +547,6 @@ for omic in ["GE", "MIR"]:
 
     avg / total       0.47      0.69      0.56       109
 
-
-Features
---------
-
-* TODO
 
 Credits
 -------
