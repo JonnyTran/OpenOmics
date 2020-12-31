@@ -23,8 +23,7 @@ class MultiOmics:
         # This is a data dictionary accessor to retrieve individual -omic data
         self.data = {}
 
-    def add_omic(self, omic_data, initialize_annotations=True):
-        # type: (ExpressionData, bool) -> None
+    def add_omic(self, omic_data: ExpressionData, initialize_annotations: bool = True):
         """
         Adds an omic object to the Multiomics such that the samples in omic matches the samples existing in the other omics.
 

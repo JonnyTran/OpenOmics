@@ -4,9 +4,7 @@ from .test_multiomics import *
 
 @pytest.fixture
 def generate_RNACentral_ftp():
-    return RNAcentral(path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources={
-        "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
-        "gencode.tsv": "id_mapping/database_mappings/gencode.tsv"})
+    return RNAcentral(path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/")
 
 
 def test_import_rnacentral_db(generate_RNACentral_ftp):
@@ -43,10 +41,7 @@ def test_GTEx_annotate(generate_TCGA_LUAD, generate_GTEx_expressions):
 
 @pytest.fixture
 def generate_GeneOntology():
-    return GeneOntology(path="http://geneontology.org/gene-associations/",
-                        file_resources={"goa_human.gaf": "goa_human.gaf.gz",
-                                        "goa_human_rna.gaf": "goa_human_rna.gaf.gz"}
-                        )
+    return GeneOntology(path="http://geneontology.org/gene-associations/")
 
 
 def test_import_GeneOntology(generate_GeneOntology):

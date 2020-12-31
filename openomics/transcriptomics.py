@@ -66,7 +66,7 @@ class ExpressionData(object):
 
     @property
     def gene_index(self):
-        return self.expressions.index
+        return self.expressions.index.name
 
     def load_dataframe(self, data, transpose, usecols, gene_index):
         """
@@ -89,7 +89,6 @@ class ExpressionData(object):
         elif "*" in data:
             df = self.load_dataframe_glob(data, usecols, gene_index, transpose)
         elif isinstance(data, io.StringIO):
-            # TODO implement handling for multiple file ByteIO
             data.seek(0)  # Needed since the file was previous read to extract columns information
             df = pd.read_table(data)
         elif type(data) is str and os.path.isfile(data):
@@ -97,6 +96,7 @@ class ExpressionData(object):
         else:
             raise IOError(data)
 
+        # TODO implement handling for multiple file ByteIO
         return df
 
     def load_dataframe_glob(self, globstring, usecols, genes_index, transpose):
@@ -220,8 +220,7 @@ class MessengerRNA(ExpressionData, Annotatable):
                  transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
         super(MessengerRNA, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
                                            gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
-                                           dropna=dropna,
-                                           npartitions=npartitions, cohort_name=cohort_name)
+                                           dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
 
     @classmethod
     def name(cls):

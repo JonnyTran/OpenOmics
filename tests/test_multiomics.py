@@ -46,7 +46,7 @@ def generate_TCGA_LUAD_Protein():
 
 
 def test_import_MessengerRNA_Dask(generate_TCGA_LUAD_MessengerRNA_dask):
-    assert generate_TCGA_LUAD_MessengerRNA_dask.data is not None
+    assert generate_TCGA_LUAD_MessengerRNA_dask.expressions is not None
 
 
 def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA):
