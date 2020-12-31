@@ -4,11 +4,9 @@ from .test_multiomics import *
 
 @pytest.fixture
 def generate_RNACentral_ftp():
-    return RNAcentral(path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/",
-                      file_resources={
-                          "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
-                          "gencode.tsv": "id_mapping/database_mappings/gencode.tsv"},
-                      )
+    return RNAcentral(path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources={
+        "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
+        "gencode.tsv": "id_mapping/database_mappings/gencode.tsv"})
 
 
 def test_import_rnacentral_db(generate_RNACentral_ftp):

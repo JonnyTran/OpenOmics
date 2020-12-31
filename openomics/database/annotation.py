@@ -94,8 +94,8 @@ class RNAcentral(Dataset):
                            'external id': 'transcript_id',
                            'GO terms': 'go_id'}
 
-    def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/",
-                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0, species=9606, verbose=False):
+    def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
+                 col_rename=COLUMNS_RENAME_DICT, species=9606, npartitions=0, verbose=False):
         self.species = species
 
         if file_resources is None:
@@ -115,12 +115,22 @@ class RNAcentral(Dataset):
         gene_ids = []
         for file in file_resources:
             if "database_mappings" in file:
-                id_mapping = pd.read_table(file_resources[file],
-                                           low_memory=True, header=None,
-                                           names=["RNAcentral id", "database", "external id", "species", "RNA type",
-                                                  "gene symbol"])
+                if npartitions:
+                    id_mapping = dd.read_table(file_resources[file], header=None,
+                                               names=["RNAcentral id", "database", "external id", "species", "RNA type",
+                                                      "gene symbol"])
+                else:
+                    id_mapping = pd.read_table(file_resources[file],
+                                               low_memory=True, header=None,
+                                               names=["RNAcentral id", "database", "external id", "species", "RNA type",
+                                                      "gene symbol"])
+
                 gene_ids.append(id_mapping)
-        gene_ids = pd.concat(gene_ids, join="inner")
+
+        if npartitions:
+            gene_ids = dd.concat(gene_ids, join="inner")
+        else:
+            gene_ids = pd.concat(gene_ids, join="inner")
 
         gene_ids["species"] = gene_ids["species"].astype("O")
         if self.species is not None:
@@ -214,7 +224,10 @@ class NONCODE(Dataset):
         transcript2gene_df = pd.read_table(file_resources["NONCODEv5_Transcript2Gene"], header=None)
         transcript2gene_df.columns = ["NONCODE Transcript ID", "NONCODE Gene ID"]
 
-        self.noncode_func_df = pd.read_table(file_resources["NONCODEv5_human.func"], header=None)
+        if npartitions:
+            self.noncode_func_df = dd.read_table(file_resources["NONCODEv5_human.func"], header=None)
+        else:
+            self.noncode_func_df = pd.read_table(file_resources["NONCODEv5_human.func"], header=None)
         self.noncode_func_df.columns = ["NONCODE Gene ID", "GO terms"]
         self.noncode_func_df.set_index("NONCODE Gene ID", inplace=True)
 
@@ -296,24 +309,23 @@ class EnsemblGenes(BioMartManager, Dataset):
                           'gene_biotype', 'transcript_biotype', ]
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
         self.host = host
-        self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
-                                 filename=self.filename, npartitions=npartitions)
+        self.data = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
+                                   filename=self.filename, npartitions=npartitions)
 
-        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
-                       inplace=True)
-        print(self.name(), self.df.columns.tolist())
+        self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
+        print(self.name(), self.data.columns.tolist())
 
     def load_data(self, dataset, attributes, host, filename=None, npartitions=None):
         return self.retrieve_dataset(host, dataset, attributes, filename, npartitions=npartitions)
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
-        geneid_to_genename = self.df[self.df[to_index].notnull()] \
+        geneid_to_genename = self.data[self.data[to_index].notnull()] \
             .groupby(from_index)[to_index] \
             .apply(concat_uniques).to_dict()
         return geneid_to_genename
 
     def get_functional_annotations(self, index):
-        geneid_to_go = self.df[self.df["go_id"].notnull()] \
+        geneid_to_go = self.data[self.data["go_id"].notnull()] \
             .groupby(index)["go_id"] \
             .apply(lambda x: "|".join(x.unique())).to_dict()
         return geneid_to_go
@@ -329,9 +341,7 @@ class EnsemblGeneSequences(EnsemblGenes):
         self.host = host
         self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
                                  filename=self.filename, npartitions=npartitions)
-        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
-                       inplace=True)
-
+        self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
 class EnsemblTranscriptSequences(EnsemblGenes):
     def __init__(self, biomart="hsapiens_gene_ensembl",
@@ -344,8 +354,7 @@ class EnsemblTranscriptSequences(EnsemblGenes):
         self.host = host
         self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
                                  filename=self.filename, npartitions=npartitions)
-        self.df.rename(columns=self.COLUMNS_RENAME_DICT,
-                       inplace=True)
+        self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
 
 class EnsemblSNP(EnsemblGenes):
@@ -359,8 +368,7 @@ class EnsemblSNP(EnsemblGenes):
                           'chr_name', 'chrom_start', 'chrom_end']
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
         self.host = host
-        self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
-                                 filename=self.filename, npartitions=npartitions)
+        self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
 
 class EnsemblSomaticVariation(EnsemblGenes):
@@ -373,5 +381,4 @@ class EnsemblSomaticVariation(EnsemblGenes):
                           'somatic_chromosome_start', 'somatic_chromosome_end']
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
         self.host = host
-        self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
-                                 filename=self.filename, npartitions=npartitions)
+        self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
