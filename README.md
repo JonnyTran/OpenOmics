@@ -4,7 +4,7 @@
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Build Status](https://travis-ci.com/BioMeCIS-Lab/OpenOmics.svg?branch=master)](https://travis-ci.com/BioMeCIS-Lab/OpenOmics)
 [![codecov](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg)](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics)
-[![Updates](https://pyup.io/repos/github/JonnyTran/OpenOmics/shield.svg)](https://pyup.io/repos/github/JonnyTran/OpenOmics/)
+[![Updates](https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/shield.svg)](https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/)
 
 This Python package provide a series of tools to integrate and query the genomics, transcriptomics, proteomics, and clinical data (aka multi-omics data).
 With scalable data-frame manipulation tools, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
