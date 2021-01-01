@@ -9,7 +9,7 @@ pandas
 matplotlib
 scipy
 astropy
-h5py
+h5py==3.1.0
 requests
 setuptools
 typing
