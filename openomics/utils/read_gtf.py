@@ -14,6 +14,7 @@ from __future__ import print_function, division, absolute_import
 import logging
 from os.path import exists
 from collections import OrderedDict
+import io
 
 from six import string_types
 from six.moves import intern
@@ -190,6 +191,7 @@ def parse_gtf(
     # 9) attribute : key-value pairs separated by semicolons
     # (see more complete description in docstring at top of file)
     if npartitions:
+        logging.info(filepath_or_buffer)
         chunk_iterator = dd.read_table(
             filepath_or_buffer,
             sep="\t",

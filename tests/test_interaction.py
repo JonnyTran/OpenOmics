@@ -31,4 +31,4 @@ def test_import_STRING(generate_STRING):
 
 def test_annotate_STRING(generate_TCGA_LUAD, generate_STRING):
     generate_TCGA_LUAD.Protein.annotate_sequences(generate_STRING, index="protein_name")
-    assert not generate_TCGA_LUAD.Protein.annotations["Transcript sequence"].empty
+    assert not generate_TCGA_LUAD.Protein.annotations["sequence"].empty

@@ -34,7 +34,7 @@ class Dataset(object):
         self.npartitions = npartitions
         self.verbose = verbose
 
-        self.validate_file_resources(file_resources, path)
+        self.validate_file_resources(path, file_resources, verbose=verbose)
 
         self.data = self.load_dataframe(file_resources, npartitions=npartitions)
         self.data = self.data.reset_index()
@@ -46,28 +46,45 @@ class Dataset(object):
     def info(self):
         print("{}: {}".format(self.name(), self.data.columns.tolist()))
 
-    def validate_file_resources(self, file_resources, path, verbose=False):
+    def validate_file_resources(self, path, file_resources, npartitions=None, verbose=False) -> None:
+        """
+        For each file in file_resources, fetch the file if path+file is a URL or load from disk if a local path.
+        Additionally unzip or unrar if the file is compressed.
+
+        Args:
+            path (str):
+                The folder or url path containing the data file resources. If url path, the files will be downloaded and cached to the user's home folder (at ~/.astropy/).
+            file_resources (dict): default None,
+                Used to list required files for preprocessing of the database. A dictionary where keys are required filenames and value are file paths. If None, then the class constructor should automatically build the required file resources dict.
+            npartitions:
+            verbose:
+        """
         if validators.url(path):
             for filename, filepath in copy.copy(file_resources).items():
                 data_file = get_pkg_data_filename(path, filepath,
                                                   verbose=verbose)  # Download file and replace the file_resource path
                 filetype_ext = filetype.guess(data_file)
 
-                if filetype_ext is None:  # This if-clause is needed incase when filetype_ext is None, causing the next clause to fail
-                    file_resources[filename] = data_file  # Returns the
+                # This null if-clause is needed incase when filetype_ext is None, causing the next clause to fail
+                if filetype_ext is None:
+                    file_resources[filename] = data_file
 
                 elif filetype_ext.extension == 'gz':
-                    file_resources[filename] = gzip.open(data_file, 'rt')
+                    file_resources[filename] = gzip.open(data_file, 'r')
 
                 elif filetype_ext.extension == 'zip':
                     zf = zipfile.ZipFile(data_file, 'r')
-                    for f in zf.infolist():
-                        file_resources[filename] = zf.open(f.filename, mode='r')
+
+                    for subfile in zf.infolist():
+                        if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]: # If the file extension matches
+                            file_resources[filename] = zf.open(subfile.filename, mode='r')
 
                 elif filetype_ext.extension == 'rar':
                     rf = rarfile.RarFile(data_file, 'r')
-                    for f in rf.infolist():
-                        file_resources[filename] = rf.open(f.filename, mode='r')
+
+                    for subfile in rf.infolist():
+                        if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]: # If the file extension matches
+                            file_resources[filename] = rf.open(subfile.filename, mode='r')
                 else:
                     file_resources[filename] = data_file
 

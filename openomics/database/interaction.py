@@ -1,4 +1,5 @@
 from abc import abstractmethod
+import logging
 
 import networkx as nx
 from Bio import SeqIO
@@ -36,7 +37,7 @@ class Interactions(Dataset):
                 A dictionary to rename nodes in the network, where the nodes with name <dict[key]> will be renamed to <dict[value]>
         """
         # This class should NOT call super's __init__()
-        self.validate_file_resources(file_resources, path, verbose=verbose)
+        self.validate_file_resources(path, file_resources, verbose=verbose)
 
         self.data_path = path
         self.file_resources = file_resources
@@ -116,7 +117,7 @@ class Interactions(Dataset):
 
         for key, values in filters.items():
             if key not in df.columns:
-                print(f"Filter key `{key}` must be in one of {df.columns}")
+                logging.info(f"Filter key `{key}` must be in one of {df.columns}")
                 continue
             n_rows = df.shape[0]
 
@@ -130,7 +131,7 @@ class Interactions(Dataset):
             else:
                 df = df[df[key] == values]
 
-            print(f"INFO: Removed {n_rows - df.shape[0]} rows with `{key}` != {values}")
+            logging.info(f"INFO: Removed {n_rows - df.shape[0]} rows with `{key}` != {values}")
 
         assert df.shape[0] > 0, f"ERROR: Dataframe is empty because of filter: {filters}"
         return df
@@ -195,7 +196,7 @@ class BioGRID(Interactions):
                            #          'Modification', 'Phenotypes'],
                            low_memory=True)
 
-        print("{}: {}".format(self.name(), df.columns.tolist()))
+        logging.info("{}: {}".format(self.name(), df.columns.tolist()))
 
         df = self.filter_values(df, filters)
         network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
@@ -249,7 +250,7 @@ class STRING(Interactions, SequenceDataset):
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         # protein_interactions = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
         protein_interactions = pd.read_table(file_resources["protein.actions.txt"], sep="\t", low_memory=True)
-        print("{}: {}".format(self.name(), protein_interactions.columns.tolist()))
+        logging.info("{}: {}".format(self.name(), protein_interactions.columns.tolist()))
         protein_info = pd.read_table(file_resources["protein.info.txt"])
 
         self.protein_id2name = protein_info.set_index("protein_external_id")["preferred_name"].to_dict()
@@ -279,7 +280,7 @@ class STRING(Interactions, SequenceDataset):
 
             self.seq_dict[key] = sequence_str
 
-        print("Seq {} collisions: {}".format(index, collisions))
+        logging.info("Seq {} collisions: {}".format(index, collisions))
         return self.seq_dict
 
 
@@ -315,7 +316,7 @@ class LncBase(Interactions, Dataset):
         if edge_attr is None:
             edge_attr = ["tissue", "positive_negative"]
         df = pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
-        print(self.name(), df.columns.tolist())
+        logging.info(f"{self.name()}, {df.columns.tolist()}")
         df.replace({"species": {"Homo Sapiens": "Homo sapiens", "Mus Musculus": "Mus musculus"}}, inplace=True)
 
         df = self.filter_values(df, filters)
@@ -349,7 +350,7 @@ class LncReg(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         df = pd.read_excel(self.file_resources["data.xlsx"])
-        print(self.name(), df.columns.tolist())
+        logging.info(f"{self.name()}, {df.columns.tolist()}")
 
         df = df[df["species"] == "Homo sapiens"]
         df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
@@ -387,7 +388,7 @@ class lncRInter(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         lncRInter_df = pd.read_table(file_resources["human_interactions.txt"])
-        print(self.name(), lncRInter_df.columns.tolist())
+        logging.info(f"{self.name()}, {lncRInter_df.columns.tolist()}")
 
         lncRInter_df = self.filter_values(lncRInter_df, filters)
         # Data cleaning
@@ -455,9 +456,9 @@ class LncRNA2Target(Interactions):
     def load_network_high_throughput(self, file_resources, source_col_name="lncrna_symbol",
                                      target_col_name="gene_symbol",
                                      edge_attr=None, directed=True, filters=None):
-        table = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"])
+        table = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"], sep="\t")
         table = self.filter_values(table, filters)
-        print(self.name(), table.columns.tolist())
+        logging.info(f"{self.name()}, {table.columns.tolist()}")
 
         table["lncrna_symbol"] = table["lncrna_symbol"].str.upper()
         table["lncrna_symbol"] = table["lncrna_symbol"].str.replace("LINC", "")
@@ -474,7 +475,7 @@ class LncRNA2Target(Interactions):
                                     edge_attr=None, directed=True, filters=None):
         table = pd.read_excel(file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"])
         table = self.filter_values(table, filters)
-        print(self.name(), table.columns.tolist())
+        logging.info(f"{self.name()}, {table.columns.tolist()}")
 
         table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-")
         table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("--", "-")
@@ -504,7 +505,7 @@ class lncRNome(Interactions, Dataset):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         df = pd.read_table(self.file_resources["miRNA_binding_sites.txt"], header=0)
-        print(self.name(), df.columns.tolist())
+        logging.info(f"{self.name()}, {df.columns.tolist()}")
 
         df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
         df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "")
@@ -542,7 +543,7 @@ class NPInter(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         df = pd.read_table(file_resources["interaction_NPInterv4.expr.txt"], header=0, na_values=["-"])
-        print(self.name(), df.columns.tolist())
+        logging.info(f"{self.name()}, {df.columns.tolist()}")
         df["ncName"] = df["ncName"].str.upper()
         df["ncName"] = df["ncName"].str.strip("LNCRNA-")
         df["ncName"] = df["ncName"].str.replace("MALAT-1", "MALAT1")
@@ -616,7 +617,7 @@ class MiRTarBase(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
-        print(self.name(), df.columns.tolist())
+        logging.info(f"{self.name()}, {df.columns.tolist()}")
 
         df = self.filter_values(df, filters)
 
@@ -655,7 +656,7 @@ class TargetScan(Interactions, Dataset):
                      edge_attr, directed, filters):
         self.df = self.process_miR_family_info_table(file_resources, self.species)
         interactions_df = self.process_interactions_table(file_resources, self.df, self.species)
-        print(self.name(), interactions_df.columns.tolist())
+        logging.info(f"{self.name()}, {interactions_df.columns.tolist()}")
 
         mir_target_network = nx.from_pandas_edgelist(interactions_df,
                                                      source=source_col_name, target=target_col_name,

@@ -1,5 +1,6 @@
 import errno
 import io
+import logging
 import os
 
 import dask.dataframe as dd
@@ -24,14 +25,14 @@ def get_pkg_data_filename(dataurl, file, verbose):
     if validators.url(file):
         dataurl, file = os.path.split(file)
         dataurl = dataurl + "/"
-    print("Fetching file from:", dataurl, file) if verbose else None
+    logging.info(f"Fetching file from: {dataurl}{file}") if verbose else None
 
     with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
         return data.get_pkg_data_filename(file, package="openomics.database", show_progress=True)
 
 
-def read_db(connString="sqlite:///c:\\temp\\test.db", table='testtable'):
-    engine = sa.create_engine(connString)
+def read_db(path, table, index_col):
+    engine = sa.create_engine(path)
     conn = engine.connect()
     m = sa.MetaData()
     table = sa.Table(table, m, autoload=True, autoload_with=engine)
@@ -44,7 +45,7 @@ def read_db(connString="sqlite:///c:\\temp\\test.db", table='testtable'):
     uid, dt = list(table.columns)
     q = sa.select([dt.cast(sa.types.String)]).select_from(table)
 
-    daskDF = dd.read_sql_table(table, connString, index_col='uid', parse_dates={'datetime': '%Y-%m-%d %H:%M:%S'})
+    daskDF = dd.read_sql_table(table, path, index_col=index_col, parse_dates={'datetime': '%Y-%m-%d %H:%M:%S'})
     return daskDF
 
 
