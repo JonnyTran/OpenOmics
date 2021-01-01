@@ -6,7 +6,7 @@ dask[complete]
 networkx>=2.1
 numpy>=1.16.5
 pandas
-matplotlib
+matplotlib==3.3.3
 scipy
 astropy
 h5py
