@@ -48,6 +48,7 @@ with open('README.rst') as readme_file:
 
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
+
 # Package meta-data.
 NAME = 'openomics'
 version='0.8.3'
@@ -80,6 +81,7 @@ setup(
     #             'lxml==4.3.5'
     #         ],
     #     },
+    python_requires='>=3.6',
     test_suite='tests',
     tests_require=test_requirements,
     classifiers=[
@@ -97,11 +99,9 @@ setup(
     author_email=EMAIL,
     description=DESCRIPTION,
     long_description=readme + '\n\n' + history,
-# $ setup.py publish support.
     cmdclass={
         'upload': UploadCommand,
     },
     include_package_data=True,
     zip_safe=False,
-
 )
