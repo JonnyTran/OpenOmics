@@ -2,7 +2,7 @@ biopython
 large-image
 bokeh
 umap-learn
-dask[complete]
+dask[complete]==2020.12.0
 networkx>=2.1
 numpy>=1.16.5
 pandas
