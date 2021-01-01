@@ -14,7 +14,7 @@ requests
 setuptools
 typing
 bioservices
-itsdangerous
+itsdangerous==1.1.0
 dash
 dash-daq
 dash-bootstrap-components
