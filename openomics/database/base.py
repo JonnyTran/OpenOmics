@@ -70,7 +70,7 @@ class Dataset(object):
                     file_resources[filename] = data_file
 
                 elif filetype_ext.extension == 'gz':
-                    file_resources[filename] = gzip.open(data_file, 'r')
+                    file_resources[filename] = gzip.open(data_file, 'rt')
 
                 elif filetype_ext.extension == 'zip':
                     zf = zipfile.ZipFile(data_file, 'r')
