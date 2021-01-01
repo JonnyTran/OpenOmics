@@ -23,7 +23,7 @@ six
 validators
 sqlalchemy
 filetype
-gtfparse
+gtfparse==1.2.1
 scikit-allel
 rarfile
 filetype
