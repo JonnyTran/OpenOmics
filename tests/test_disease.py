@@ -5,11 +5,11 @@ from .test_multiomics import *
 def generate_DisGeNet_ftp():
     return DisGeNet(path="https://www.disgenet.org/static/disgenet_ap1/files/downloads/", curated=True)
 
-def test_DisGeNet(generate_DisGeNet_ftp):
+def test_import_DisGeNet(generate_DisGeNet_ftp):
     assert generate_DisGeNet_ftp.data_path == "https://www.disgenet.org/static/disgenet_ap1/files/downloads/"
     assert not generate_DisGeNet_ftp.get_disease_assocs(index="gene_name").empty
 
-def test_DisGeNet_annotate(generate_TCGA_LUAD, generate_DisGeNet_ftp):
+def test_annotate_DisGeNet(generate_TCGA_LUAD, generate_DisGeNet_ftp):
     generate_TCGA_LUAD.MessengerRNA.annotate_diseases(generate_DisGeNet_ftp, index="gene_name", )
     assert {'disease_associations'}.issubset(generate_TCGA_LUAD.MessengerRNA.get_annotations().columns)
 
@@ -17,11 +17,11 @@ def test_DisGeNet_annotate(generate_TCGA_LUAD, generate_DisGeNet_ftp):
 def generate_HMDD_ftp():
     return HMDD(path="http://www.cuilab.cn/static/hmdd3/data/")
 
-def test_HMDD(generate_HMDD_ftp):
+def test_import_HMDD(generate_HMDD_ftp):
     assert generate_HMDD_ftp.data_path == "http://www.cuilab.cn/static/hmdd3/data/"
     assert not generate_HMDD_ftp.get_disease_assocs(index="gene_name").empty
 
-def test_HMDD_annotate(generate_TCGA_LUAD, generate_HMDD_ftp):
+def test_annotate_HMDD(generate_TCGA_LUAD, generate_HMDD_ftp):
     generate_TCGA_LUAD.MicroRNA.annotate_diseases(generate_HMDD_ftp, index="gene_name", )
     assert {'disease_associations'}.issubset(generate_TCGA_LUAD.MicroRNA.get_annotations().columns)
 
@@ -36,7 +36,7 @@ def test_LncRNADisease(generate_LncRNADisease_ftp):
     assert not generate_LncRNADisease_ftp.get_disease_assocs(index="gene_name").empty
 
 
-def test_LncRNADisease_annotate(generate_TCGA_LUAD, generate_LncRNADisease_ftp):
+def test_annotate_LncRNADisease(generate_TCGA_LUAD, generate_LncRNADisease_ftp):
     generate_TCGA_LUAD.LncRNA.annotate_diseases(generate_LncRNADisease_ftp, index="gene_name", )
     assert {'disease_associations'}.issubset(generate_TCGA_LUAD.LncRNA.get_annotations().columns)
 
