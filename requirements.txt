@@ -25,7 +25,7 @@ sqlalchemy
 filetype
 gtfparse
 scikit-allel
-rarfile
+rarfile==4.0
 filetype
 goatools
 obonet
