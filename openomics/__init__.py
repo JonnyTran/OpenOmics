@@ -10,7 +10,7 @@ import dask.dataframe as dd
 
 __author__ = """Nhat (Jonny) Tran"""
 __email__ = 'nhat.tran@mavs.uta.edu'
-__version__ = '0.8.3'
+__version__ = '0.8.4'
 
 __BACKEND__ = "pandas"
 backend = pd
