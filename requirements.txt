@@ -28,4 +28,4 @@ scikit-allel
 rarfile
 filetype
 goatools
-obonet
+obonet==0.2.6
