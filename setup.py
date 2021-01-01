@@ -50,7 +50,7 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 # Package meta-data.
 NAME = 'openomics'
-version='0.8.1'
+version='0.8.2'
 DESCRIPTION = 'OpenOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.'
 URL = 'https://github.com/BioMeCIS-Lab/OpenOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
