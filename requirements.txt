@@ -27,5 +27,5 @@ gtfparse
 scikit-allel
 rarfile
 filetype
-goatools
+goatools==1.0.15
 obonet
