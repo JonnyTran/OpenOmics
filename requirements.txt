@@ -7,7 +7,7 @@ networkx>=2.1
 numpy>=1.16.5
 pandas
 matplotlib
-scipy
+scipy==1.6.0
 astropy
 h5py
 requests
