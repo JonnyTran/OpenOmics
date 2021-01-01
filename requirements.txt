@@ -21,7 +21,7 @@ dash-bootstrap-components
 gunicorn
 six
 validators
-sqlalchemy
+sqlalchemy==1.3.22
 filetype
 gtfparse
 scikit-allel
