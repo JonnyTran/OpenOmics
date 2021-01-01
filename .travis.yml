@@ -1,9 +1,9 @@
 language: python
 python:
+    - "3.9"
+    - "3.8"
     - "3.7"
     - "3.6"
-    - "3.5"
-    - "2.7"
 
 env:
     - CODECOV_TOKEN="0cfdf951-48ac-4a61-818d-639e07fde3b4"
@@ -33,7 +33,7 @@ deploy:
         tags: true
         repo: JonnyTran/OpenOmics
         python:
+            - 3.9
+            - 3.8
             - 3.7
             - 3.6
-            - 3.5
-            - 2.7
