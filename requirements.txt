@@ -1,6 +1,6 @@
 biopython
 large-image
-bokeh
+bokeh==2.2.3
 umap-learn
 dask[complete]
 networkx>=2.1
