@@ -11,14 +11,12 @@ Importing the openomics library & modules
 -----------------------------------------
 
 .. code:: python
-
    from openomics import MultiOmics, MessengerRNA, MicroRNA, LncRNA
 
 Import GTEx Tissue-specific gene expression dataset (directly from URL)
 -----------------------------------------------------------------------
 
 .. code:: python
-
    from openomics.database import GTEx
 
    gtex = GTEx(path="https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/")
@@ -46,7 +44,6 @@ Load single omics expressions for MessengerRNA, MicroRNA, LncRNA
 ----------------------------------------------------------------
 
 .. code:: python
-
    # Gene Expression
    messengerRNA_id = gtex_transcripts_gene_id & pd.Index(gencode.df[gencode.df["gene_type"] == "protein_coding"]["gene_id"].unique())
 
@@ -68,7 +65,6 @@ Create a MultiOmics dataset
 ---------------------------
 
 .. code:: python
-
    gtex_data = MultiOmics(cohort_name="GTEx Tissue Avg Expressions")
 
    gtex_data.add_omic(messengerRNA)
