@@ -1,4 +1,4 @@
-biopython
+biopython==1.78
 large-image
 bokeh
 umap-learn
