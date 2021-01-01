@@ -10,7 +10,7 @@ matplotlib
 scipy
 astropy
 h5py
-requests
+requests==2.25.1
 setuptools
 typing
 bioservices
