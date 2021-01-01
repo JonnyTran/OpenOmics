@@ -54,7 +54,7 @@ from openomics import MessengerRNA, MicroRNA, LncRNA, SomaticMutation, Protein
 mRNA = MessengerRNA(data=folder_path+"LUAD__geneExp.txt", transpose=True,
                     usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
 miRNA = MicroRNA(data=folder_path+"LUAD__miRNAExp__RPM.txt"), transpose=True,
-                 usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
+                 usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="transcript_name")
 lncRNA = LncRNA(data=folder_path+"TCGA-rnaexpr.tsv"), transpose=True,
                 usecols="Gene_ID|TCGA", gene_index="Gene_ID", gene_level="gene_id")
 som = SomaticMutation(data=folder_path+"LUAD__somaticMutation_geneLevel.txt"),
@@ -208,7 +208,7 @@ luad_data.data["MessengerRNA"]
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
-      <th>GeneSymbol</th>
+      <th>gene_name</th>
       <th>A1BG</th>
       <th>A1BG-AS1</th>
       <th>A1CF</th>
