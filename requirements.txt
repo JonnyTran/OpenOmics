@@ -12,7 +12,7 @@ astropy
 h5py
 requests
 setuptools
-typing
+typing==3.7.4.3
 bioservices
 itsdangerous
 dash
