@@ -15,7 +15,7 @@ setuptools
 typing
 bioservices
 itsdangerous
-dash
+dash==1.18.1
 dash-daq
 dash-bootstrap-components
 gunicorn
