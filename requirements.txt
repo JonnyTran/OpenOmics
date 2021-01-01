@@ -20,7 +20,7 @@ dash-daq
 dash-bootstrap-components
 gunicorn
 six
-validators
+validators==0.18.2
 sqlalchemy
 filetype
 gtfparse
