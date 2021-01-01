@@ -18,7 +18,7 @@ itsdangerous
 dash
 dash-daq
 dash-bootstrap-components
-gunicorn
+gunicorn==20.0.4
 six
 validators
 sqlalchemy
