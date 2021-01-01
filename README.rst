@@ -6,18 +6,18 @@ OpenOmics
 .. image:: https://img.shields.io/pypi/v/OpenOmics.svg
         :target: https://pypi.python.org/pypi/OpenOmics
 
-.. image:: https://img.shields.io/travis/JonnyTran/OpenOmics.svg
-        :target: https://travis-ci.org/JonnyTran/OpenOmics
+.. image:: https://img.shields.io/travis/BioMeCIS-Lab/OpenOmics.svg
+        :target: https://travis-ci.org/BioMeCIS-Lab/OpenOmics
 
-.. image:: https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg
-        :target: https://codecov.io/gh/JonnyTran/OpenOmics
+.. image:: https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg
+        :target: https://codecov.io/gh/BioMeCIS-Lab/OpenOmics
 
 .. image:: https://readthedocs.org/projects/openomics/badge/?version=latest
         :target: https://openomics.readthedocs.io/en/latest/?badge=latest
         :alt: Documentation Status
 
-.. image:: https://pyup.io/repos/github/JonnyTran/OpenOmics/shield.svg
-     :target: https://pyup.io/repos/github/JonnyTran/OpenOmics/
+.. image:: https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/shield.svg
+     :target: https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/
      :alt: Updates
 
 
