@@ -24,7 +24,7 @@ validators
 sqlalchemy
 filetype
 gtfparse
-scikit-allel
+scikit-allel==1.3.2
 rarfile
 filetype
 goatools
