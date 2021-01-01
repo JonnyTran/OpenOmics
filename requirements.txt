@@ -17,7 +17,7 @@ bioservices
 itsdangerous
 dash
 dash-daq
-dash-bootstrap-components
+dash-bootstrap-components==0.11.1
 gunicorn
 six
 validators
