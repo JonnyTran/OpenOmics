@@ -11,7 +11,7 @@ scipy
 astropy
 h5py
 requests
-setuptools
+setuptools==51.1.2
 typing
 bioservices
 itsdangerous
