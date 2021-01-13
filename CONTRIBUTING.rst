@@ -18,7 +18,7 @@ Types of Contributions
 Report Bugs
 ~~~~~~~~~~~
 
-Report bugs at https://github.com/JonnyTran/openomics/issues.
+Report bugs at https://github.com/BioMeCIS-Lab/openomics/issues.
 
 If you are reporting a bug, please include:
 
@@ -48,7 +48,7 @@ articles, and such.
 Submit Feedback
 ~~~~~~~~~~~~~~~
 
-The best way to send feedback is to file an issue at https://github.com/JonnyTran/openomics/issues.
+The best way to send feedback is to file an issue at https://github.com/BioMeCIS-Lab/openomics/issues.
 
 If you are proposing a feature:
 
@@ -63,9 +63,10 @@ Get Started!
 Ready to contribute? Here's how to set up `openomics` for local development.
 
 1. Fork the `openomics` repo on GitHub.
-2. Clone your fork locally::
+2. Clone your fork locally and work on the develop branch::
 
     $ git clone git@github.com:your_name_here/openomics.git
+    $ git checkout develop
 
 3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
 
@@ -92,21 +93,21 @@ Ready to contribute? Here's how to set up `openomics` for local development.
 
     $ git add .
     $ git commit -m "Your detailed description of your changes."
-    $ git push origin name-of-your-bugfix-or-feature
+    $ git push develop name-of-your-bugfix-or-feature
 
-7. Submit a pull request through the GitHub website.
+7. Submit a pull request through the GitHub website to the develop branch. Once major features are tested, we can create another pull-request to the master branch.
 
 Pull Request Guidelines
 -----------------------
 
 Before you submit a pull request, check that it meets these guidelines:
 
-1. The pull request should include tests.
+1. The pull request should include tests. Run tests by with `pytest tests/` and make sure tests are 100% passing.
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
-3. The pull request should work for Python 2.7, 3.4, 3.5 and 3.6, and for PyPy. Check
-   https://travis-ci.org/JonnyTran/openomics/pull_requests
+3. The pull request should work for Python 3.6 or higher, and for PyPi. Check
+   https://travis-ci.org/BioMeCIS-Lab/openomics/pull_requests
    and make sure that the tests pass for all supported Python versions.
 
 Tips

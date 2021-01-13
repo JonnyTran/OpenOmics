@@ -2,10 +2,14 @@
 History
 =======
 
-0.8.0 (Pending)
----------------
+0.8.5 (Pending)
+_______________
+* Build web-app dashboard interface for importing user multiomics data files
+
+
+0.8.4 (2020-01-07)
+------------------
 * Replace Pandas Dataframe with Dask DataFrame for parallel processings
-* Build web-app interface for importing user multiomics data files
 
 
 0.7.2 (2019-09-01)
