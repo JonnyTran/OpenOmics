@@ -98,11 +98,11 @@ class MultiOmics:
         elif item.lower() == Protein.name().lower():
             return self.__getattribute__(Protein.name())
 
-        elif item.lower() == "PATIENTS":
+        elif item.lower() == "patients":
             return self.clinical.patient
-        elif item.lower() == "SAMPLES":
+        elif item.lower() == "samples":
             return self.clinical.samples
-        elif item.lower() == "DRUGS":
+        elif item.lower() == "drugs":
             return self.clinical.drugs
         else:
             raise Exception('String accessor must be one of {"MessengerRNA", "MicroRNA", "LncRNA", "Protein", etc.}')
