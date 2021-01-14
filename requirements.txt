@@ -5,7 +5,7 @@ umap-learn
 dask[complete]
 networkx>=2.1
 numpy>=1.16.5
-pandas
+pandas==1.2.0
 matplotlib
 scipy
 astropy
