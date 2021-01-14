@@ -13,7 +13,7 @@ h5py
 requests
 setuptools
 typing
-bioservices
+bioservices==1.7.11
 itsdangerous
 dash
 dash-daq
