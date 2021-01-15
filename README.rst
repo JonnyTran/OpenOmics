@@ -21,7 +21,6 @@ OpenOmics
      :alt: Updates
 
 
-
 OpenOmics provides a bioinformatics API and web-app platform integrate, analyze, and visualize the multi-omics and clinical data.
 
 

@@ -9,6 +9,8 @@
 This Python package provide a series of tools to integrate and query the genomics, transcriptomics, proteomics, and clinical data (aka multi-omics data).
 With scalable data-frame manipulation tools, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
 
+Documentation ([Latest](https://openomics.readthedocs.io/en/latest/) | [Stable](https://openomics.readthedocs.io/en/stable/)) | [OpenOmics at a glance](https://openomics.readthedocs.io/en/stable/usage.html)
+
 ## Features
 OpenOmics assist in integration of heterogeneous multi-omics bioinformatics data. The library provides a Python API as well as an interactive Dash web interface.
 It features support for:
@@ -17,14 +19,14 @@ It features support for:
 
 OpenOmics also has an efficient data pipeline that bridges the popular data manipulation Pandas library and Dask distributed processing to address the following use cases:
 
-- Provides a standard pipeline for dataset indexing, table joining and querying, which are transparent and customizable for end-users. 
+- Provides a standard pipeline for dataset indexing, table joining and querying, which are transparent and customizable for end-users.
 - Efficient disk storage for large multi-omics dataset with Parquet data structures.
 - Multiple data types that supports both interactions and sequence data, and allows users to export to NetworkX graphs or down-stream machine learning.
 - An easy-to-use API that works seamlessly with external Galaxy tool interface or the built-in Dash web interface.
 
 <br/>
 
-## Installation via pip: 
+## Installation via pip:
 
     pip install openomics
 
@@ -66,7 +68,7 @@ pro = Protein(data=folder_path+"protein_RPPA.txt"), transpose=True,
 luad_data = MultiOmics(cohort_name="LUAD")
 luad_data.add_clinical_data(
     clinical_data=folder_path+"nationwidechildrens.org_clinical_patient_luad.txt")
-    
+
 luad_data.add_omic(mRNA)
 luad_data.add_omic(miRNA)
 luad_data.add_omic(lncRNA)
@@ -86,7 +88,7 @@ Each data is stored as a Pandas DataFrame. Below are all the data imported for T
     MicroRNA (494, 1870)
     LncRNA (546, 12727)
     Protein (364, 154)
-    
+
 ## Annotate LncRNAs with GENCODE genomic annotations
 ```python
 # Import GENCODE database (from URL)
@@ -97,11 +99,11 @@ gencode = GENCODE(path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/
                                   "basic.annotation.gtf": "gencode.v32.basic.annotation.gtf.gz",
                                   "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
                                   "transcripts.fa": "gencode.v32.transcripts.fa.gz"},
-                  remove_version_num=True, 
+                  remove_version_num=True,
                   npartitions=5)
 
 # Annotate LncRNAs with GENCODE by gene_id
-luad_data.LncRNA.annotate_genomics(gencode, index="gene_id", 
+luad_data.LncRNA.annotate_genomics(gencode, index="gene_id",
                                    columns=['feature', 'start', 'end', 'strand', 'tag', 'havana_gene'])
 
 luad_data.LncRNA.annotations.info()
@@ -109,8 +111,8 @@ luad_data.LncRNA.annotations.info()
     <class 'pandas.core.frame.DataFrame'>
     Index: 13729 entries, ENSG00000082929 to ENSG00000284600
     Data columns (total 6 columns):
-     #   Column       Non-Null Count  Dtype 
-    ---  ------       --------------  ----- 
+     #   Column       Non-Null Count  Dtype
+    ---  ------       --------------  -----
      0   feature      13729 non-null  object
      1   start        13729 non-null  object
      2   end          13729 non-null  object
