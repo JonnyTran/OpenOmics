@@ -12,6 +12,12 @@ from dask import delayed
 
 class WholeSlideImage:
     def __init__(self, cohort_name, folder_path, force_preprocess=False):
+        """
+        Args:
+            cohort_name:
+            folder_path:
+            force_preprocess:
+        """
         self.cancer_type = cohort_name
         if not os.path.isdir(folder_path) or not os.path.exists(folder_path):
             raise NotADirectoryError(folder_path)
@@ -32,6 +38,11 @@ class WholeSlideImage:
         return __class__.__name__
 
     def run_preprocess(self, f, folder_path):
+        """
+        Args:
+            f:
+            folder_path:
+        """
         wsi_preprocessed = f.create_dataset("wsi_preprocessed", (100,), dtype='i')
         wsi_file = self.wsi_file_iterator(folder_path)
 
@@ -42,11 +53,20 @@ class WholeSlideImage:
             self.preprocess_wsi(f, imagePath)
 
     def preprocess_wsi(self, f, imagePath):
+        """
+        Args:
+            f:
+            imagePath:
+        """
         print(imagePath)
         print(slide_to_tile(imagePath))
         pass
 
     def wsi_file_iterator(self, folder_path):
+        """
+        Args:
+            folder_path:
+        """
         has_any_wsi = False
         for file in os.listdir(folder_path):
             if file.endswith(".svs"):
@@ -59,37 +79,28 @@ class WholeSlideImage:
 
 def slide_to_tile(slide_path, params=None, region=None,
                   tile_grouping=256):
-    """ Function to parallelize any function by tiling the slide.
-    This routine can also create a label image.
+    """Function to parallelize any function by tiling the slide. This routine
+    can also create a label image.
 
-    Parameters
-    ---------
-    slide_path : string (path)
-        Path to the slide to analyze.
-    params : Parameters
-        An instance of Parameters, which see for further documentation
-    region : dict, optional
-        A valid region dict (per a large_image
-        TileSource.tileIterator's region argument)
-    tile_grouping : int
-        The number of tiles to process as part of a single task
-    make_label_image : bool, default=False
-        Whether to make a label image.  See also "Notes"
+    Args:
+        slide_path (string (path)): Path to the slide to analyze.
+        params (Parameters): An instance of Parameters, which see for further
+            documentation
+        region (dict, optional): A valid region dict (per a large_image
+            TileSource.tileIterator's region argument)
+        tile_grouping (int): The number of tiles to process as part of a single
+            task
 
-    Returns
-    -------
-    stats : Output
-        Various statistics on the input image.  See Output.
-    label_image : array-like, only if make_label_image is set
+    Returns:
+        * **stats** (*Output*) -- Various statistics on the input image. See
+          Output.
+        * **label_image** (*array-like, only if make_label_image is set*)
 
-    Notes
-    -----
-    The return value is either a single or a pair -- it is in either
-    case a tuple.  Dask is used as configured to compute the
-    statistics, but only if make_label_image is reset.  If
-    make_label_image is set, everything is computed in a
-    single-threaded manner.
-
+    Notes:
+        The return value is either a single or a pair -- it is in either case a
+        tuple. Dask is used as configured to compute the statistics, but only if
+        make_label_image is reset. If make_label_image is set, everything is
+        computed in a single-threaded manner.
     """
     ts = large_image.getTileSource(slide_path)
     print(ts.getMetadata())
@@ -108,6 +119,14 @@ def slide_to_tile(slide_path, params=None, region=None,
 
 
 def _count_tiles(slide_path, params, kwargs, position, count):
+    """
+    Args:
+        slide_path:
+        params:
+        kwargs:
+        position:
+        count:
+    """
     ts = large_image.getTileSource(slide_path)
 
     subtotal = np.array((0, 0))
@@ -119,6 +138,10 @@ def _count_tiles(slide_path, params, kwargs, position, count):
 
 
 def _combine(results):
+    """
+    Args:
+        results:
+    """
     total = np.sum(results, axis=0)
     return total
 

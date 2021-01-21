@@ -2,6 +2,10 @@ COUNT = "_count"
 
 
 def make_trie(words):
+    """
+    Args:
+        words:
+    """
     root = dict()
     for word in words:
         current_dict = root
@@ -16,6 +20,11 @@ def make_trie(words):
 
 
 def longest_common_prefix(strs):
+    """
+    Args:
+        strs:
+    """
+
     def traverse_trie(dictionary, prefix):
         if len(prefix) > 100:
             return prefix

@@ -18,6 +18,10 @@ def generate_GENCODE_dask():
 
 
 def test_import_GENCODE(generate_GENCODE):
+    """
+    Args:
+        generate_GENCODE:
+    """
     assert generate_GENCODE.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/'
 
 
@@ -26,6 +30,11 @@ def test_import_GENCODE(generate_GENCODE):
 
 
 def test_annotate_GENCODE(generate_TCGA_LUAD, generate_GENCODE):
+    """
+    Args:
+        generate_TCGA_LUAD:
+        generate_GENCODE:
+    """
     generate_TCGA_LUAD.LncRNA.annotate_genomics(generate_GENCODE, index="gene_id",
                                                 columns=['feature', 'start', 'end', 'strand', 'tag', 'havana_gene'])
     assert {'feature', 'start', 'end', 'strand', 'tag', 'havana_gene'}.issubset(
@@ -36,5 +45,10 @@ def test_annotate_GENCODE(generate_TCGA_LUAD, generate_GENCODE):
 def generate_MirBase_ftp():
     return MirBase(path="ftp://mirbase.org/pub/mirbase/CURRENT/")
 
+
 def test_import_mirbase_db(generate_MirBase_ftp):
+    """
+    Args:
+        generate_MirBase_ftp:
+    """
     assert generate_MirBase_ftp.data_path == "ftp://mirbase.org/pub/mirbase/CURRENT/"

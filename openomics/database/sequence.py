@@ -1,46 +1,64 @@
 import logging
 from abc import abstractmethod
 
-import pandas as pd
 import dask.dataframe as dd
+import pandas as pd
 from Bio import SeqIO
-# from gtfparse import read_gtf
 
 import openomics
-from .base import Dataset
 from openomics.utils.read_gtf import read_gtf
+from .base import Dataset
+
+
+# from gtfparse import read_gtf
 
 class SequenceDataset(Dataset):
     def __init__(self, replace_U2T=False, **kwargs):
+        """
+        Args:
+            replace_U2T:
+            **kwargs:
+        """
         self.replace_U2T = replace_U2T
 
         super(SequenceDataset, self).__init__(**kwargs)
 
     @abstractmethod
     def read_fasta(self, fasta_file, replace_U2T, npartitions=None):
-        """
-        Returns a pandas DataFrame containing the fasta sequence entries. With a column named 'sequence'.
+        """Returns a pandas DataFrame containing the fasta sequence entries.
+        With a column named 'sequence'. :param npartitions: :param replace_U2T:
+        :param fasta_file: path to the fasta file, usually as
+        self.file_resources[<file_name>] :type fasta_file: str
+
         Args:
-            npartitions:
+            fasta_file:
             replace_U2T:
-            fasta_file (str): path to the fasta file, usually as self.file_resources[<file_name>]
+            npartitions:
         """
         raise NotImplementedError
 
     @abstractmethod
     def get_sequences(self, index, omic, agg_sequences, **kwargs):
-        """
-        Returns a dictionary where keys are 'index' and values are sequence(s).
+        """Returns a dictionary where keys are 'index' and values are
+        sequence(s). :param index: {"gene_id", "gene_name", "transcript_id",
+        "transcript_name"}
+
+            The index
+
         Args:
-            index (str): {"gene_id", "gene_name", "transcript_id", "transcript_name"}
-                The index
+            index:
             omic (str): {"lncRNA", "microRNA", "messengerRNA"}
             agg_sequences (str): {"all", "shortest", "longest"}
-            **kwargs: any additional argument to pass to SequenceDataset.get_sequences()
+            **kwargs: any additional argument to pass to
+                SequenceDataset.get_sequences()
         """
         raise NotImplementedError
 
     def get_aggregator(self, agg=None):
+        """
+        Args:
+            agg:
+        """
         if agg == "all":
             agg_func = lambda x: list(x) if not isinstance(x, str) else x
         elif agg == "shortest":
@@ -56,6 +74,15 @@ class GENCODE(SequenceDataset):
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
                  file_resources=None, col_rename=None, npartitions=0,
                  replace_U2T=True, remove_version_num=False):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            npartitions:
+            replace_U2T:
+            remove_version_num:
+        """
         if file_resources is None:
             file_resources = {"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
                               "basic.annotation.gtf": "gencode.v32.basic.annotation.gtf.gz",
@@ -68,6 +95,11 @@ class GENCODE(SequenceDataset):
                                       replace_U2T=replace_U2T, npartitions=npartitions)
 
     def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
         dfs = []
         for gtf_file in file_resources:
             if '.gtf' in gtf_file:
@@ -86,6 +118,12 @@ class GENCODE(SequenceDataset):
         return annotation_df
 
     def read_fasta(self, fasta_file, replace_U2T, npartitions=None):
+        """
+        Args:
+            fasta_file:
+            replace_U2T:
+            npartitions:
+        """
         entries = []
         for record in SeqIO.parse(fasta_file, "fasta"):
             record_dict = {"gene_id": record.id.split("|")[1],
@@ -111,6 +149,13 @@ class GENCODE(SequenceDataset):
 
     def get_sequences(self, index, omic, agg_sequences, biotypes=None):
         # type: (str, str, str, List[str]) -> None
+        """
+        Args:
+            index:
+            omic:
+            agg_sequences:
+            biotypes:
+        """
         agg_func = self.get_aggregator(agg_sequences)
 
         # Parse lncRNA & mRNA fasta
@@ -137,6 +182,11 @@ class GENCODE(SequenceDataset):
                 "The level argument must be one of {'gene_id', 'transcript_id', or 'gene_name', or 'transcript_name'}")
 
     def get_rename_dict(self, from_index='gene_id', to_index='gene_name'):
+        """
+        Args:
+            from_index:
+            to_index:
+        """
         ensembl_id_to_gene_name = pd.Series(self.data[to_index].values,
                                             index=self.data[from_index]).to_dict()
         return ensembl_id_to_gene_name
@@ -148,11 +198,15 @@ class MirBase(SequenceDataset):
                  file_resources=None, col_rename=None,
                  npartitions=0, replace_U2T=True):
         """
-
         Args:
+            path:
+            sequence:
             species (int): Species code, e.g., 9606 for human
-            agg_sequences (str): {"longest", "shortest", "all"}
-                Whether to select the longest, shortest, or a list of all transcript sequences when aggregating transcript sequences by gene_id or gene_name.
+            species_id:
+            file_resources:
+            col_rename:
+            npartitions:
+            replace_U2T:
         """
         if file_resources is None:
             file_resources = {}
@@ -169,6 +223,11 @@ class MirBase(SequenceDataset):
                                       npartitions=npartitions, replace_U2T=replace_U2T)
 
     def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
                                            names=["RNAcentral id", "database", "mirbase id", "species", "RNA type",
                                                   "NA"])
@@ -201,6 +260,12 @@ class MirBase(SequenceDataset):
         return mirbase_aliases
 
     def read_fasta(self, fasta_file, replace_U2T, npartitions=None):
+        """
+        Args:
+            fasta_file:
+            replace_U2T:
+            npartitions:
+        """
         entries = []
         for record in SeqIO.parse(fasta_file, "fasta"):
             record_dict = {"gene_id": record.id,
@@ -222,6 +287,12 @@ class MirBase(SequenceDataset):
         return entries_df
 
     def get_sequences(self, index="gene_name", omic=None, agg_sequences="all"):
+        """
+        Args:
+            index:
+            omic:
+            agg_sequences:
+        """
         if hasattr(self, "seq_dict"):
             logging.info("Using cached sequences dict")
             return self.seq_dict

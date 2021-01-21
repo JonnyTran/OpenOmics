@@ -5,6 +5,10 @@ import pandas as pd
 
 
 def ClinicalDataColumnSelect(columns):
+    """
+    Args:
+        columns:
+    """
     return html.Div([
         html.Div(['Select the gene id/name column to index by:']),
         dcc.Dropdown(
@@ -29,6 +33,10 @@ def ClinicalDataColumnSelect(columns):
 
 
 def ClinicalDataTable(df: pd.DataFrame):
+    """
+    Args:
+        df (pd.DataFrame):
+    """
     df.index.rename("id", inplace=True)
     print("df.reset_index()", df.reset_index().columns)
 

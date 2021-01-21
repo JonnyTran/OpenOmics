@@ -4,6 +4,12 @@ import umap
 
 
 def d3_umap(X, y_km, heat=None):
+    """
+    Args:
+        X:
+        y_km:
+        heat:
+    """
     reducer = umap.UMAP(random_state=1234, n_components=3)
     X_embedded = reducer.fit_transform(X)
     node_colors = get_node_colormap(y_km)
@@ -15,6 +21,10 @@ def d3_umap(X, y_km, heat=None):
 
 
 def get_node_colormap(node_label):
+    """
+    Args:
+        node_label:
+    """
     if type(node_label) == list:
         node_labels = node_label
         sorted_node_labels = sorted(set(node_labels), reverse=True)

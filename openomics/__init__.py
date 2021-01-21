@@ -1,8 +1,10 @@
 from __future__ import print_function, division, absolute_import
-import sys, imp
 
-import pandas as pd
+import imp
+import sys
+
 import dask.dataframe as dd
+import pandas as pd
 
 # -*- coding: utf-8 -*-
 
@@ -41,6 +43,10 @@ from .visualization import (
 
 
 def set_backend(new):
+    """
+    Args:
+        new:
+    """
     global __BACKEND__
     global backend
     assert new in ["dask", "pandas"]

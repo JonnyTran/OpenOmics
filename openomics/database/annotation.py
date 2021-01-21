@@ -16,15 +16,33 @@ import dask.dataframe as dd
 
 class TANRIC(Dataset):
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            npartitions:
+            verbose:
+        """
         super(TANRIC, self).__init__(path, file_resources, col_rename, npartitions, verbose)
 
     def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
         pass
 
     def get_expressions(self, genes_index):
-        """
-        Preprocess LNCRNA expression file obtained from TANRIC MDAnderson, and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function overwrites the GenomicData.process_expression_table() function which processes TCGA-Assembler data.
-        TANRIC LNCRNA expression values are log2 transformed
+        """Preprocess LNCRNA expression file obtained from TANRIC MDAnderson,
+        and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function
+        overwrites the GenomicData.process_expression_table() function which
+        processes TCGA-Assembler data. TANRIC LNCRNA expression values are log2
+        transformed
+
+        Args:
+            genes_index:
         """
         df = pd.read_table(self.file_resources["TCGA-LUAD-rnaexpr.tsv"])
         df[genes_index] = df[genes_index].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
@@ -60,6 +78,14 @@ class ProteinAtlas(Dataset):
 
     def __init__(self, path="https://www.proteinatlas.org/download/", file_resources=None,
                  col_rename=COLUMNS_RENAME_DICT, npartitions=0, verbose=False):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            npartitions:
+            verbose:
+        """
         if file_resources is None:
             file_resources = {}
             file_resources["proteinatlas.tsv"] = "proteinatlas.tsv.zip"
@@ -67,6 +93,11 @@ class ProteinAtlas(Dataset):
         super(ProteinAtlas, self).__init__(path, file_resources, col_rename, npartitions, verbose)
 
     def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
         if npartitions:
             df = dd.read_table(file_resources["proteinatlas.tsv"])
         else:
@@ -75,11 +106,15 @@ class ProteinAtlas(Dataset):
         return df
 
     def get_expressions(self, index="gene_name", type="Tissue RNA"):
-        """
-        Returns (NX) expressions from the proteinatlas.tsv table.
+        """Returns (NX) expressions from the proteinatlas.tsv table. :param
+        index: a column name to index by. If column contain multiple values,
+        then aggregate by median values. :param type: one of {"Tissue RNA",
+        "Cell RNA", "Blood RNA", "Brain RNA", "RNA - "}. If "RNA - ", then
+        select all types of expressions.
+
         Args:
-            index: a column name to index by. If column contain multiple values, then aggregate by median values.
-            type: one of {"Tissue RNA", "Cell RNA", "Blood RNA", "Brain RNA", "RNA - "}. If "RNA - ", then select all types of expressions.
+            index:
+            type:
 
         Returns:
             expressions (pd.DataFrame):
@@ -98,6 +133,15 @@ class RNAcentral(Dataset):
 
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
                  col_rename=COLUMNS_RENAME_DICT, species=9606, npartitions=0, verbose=False):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            species:
+            npartitions:
+            verbose:
+        """
         self.species = species
 
         if file_resources is None:
@@ -110,6 +154,11 @@ class RNAcentral(Dataset):
                                          verbose=verbose)
 
     def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
         go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
                                  low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True, n=2)[0]
@@ -158,6 +207,14 @@ class GTEx(Dataset):
 
     def __init__(self, path="https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/",
                  file_resources=None, col_rename=None, npartitions=0, verbose=False):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            npartitions:
+            verbose:
+        """
         if file_resources is None:
             file_resources = {}
 
@@ -171,6 +228,11 @@ class GTEx(Dataset):
         super(GTEx, self).__init__(path, file_resources, col_rename=None, npartitions=npartitions, verbose=verbose)
 
     def load_dataframe(self, file_resources, npartitions=None):  # type: (dict) -> pd.DataFrame
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
         gene_exp_medians = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"],
             sep='\t', header=1, skiprows=1)
@@ -211,6 +273,14 @@ class GTEx(Dataset):
 
 class NONCODE(Dataset):
     def __init__(self, path, file_resources=None, col_rename=None, verbose=False, npartitions=None):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            verbose:
+            npartitions:
+        """
         if file_resources is None:
             file_resources = {}
             file_resources["NONCODEv5_source"] = os.path.join(path, "NONCODEv5_source")
@@ -220,6 +290,11 @@ class NONCODE(Dataset):
         super(NONCODE, self).__init__(path, file_resources, col_rename, verbose=verbose, npartitions=npartitions)
 
     def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
         source_df = pd.read_table(file_resources["NONCODEv5_source"], header=None)
         source_df.columns = ["NONCODE Transcript ID", "name type", "Gene ID"]
 
@@ -248,9 +323,24 @@ class NONCODE(Dataset):
 
 class BioMartManager:
     def __init__(self, dataset, attributes, host, filename):
+        """
+        Args:
+            dataset:
+            attributes:
+            host:
+            filename:
+        """
         pass  # Does not instantiate
 
     def retrieve_dataset(self, host, dataset, attributes, filename, npartitions=None):
+        """
+        Args:
+            host:
+            dataset:
+            attributes:
+            filename:
+            npartitions:
+        """
         filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(filename))
         if os.path.exists(filename):
             if npartitions:
@@ -263,6 +353,12 @@ class BioMartManager:
         return df
 
     def cache_dataset(self, dataset, dataframe, save_filename):
+        """
+        Args:
+            dataset:
+            dataframe:
+            save_filename:
+        """
         if not os.path.exists(DEFAULT_CACHE_PATH):
             mkdirs(DEFAULT_CACHE_PATH)
 
@@ -274,6 +370,15 @@ class BioMartManager:
 
     def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None,
                       npartitions=None):
+        """
+        Args:
+            dataset:
+            attributes:
+            host:
+            cache:
+            save_filename:
+            npartitions:
+        """
         bm = BioMart(host=host)
         bm.new_query()
         bm.add_dataset_to_xml(dataset)
@@ -304,6 +409,13 @@ class EnsemblGenes(BioMartManager, Dataset):
     def __init__(self, biomart="hsapiens_gene_ensembl",
                  attributes=None, host="www.ensembl.org", npartitions=None):
         # Do not call super().__init__()
+        """
+        Args:
+            biomart:
+            attributes:
+            host:
+            npartitions:
+        """
         if attributes is None:
             attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id',
                           'external_transcript_name',
@@ -318,15 +430,32 @@ class EnsemblGenes(BioMartManager, Dataset):
         print(self.name(), self.data.columns.tolist())
 
     def load_data(self, dataset, attributes, host, filename=None, npartitions=None):
+        """
+        Args:
+            dataset:
+            attributes:
+            host:
+            filename:
+            npartitions:
+        """
         return self.retrieve_dataset(host, dataset, attributes, filename, npartitions=npartitions)
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
+        """
+        Args:
+            from_index:
+            to_index:
+        """
         geneid_to_genename = self.data[self.data[to_index].notnull()] \
             .groupby(from_index)[to_index] \
             .apply(concat_uniques).to_dict()
         return geneid_to_genename
 
     def get_functional_annotations(self, index):
+        """
+        Args:
+            index:
+        """
         geneid_to_go = self.data[self.data["go_id"].notnull()] \
             .groupby(index)["go_id"] \
             .apply(lambda x: "|".join(x.unique())).to_dict()
@@ -336,6 +465,13 @@ class EnsemblGenes(BioMartManager, Dataset):
 class EnsemblGeneSequences(EnsemblGenes):
     def __init__(self, biomart="hsapiens_gene_ensembl",
                  attributes=None, host="www.ensembl.org", npartitions=None):
+        """
+        Args:
+            biomart:
+            attributes:
+            host:
+            npartitions:
+        """
         if attributes is None:
             attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon',
                           'coding']
@@ -348,6 +484,13 @@ class EnsemblGeneSequences(EnsemblGenes):
 class EnsemblTranscriptSequences(EnsemblGenes):
     def __init__(self, biomart="hsapiens_gene_ensembl",
                  attributes=None, host="www.ensembl.org", npartitions=None):
+        """
+        Args:
+            biomart:
+            attributes:
+            host:
+            npartitions:
+        """
         if attributes is None:
             attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank',
                           'coding_transcript_flank',
@@ -362,6 +505,13 @@ class EnsemblTranscriptSequences(EnsemblGenes):
 class EnsemblSNP(EnsemblGenes):
     def __init__(self, biomart="hsapiens_snp",
                  attributes=None, host="www.ensembl.org", npartitions=None):
+        """
+        Args:
+            biomart:
+            attributes:
+            host:
+            npartitions:
+        """
         if attributes is None:
             attributes = ['synonym_name', 'variation_names', 'minor_allele',
                           'associated_variant_risk_allele',
@@ -376,6 +526,13 @@ class EnsemblSNP(EnsemblGenes):
 class EnsemblSomaticVariation(EnsemblGenes):
     def __init__(self, biomart="hsapiens_snp_som",
                  attributes=None, host="www.ensembl.org", npartitions=None):
+        """
+        Args:
+            biomart:
+            attributes:
+            host:
+            npartitions:
+        """
         if attributes is None:
             attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
                           'somatic_clinical_significance', 'somatic_validated', 'somatic_transcript_location',

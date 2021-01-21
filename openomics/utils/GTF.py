@@ -40,8 +40,8 @@ import gzip
 import re
 from collections import defaultdict
 
-import pandas as pd
 import dask.dataframe as dd
+import pandas as pd
 
 GTF_HEADER  = ['seqname', 'source', 'feature', 'start', 'end', 'score',
                'strand', 'frame']
@@ -52,6 +52,10 @@ R_KEYVALUE  = re.compile(r'(\s+|\s*=\s*)')
 
 def dataframe(filename, npartitions):
     """Open an optionally gzipped GTF file and return a pandas.DataFrame.
+
+    Args:
+        filename:
+        npartitions:
     """
     # Each column is a list stored as a value in this dict.
     result = defaultdict(list)
@@ -76,6 +80,9 @@ def dataframe(filename, npartitions):
 
 def lines(filename):
     """Open an optionally gzipped GTF file and generate a dict for each line.
+
+    Args:
+        filename:
     """
     fn_open = gzip.open if filename.endswith('.gz') else open
 
@@ -89,6 +96,9 @@ def lines(filename):
 
 def parse(line):
     """Parse a single GTF line and return a dict.
+
+    Args:
+        line:
     """
     result = {}
 
@@ -116,6 +126,10 @@ def parse(line):
 
 
 def _get_value(value):
+    """
+    Args:
+        value:
+    """
     if not value:
         return None
 

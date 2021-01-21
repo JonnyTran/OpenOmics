@@ -24,6 +24,12 @@ user_multiomics = MultiOmics(cohort_name="TEST", )
               [Input('upload-data-table', 'contents'), Input('upload-data-table', 'filename')],
               [State('data-table-type', 'value'), ])
 def update_datatable_metadata(list_of_contents, list_of_names, data_type, ):
+    """
+    Args:
+        list_of_contents:
+        list_of_names:
+        data_type:
+    """
     if list_of_contents is None: return None, ['Drag and Drop or ', html.A('Select Files')]
 
     try:
@@ -45,6 +51,17 @@ def update_datatable_metadata(list_of_contents, list_of_names, data_type, ):
                ])
 def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, list_of_names, genes_col_name,
                             columns_select, transposed):
+    """
+    Args:
+        n_clicks:
+        cohort_name:
+        data_type:
+        list_of_contents:
+        list_of_names:
+        genes_col_name:
+        columns_select:
+        transposed:
+    """
     if list_of_contents is None: return []
     try:
 
@@ -65,6 +82,13 @@ def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, 
      Input('expression-datatable', "sort_by"),
      Input('expression-datatable', "filter_query")])
 def update_table(page_current, page_size, sort_by, filter):
+    """
+    Args:
+        page_current:
+        page_size:
+        sort_by:
+        filter:
+    """
     filtering_expressions = filter.split(' && ')
     print(user_multiomics.get_omics_list())
     dff = user_multiomics[user_multiomics.get_omics_list()[0]]
@@ -95,10 +119,16 @@ def update_table(page_current, page_size, sort_by, filter):
            page_current * page_size: (page_current + 1) * page_size
            ].to_dict('records')
 
+
 @app.callback([Output('clinical-column-select', 'children'), Output('upload-clinical', 'children')],
               [Input('upload-clinical', 'contents'), Input('upload-clinical', 'filename')],
               )
 def update_clinical_upload_metadata(file_content, file_name, ):
+    """
+    Args:
+        file_content:
+        file_name:
+    """
     if file_content is None: return None, ['Drag and Drop or ', html.A('Select Files')]
 
     try:
@@ -119,6 +149,16 @@ def update_clinical_upload_metadata(file_content, file_name, ):
                ])
 def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents, list_of_names, patient_id_col,
                             columns_select):
+    """
+    Args:
+        n_clicks:
+        cohort_name:
+        data_type:
+        list_of_contents:
+        list_of_names:
+        patient_id_col:
+        columns_select:
+    """
     if list_of_contents is None: return []
     try:
         clinical_data = get_clinical_data(list_of_contents, list_of_names, data_type, cohort_name, patient_id_col,

@@ -18,16 +18,18 @@ class ClinicalData:
                             'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
 
     def __init__(self, patients_file, patient_id_col="bcr_patient_barcode", columns=None):
-        """
-        This class manages the clinical data tables to handle the phenotype, treatment, and sample data associated to a
-        patient.
+        """This class manages the clinical data tables to handle the phenotype,
+        treatment, and sample data associated to a patient.
 
         Args:
             patients_file (str): path to the patients clinical data file
             patient_id_col (str): the patient's ID column name
-            columns (list): default None.
-                Specifies the columns to import, if None, then import all columns. Example: ['bcr_patient_barcode', 'gender', 'race', 'histologic_diagnosis', 'tumor_status', 'death_days_to',
-                          'ajcc_pathologic_tumor_stage']
+            columns (list): default None. Specifies the columns to import, if
+                None, then import all columns. Example: ['bcr_patient_barcode',
+                'gender', 'race', 'histologic_diagnosis', 'tumor_status',
+                'death_days_to',
+
+                    'ajcc_pathologic_tumor_stage']
         """
         # self.cohort_name = cohort_name
         self.patient_column = patient_id_col
@@ -68,6 +70,11 @@ class ClinicalData:
 
     def build_clinical_samples(self, all_samples, index="bcr_patient_barcode"):
         # Build table with samples clinical data from patients
+        """
+        Args:
+            all_samples:
+            index:
+        """
         self.samples = pd.DataFrame(index=all_samples)
         self.samples.index.name = index
         self.samples.index = self.samples.index.str[:-4]  # Cut sample barcode for TCGA
@@ -89,9 +96,19 @@ class ClinicalData:
         self.samples.loc[self.samples.index.str.contains(
             "-01"), TUMOR_NORMAL] = TUMOR  # Change stage label of normal samples to "Normal"
 
-    def add_drug_response_data(self, file_path="nationwidechildrens.org_clinical_drug.txt", patient_column="bcr_patient_barcode",
-                               columns=['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name', 'pharmaceutical_therapy_type', 'treatment_best_response'],
+    def add_drug_response_data(self, file_path="nationwidechildrens.org_clinical_drug.txt",
+                               patient_column="bcr_patient_barcode",
+                               columns=['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name',
+                                        'pharmaceutical_therapy_type', 'treatment_best_response'],
                                drug_name_col=None, response_column=None):
+        """
+        Args:
+            file_path:
+            patient_column:
+            columns:
+            drug_name_col:
+            response_column:
+        """
         if not os.path.exists(file_path):
             raise FileNotFoundError(file_path)
 
@@ -106,8 +123,15 @@ class ClinicalData:
                                    )
         self.drugs.set_index(patient_column, inplace=True)
 
-    def add_biospecimen_data(self, file_path="genome.wustl.edu_biospecimen_sample.txt", patient_col_name="bcr_patient_barcode",
+    def add_biospecimen_data(self, file_path="genome.wustl.edu_biospecimen_sample.txt",
+                             patient_col_name="bcr_patient_barcode",
                              columns=['bcr_sample_barcode', 'sample_type']):
+        """
+        Args:
+            file_path:
+            patient_col_name:
+            columns:
+        """
         if not os.path.exists(file_path):
             raise FileNotFoundError(file_path)
 

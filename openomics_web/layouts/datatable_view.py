@@ -1,12 +1,15 @@
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table as dt
-import pandas as pd
 
 from openomics_web.utils.str_utils import longest_common_prefix
 
 
 def DataTableColumnSelect(columns):
+    """
+    Args:
+        columns:
+    """
     longest_common_prefixes = longest_common_prefix(columns)
 
     return html.Div([
@@ -32,6 +35,10 @@ def DataTableColumnSelect(columns):
 
 
 def ExpressionDataTable(df):
+    """
+    Args:
+        df:
+    """
     return html.Div(
         className="row",
         children=[
@@ -100,6 +107,10 @@ operators = [['ge ', '>='],
 
 
 def split_filter_part(filter_part):
+    """
+    Args:
+        filter_part:
+    """
     for operator_type in operators:
         for operator in operator_type:
             if operator in filter_part:

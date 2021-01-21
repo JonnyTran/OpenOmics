@@ -9,6 +9,11 @@ from openomics import MicroRNA, MessengerRNA, LncRNA, Protein
 
 
 def get_table_columns(list_of_contents, list_of_names):
+    """
+    Args:
+        list_of_contents:
+        list_of_names:
+    """
     content = list_of_contents[0]
     filename = list_of_names[0]
     _, file_extension = os.path.splitext(filename)
@@ -30,6 +35,16 @@ def get_table_columns(list_of_contents, list_of_names):
 
 def get_expression_data(list_of_contents, list_of_names, data_type, cohort_name=None, genes_col_name=None,
                         columns_selected=None, transposed=None):
+    """
+    Args:
+        list_of_contents:
+        list_of_names:
+        data_type:
+        cohort_name:
+        genes_col_name:
+        columns_selected:
+        transposed:
+    """
     if columns_selected:
         columns = "|".join(columns_selected)
     else:
@@ -57,6 +72,15 @@ def get_expression_data(list_of_contents, list_of_names, data_type, cohort_name=
 
 
 def get_clinical_data(file_content, file_name, data_type, cohort_name, patient_id_col=None, columns_selected=None):
+    """
+    Args:
+        file_content:
+        file_name:
+        data_type:
+        cohort_name:
+        patient_id_col:
+        columns_selected:
+    """
     file = handle_filestreams([file_content, ], [file_name, ])
     clinical_data = ClinicalData(file, patient_id_col=patient_id_col, columns=columns_selected)
 
@@ -64,6 +88,11 @@ def get_clinical_data(file_content, file_name, data_type, cohort_name, patient_i
 
 
 def handle_filestreams(list_of_contents, list_of_names):
+    """
+    Args:
+        list_of_contents:
+        list_of_names:
+    """
     if len(list_of_contents) == 1:
         content = list_of_contents[0]
         filename = list_of_names[0]

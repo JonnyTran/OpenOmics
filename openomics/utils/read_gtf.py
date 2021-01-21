@@ -11,16 +11,16 @@
 # limitations under the License.
 
 from __future__ import print_function, division, absolute_import
-import logging
-from os.path import exists
-from collections import OrderedDict
-import io
 
-from six import string_types
-from six.moves import intern
+import logging
+from collections import OrderedDict
+from os.path import exists
+
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-import dask.dataframe as dd
+from six import string_types
+from six.moves import intern
 
 
 def expand_attribute_strings(
@@ -28,28 +28,18 @@ def expand_attribute_strings(
     quote_char='\"',
     missing_value="",
     usecols=None):
-    """
-    The last column of GTF has a variable number of key value pairs
-    of the format: "key1 value1; key2 value2;"
-    Parse these into a dictionary mapping each key onto a list of values,
-    where the value is None for any row where the key was missing.
+    """The last column of GTF has a variable number of key value pairs of the
+    format: "key1 value1; key2 value2;" Parse these into a dictionary mapping
+    each key onto a list of values, where the value is None for any row where
+    the key was missing.
 
-    Parameters
-    ----------
-    attribute_strings : list of str
-
-    quote_char : str
-        Quote character to remove from values
-
-    missing_value : any
-        If an attribute is missing from a row, give it this value.
-
-    usecols : list of str or None
-        If not None, then only expand columns included in this set,
-        otherwise use all columns.
-
-    Returns OrderedDict of column->value list mappings, in the order they
-    appeared in the attribute strings.
+    Args:
+        attribute_strings (list of str):
+        quote_char (str): Quote character to remove from values
+        missing_value (any): If an attribute is missing from a row, give it this
+            value.
+        usecols (list of str or None): If not None, then only expand columns
+            included in this set, otherwise use all columns.
     """
     n = len(attribute_strings)
 
@@ -146,22 +136,15 @@ def parse_gtf(
     intern_columns=["seqname", "source", "strand", "frame"],
     fix_quotes_columns=["attribute"]):
     """
-    Parameters
-    ----------
-
-    filepath_or_buffer : str or buffer object
-
-    chunksize : int
-
-    features : set or None
-        Drop entries which aren't one of these features
-
-    intern_columns : list
-        These columns are short strings which should be interned
-
-    fix_quotes_columns : list
-        Most commonly the 'attribute' column which had broken quotes on
-        some Ensembl release GTF files.
+    Args:
+        filepath_or_buffer (str or buffer object):
+        npartitions:
+        chunksize (int):
+        features (set or None): Drop entries which aren't one of these features
+        intern_columns (list): These columns are short strings which should be
+            interned
+        fix_quotes_columns (list): Most commonly the 'attribute' column which
+            had broken quotes on some Ensembl release GTF files.
     """
     if features is not None:
         features = set(features)
@@ -268,24 +251,20 @@ def parse_gtf_and_expand_attributes(
     chunksize=1024 * 1024,
     restrict_attribute_columns=None,
     features=None):
-    """
-    Parse lines into column->values dictionary and then expand
-    the 'attribute' column into multiple columns. This expansion happens
-    by replacing strings of semi-colon separated key-value values in the
-    'attribute' column with one column per distinct key, with a list of
-    values for each row (using None for rows where key didn't occur).
+    """Parse lines into column->values dictionary and then expand the
+    'attribute' column into multiple columns. This expansion happens by
+    replacing strings of semi-colon separated key-value values in the
+    'attribute' column with one column per distinct key, with a list of values
+    for each row (using None for rows where key didn't occur).
 
-    Parameters
-    ----------
-    filepath_or_buffer : str or buffer object
-
-    chunksize : int
-
-    restrict_attribute_columns : list/set of str or None
-        If given, then only usese attribute columns.
-
-    features : set or None
-        Ignore entries which don't correspond to one of the supplied features
+    Args:
+        filepath_or_buffer (str or buffer object):
+        npartitions:
+        chunksize (int):
+        restrict_attribute_columns (list/set of str or None): If given, then
+            only usese attribute columns.
+        features (set or None): Ignore entries which don't correspond to one of
+            the supplied features
     """
     result = parse_gtf(
         filepath_or_buffer,
@@ -309,38 +288,29 @@ def read_gtf(
     usecols=None,
     features=None,
     chunksize=1024 * 1024):
-    """
-    Parse a GTF into a dictionary mapping column names to sequences of values.
+    """Parse a GTF into a dictionary mapping column names to sequences of
+    values.
 
-    Parameters
-    ----------
-    filepath_or_buffer : str or buffer object
-        Path to GTF file (may be gzip compressed) or buffer object
-        such as StringIO
-
-    expand_attribute_column : bool
-        Replace strings of semi-colon separated key-value values in the
-        'attribute' column with one column per distinct key, with a list of
-        values for each row (using None for rows where key didn't occur).
-
-    infer_biotype_column : bool
-        Due to the annoying ambiguity of the second GTF column across multiple
-        Ensembl releases, figure out if an older GTF's source column is actually
-        the gene_biotype or transcript_biotype.
-
-    column_converters : dict, optional
-        Dictionary mapping column names to conversion functions. Will replace
-        empty strings with None and otherwise passes them to given conversion
-        function.
-
-    usecols : list of str or None
-        Restrict which columns are loaded to the give set. If None, then
-        load all columns.
-
-    features : set of str or None
-        Drop rows which aren't one of the features in the supplied set
-
-    chunksize : int
+    Args:
+        filepath_or_buffer (str or buffer object): Path to GTF file (may be gzip
+            compressed) or buffer object such as StringIO
+        npartitions:
+        expand_attribute_column (bool): Replace strings of semi-colon separated
+            key-value values in the 'attribute' column with one column per
+            distinct key, with a list of values for each row (using None for
+            rows where key didn't occur).
+        infer_biotype_column (bool): Due to the annoying ambiguity of the second
+            GTF column across multiple Ensembl releases, figure out if an older
+            GTF's source column is actually the gene_biotype or
+            transcript_biotype.
+        column_converters (dict, optional): Dictionary mapping column names to
+            conversion functions. Will replace empty strings with None and
+            otherwise passes them to given conversion function.
+        usecols (list of str or None): Restrict which columns are loaded to the
+            give set. If None, then load all columns.
+        features (set of str or None): Drop rows which aren't one of the
+            features in the supplied set
+        chunksize (int):
     """
     if isinstance(filepath_or_buffer, string_types) and not exists(filepath_or_buffer):
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)

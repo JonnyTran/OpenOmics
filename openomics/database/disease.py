@@ -6,10 +6,20 @@ from openomics.database.base import Dataset
 
 class DiseaseAssociation(Dataset):
     def __init__(self, path, file_resources=None, **kwargs):
+        """
+        Args:
+            path:
+            file_resources:
+            **kwargs:
+        """
         super(DiseaseAssociation, self).__init__(path, file_resources, **kwargs)
 
     @abstractmethod
     def get_disease_assocs(self, index="gene_name"):
+        """
+        Args:
+            index:
+        """
         return self.data.groupby(index)["disease_associations"].apply(list)
 
 
@@ -22,6 +32,13 @@ class MalaCards(DiseaseAssociation):
 
     def __init__(self, path="http://zdzlab.einstein.yu.edu/1/hedd/", file_resources=None,
                  col_rename=COLUMNS_RENAME_DICT, **kwargs):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            **kwargs:
+        """
         if file_resources is None:
             file_resources = {}
             file_resources["MalaCards.csv"] = "download.action.php?filename=DataDownload/MalaCards.csv"
@@ -30,6 +47,11 @@ class MalaCards(DiseaseAssociation):
 
     def load_dataframe(self, file_resources, npartitions=None):
         # type: (dict, int) -> pd.DataFrame
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
         df = pd.read_csv(file_resources["MalaCards.csv"])
         return df
 
@@ -41,6 +63,14 @@ class DisGeNet(DiseaseAssociation):
     def __init__(self, path="https://www.disgenet.org/static/disgenet_ap1/files/downloads/",
                  file_resources=None, curated=True, col_rename=COLUMNS_RENAME_DICT,
                  **kwargs):
+        """
+        Args:
+            path:
+            file_resources:
+            curated:
+            col_rename:
+            **kwargs:
+        """
         if file_resources is None:
             file_resources = {}
             file_resources["curated_gene_disease_associations.tsv"] = "curated_gene_disease_associations.tsv.gz"
@@ -50,6 +80,11 @@ class DisGeNet(DiseaseAssociation):
         super(DisGeNet, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
         if self.curated:
             df = pd.read_table(file_resources["curated_gene_disease_associations.tsv"],
                                usecols=["geneSymbol", "diseaseName", "score"])
@@ -68,6 +103,13 @@ class HMDD(DiseaseAssociation):
     def __init__(self, path="http://www.cuilab.cn/static/hmdd3/data/",
                  file_resources=None, col_rename=COLUMNS_RENAME_DICT,
                  **kwargs):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            **kwargs:
+        """
         if file_resources is None:
             file_resources = {}
             file_resources["alldata.txt"] = "alldata.txt"
@@ -75,6 +117,11 @@ class HMDD(DiseaseAssociation):
         super(HMDD, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
         df = pd.read_csv(file_resources["alldata.txt"], sep="\t", encoding="unicode_escape")
         df["disease"] = df["disease"].str.lower()
         return df
@@ -87,6 +134,14 @@ class LncRNADisease(DiseaseAssociation):
     def __init__(self, path="http://www.cuilab.cn/files/images/ldd/",
                  file_resources=None, species="Human", col_rename=COLUMNS_RENAME_DICT,
                  **kwargs):
+        """
+        Args:
+            path:
+            file_resources:
+            species:
+            col_rename:
+            **kwargs:
+        """
         if file_resources is None:
             file_resources = {}
             file_resources["data_v2017.txt"] = "data_v2017.txt"
@@ -95,6 +150,11 @@ class LncRNADisease(DiseaseAssociation):
         super(LncRNADisease, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
         df = pd.read_csv(self.file_resources["data_v2017.txt"], header=None, sep="\t", encoding="unicode_escape")
         df.columns = ["LncRNA name", "Disease name", "Dysfunction type", "Description", "Chr",
                       "Start", "End", "Strand", "Species", "Alias", "Sequence", "Reference"]

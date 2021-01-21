@@ -10,9 +10,7 @@ from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, ExpressionData
 
 class MultiOmics:
     def __init__(self, cohort_name):
-        """
-        Load all multi-omics data from a given cohort_folder path.
-
+        """Load all multi-omics data from a given cohort_folder path.
 
         Args:
             cohort_name (str): the clinical cohort name
@@ -24,14 +22,14 @@ class MultiOmics:
         self.data = {}
 
     def add_omic(self, omic_data: ExpressionData, initialize_annotations: bool = True):
-        """
-        Adds an omic object to the Multiomics such that the samples in omic matches the samples existing in the other omics.
+        """Adds an omic object to the Multiomics such that the samples in omic
+        matches the samples existing in the other omics.
 
         Args:
-            omic_data (openomics.transcriptomics.ExpressionData):
-                The omic to add, e.g., MessengerRNA, MicroRNA, LncRNA, etc.
-            initialize_annotations (bool): default True.
-                If true, initializes the annotation dataframe in the omic object
+            omic_data (ExpressionData): The omic to add, e.g., MessengerRNA,
+                MicroRNA, LncRNA, etc.
+            initialize_annotations (bool): default True. If true, initializes
+                the annotation dataframe in the omic object
         """
         self.__dict__[omic_data.name()] = omic_data
 
@@ -51,6 +49,10 @@ class MultiOmics:
               )
 
     def add_clinical_data(self, clinical_data=None):
+        """
+        Args:
+            clinical_data:
+        """
         if type(clinical_data) == ClinicalData:
             self.clinical = clinical_data
         else:
@@ -67,9 +69,8 @@ class MultiOmics:
 
     def __getitem__(self, item):
         # type: (str) -> object
-        """
-        This function allows the MultiOmicData class objects to access individual omics by a dictionary lookup, e.g.
-        openomics["MicroRNA"]
+        """This function allows the MultiOmicData class objects to access
+        individual omics by a dictionary lookup, e.g. openomics["MicroRNA"]
 
         Args:
             item (str): a string of the class name
@@ -108,8 +109,8 @@ class MultiOmics:
             raise Exception('String accessor must be one of {"MessengerRNA", "MicroRNA", "LncRNA", "Protein", etc.}')
 
     def remove_duplicate_genes(self):
-        """
-        Removes duplicate genes between any omics such that the gene index across all omics has no duplicates.
+        """Removes duplicate genes between any omics such that the gene index
+        across all omics has no duplicates.
         """
         for omic_A in self._omics:
             for omic_B in self._omics:
@@ -118,8 +119,8 @@ class MultiOmics:
                         self.__getattribute__(omic_B).get_genes_list()))
 
     def build_samples(self, agg_by="union"):
-        """
-        Running this function will build a dataframe for all samples across the different omics (either by a union or intersection). Then,
+        """Running this function will build a dataframe for all samples across
+        the different omics (either by a union or intersection). Then,
 
         Args:
             agg_by (str): ["union", "intersection"]
@@ -144,11 +145,12 @@ class MultiOmics:
         return list(self.data.keys())
 
     def match_samples(self, omics) -> pd.Index:
-        """
-        Return the index of bcr_sample_barcodes of the intersection of samples from all modalities
+        """Return the index of bcr_sample_barcodes of the intersection of
+        samples from all modalities
 
         Args:
             omics: An array of modalities
+
         Returns:
             matched_sapmles: An pandas Index list
         """
@@ -165,26 +167,27 @@ class MultiOmics:
                   samples_barcode=None):
         # type: (Union[List[str], str], List[str], List[str], List[str], List[str], List[str], List[str]) -> (Dict[str, pd.DataFrame], pd.DataFrame)
         """
-
         Args:
-            omics (list):
-                A list of the data modalities to load. Default "all" to select all modalities
-            target (list):
-                The clinical data fields to include in the
-            pathologic_stages (list):
-                Only fetch samples having certain stages in their corresponding patient's clinical data. For instance, ["Stage I", "Stage II"] will only fetch samples from Stage I and Stage II patients. Default is [] which fetches all pathologic stages.
-            histological_subtypes:
-                A list specifying the histological subtypes to fetch. Default is [] which fetches all histological sybtypes.
-            predicted_subtypes:
-                A list specifying the histological subtypes to fetch. Default is [] which fetches all histological sybtypes.
-            tumor_normal: ["Tumor", "Normal"].
-                Default is [], which fetches all tumor or normal sample types.
-            samples_barcode:
-                A list of sample's barcode. If not None, only fetch data with matching samples provided in this list.
+            omics (list): A list of the data modalities to load. Default "all"
+                to select all modalities
+            target (list): The clinical data fields to include in the
+            pathologic_stages (list): Only fetch samples having certain stages
+                in their corresponding patient's clinical data. For instance,
+                ["Stage I", "Stage II"] will only fetch samples from Stage I and
+                Stage II patients. Default is [] which fetches all pathologic
+                stages.
+            histological_subtypes: A list specifying the histological subtypes
+                to fetch. Default is [] which fetches all histological sybtypes.
+            predicted_subtypes: A list specifying the histological subtypes to
+                fetch. Default is [] which fetches all histological sybtypes.
+            tumor_normal: ["Tumor", "Normal"]. Default is [], which fetches all
+                tumor or normal sample types.
+            samples_barcode: A list of sample's barcode. If not None, only fetch
+                data with matching samples provided in this list.
 
         Returns:
-            (X, y): Returns X, a dictionary containing the multiomics data that have data
-
+            (X, y): Returns X, a dictionary containing the multiomics data that
+            have data
         """
         if omics == 'all' or omics is None:
             omics = self._omics
@@ -223,13 +226,14 @@ class MultiOmics:
         return X_multiomics, y
 
     def get_patients_clinical(self, matched_samples):
-        """
-        Fetch patient's clinical data for each given samples barcodes in the matched_samples
+        """Fetch patient's clinical data for each given samples barcodes in the
+        matched_samples
+
+        Returns
+            samples_index: Index of samples
 
         Args:
             matched_samples: A list of sample barcodes
-        Returns
-            samples_index: Index of samples
         """
         return self.data["SAMPLES"].reindex(matched_samples)
 
@@ -239,14 +243,17 @@ class MultiOmics:
                                                                  'shape') else "Didn't import data")
 
     def add_subtypes_to_patients_clinical(self, dictionary):
-        """
-        This function adds a "predicted_subtype" field to the patients clinical data. For instance, patients were classified
-        into subtypes based on their expression profile using k-means, then, to use this function, do:
+        """This function adds a "predicted_subtype" field to the patients
+        clinical data. For instance, patients were classified into subtypes
+        based on their expression profile using k-means, then, to use this
+        function, do:
 
-        add_subtypes_to_patients_clinical(dict(zip(<list of patient barcodes>, <list of corresponding patient's subtypes>)))
+        add_subtypes_to_patients_clinical(dict(zip(<list of patient
+        barcodes>, <list of corresponding patient's subtypes>)))
 
-        Adding a field to the patients clinical data allows openomics to query the patients data through the
-        .load_data(predicted_subtypes=[]) parameter,
+        Adding a field to the patients clinical data allows openomics to
+        query the patients data through the .load_data(predicted_subtypes=[])
+        parameter,
 
         Args:
             dictionary: A dictionary mapping patient's barcode to a subtype
