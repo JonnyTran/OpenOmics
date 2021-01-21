@@ -1,4 +1,7 @@
-# OpenOmics
+<p align="center">
+  <img src="https://github.com/BioMeCIS-Lab/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png" height="200">
+</p>
+
 [![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
 [![Documentation Status](https://readthedocs.org/projects/openomics/badge/?version=latest)](https://openomics.readthedocs.io/en/latest/?badge=latest)
 [![DOI](https://zenodo.org/badge/125549505.svg)](https://zenodo.org/badge/latestdoi/125549505)
@@ -22,7 +25,7 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 - Provides a standard pipeline for dataset indexing, table joining and querying, which are transparent and customizable for end-users.
 - Efficient disk storage for large multi-omics dataset with Parquet data structures.
 - Multiple data types that supports both interactions and sequence data, and allows users to export to NetworkX graphs or down-stream machine learning.
-- An easy-to-use API that works seamlessly with external Galaxy tool interface or the built-in Dash web interface.
+- An easy-to-use API that works seamlessly with external Galaxy tool interface or the built-in Dash web interface (WIP).
 
 <br/>
 
