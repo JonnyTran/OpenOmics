@@ -2,7 +2,6 @@
 OpenOmics
 =========
 
-
 .. image:: https://img.shields.io/pypi/v/OpenOmics.svg
         :target: https://pypi.python.org/pypi/OpenOmics
 
@@ -35,8 +34,8 @@ Features
 * Facilitates integration of various bio-databases, multi-omics expression, genomics, and clinical data.
 * Highly flexible to different data types and missing data.
 * Provides researchers with means to consistently store and explore their experimental datasets.
-* Enables scalable performance with parallel computing, while easily configurable to deploy on both single machine and a cluster. (Pending)
-* Usable by both developers and scientists with its intuitive Python API and web-app dashboard interface.
+* Enables scalable performance with parallel computing, while easily configurable to deploy on both single machine and a cluster.
+* Usable by both developers and scientists with its intuitive Python API and web-app dashboard interface (WIP).
 
 Credits
 -------
