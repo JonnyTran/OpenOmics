@@ -1,4 +1,7 @@
-# OpenOmics
+<p align="center">
+  <img src="https://github.com/BioMeCIS-Lab/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png" height="200">
+</p>
+
 [![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
 [![Documentation Status](https://readthedocs.org/projects/openomics/badge/?version=latest)](https://openomics.readthedocs.io/en/latest/?badge=latest)
 [![DOI](https://zenodo.org/badge/125549505.svg)](https://zenodo.org/badge/latestdoi/125549505)
