@@ -25,7 +25,7 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 - Provides a standard pipeline for dataset indexing, table joining and querying, which are transparent and customizable for end-users.
 - Efficient disk storage for large multi-omics dataset with Parquet data structures.
 - Multiple data types that supports both interactions and sequence data, and allows users to export to NetworkX graphs or down-stream machine learning.
-- An easy-to-use API that works seamlessly with external Galaxy tool interface or the built-in Dash web interface.
+- An easy-to-use API that works seamlessly with external Galaxy tool interface or the built-in Dash web interface (WIP).
 
 <br/>
 
