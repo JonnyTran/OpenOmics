@@ -2,6 +2,8 @@
 OpenOmics
 =========
 
+.. image:: https://github.com/BioMeCIS-Lab/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png
+
 .. image:: https://img.shields.io/pypi/v/OpenOmics.svg
         :target: https://pypi.python.org/pypi/OpenOmics
 
