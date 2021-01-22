@@ -171,7 +171,7 @@ class ExpressionData(object):
             df.set_index(gene_index, inplace=True)
 
         # Needed for Dask Delayed
-        if sort_index == True:
+        if sort_index is True:
             df.sort_index(axis=0, ascending=True, inplace=True)
 
         # Select only numerical columns
