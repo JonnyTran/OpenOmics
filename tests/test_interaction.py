@@ -6,6 +6,7 @@ from .test_multiomics import *
 def generate_LncRNA2Target():
     return LncRNA2Target(version="low_throughput")
 
+
 def test_import_LncRNA2Target(generate_LncRNA2Target):
     """
     Args:
@@ -16,8 +17,10 @@ def test_import_LncRNA2Target(generate_LncRNA2Target):
 
 @pytest.fixture
 def generate_MiRTarBase():
-    return MiRTarBase(path="/data/datasets/Bioinformatics_ExternalData/miRTarBase/", strip_mirna_name=True,
-                      filters={"Species (Target Gene)": "Homo sapiens"})
+    return MiRTarBase(
+        path="/data/datasets/Bioinformatics_ExternalData/miRTarBase/",
+        strip_mirna_name=True,
+        filters={"Species (Target Gene)": "Homo sapiens"})
 
 
 def test_import_MiRTarBase(generate_MiRTarBase):
@@ -47,5 +50,6 @@ def test_annotate_STRING(generate_TCGA_LUAD, generate_STRING):
         generate_TCGA_LUAD:
         generate_STRING:
     """
-    generate_TCGA_LUAD.Protein.annotate_sequences(generate_STRING, index="protein_name")
+    generate_TCGA_LUAD.Protein.annotate_sequences(generate_STRING,
+                                                  index="protein_name")
     assert not generate_TCGA_LUAD.Protein.annotations["sequence"].empty
