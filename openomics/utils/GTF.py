@@ -35,7 +35,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org/>
 """
 
-
 import gzip
 import re
 from collections import defaultdict
@@ -43,11 +42,12 @@ from collections import defaultdict
 import dask.dataframe as dd
 import pandas as pd
 
-GTF_HEADER  = ['seqname', 'source', 'feature', 'start', 'end', 'score',
-               'strand', 'frame']
+GTF_HEADER = [
+    'seqname', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame'
+]
 R_SEMICOLON = re.compile(r'\s*;\s*')
-R_COMMA     = re.compile(r'\s*,\s*')
-R_KEYVALUE  = re.compile(r'(\s+|\s*=\s*)')
+R_COMMA = re.compile(r'\s*,\s*')
+R_KEYVALUE = re.compile(r'(\s+|\s*=\s*)')
 
 
 def dataframe(filename, npartitions):

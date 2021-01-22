@@ -13,36 +13,60 @@ cohort_folder_path = "tests/data/TCGA_LUAD"
 
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA():
-    return MessengerRNA(data=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"), transpose=True,
-                        usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
+    return MessengerRNA(data=os.path.join(cohort_folder_path,
+                                          "LUAD__geneExp.txt"),
+                        transpose=True,
+                        usecols="GeneSymbol|TCGA",
+                        gene_index="GeneSymbol",
+                        gene_level="gene_name")
+
 
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA_dask():
-    return MessengerRNA(data=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"), transpose=True,
-                        usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name", npartitions=4)
+    return MessengerRNA(data=os.path.join(cohort_folder_path,
+                                          "LUAD__geneExp.txt"),
+                        transpose=True,
+                        usecols="GeneSymbol|TCGA",
+                        gene_index="GeneSymbol",
+                        gene_level="gene_name",
+                        npartitions=4)
+
 
 @pytest.fixture
 def generate_TCGA_LUAD_MicroRNA():
-    return MicroRNA(data=os.path.join(cohort_folder_path, "LUAD__miRNAExp__RPM.txt"), transpose=True,
-                    usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
+    return MicroRNA(data=os.path.join(cohort_folder_path,
+                                      "LUAD__miRNAExp__RPM.txt"),
+                    transpose=True,
+                    usecols="GeneSymbol|TCGA",
+                    gene_index="GeneSymbol",
+                    gene_level="gene_name")
 
 
 @pytest.fixture
 def generate_TCGA_LUAD_LncRNA():
-    return LncRNA(data=os.path.join(cohort_folder_path, "TCGA-rnaexpr.tsv"), transpose=True,
-                  usecols="Gene_ID|TCGA", gene_index="Gene_ID", gene_level="gene_id")
+    return LncRNA(data=os.path.join(cohort_folder_path, "TCGA-rnaexpr.tsv"),
+                  transpose=True,
+                  usecols="Gene_ID|TCGA",
+                  gene_index="Gene_ID",
+                  gene_level="gene_id")
 
 
 @pytest.fixture
 def generate_TCGA_LUAD_SomaticMutation():
-    return SomaticMutation(data=os.path.join(cohort_folder_path, "LUAD__somaticMutation_geneLevel.txt"),
-                           transpose=True, usecols="GeneSymbol|TCGA", gene_index="gene_name")
+    return SomaticMutation(data=os.path.join(
+        cohort_folder_path, "LUAD__somaticMutation_geneLevel.txt"),
+        transpose=True,
+        usecols="GeneSymbol|TCGA",
+        gene_index="gene_name")
 
 
 @pytest.fixture
 def generate_TCGA_LUAD_Protein():
-    return Protein(data=os.path.join(cohort_folder_path, "protein_RPPA.txt"), transpose=True,
-                   usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="protein_name")
+    return Protein(data=os.path.join(cohort_folder_path, "protein_RPPA.txt"),
+                   transpose=True,
+                   usecols="GeneSymbol|TCGA",
+                   gene_index="GeneSymbol",
+                   gene_level="protein_name")
 
 
 def test_import_MessengerRNA_Dask(generate_TCGA_LUAD_MessengerRNA_dask):
@@ -60,16 +84,19 @@ def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA):
     """
     cohort_name = "LUAD"
     luad_data = MultiOmics(cohort_name)
-    luad_data.add_clinical_data(
-        clinical_data=os.path.join(cohort_folder_path, "nationwidechildrens.org_clinical_patient_luad.txt"))
+    luad_data.add_clinical_data(clinical_data=os.path.join(
+        cohort_folder_path,
+        "nationwidechildrens.org_clinical_patient_luad.txt"))
     luad_data.add_omic(generate_TCGA_LUAD_MessengerRNA)
     luad_data.build_samples()
     print(luad_data.data.keys())
-    assert luad_data.data[MessengerRNA.name()].shape == generate_TCGA_LUAD_MessengerRNA.expressions.shape
+    assert luad_data.data[MessengerRNA.name(
+    )].shape == generate_TCGA_LUAD_MessengerRNA.expressions.shape
 
 
 @pytest.fixture
-def generate_TCGA_LUAD(generate_TCGA_LUAD_MessengerRNA, generate_TCGA_LUAD_MicroRNA, generate_TCGA_LUAD_LncRNA,
+def generate_TCGA_LUAD(generate_TCGA_LUAD_MessengerRNA,
+                       generate_TCGA_LUAD_MicroRNA, generate_TCGA_LUAD_LncRNA,
                        generate_TCGA_LUAD_Protein):
     """
     Args:
@@ -80,8 +107,9 @@ def generate_TCGA_LUAD(generate_TCGA_LUAD_MessengerRNA, generate_TCGA_LUAD_Micro
     """
     cohort_name = "LUAD"
     luad_data = MultiOmics(cohort_name)
-    luad_data.add_clinical_data(
-        clinical_data=os.path.join(cohort_folder_path, "nationwidechildrens.org_clinical_patient_luad.txt"))
+    luad_data.add_clinical_data(clinical_data=os.path.join(
+        cohort_folder_path,
+        "nationwidechildrens.org_clinical_patient_luad.txt"))
     luad_data.add_omic(generate_TCGA_LUAD_MessengerRNA)
     luad_data.add_omic(generate_TCGA_LUAD_MicroRNA)
     luad_data.add_omic(generate_TCGA_LUAD_LncRNA)
@@ -94,5 +122,9 @@ def test_TCGA_LUAD_multiomics_transcriptomics(generate_TCGA_LUAD):
     Args:
         generate_TCGA_LUAD:
     """
-    assert all(elem in generate_TCGA_LUAD.get_omics_list() for elem in
-               [MessengerRNA.name(), MicroRNA.name(), LncRNA.name(), Protein.name()])
+    assert all(
+        elem in generate_TCGA_LUAD.get_omics_list() for elem in
+        [MessengerRNA.name(),
+         MicroRNA.name(),
+         LncRNA.name(),
+         Protein.name()])

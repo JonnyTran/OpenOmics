@@ -27,14 +27,21 @@ def get_table_columns(list_of_contents, list_of_names):
         first_line = decoded.decode('utf-8').partition('\n')[0]
         columns = first_line.split(',')
     elif file_extension == ".xls" or file_extension == ".xlsx":
-        columns = pd.read_excel(io.BytesIO(decoded), low_memory=True).columns.tolist()
+        columns = pd.read_excel(io.BytesIO(decoded),
+                                low_memory=True).columns.tolist()
     else:
-        columns = pd.read_table(io.StringIO(decoded.decode('utf-8')), low_memory=True).columns.tolist()
+        columns = pd.read_table(io.StringIO(decoded.decode('utf-8')),
+                                low_memory=True).columns.tolist()
     return columns
 
 
-def get_expression_data(list_of_contents, list_of_names, data_type, cohort_name=None, genes_col_name=None,
-                        columns_selected=None, transposed=None):
+def get_expression_data(list_of_contents,
+                        list_of_names,
+                        data_type,
+                        cohort_name=None,
+                        genes_col_name=None,
+                        columns_selected=None,
+                        transposed=None):
     """
     Args:
         list_of_contents:
@@ -60,7 +67,9 @@ def get_expression_data(list_of_contents, list_of_names, data_type, cohort_name=
     if data_type == MicroRNA.name():
         expression_data = MicroRNA(file, transpose=transposed, usecols=columns)
     elif data_type == MessengerRNA.name():
-        expression_data = MessengerRNA(file, transpose=transposed, usecols=columns)
+        expression_data = MessengerRNA(file,
+                                       transpose=transposed,
+                                       usecols=columns)
     elif data_type == LncRNA.name():
         expression_data = LncRNA(file, transpose=transposed, usecols=columns)
     elif data_type == Protein.name():
@@ -71,7 +80,12 @@ def get_expression_data(list_of_contents, list_of_names, data_type, cohort_name=
     return expression_data
 
 
-def get_clinical_data(file_content, file_name, data_type, cohort_name, patient_id_col=None, columns_selected=None):
+def get_clinical_data(file_content,
+                      file_name,
+                      data_type,
+                      cohort_name,
+                      patient_id_col=None,
+                      columns_selected=None):
     """
     Args:
         file_content:
@@ -81,8 +95,14 @@ def get_clinical_data(file_content, file_name, data_type, cohort_name, patient_i
         patient_id_col:
         columns_selected:
     """
-    file = handle_filestreams([file_content, ], [file_name, ])
-    clinical_data = ClinicalData(file, patient_id_col=patient_id_col, columns=columns_selected)
+    file = handle_filestreams([
+        file_content,
+    ], [
+        file_name,
+    ])
+    clinical_data = ClinicalData(file,
+                                 patient_id_col=patient_id_col,
+                                 columns=columns_selected)
 
     return clinical_data
 

@@ -35,7 +35,8 @@ class UploadCommand(Command):
             pass
 
         self.status('Building Source and Wheel (universal) distribution…')
-        os.system('{0} setup.py sdist bdist_wheel --universal'.format(sys.executable))
+        os.system('{0} setup.py sdist bdist_wheel --universal'.format(
+            sys.executable))
 
         self.status('Uploading the package to PyPi via Twine…')
         os.system('twine upload dist/*')
@@ -55,7 +56,7 @@ with open('HISTORY.rst') as history_file:
 
 # Package meta-data.
 NAME = 'openomics'
-version='0.8.4'
+version = '0.8.4'
 DESCRIPTION = 'OpenOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.'
 URL = 'https://github.com/BioMeCIS-Lab/OpenOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
@@ -65,16 +66,23 @@ AUTHOR = 'Jonny Tran'
 requirements = pd.read_table("./requirements.txt", header=None)[0].tolist()
 setup_requirements = ['pytest-runner', 'twine']
 
-test_requirements = ['pytest', ]
+test_requirements = [
+    'pytest',
+]
 
 here = os.path.abspath(os.path.dirname(__file__))
 
 setup(
     name=NAME,
     version=version,
-    packages=find_packages(include=['openomics', 'openomics.database', 'openomics.utils', 'openomics.visualization']),
-    package_dir={NAME: 'openomics',
-                 'openomics_web': 'openomics_web'},
+    packages=find_packages(include=[
+        'openomics', 'openomics.database', 'openomics.utils',
+        'openomics.visualization'
+    ]),
+    package_dir={
+        NAME: 'openomics',
+        'openomics_web': 'openomics_web'
+    },
     url=URL,
     license='MIT license',
     install_requires=requirements,
@@ -94,11 +102,11 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
-            'Programming Language :: Python :: 3.6',
-            'Programming Language :: Python :: 3.7',
-            'Programming Language :: Python :: 3.8',
-            'Programming Language :: Python :: 3.9',
-        ],
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+    ],
     author=AUTHOR,
     author_email=EMAIL,
     description=DESCRIPTION,
