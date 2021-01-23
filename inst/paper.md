@@ -1,16 +1,22 @@
 ---
-title: 'OpenOmics: Bioinformatics Library to Integrate Multi-omics and Annotation Data' tags:
-
-- Python
-- bioinformatics
-- multiomics
-- data integration
-- big data authors:
-- name: Nhat C. Tran^[corresponding author]
-  orcid: 0000-0002-2575-9633 affiliation: 1
-- name: Jean X. Gao affiliation: 1 affiliations:
-- name: Department of Computer Science and Engineering, The University of Texas at Arlington index: 1 date: 25 January
-  2021 bibliography: paper.bib
+title: 'OpenOmics: Bioinformatics Library to Integrate Multi-omics and Annotation Data'
+tags:
+  - Python
+  - bioinformatics
+  - multiomics
+  - data integration
+  - big data 
+authors:
+  - name: Nhat C. Tran^[corresponding author]
+    orcid: 0000-0002-2575-9633 
+    affiliation: 1
+  - name: Jean X. Gao 
+    affiliation: 1 
+affiliations:
+  - name: Department of Computer Science and Engineering, The University of Texas at Arlington 
+    index: 1 
+date: 25 January 2021 
+bibliography: paper.bib
 ---
 
 # Summary
@@ -73,7 +79,7 @@ elsewhere for down-stream analysis.
 OpenOmics consists of two core modules: multi-omics integration and annotation interface. An overview visualization of
 the OpenOmics system architecture is provided in Figure \autoref{architecture}.
 
-![Overall OpenOmics System Architecture, Data Flow, and Use Cases.\label{architecture}](figure.pdf){ width=20% }
+![Overall OpenOmics System Architecture, Data Flow, and Use Cases.\label{architecture}](figure.pdf)
 
 ## Multi-omics Integration
 
