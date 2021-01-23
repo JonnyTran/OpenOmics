@@ -5,17 +5,17 @@ tags:
   - bioinformatics
   - multiomics
   - data integration
-  - big data 
+  - big data
 authors:
   - name: Nhat C. Tran^[corresponding author]
-    orcid: 0000-0002-2575-9633 
+    orcid: 0000-0002-2575-9633
     affiliation: 1
-  - name: Jean X. Gao 
-    affiliation: 1 
+  - name: Jean X. Gao
+    affiliation: 1
 affiliations:
-  - name: Department of Computer Science and Engineering, The University of Texas at Arlington 
-    index: 1 
-date: 25 January 2021 
+  - name: Department of Computer Science and Engineering, The University of Texas at Arlington
+    index: 1
+date: 25 January 2021
 bibliography: paper.bib
 ---
 
@@ -27,9 +27,9 @@ projects, there currently lacks a tool for standardized preprocessing of heterog
 within the context of a clinical cohort. OpenOmics is a Python library for integrating heterogeneous multi-omics data
 and interfacing with popular public annotation databases, e.g., GENCODE, Ensembl, BioGRID. The library is designed to be
 highly flexible to allow the user to parameterize the construction of integrated datasets, interactive to assist complex
-data exploratory analyses, and scalable to facilitate working with large datasets on standard machines. We demonstrate
-design software choices to support the wide-ranging use cases of OpenOmics with the goal of maximizing usability and
-reproducibility of the data integration framework.
+data exploratory analyses, and scalable to facilitate working with large datasets on standard machines. In this paper,
+we demonstrate the software design choices to support the wide-ranging use cases of OpenOmics with the goal of
+maximizing usability and reproducibility of the data integration framework.
 
 # Statement of need
 
@@ -57,7 +57,7 @@ important for the interpretation and exchange of bioinformatic projects. Current
 on the one hand, supports standardized handling of multi-omics datasets but also allows to query the integrated dataset
 within the context of a clinical cohort.
 
-# Related Works
+# Related works
 
 There are several existing platforms that aids in the integration of multi-omics data, such as Galaxy, Anduril, MixOmics
 and O-Miner. First, Galaxy [@boekel2015multi] and Anduril [@cervera2019anduril] are mature platforms and has an
@@ -74,14 +74,14 @@ programming interface, it doesn't yet leverage high-performance distributed stor
 while O-Miner can perform end-to-end analysis in an integrated platform, its interim analysis results cannot be exported
 elsewhere for down-stream analysis.
 
-# The OpenOmics Library
+# The OpenOmics library
 
 OpenOmics consists of two core modules: multi-omics integration and annotation interface. An overview visualization of
 the OpenOmics system architecture is provided in Figure \autoref{architecture}.
 
 ![Overall OpenOmics System Architecture, Data Flow, and Use Cases.\label{architecture}](figure.pdf)
 
-## Multi-omics Integration
+## Multi-omics integration
 
 Tabular data are everywhere in bioinformatics. To record expression quantifications, annotations, or variant calls, data
 are typically stored in various tabular-like formats, such as BED, GTF, MAF, and VCF, which can be preprocessed and
@@ -109,7 +109,7 @@ responses, and survival outcomes. Typically, multi-omics data observations are c
 each Patient can have multiple Biospecimens. OpenOmics tracks the ID's of biospecimens and the patient it belongs to, so
 the multi-omics data are organized in a hierarchical order to enable aggregated operations.
 
-## Annotation Interface
+## Annotation interface
 
 After importing and integrating the multi-omic data, the user can supplement their dataset with various annotation
 attributes from public data repositories such as GENCODE, Ensembl, and RNA Central. With just a few operations, the user
@@ -155,7 +155,7 @@ customize the selection and aggregation of biological measurements at different 
 
 Table 1: Public annotation databases and availability of data in the Human genome.
 
-# System Design
+# System design
 
 This chapter describes the various implementation details behind the scalable processing and efficient data storage, and
 the design choices in the development operations.
@@ -184,7 +184,7 @@ software requires as little as 4 GB of RAM and 2 CPU cores, and can computationa
 multi-worker distributed systems such as a compute cluster. To take advantage of increased computational resource,
 OpenOmics simply requires one line of code to activate parallel computing functionalities.
 
-## Development Operations
+## Development operations
 
 We developed OpenOmics following modern software best-practices and package publishing standards. For the version
 control of our source-code, we utilized a public GitHub repository which contains two branches, master and develop. The
