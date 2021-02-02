@@ -40,7 +40,7 @@ Here, we loads both "long_noncoding_RNAs.gtf" and "basic.annotation.gtf" which b
 
    from openomics.database import GENCODE, EnsemblGenes
 
-   gencode = GENCODE(path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
+   gencode = ENCODE(path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
                      file_resources={"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
                                      "basic.annotation.gtf": "gencode.v32.basic.annotation.gtf.gz",
                                      "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
