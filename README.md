@@ -44,10 +44,10 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 from openomics import MultiOmics
 ```
 
-Import TCGA LUAD data included in tests dataset (preprocessed from TCGA-Assembler)
+Import TCGA LUAD data included in tests dataset (preprocessed from TCGA-Assembler). It is located at [tests/data/TCGA_LUAD](https://github.com/BioMeCIS-Lab/OpenOmics/tree/master/tests/data/TCGA_LUAD).
 
 ```python
-folder_path = "tests/data/TCGA_LUAD/" # Located at https://github.com/BioMeCIS-Lab/OpenOmics/tree/master/tests
+folder_path = "tests/data/TCGA_LUAD/"
 ```
 
 Load the multiomics: Gene Expression, MicroRNA expression lncRNA expression, Copy Number Variation, Somatic Mutation, DNA Methylation, and Protein Expression data
