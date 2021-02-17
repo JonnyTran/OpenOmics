@@ -145,8 +145,6 @@ def parse_gtf(filepath_or_buffer, npartitions=None, compression=None, chunksize=
     if features is not None:
         features = set(features)
 
-    dataframes = []
-
     def parse_frame(s):
         if s == ".":
             return 0
@@ -172,7 +170,7 @@ def parse_gtf(filepath_or_buffer, npartitions=None, compression=None, chunksize=
 
     # Uses Dask
     if npartitions:
-        logging.info(f"dd.read_table, file={filepath_or_buffer}, compression={compression}")
+        logging.debug(f"dask.datafame.read_table, file={filepath_or_buffer}, compression={compression}")
         chunk_iterator = dd.read_table(
             filepath_or_buffer,
             sep="\t",
@@ -193,6 +191,7 @@ def parse_gtf(filepath_or_buffer, npartitions=None, compression=None, chunksize=
             },
             na_values=".",
             converters={"frame": parse_frame})
+        print("chunk_iterator", chunk_iterator)
 
     # Uses Pandas
     else:
@@ -215,10 +214,16 @@ def parse_gtf(filepath_or_buffer, npartitions=None, compression=None, chunksize=
             },
             na_values=".",
             converters={"frame": parse_frame})
+        print("chunk_iterator", chunk_iterator)
+
     dataframes = []
     try:
         for df in chunk_iterator:
+            print("df", df)
             for intern_column in intern_columns:
+                print("intern_column", intern_column)
+                print("df[intern_column]", df[intern_column])
+                print("str(s)", [str(s) for s in df[intern_column]])
                 df[intern_column] = [intern(str(s)) for s in df[intern_column]]
 
             # compare feature strings after interning
@@ -236,7 +241,8 @@ def parse_gtf(filepath_or_buffer, npartitions=None, compression=None, chunksize=
                 ]
             dataframes.append(df)
     except Exception as e:
-        raise Exception("ParsingError:" + str(e))
+        raise e
+        # raise Exception("ParsingError:" + str(e))
 
     if npartitions:
         df = dd.concat(dataframes)
