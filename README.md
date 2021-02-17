@@ -56,16 +56,16 @@ Load the multiomics: Gene Expression, MicroRNA expression lncRNA expression, Cop
 from openomics import MessengerRNA, MicroRNA, LncRNA, SomaticMutation, Protein
 
 # Load each expression dataframe
-mRNA = MessengerRNA(data=folder_path+"LUAD__geneExp.txt", transpose=True,
-                    usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
-miRNA = MicroRNA(data=folder_path+"LUAD__miRNAExp__RPM.txt"), transpose=True,
-                 usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="transcript_name")
-lncRNA = LncRNA(data=folder_path+"TCGA-rnaexpr.tsv"), transpose=True,
-                usecols="Gene_ID|TCGA", gene_index="Gene_ID", gene_level="gene_id")
-som = SomaticMutation(data=folder_path+"LUAD__somaticMutation_geneLevel.txt"),
-                      transpose=True, usecols="GeneSymbol|TCGA", gene_index="gene_name")
-pro = Protein(data=folder_path+"protein_RPPA.txt"), transpose=True,
-              usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="protein_name")
+mRNA = MessengerRNA(data=folder_path+"LUAD__geneExp.txt",
+        transpose=True, usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
+miRNA = MicroRNA(data=folder_path+"LUAD__miRNAExp__RPM.txt",
+        transpose=True, usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="transcript_name")
+lncRNA = LncRNA(data=folder_path+"TCGA-rnaexpr.tsv",
+        transpose=True, usecols="Gene_ID|TCGA", gene_index="Gene_ID", gene_level="gene_id")
+som = SomaticMutation(data=folder_path+"LUAD__somaticMutation_geneLevel.txt",
+        transpose=True, usecols="GeneSymbol|TCGA", gene_index="gene_name")
+pro = Protein(data=folder_path+"protein_RPPA.txt",
+        transpose=True, usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="protein_name")
 
 # Create an integrated MultiOmics dataset
 luad_data = MultiOmics(cohort_name="LUAD")
