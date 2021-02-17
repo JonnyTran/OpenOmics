@@ -71,23 +71,24 @@ class SequenceDataset(Dataset):
 
 
 class GENCODE(SequenceDataset):
-    def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
+    def __init__(self, path='ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/',
                  file_resources=None, col_rename=None, npartitions=0,
-                 replace_U2T=True, remove_version_num=False):
+                 replace_U2T=False, remove_version_num=False):
         """
         Args:
             path:
             file_resources:
             col_rename:
             npartitions:
-            replace_U2T:
-            remove_version_num:
+            replace_U2T (bool): Whether to replace nucleotides from U to T on the RNA primary sequences.
+            remove_version_num (bool): Whether to drop the version number on the ensembl ID.
         """
         if file_resources is None:
-            file_resources = {"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
-                              "basic.annotation.gtf": "gencode.v32.basic.annotation.gtf.gz",
-                              "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
-                              "transcripts.fa": "gencode.v32.transcripts.fa.gz"}
+            file_resources = {
+                "basic.annotation.gtf": "gencode.v32.basic.annotation.gtf.gz",
+                "long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
+                "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
+                "transcripts.fa": "gencode.v32.transcripts.fa.gz"}
 
         self.remove_version_num = remove_version_num
 
@@ -101,9 +102,9 @@ class GENCODE(SequenceDataset):
             npartitions:
         """
         dfs = []
-        for gtf_file in file_resources:
-            if '.gtf' in gtf_file:
-                df = read_gtf(file_resources[gtf_file], npartitions=npartitions)
+        for filename, content in file_resources.items():
+            if '.gtf' in filename:
+                df = read_gtf(content, npartitions=npartitions, compression="gzip")
                 dfs.append(df)
 
         if npartitions:

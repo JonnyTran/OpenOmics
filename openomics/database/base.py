@@ -1,12 +1,9 @@
-import copy
+import os, copy, logging
 import difflib
-import gzip
-import os
-import zipfile
+import filetype, zipfile, gzip, rarfile
+
 from abc import abstractmethod
 
-import filetype
-import rarfile
 import validators
 
 from openomics import backend as pd
@@ -15,39 +12,26 @@ from openomics.utils.io import get_pkg_data_filename
 
 
 class Dataset(object):
-    COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field
+    COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
 
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=None, verbose=False):
-        """This is an abstract class used to instantiate a database given a
-        folder containing various file resources. When creating a Database
-        class, the load_data function is called where the file resources are
-        load as a DataFrame and performs necessary processings. This class
-        provides an interface for RNA classes to annotate various genomic
-        annotation, functional annotation, sequences, and disease associations.
-        :param path: The folder or url path containing the data file resources.
-        If url path, the files will be downloaded and cached to the user's home
-        folder (at ~/.astropy/). :type path: str :param file_resources: default
-        None,
-
-            Used to list required files for preprocessing of the database. A
-            dictionary where keys are required filenames and value are file
-            paths. If None, then the class constructor should automatically
-            build the required file resources dict.
+        """This is a class used to instantiate a Dataset given a a set of files from either local files or URLs. When
+        creating a Dataset class, the `load_dataframe()` function is called where the file_resources are used to
+        load (Pandas or Dask) DataFrames, then performs data wrangling to yield a dataframe at `self.data`. This class
+        also provides an interface for -omics tables, e.g. `ExpressionData`, to annotate various annotations, expressions,
+        sequences, and disease associations.
 
         Args:
-            path:
-            file_resources:
-            col_rename (dict): default None, A dictionary to rename columns in
-                the data table. If None, then automatically load defaults.
-            npartitions (int): [0-n], default 0 If 0, then uses a Pandas
-                DataFrame, if >1, then creates an off-memory Dask DataFrame with
-                n partitions
-            verbose:
+            path: The folder or url path containing the data file resources. If url path, the files will be downloaded and cached to the user's home folder (at ~/.astropy/).
+            file_resources: Used to list required files for preprocessing of the database. A dictionary where keys are required filenames and value are file paths. If None, then the class constructor should automatically build the required file resources dict.
+            col_rename (dict): default None, A dictionary to rename columns in the data table. If None, then automatically load defaults.
+            npartitions (int): [0-n], default 0 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
+            verbose (bool): Default False.
         """
         self.npartitions = npartitions
         self.verbose = verbose
 
-        self.validate_file_resources(path, file_resources, verbose=verbose)
+        self.validate_file_resources(path, file_resources, npartitions=npartitions, verbose=verbose)
 
         self.data = self.load_dataframe(file_resources, npartitions=npartitions)
         self.data = self.data.reset_index()
@@ -60,43 +44,48 @@ class Dataset(object):
         print("{}: {}".format(self.name(), self.data.columns.tolist()))
 
     def validate_file_resources(self, path, file_resources, npartitions=None, verbose=False) -> None:
-        """For each file in file_resources, fetch the file if path+file is a URL
+        """For each file in file_resources, download the file if path+file is a URL
         or load from disk if a local path. Additionally unzip or unrar if the
         file is compressed.
 
         Args:
             path (str): The folder or url path containing the data file
-                resources. If url path, the files will be downloaded and cached
+                resources. If a url path, the files will be downloaded and cached
                 to the user's home folder (at ~/.astropy/).
             file_resources (dict): default None, Used to list required files for
                 preprocessing of the database. A dictionary where keys are
                 required filenames and value are file paths. If None, then the
                 class constructor should automatically build the required file
                 resources dict.
-            npartitions:
+            npartitions (int): >0 if the files will be used to create a Dask Dataframe. Default None.
             verbose:
         """
         if validators.url(path):
             for filename, filepath in copy.copy(file_resources).items():
                 data_file = get_pkg_data_filename(path, filepath,
                                                   verbose=verbose)  # Download file and replace the file_resource path
-                filetype_ext = filetype.guess(data_file)
+                filepath_ext = filetype.guess(data_file)
 
-                # This null if-clause is needed incase when filetype_ext is None, causing the next clause to fail
-                if filetype_ext is None:
+                # This null if-clause is needed incase when filetype_ext is None, causing the next clauses to fail
+                if filepath_ext is None:
                     file_resources[filename] = data_file
 
-                elif filetype_ext.extension == 'gz':
+                elif filepath_ext.extension == 'gz' and \
+                     not npartitions: # Dask will automatically handle gzip uncompression at read_table()
+
+                    logging.debug(f"Uncompressed gzip file at {data_file}")
                     file_resources[filename] = gzip.open(data_file, 'rt')
 
-                elif filetype_ext.extension == 'zip':
+                elif filepath_ext.extension == 'zip':
+                    logging.debug(f"Uncompressed zip file at {data_file}")
                     zf = zipfile.ZipFile(data_file, 'r')
 
                     for subfile in zf.infolist():
                         if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]: # If the file extension matches
                             file_resources[filename] = zf.open(subfile.filename, mode='r')
 
-                elif filetype_ext.extension == 'rar':
+                elif filepath_ext.extension == 'rar':
+                    logging.debug(f"Uncompressed rar file at {data_file}")
                     rf = rarfile.RarFile(data_file, 'r')
 
                     for subfile in rf.infolist():

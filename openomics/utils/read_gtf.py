@@ -128,18 +128,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def parse_gtf(
-    filepath_or_buffer,
-    npartitions=None,
-    chunksize=1024 * 1024,
-    features=None,
-    intern_columns=["seqname", "source", "strand", "frame"],
-    fix_quotes_columns=["attribute"]):
+def parse_gtf(filepath_or_buffer, npartitions=None, compression=None, chunksize=1024 * 1024, features=None,
+              intern_columns=["seqname", "source", "strand", "frame"], fix_quotes_columns=["attribute"]):
     """
     Args:
         filepath_or_buffer (str or buffer object):
-        npartitions:
-        chunksize (int):
+        npartitions (int): Number of partitions for the dask dataframe. Default None.
+        compression (str): Compression type to be passed into dask.dataframe.read_table(). Default None.
+        chunksize (int): Default 1048576.
         features (set or None): Drop entries which aren't one of these features
         intern_columns (list): These columns are short strings which should be
             interned
@@ -173,11 +169,14 @@ def parse_gtf(
     # 8) frame : 0, 1, 2 or "."
     # 9) attribute : key-value pairs separated by semicolons
     # (see more complete description in docstring at top of file)
+
+    # Uses Dask
     if npartitions:
-        logging.info(filepath_or_buffer)
+        logging.info(f"dd.read_table, file={filepath_or_buffer}, compression={compression}")
         chunk_iterator = dd.read_table(
             filepath_or_buffer,
             sep="\t",
+            compression=compression,
             comment="#",
             names=REQUIRED_COLUMNS,
             skipinitialspace=True,
@@ -194,6 +193,8 @@ def parse_gtf(
             },
             na_values=".",
             converters={"frame": parse_frame})
+
+    # Uses Pandas
     else:
         chunk_iterator = pd.read_csv(
             filepath_or_buffer,
@@ -266,11 +267,7 @@ def parse_gtf_and_expand_attributes(
         features (set or None): Ignore entries which don't correspond to one of
             the supplied features
     """
-    result = parse_gtf(
-        filepath_or_buffer,
-        npartitions=npartitions,
-        chunksize=chunksize,
-        features=features)
+    result = parse_gtf(filepath_or_buffer, npartitions=npartitions, chunksize=chunksize, features=features)
     attribute_values = result["attribute"]
     del result["attribute"]
     for column_name, values in expand_attribute_strings(
@@ -279,19 +276,13 @@ def parse_gtf_and_expand_attributes(
     return result
 
 
-def read_gtf(
-    filepath_or_buffer,
-    npartitions=None,
-    expand_attribute_column=True,
-    infer_biotype_column=False,
-    column_converters={},
-    usecols=None,
-    features=None,
-    chunksize=1024 * 1024):
+def read_gtf(filepath_or_buffer, npartitions=None, compression=None, expand_attribute_column=True,
+             infer_biotype_column=False, column_converters={}, usecols=None, features=None, chunksize=1024 * 1024):
     """Parse a GTF into a dictionary mapping column names to sequences of
     values.
 
     Args:
+        compression:
         filepath_or_buffer (str or buffer object): Path to GTF file (may be gzip
             compressed) or buffer object such as StringIO
         npartitions:
@@ -321,7 +312,7 @@ def read_gtf(
             chunksize=chunksize,
             restrict_attribute_columns=usecols)
     else:
-        result_df = parse_gtf(filepath_or_buffer, npartitions=npartitions, features=features)
+        result_df = parse_gtf(filepath_or_buffer, npartitions=npartitions, features=features, compression=compression)
 
     for column_name, column_type in list(column_converters.items()):
         result_df[column_name] = [
