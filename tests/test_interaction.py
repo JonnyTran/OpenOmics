@@ -16,7 +16,7 @@ def test_import_LncRNA2Target(generate_LncRNA2Target):
 
 @pytest.fixture
 def generate_MiRTarBase():
-    return MiRTarBase(path="/data/datasets/Bioinformatics_ExternalData/miRTarBase/", strip_mirna_name=True,
+    return MiRTarBase(path="ftp://mirbase.org/pub/mirbase/CURRENT/", strip_mirna_name=True,
                       filters={"Species (Target Gene)": "Homo sapiens"})
 
 
