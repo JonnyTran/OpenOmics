@@ -246,12 +246,8 @@ def parse_gtf(filepath_or_buffer, npartitions=None, compression=None, chunksize=
     return df
 
 
-def parse_gtf_and_expand_attributes(
-    filepath_or_buffer,
-    npartitions=None,
-    chunksize=1024 * 1024,
-    restrict_attribute_columns=None,
-    features=None):
+def parse_gtf_and_expand_attributes(filepath_or_buffer, npartitions=None, compression=None, chunksize=1024 * 1024,
+                                    restrict_attribute_columns=None, features=None):
     """Parse lines into column->values dictionary and then expand the
     'attribute' column into multiple columns. This expansion happens by
     replacing strings of semi-colon separated key-value values in the
@@ -259,6 +255,7 @@ def parse_gtf_and_expand_attributes(
     for each row (using None for rows where key didn't occur).
 
     Args:
+        compression:
         filepath_or_buffer (str or buffer object):
         npartitions:
         chunksize (int):
@@ -267,7 +264,7 @@ def parse_gtf_and_expand_attributes(
         features (set or None): Ignore entries which don't correspond to one of
             the supplied features
     """
-    result = parse_gtf(filepath_or_buffer, npartitions=npartitions, chunksize=chunksize, features=features)
+    result = parse_gtf(filepath_or_buffer, npartitions=npartitions, compression=compression, chunksize=chunksize, features=features)
     attribute_values = result["attribute"]
     del result["attribute"]
     for column_name, values in expand_attribute_strings(
@@ -282,10 +279,10 @@ def read_gtf(filepath_or_buffer, npartitions=None, compression=None, expand_attr
     values.
 
     Args:
-        compression:
         filepath_or_buffer (str or buffer object): Path to GTF file (may be gzip
             compressed) or buffer object such as StringIO
         npartitions:
+        compression:
         expand_attribute_column (bool): Replace strings of semi-colon separated
             key-value values in the 'attribute' column with one column per
             distinct key, with a list of values for each row (using None for
@@ -307,10 +304,9 @@ def read_gtf(filepath_or_buffer, npartitions=None, compression=None, expand_attr
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
 
     if expand_attribute_column:
-        result_df = parse_gtf_and_expand_attributes(
-            filepath_or_buffer, npartitions=npartitions,
-            chunksize=chunksize,
-            restrict_attribute_columns=usecols)
+        result_df = parse_gtf_and_expand_attributes(filepath_or_buffer, npartitions=npartitions, compression=compression,
+                                                    chunksize=chunksize,
+                                                    restrict_attribute_columns=usecols)
     else:
         result_df = parse_gtf(filepath_or_buffer, npartitions=npartitions, features=features, compression=compression)
 
