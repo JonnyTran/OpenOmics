@@ -477,7 +477,8 @@ class LncRNA2Target(Interactions):
         table = self.filter_values(table, filters)
         logging.info(f"{self.name()}, {table.columns.tolist()}")
 
-        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-")
+        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-",
+                                                                                      regex=True)
         table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("--", "-")
         table["Target_official_symbol"].apply(lambda x: x.lower() if "mir" in x.lower() else x.upper())
         table["GENCODE_gene_name"] = table["GENCODE_gene_name"].str.upper()
