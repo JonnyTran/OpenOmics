@@ -255,7 +255,6 @@ def parse_gtf_dask(filepath_or_buffer, npartitions=None, compression=None, featu
     dataframe = dd.read_table(
         filepath_or_buffer,
         sep="\t",
-        npartitions=npartitions,
         compression=compression,
         comment="#",
         names=REQUIRED_COLUMNS,
