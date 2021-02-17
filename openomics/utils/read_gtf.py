@@ -295,8 +295,7 @@ def parse_gtf_and_expand_attributes(filepath_or_buffer, npartitions=None, compre
         features (set or None): Ignore entries which don't correspond to one of the supplied features
     """
     if npartitions:
-        ddf = parse_gtf_dask(filepath_or_buffer, npartitions=npartitions, compression=compression, chunksize=chunksize,
-                           features=features)
+        ddf = parse_gtf_dask(filepath_or_buffer, npartitions=npartitions, compression=compression, features=features)
         ddf = ddf.reset_index(drop=False)
         ddf = ddf.set_index("index")
 
@@ -356,8 +355,7 @@ def read_gtf(filepath_or_buffer, npartitions=None, compression=None, expand_attr
         if npartitions:
             result_df = parse_gtf(filepath_or_buffer, features=features, compression=compression)
         else:
-            result_df = parse_gtf_dask(filepath_or_buffer, npartitions=npartitions, features=features,
-                                  compression=compression)
+            result_df = parse_gtf_dask(filepath_or_buffer, npartitions=npartitions, features=features, compression=compression)
 
     for column_name, column_type in list(column_converters.items()):
         result_df[column_name] = [
