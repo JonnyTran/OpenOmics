@@ -16,7 +16,6 @@ import logging
 from collections import OrderedDict
 from os.path import exists
 
-import dask
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
@@ -292,16 +291,16 @@ def parse_gtf_and_expand_attributes(filepath_or_buffer, npartitions=None, compre
         features (set or None): Ignore entries which don't correspond to one of the supplied features
     """
     if npartitions:
-        ddf = parse_gtf_dask(filepath_or_buffer, npartitions=npartitions, compression=compression, features=features)
-        ddf = ddf.reset_index(drop=False)
-        ddf = ddf.set_index("index")
+        df = parse_gtf_dask(filepath_or_buffer, npartitions=npartitions, compression=compression, features=features)
+        df = df.reset_index(drop=False)
+        df = df.set_index("index")
 
-        attribute_values = ddf.pop("attribute")
+        attribute_values = df.pop("attribute")
 
         for column_name, values in expand_attribute_strings(attribute_values,
                                                             usecols=restrict_attribute_columns).items():
             series = dd.from_array(np.array(values, dtype=np.str))
-            ddf[column_name] = series
+            df[column_name] = series
     else:
         df = parse_gtf(filepath_or_buffer, chunksize=chunksize, features=features)
 
@@ -311,7 +310,7 @@ def parse_gtf_and_expand_attributes(filepath_or_buffer, npartitions=None, compre
                                                             usecols=restrict_attribute_columns).items():
             df[column_name] = values
 
-    return ddf
+    return df
 
 
 def read_gtf(filepath_or_buffer, npartitions=None, compression=None, expand_attribute_column=True,

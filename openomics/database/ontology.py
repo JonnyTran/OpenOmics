@@ -13,7 +13,7 @@ class Ontology(Dataset):
 
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
         """
-        Manages dataset input processing from tables and construct an ontology network from obo file. There ontology
+        Manages dataset input processing from tables and construct an ontology network from .obo file. There ontology
         network is G(V,E) where there exists e_ij for child i to parent j to present "node i is_a node j".
 
         Args:
