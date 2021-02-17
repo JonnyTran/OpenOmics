@@ -263,7 +263,6 @@ def parse_gtf_dask(filepath_or_buffer, npartitions=None, compression=None, featu
         error_bad_lines=True,
         warn_bad_lines=True,
         # chunksize=chunksize,
-        blocksize=None,
         engine="c",
         dtype={
             "start": np.int64,
