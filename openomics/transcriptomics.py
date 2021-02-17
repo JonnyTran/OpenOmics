@@ -104,7 +104,7 @@ class ExpressionData(object):
         elif isinstance(data, io.StringIO):
             data.seek(0)  # Needed since the file was previous read to extract columns information
             df = pd.read_table(data)
-        elif type(data) is str and os.path.isfile(data):
+        elif isinstance(data, str) and os.path.isfile(data):
             df = pd.read_table(data, sep=None, engine='python')
         else:
             raise IOError(data)
