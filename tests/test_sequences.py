@@ -25,8 +25,8 @@ def test_import_GENCODE(generate_GENCODE):
     assert generate_GENCODE.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/'
 
 
-# def test_import_GENCODE_dask(generate_GENCODE_dask):
-#     assert generate_GENCODE_dask.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/'
+def test_import_GENCODE_dask(generate_GENCODE_dask):
+    assert generate_GENCODE_dask.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/'
 
 
 def test_annotate_GENCODE(generate_TCGA_LUAD, generate_GENCODE):

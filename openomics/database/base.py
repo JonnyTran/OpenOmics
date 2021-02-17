@@ -70,9 +70,11 @@ class Dataset(object):
                 if filepath_ext is None:
                     file_resources[filename] = data_file
 
-                elif filepath_ext.extension == 'gz' and \
-                     not npartitions: # Dask will automatically handle gzip uncompression at read_table()
+                # Dask will automatically handle uncompression at dd.read_table(compression=filepath_ext)
+                elif ".gtf" in filename and npartitions:
+                    file_resources[filename] = data_file
 
+                elif filepath_ext.extension == 'gz':
                     logging.debug(f"Uncompressed gzip file at {data_file}")
                     file_resources[filename] = gzip.open(data_file, 'rt')
 
