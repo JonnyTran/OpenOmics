@@ -103,7 +103,6 @@ def expand_attribute_strings(attribute_strings, quote_char='\"', nan_value=None,
             else:
                 column[i] = "%s,%s" % (old_value, value)
 
-    logging.info("Extracted GTF attributes: %s" % column_order)
     return OrderedDict(
         (column_name, extra_columns[column_name])
         for column_name in column_order)
