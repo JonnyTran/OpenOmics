@@ -349,7 +349,11 @@ class MirBase(SequenceDataset):
                 "U", "T")
         return entries_df
 
-    def get_sequences(self, index="gene_name", omic=None, agg_sequences="all", **kwargs):
+    def get_sequences(self,
+                      index="gene_name",
+                      omic=None,
+                      agg_sequences="all",
+                      **kwargs):
         if hasattr(self, "seq_dict"):
             logging.info("Using cached sequences dict")
             return self.seq_dict
