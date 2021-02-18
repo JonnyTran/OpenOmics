@@ -20,6 +20,7 @@ def generate_TCGA_LUAD_MessengerRNA():
         gene_level="gene_name",
     )
     data.drop_genes(data.expressions.columns[50:])
+    data.drop_samples(data.expressions.index[:100])
     return data
 
 
@@ -34,6 +35,7 @@ def generate_TCGA_LUAD_MessengerRNA_dask():
         npartitions=4,
     )
     data.drop_genes(data.expressions.columns[50:])
+    data.drop_samples(data.expressions.index[:100])
     return data
 
 
@@ -47,6 +49,7 @@ def generate_TCGA_LUAD_MicroRNA():
         gene_level="gene_name",
     )
     data.drop_genes(data.expressions.columns[50:])
+    data.drop_samples(data.expressions.index[:100])
     return data
 
 
@@ -60,6 +63,7 @@ def generate_TCGA_LUAD_LncRNA():
         gene_level="gene_id",
     )
     data.drop_genes(data.expressions.columns[50:])
+    data.drop_samples(data.expressions.index[:100])
     return data
 
 
@@ -73,6 +77,7 @@ def generate_TCGA_LUAD_SomaticMutation():
         gene_index="gene_name",
     )
     data.drop_genes(data.expressions.columns[50:])
+    data.drop_samples(data.expressions.index[:100])
     return data
 
 @pytest.fixture
@@ -85,6 +90,7 @@ def generate_TCGA_LUAD_Protein():
         gene_level="protein_name",
     )
     data.drop_genes(data.expressions.columns[50:])
+    data.drop_samples(data.expressions.index[:100])
     return data
 
 
