@@ -227,12 +227,11 @@ class Expression(object):
 
     def drop_genes(self, genes_to_drop):
         """
+        Drop columns representing genes/rna/proteins in self.expressions dataframe.
         Args:
-            genes_to_drop:
+            genes_to_drop ([str]): list of strings that are a subset of the columns list.
         """
         self.expressions.drop(genes_to_drop, axis=1, inplace=True)
-        for gene in genes_to_drop:
-            self.features.remove(gene)
 
     @classmethod
     def name(cls):
