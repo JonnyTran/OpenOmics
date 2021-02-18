@@ -129,7 +129,8 @@ class Dataset(object):
     def name(cls):
         return cls.__name__
 
-    def list_databases(self):
+    @staticmethod
+    def list_databases():
         return DEFAULT_LIBRARIES
 
     def get_annotations(self, index, columns):

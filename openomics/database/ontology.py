@@ -98,7 +98,8 @@ class Ontology(Dataset):
             lambda x: list(set(x) & set(leaf_terms)) if isinstance(x, list) else None)
         return go_terms_parents
 
-    def get_node_color(self, file="~/Bioinformatics_ExternalData/GeneOntology/go_colors_biological.csv"):
+    @staticmethod
+    def get_node_color(file="~/Bioinformatics_ExternalData/GeneOntology/go_colors_biological.csv"):
         go_colors = pd.read_csv(file)
 
         def selectgo(x):

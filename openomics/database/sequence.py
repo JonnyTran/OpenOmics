@@ -54,7 +54,8 @@ class SequenceDataset(Dataset):
         """
         raise NotImplementedError
 
-    def get_aggregator(self, agg=None):
+    @staticmethod
+    def get_aggregator(agg=None):
         """
         Args:
             agg:
