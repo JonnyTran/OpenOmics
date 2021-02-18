@@ -12,9 +12,5 @@ enabled = true
   runtime_version = "3.x.x"
 
 [[transformers]]
-name = "yapf"
-enabled = true
-
-[[transformers]]
-name = "autopep8"
+name = "flake8"
 enabled = true
