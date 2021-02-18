@@ -13,8 +13,10 @@ cohort_folder_path = "tests/data/TCGA_LUAD"
 
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA():
-    return MessengerRNA(data=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"), transpose=True,
+    mrna = MessengerRNA(data=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"), transpose=True,
                         usecols="GeneSymbol|TCGA", gene_index="GeneSymbol", gene_level="gene_name")
+
+    return mrna
 
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA_dask():
