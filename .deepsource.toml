@@ -12,5 +12,9 @@ enabled = true
   runtime_version = "3.x.x"
 
 [[transformers]]
+name = "yapf"
+enabled = true
+
+[[transformers]]
 name = "black"
 enabled = true
