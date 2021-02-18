@@ -20,7 +20,7 @@ backend = pd
 from . import database, utils
 
 from .transcriptomics import (
-    ExpressionData, MessengerRNA, MicroRNA, LncRNA,
+    Expression, MessengerRNA, MicroRNA, LncRNA,
 )
 
 from .genomics import (

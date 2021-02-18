@@ -2,10 +2,10 @@ import networkx as nx
 import pandas as pd
 
 from .database import Annotatable
-from .transcriptomics import ExpressionData
+from .transcriptomics import Expression
 
 
-class Protein(ExpressionData, Annotatable):
+class Protein(Expression, Annotatable):
     def __init__(self, data, transpose, gene_index=None, usecols=None, gene_level=None, sample_level="sample_index",
                  transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
         """

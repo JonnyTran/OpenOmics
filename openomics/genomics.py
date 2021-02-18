@@ -1,8 +1,8 @@
-from openomics import ExpressionData
+from openomics import Expression
 from openomics.database import Annotatable
 
 
-class SingleNucleotideVariants(ExpressionData, Annotatable):
+class SingleNucleotideVariants(Expression, Annotatable):
     def __init__(self, data, transpose, gene_index, usecols=None, gene_level=None, sample_level="sample_index",
                  transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
         """
@@ -29,7 +29,7 @@ class SingleNucleotideVariants(ExpressionData, Annotatable):
         return cls.__name__
 
 
-class SomaticMutation(ExpressionData, Annotatable):
+class SomaticMutation(Expression, Annotatable):
     def __init__(self, data, transpose, gene_index, usecols=None, gene_level=None, sample_level="sample_index",
                  transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
         """
@@ -55,7 +55,7 @@ class SomaticMutation(ExpressionData, Annotatable):
         return cls.__name__
 
 
-class DNAMethylation(ExpressionData, Annotatable):
+class DNAMethylation(Expression, Annotatable):
     def __init__(self, data, transpose, gene_index, usecols=None, gene_level=None, sample_level="sample_index",
                  transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
         """
@@ -81,7 +81,7 @@ class DNAMethylation(ExpressionData, Annotatable):
         return cls.__name__
 
 
-class CopyNumberVariation(ExpressionData, Annotatable):
+class CopyNumberVariation(Expression, Annotatable):
     def __init__(self, data, transpose, gene_index, usecols=None, gene_level=None, sample_level="sample_index",
                  transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
         """

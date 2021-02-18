@@ -13,7 +13,7 @@ from .database import Annotatable
 from .utils.df import drop_duplicate_columns
 
 
-class ExpressionData(object):
+class Expression(object):
     def __init__(
         self,
         data,
@@ -215,7 +215,7 @@ class ExpressionData(object):
             old_index (str):
         """
         assert isinstance(self, Annotatable) and isinstance(
-            self, ExpressionData)
+            self, Expression)
         # Change gene name columns in expressions
         rename_dict = self.get_rename_dict(from_index=old_index,
                                            to_index=index)
@@ -267,7 +267,7 @@ class ExpressionData(object):
     features = property(get_genes_list)
 
 
-class LncRNA(ExpressionData, Annotatable):
+class LncRNA(Expression, Annotatable):
     def __init__(
         self,
         data,
@@ -312,7 +312,7 @@ class LncRNA(ExpressionData, Annotatable):
         return cls.__name__
 
 
-class MessengerRNA(ExpressionData, Annotatable):
+class MessengerRNA(Expression, Annotatable):
     def __init__(
         self,
         data,
@@ -357,7 +357,7 @@ class MessengerRNA(ExpressionData, Annotatable):
         return cls.__name__
 
 
-class MicroRNA(ExpressionData, Annotatable):
+class MicroRNA(Expression, Annotatable):
     def __init__(
         self,
         data,
