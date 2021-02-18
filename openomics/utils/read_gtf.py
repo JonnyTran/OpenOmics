@@ -254,6 +254,7 @@ def parse_gtf_dask(filepath_or_buffer, npartitions=None, compression=None, featu
         filepath_or_buffer,
         sep="\t",
         compression=compression,
+        blocksize=None,
         comment="#",
         names=REQUIRED_COLUMNS,
         skipinitialspace=True,

@@ -236,10 +236,10 @@ class GTEx(Dataset):
         gene_exp_medians = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"],
             sep='\t', header=1, skiprows=1)
-        gene_exp_medians["Name"] = gene_exp_medians["Name"].str.replace("[.].*", "")
+        gene_exp_medians["Name"] = gene_exp_medians["Name"].str.replace("[.].*", "", regex=True)
         gene_exp_medians = gene_exp_medians.rename(columns=self.COLUMNS_RENAME_DICT)  # Must be done here
         gene_exp_medians.set_index(["gene_id", "gene_name"], inplace=True)
-        #
+
         # # Sample attributes (needed to get tissue type)
         # SampleAttributes = pd.read_table(
         #     self.file_resources["GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt"],

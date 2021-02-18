@@ -37,10 +37,6 @@ from .multiomics import (
     MultiOmics
 )
 
-from .visualization import (
-    umap
-)
-
 
 def set_backend(new):
     """
