@@ -80,6 +80,7 @@ def generate_TCGA_LUAD_SomaticMutation():
     data.drop_samples(data.expressions.index[:100])
     return data
 
+
 @pytest.fixture
 def generate_TCGA_LUAD_Protein():
     data = Protein(
