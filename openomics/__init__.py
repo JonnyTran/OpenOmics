@@ -11,8 +11,8 @@ import pandas as pd
 """Top-level package for openomics."""
 
 __author__ = """Nhat (Jonny) Tran"""
-__email__ = 'nhat.tran@mavs.uta.edu'
-__version__ = '0.8.4'
+__email__ = "nhat.tran@mavs.uta.edu"
+__version__ = "0.8.4"
 
 __BACKEND__ = "pandas"
 backend = pd
@@ -20,22 +20,19 @@ backend = pd
 from . import database, utils
 
 from .transcriptomics import (
-    ExpressionData, MessengerRNA, MicroRNA, LncRNA,
+    ExpressionData,
+    MessengerRNA,
+    MicroRNA,
+    LncRNA,
 )
 
-from .genomics import (
-    SomaticMutation, DNAMethylation, CopyNumberVariation
-)
+from .genomics import SomaticMutation, DNAMethylation, CopyNumberVariation
 
-from .proteomics import (
-    Protein
-)
+from .proteomics import Protein
 
 from .clinical import ClinicalData
 
-from .multiomics import (
-    MultiOmics
-)
+from .multiomics import MultiOmics
 
 
 def set_backend(new):

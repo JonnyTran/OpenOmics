@@ -20,7 +20,8 @@ def generate_MiRTarBase():
     return MiRTarBase(
         path="/data/datasets/Bioinformatics_ExternalData/miRTarBase/",
         strip_mirna_name=True,
-        filters={"Species (Target Gene)": "Homo sapiens"})
+        filters={"Species (Target Gene)": "Homo sapiens"},
+    )
 
 
 # Test disabled since obtaining MiRTarBase via ftp is unreachable
@@ -51,6 +52,5 @@ def test_annotate_STRING(generate_TCGA_LUAD, generate_STRING):
         generate_TCGA_LUAD:
         generate_STRING:
     """
-    generate_TCGA_LUAD.Protein.annotate_sequences(generate_STRING,
-                                                  index="protein_name")
+    generate_TCGA_LUAD.Protein.annotate_sequences(generate_STRING, index="protein_name")
     assert not generate_TCGA_LUAD.Protein.annotations["sequence"].empty

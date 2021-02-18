@@ -14,7 +14,14 @@ from openomics.utils.io import get_pkg_data_filename
 class Dataset(object):
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
 
-    def __init__(self, path, file_resources=None, col_rename=None, npartitions=None, verbose=False):
+    def __init__(
+        self,
+        path,
+        file_resources=None,
+        col_rename=None,
+        npartitions=None,
+        verbose=False,
+    ):
         """This is a class used to instantiate a Dataset given a a set of files from either local files or URLs. When
         creating a Dataset class, the `load_dataframe()` function is called where the file_resources are used to
         load (Pandas or Dask) DataFrames, then performs data wrangling to yield a dataframe at `self.data`. This class
@@ -31,7 +38,9 @@ class Dataset(object):
         self.npartitions = npartitions
         self.verbose = verbose
 
-        self.validate_file_resources(path, file_resources, npartitions=npartitions, verbose=verbose)
+        self.validate_file_resources(
+            path, file_resources, npartitions=npartitions, verbose=verbose
+        )
 
         self.data = self.load_dataframe(file_resources, npartitions=npartitions)
         self.data = self.data.reset_index()
@@ -43,7 +52,9 @@ class Dataset(object):
     def info(self):
         print("{}: {}".format(self.name(), self.data.columns.tolist()))
 
-    def validate_file_resources(self, path, file_resources, npartitions=None, verbose=False) -> None:
+    def validate_file_resources(
+        self, path, file_resources, npartitions=None, verbose=False
+    ) -> None:
         """For each file in file_resources, download the file if path+file is a URL
         or load from disk if a local path. Additionally unzip or unrar if the
         file is compressed.
@@ -62,8 +73,9 @@ class Dataset(object):
         """
         if validators.url(path):
             for filename, filepath in copy.copy(file_resources).items():
-                data_file = get_pkg_data_filename(path, filepath,
-                                                  verbose=verbose)  # Download file and replace the file_resource path
+                data_file = get_pkg_data_filename(
+                    path, filepath, verbose=verbose
+                )  # Download file and replace the file_resource path
                 filepath_ext = filetype.guess(data_file)
 
                 # This null if-clause is needed incase when filetype_ext is None, causing the next clauses to fail
@@ -74,25 +86,35 @@ class Dataset(object):
                 elif ".gtf" in filename and npartitions:
                     file_resources[filename] = data_file
 
-                elif filepath_ext.extension == 'gz':
+                elif filepath_ext.extension == "gz":
                     logging.debug(f"Uncompressed gzip file at {data_file}")
-                    file_resources[filename] = gzip.open(data_file, 'rt')
+                    file_resources[filename] = gzip.open(data_file, "rt")
 
-                elif filepath_ext.extension == 'zip':
+                elif filepath_ext.extension == "zip":
                     logging.debug(f"Uncompressed zip file at {data_file}")
-                    zf = zipfile.ZipFile(data_file, 'r')
+                    zf = zipfile.ZipFile(data_file, "r")
 
                     for subfile in zf.infolist():
-                        if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]: # If the file extension matches
-                            file_resources[filename] = zf.open(subfile.filename, mode='r')
+                        if (
+                            os.path.splitext(subfile.filename)[-1]
+                            == os.path.splitext(filename)[-1]
+                        ):  # If the file extension matches
+                            file_resources[filename] = zf.open(
+                                subfile.filename, mode="r"
+                            )
 
-                elif filepath_ext.extension == 'rar':
+                elif filepath_ext.extension == "rar":
                     logging.debug(f"Uncompressed rar file at {data_file}")
-                    rf = rarfile.RarFile(data_file, 'r')
+                    rf = rarfile.RarFile(data_file, "r")
 
                     for subfile in rf.infolist():
-                        if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]: # If the file extension matches
-                            file_resources[filename] = rf.open(subfile.filename, mode='r')
+                        if (
+                            os.path.splitext(subfile.filename)[-1]
+                            == os.path.splitext(filename)[-1]
+                        ):  # If the file extension matches
+                            file_resources[filename] = rf.open(
+                                subfile.filename, mode="r"
+                            )
                 else:
                     file_resources[filename] = data_file
 
@@ -159,7 +181,8 @@ class Dataset(object):
         else:
             raise Exception(
                 "The columns argument must be a list such that it's subset of the following columns in the dataframe",
-                self.data.columns.tolist())
+                self.data.columns.tolist(),
+            )
 
         if index != self.data.index.name and index in self.data.columns:
             df = df.set_index(index)
@@ -177,7 +200,8 @@ class Dataset(object):
             index:
         """
         return self.data.groupby(
-            index).median()  # TODO if index by gene, aggregate medians of transcript-level expressions
+            index
+        ).median()  # TODO if index by gene, aggregate medians of transcript-level expressions
 
     @abstractmethod
     def get_rename_dict(self, from_index, to_index):
@@ -208,13 +232,17 @@ class Annotatable(object):
         if hasattr(self, "annotations"):
             return self.annotations
         else:
-            raise Exception("{} must run initialize_annotations() first.".format(self.name()))
+            raise Exception(
+                "{} must run initialize_annotations() first.".format(self.name())
+            )
 
     def get_annotation_expressions(self):
         if hasattr(self, "annotation_expressions"):
             return self.annotation_expressions
         else:
-            raise Exception("{} must run annotate_expressions() first.".format(self.name()))
+            raise Exception(
+                "{} must run annotate_expressions() first.".format(self.name())
+            )
 
     def initialize_annotations(self, gene_list, index):
         """
@@ -253,7 +281,9 @@ class Annotatable(object):
         database_df = database.get_annotations(index, columns=columns)
 
         if fuzzy_match:
-            database_df.index = database_df.index.map(lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
+            database_df.index = database_df.index.map(
+                lambda x: difflib.get_close_matches(x, self.annotations.index)[0]
+            )
 
         # Join columns from `database` to `annotations`
         if index == self.annotations.index.name:
@@ -266,18 +296,23 @@ class Annotatable(object):
 
             self.annotations = self.annotations.reset_index()
             self.annotations.set_index(index, inplace=True)
-            self.annotations = self.annotations.join(database_df, on=index, rsuffix="_").reset_index()
+            self.annotations = self.annotations.join(
+                database_df, on=index, rsuffix="_"
+            ).reset_index()
             self.annotations.set_index(old_index, inplace=True)
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
         duplicate_columns = [col for col in self.annotations.columns if col[-1] == "_"]
         for new_col in duplicate_columns:
             old_col = new_col.strip("_")
-            self.annotations[old_col].fillna(self.annotations[new_col], inplace=True, axis=0)
+            self.annotations[old_col].fillna(
+                self.annotations[new_col], inplace=True, axis=0
+            )
             self.annotations.drop(columns=new_col, inplace=True)
 
-
-    def annotate_sequences(self, database, index, agg_sequences="longest", omic=None, **kwargs):
+    def annotate_sequences(
+        self, database, index, agg_sequences="longest", omic=None, **kwargs
+    ):
         # type: (Dataset, str, str) -> None
         # assert isinstance(database, SequenceDataset)
         """
@@ -291,11 +326,14 @@ class Annotatable(object):
         if omic is None:
             omic = self.name()
 
-        sequences_entries = database.get_sequences(index=index, omic=omic, agg_sequences=agg_sequences, **kwargs)
+        sequences_entries = database.get_sequences(
+            index=index, omic=omic, agg_sequences=agg_sequences, **kwargs
+        )
 
         if type(self.annotations.index) == pd.MultiIndex:
-            self.annotations['sequence'] = self.annotations.index.get_level_values(index).map(
-                sequences_entries)
+            self.annotations["sequence"] = self.annotations.index.get_level_values(
+                index
+            ).map(sequences_entries)
         else:
             self.annotations["sequence"] = self.annotations.index.map(sequences_entries)
 
@@ -310,7 +348,8 @@ class Annotatable(object):
 
         if self.annotations.index.name == index:
             self.annotation_expressions = self.annotation_expressions.join(
-                database.get_expressions(index=index))
+                database.get_expressions(index=index)
+            )
         else:
             raise Exception("index argument must be one of", database.data.index)
 
@@ -331,14 +370,19 @@ class Annotatable(object):
             index:
         """
         self.annotations["disease_associations"] = self.annotations.index.map(
-            database.get_disease_assocs(index=index, ))
+            database.get_disease_assocs(
+                index=index,
+            )
+        )
 
     def set_index(self, new_index):
         """
         Args:
             new_index:
         """
-        self.annotations[new_index].fillna(self.annotations.index.to_series(), axis=0, inplace=True)
+        self.annotations[new_index].fillna(
+            self.annotations.index.to_series(), axis=0, inplace=True
+        )
         self.annotations = self.annotations.reset_index().set_index(new_index)
 
     def get_rename_dict(self, from_index, to_index):
@@ -349,42 +393,45 @@ class Annotatable(object):
         """
         dataframe = self.annotations.reset_index()
         dataframe = dataframe[dataframe[to_index].notnull()]
-        return pd.Series(dataframe[to_index].values,
-                         index=dataframe[from_index]).to_dict()
+        return pd.Series(
+            dataframe[to_index].values, index=dataframe[from_index]
+        ).to_dict()
 
 
-DEFAULT_LIBRARIES = ["10KImmunomes"
-                     "BioGRID"
-                     "CCLE"
-                     "DisGeNET"
-                     "ENSEMBL"
-                     "GENCODE"
-                     "GeneMania"
-                     "GeneOntology"
-                     "GlobalBiobankEngine"
-                     "GTEx"
-                     "HMDD_miRNAdisease"
-                     "HPRD_PPI"
-                     "HUGO_Gene_names"
-                     "HumanBodyMapLincRNAs"
-                     "IntAct"
-                     "lncBase"
-                     "LNCipedia"
-                     "LncReg"
-                     "lncRInter"
-                     "lncrna2target"
-                     "lncRNA_data_repository"
-                     "lncrnadisease"
-                     "lncRNome"
-                     "mirbase"
-                     "miRTarBase"
-                     "NHLBI_Exome_Sequencing_Project"
-                     "NONCODE"
-                     "NPInter"
-                     "PIRD"
-                     "RegNetwork"
-                     "RISE_RNA_Interactions"
-                     "RNAcentral"
-                     "StarBase_v2.0"
-                     "STRING_PPI"
-                     "TargetScan"]
+DEFAULT_LIBRARIES = [
+    "10KImmunomes"
+    "BioGRID"
+    "CCLE"
+    "DisGeNET"
+    "ENSEMBL"
+    "GENCODE"
+    "GeneMania"
+    "GeneOntology"
+    "GlobalBiobankEngine"
+    "GTEx"
+    "HMDD_miRNAdisease"
+    "HPRD_PPI"
+    "HUGO_Gene_names"
+    "HumanBodyMapLincRNAs"
+    "IntAct"
+    "lncBase"
+    "LNCipedia"
+    "LncReg"
+    "lncRInter"
+    "lncrna2target"
+    "lncRNA_data_repository"
+    "lncrnadisease"
+    "lncRNome"
+    "mirbase"
+    "miRTarBase"
+    "NHLBI_Exome_Sequencing_Project"
+    "NONCODE"
+    "NPInter"
+    "PIRD"
+    "RegNetwork"
+    "RISE_RNA_Interactions"
+    "RNAcentral"
+    "StarBase_v2.0"
+    "STRING_PPI"
+    "TargetScan"
+]

@@ -11,7 +11,9 @@ from ..utils.df import slice_adj
 class Ontology(Dataset):
     DELIM = "|"
 
-    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
+    def __init__(
+        self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False
+    ):
         """
         Manages dataset input processing from tables and construct an ontology network from .obo file. There ontology
         network is G(V,E) where there exists e_ij for child i to parent j to present "node i is_a node j".
@@ -25,8 +27,13 @@ class Ontology(Dataset):
         """
         self.network, self.node_list = self.load_network(file_resources)
 
-        super(Ontology, self).__init__(path=path, file_resources=file_resources, col_rename=col_rename,
-                                       npartitions=npartitions, verbose=verbose)
+        super(Ontology, self).__init__(
+            path=path,
+            file_resources=file_resources,
+            col_rename=col_rename,
+            npartitions=npartitions,
+            verbose=verbose,
+        )
 
     def load_network(self, file_resources) -> (nx.MultiDiGraph, list):
         raise NotImplementedError
@@ -53,7 +60,8 @@ class Ontology(Dataset):
     def filter_annotation(self, annotation: pd.Series):
         go_terms = set(self.node_list)
         filtered_annotation = annotation.map(
-            lambda x: list(set(x) & go_terms) if isinstance(x, list) else [])
+            lambda x: list(set(x) & go_terms) if isinstance(x, list) else []
+        )
 
         return filtered_annotation
 
@@ -95,10 +103,13 @@ class Ontology(Dataset):
             annotation = annotation.str.split(self.DELIM)
 
         go_terms_parents = annotation.map(
-            lambda x: list(set(x) & set(leaf_terms)) if isinstance(x, list) else None)
+            lambda x: list(set(x) & set(leaf_terms)) if isinstance(x, list) else None
+        )
         return go_terms_parents
 
-    def get_node_color(self, file="~/Bioinformatics_ExternalData/GeneOntology/go_colors_biological.csv"):
+    def get_node_color(
+        self, file="~/Bioinformatics_ExternalData/GeneOntology/go_colors_biological.csv"
+    ):
         go_colors = pd.read_csv(file)
 
         def selectgo(x):
@@ -108,8 +119,12 @@ class Ontology(Dataset):
             else:
                 return None
 
-        go_colors["node"] = go_colors[[col for col in go_colors.columns if col.isdigit()]].apply(selectgo, axis=1)
-        go_id_colors = go_colors[go_colors["node"].notnull()].set_index("node")["HCL.color"]
+        go_colors["node"] = go_colors[
+            [col for col in go_colors.columns if col.isdigit()]
+        ].apply(selectgo, axis=1)
+        go_id_colors = go_colors[go_colors["node"].notnull()].set_index("node")[
+            "HCL.color"
+        ]
         go_id_colors = go_id_colors[~go_id_colors.index.duplicated(keep="first")]
         print(go_id_colors.unique().shape, go_colors["HCL.color"].unique().shape)
         return go_id_colors
@@ -123,11 +138,17 @@ class GeneOntology(Ontology):
     COLUMNS_RENAME_DICT = {
         "DB_Object_Symbol": "gene_name",
         "DB_Object_ID": "gene_id",
-        "GO_ID": "go_id"
+        "GO_ID": "go_id",
     }
 
-    def __init__(self, path="http://geneontology.org/gene-associations/",
-                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0, verbose=False):
+    def __init__(
+        self,
+        path="http://geneontology.org/gene-associations/",
+        file_resources=None,
+        col_rename=COLUMNS_RENAME_DICT,
+        npartitions=0,
+        verbose=False,
+    ):
         """
         Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
         functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
@@ -137,10 +158,15 @@ class GeneOntology(Ontology):
                 "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
                 "goa_human.gaf": "goa_human.gaf.gz",
                 "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
-                "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz"
+                "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz",
             }
-        super(GeneOntology, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions,
-                                           verbose=verbose)
+        super(GeneOntology, self).__init__(
+            path,
+            file_resources,
+            col_rename=col_rename,
+            npartitions=npartitions,
+            verbose=verbose,
+        )
 
     def info(self):
         print("network {}".format(nx.info(self.network)))
@@ -156,7 +182,9 @@ class GeneOntology(Ontology):
 
         go_annotations = pd.concat(go_annotation_dfs)
 
-        go_terms = pd.DataFrame.from_dict(self.network.nodes, orient='index', dtype="object")
+        go_terms = pd.DataFrame.from_dict(
+            self.network.nodes, orient="index", dtype="object"
+        )
 
         go_annotations["go_name"] = go_annotations["GO_ID"].map(go_terms["name"])
         go_annotations["namespace"] = go_annotations["GO_ID"].map(go_terms["namespace"])
@@ -186,12 +214,23 @@ class GeneOntology(Ontology):
     def get_predecessor_terms(self, annotation: pd.Series, type="is_a"):
 
         go_terms_parents = annotation.map(
-            lambda x: list({parent for term in x for parent in list(nx.descendants(self.network, term))}) \
-                if isinstance(x, list) else [])  # flatten(self.traverse_predecessors(term, type))}) \
+            lambda x: list(
+                {
+                    parent
+                    for term in x
+                    for parent in list(nx.descendants(self.network, term))
+                }
+            )
+            if isinstance(x, list)
+            else []
+        )  # flatten(self.traverse_predecessors(term, type))}) \
         return go_terms_parents
 
     def add_predecessor_terms(self, annotation: pd.Series, return_str=False):
-        if annotation.dtypes == np.object and annotation.str.contains("\||;", regex=True).any():
+        if (
+            annotation.dtypes == np.object
+            and annotation.str.contains("\||;", regex=True).any()
+        ):
             go_terms_annotations = annotation.str.split("|")
         else:
             go_terms_annotations = annotation
@@ -200,7 +239,8 @@ class GeneOntology(Ontology):
 
         if return_str:
             go_terms_parents = go_terms_parents.map(
-                lambda x: "|".join(x) if isinstance(x, list) else None)
+                lambda x: "|".join(x) if isinstance(x, list) else None
+            )
 
         return go_terms_parents
 
@@ -221,8 +261,7 @@ def traverse_predecessors(network, seed_node, type=["is_a", "part_of"]):
 
 
 def flatten(lst):
-    return sum(([x] if not isinstance(x, list) else flatten(x)
-                for x in lst), [])
+    return sum(([x] if not isinstance(x, list) else flatten(x) for x in lst), [])
 
 
 def dfs_path(graph, path):
@@ -233,6 +272,7 @@ def dfs_path(graph, path):
             yield list(dfs_path(graph, path + [child]))
     else:
         yield path
+
 
 def flatten_list(list_in):
     if isinstance(list_in, list):
@@ -249,7 +289,11 @@ def flatten_list(list_in):
 def filter_dfs_paths(paths_df: pd.DataFrame):
     idx = {}
     for col in sorted(paths_df.columns[:-1], reverse=True):
-        idx[col] = ~(paths_df[col].notnull() & paths_df[col].duplicated(keep="first") & paths_df[col + 1].isnull())
+        idx[col] = ~(
+            paths_df[col].notnull()
+            & paths_df[col].duplicated(keep="first")
+            & paths_df[col + 1].isnull()
+        )
 
     idx = pd.DataFrame(idx)
 

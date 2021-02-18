@@ -5,6 +5,7 @@ from glob import glob
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+
 # from Bio.UniProt import GOA
 from dask import delayed
 
@@ -13,8 +14,19 @@ from .utils.df import drop_duplicate_columns
 
 
 class ExpressionData(object):
-    def __init__(self, data, transpose, gene_index=None, usecols=None, gene_level=None, sample_level="sample_index",
-                 transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
+    def __init__(
+        self,
+        data,
+        transpose,
+        gene_index=None,
+        usecols=None,
+        gene_level=None,
+        sample_level="sample_index",
+        transform_fn=None,
+        dropna=False,
+        npartitions=None,
+        cohort_name=None,
+    ):
         """
         .. class:: ExpressionData
         This class handles importing of any quantitative omics data that is
@@ -62,9 +74,16 @@ class ExpressionData(object):
         self.gene_level = gene_level
         self.sample_level = sample_level
 
-        df = self.load_dataframe(data, transpose=transpose, usecols=usecols, gene_index=gene_index)
-        self.expressions = self.preprocess_table(df, usecols=usecols, gene_index=gene_index, transposed=transpose,
-                                                 dropna=dropna)
+        df = self.load_dataframe(
+            data, transpose=transpose, usecols=usecols, gene_index=gene_index
+        )
+        self.expressions = self.preprocess_table(
+            df,
+            usecols=usecols,
+            gene_index=gene_index,
+            transposed=transpose,
+            dropna=dropna,
+        )
 
         # TODO load DD from file directly
         if npartitions and isinstance(self.expressions, pd.DataFrame):
@@ -102,10 +121,12 @@ class ExpressionData(object):
         elif "*" in data:
             df = self.load_dataframe_glob(data, usecols, gene_index, transpose)
         elif isinstance(data, io.StringIO):
-            data.seek(0)  # Needed since the file was previous read to extract columns information
+            data.seek(
+                0
+            )  # Needed since the file was previous read to extract columns information
             df = pd.read_table(data)
         elif isinstance(data, str) and os.path.isfile(data):
-            df = pd.read_table(data, sep=None, engine='python')
+            df = pd.read_table(data, sep=None, engine="python")
         else:
             raise IOError(data)
 
@@ -123,13 +144,25 @@ class ExpressionData(object):
         """
         lazy_dataframes = []
         for file_path in glob(globstring):
-            df = delayed(pd.read_table)(file_path, )
-            df = delayed(self.preprocess_table)(df, usecols, genes_index, transpose, True)
+            df = delayed(pd.read_table)(
+                file_path,
+            )
+            df = delayed(self.preprocess_table)(
+                df, usecols, genes_index, transpose, True
+            )
             lazy_dataframes.append(df)
 
         return dd.from_delayed(lazy_dataframes, divisions=None)
 
-    def preprocess_table(self, df, usecols=None, gene_index=None, transposed=True, sort_index=False, dropna=True):
+    def preprocess_table(
+        self,
+        df,
+        usecols=None,
+        gene_index=None,
+        transposed=True,
+        sort_index=False,
+        dropna=True,
+    ):
         # type: (pd.DataFrame, str, str, bool, bool, bool) -> pd.DataFrame
         """This function preprocesses the expression table files where columns
         are samples and rows are gene/transcripts :param df: A Dask or Pandas
@@ -155,7 +188,9 @@ class ExpressionData(object):
         # Filter columns
         if usecols is not None:
             if gene_index not in usecols:
-                usecols = usecols + "|" + gene_index  # include index column in the filter regex query
+                usecols = (
+                    usecols + "|" + gene_index
+                )  # include index column in the filter regex query
             df = df.filter(regex=usecols)
 
         # Drop duplicate sample names
@@ -167,7 +202,7 @@ class ExpressionData(object):
 
         # Remove entries with unknown geneID
         if gene_index is not None:
-            df = df[df[gene_index] != '?']
+            df = df[df[gene_index] != "?"]
             df.set_index(gene_index, inplace=True)
 
         # Needed for Dask Delayed
@@ -242,8 +277,19 @@ class ExpressionData(object):
 
 
 class LncRNA(ExpressionData, Annotatable):
-    def __init__(self, data, transpose, gene_index=None, usecols=None, gene_level=None, sample_level="sample_index",
-                 transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
+    def __init__(
+        self,
+        data,
+        transpose,
+        gene_index=None,
+        usecols=None,
+        gene_level=None,
+        sample_level="sample_index",
+        transform_fn=None,
+        dropna=False,
+        npartitions=None,
+        cohort_name=None,
+    ):
         """
         Args:
             data:
@@ -257,10 +303,18 @@ class LncRNA(ExpressionData, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(LncRNA, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
-                                     gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
-                                     dropna=dropna,
-                                     npartitions=npartitions, cohort_name=cohort_name)
+        super(LncRNA, self).__init__(
+            data=data,
+            transpose=transpose,
+            gene_index=gene_index,
+            usecols=usecols,
+            gene_level=gene_level,
+            sample_level=sample_level,
+            transform_fn=transform_fn,
+            dropna=dropna,
+            npartitions=npartitions,
+            cohort_name=cohort_name,
+        )
 
     @classmethod
     def name(cls):
@@ -268,8 +322,19 @@ class LncRNA(ExpressionData, Annotatable):
 
 
 class MessengerRNA(ExpressionData, Annotatable):
-    def __init__(self, data, transpose, gene_index=None, usecols=None, gene_level=None, sample_level="sample_index",
-                 transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
+    def __init__(
+        self,
+        data,
+        transpose,
+        gene_index=None,
+        usecols=None,
+        gene_level=None,
+        sample_level="sample_index",
+        transform_fn=None,
+        dropna=False,
+        npartitions=None,
+        cohort_name=None,
+    ):
         """
         Args:
             data:
@@ -283,9 +348,18 @@ class MessengerRNA(ExpressionData, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(MessengerRNA, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
-                                           gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
-                                           dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
+        super(MessengerRNA, self).__init__(
+            data=data,
+            transpose=transpose,
+            gene_index=gene_index,
+            usecols=usecols,
+            gene_level=gene_level,
+            sample_level=sample_level,
+            transform_fn=transform_fn,
+            dropna=dropna,
+            npartitions=npartitions,
+            cohort_name=cohort_name,
+        )
 
     @classmethod
     def name(cls):
@@ -293,8 +367,19 @@ class MessengerRNA(ExpressionData, Annotatable):
 
 
 class MicroRNA(ExpressionData, Annotatable):
-    def __init__(self, data, transpose, gene_index=None, usecols=None, gene_level=None, sample_level="sample_index",
-                 transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
+    def __init__(
+        self,
+        data,
+        transpose,
+        gene_index=None,
+        usecols=None,
+        gene_level=None,
+        sample_level="sample_index",
+        transform_fn=None,
+        dropna=False,
+        npartitions=None,
+        cohort_name=None,
+    ):
         """
         Args:
             data:
@@ -308,10 +393,18 @@ class MicroRNA(ExpressionData, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(MicroRNA, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
-                                       gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
-                                       dropna=dropna,
-                                       npartitions=npartitions, cohort_name=cohort_name)
+        super(MicroRNA, self).__init__(
+            data=data,
+            transpose=transpose,
+            gene_index=gene_index,
+            usecols=usecols,
+            gene_level=gene_level,
+            sample_level=sample_level,
+            transform_fn=transform_fn,
+            dropna=dropna,
+            npartitions=npartitions,
+            cohort_name=cohort_name,
+        )
 
     @classmethod
     def name(cls):
