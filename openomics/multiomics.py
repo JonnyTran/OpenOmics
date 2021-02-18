@@ -238,7 +238,7 @@ class MultiOmics:
         return self.data["SAMPLES"].reindex(matched_samples)
 
     def print_sample_sizes(self):
-        for omic in self.data.keys():
+        for omic in self.data:
             print(omic, self.data[omic].shape if hasattr(self.data[omic],
                                                                  'shape') else "Didn't import data")
 
