@@ -15,9 +15,7 @@ from .utils.df import drop_duplicate_columns
 class ExpressionData(object):
     def __init__(self, data, transpose, gene_index=None, usecols=None, gene_level=None, sample_level="sample_index",
                  transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
-        """
-        .. class:: ExpressionData
-        This class handles importing of any quantitative omics data that is
+        """This class handles importing of any quantitative omics data that is
         in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame
         from file with the user-specified columns and genes column name, then
         tranpose it such that the rows are samples and columns are
@@ -27,23 +25,14 @@ class ExpressionData(object):
         right genes index which makes it easier to annotate functional,
         sequence, and interaction data to it. The dataframe should only contain
         numeric values besides the genes_col_name and the sample barcode id
-        indices. :param data: Path or file stream of the table file to import.
-        If a pandas DataFrame is passed, then import this dataframe and skip
-        preprocessing steps. :type data: str, byte-like, pandas.DataFrame :param
-        transpose: True if given data table has samples or columns and variables
-        for rows. False if the table has samples for row index, and gene names
-        as columns. :type transpose: bool :param gene_index: The column name of
-        gene/transcript/protein to index by. :type gene_index: str :param
-        usecols: a regex string
-
-            A regex string to import column names from the table. Columns names
-            imported are string match, separated by "|".
+        indices.
 
         Args:
-            data:
-            transpose:
-            gene_index:
-            usecols:
+            data (str, byte-like, pandas.DataFrame): Path or file stream of the table file to import. If a pandas DataFrame is passed, then import this dataframe and skip preprocessing steps.
+            transpose (bool): True if given data table has samples or columns and variables for rows. False if the table has samples for row index, and gene names as columns.
+            gene_index (str): The column name of gene/transcript/protein to index by.
+            usecols: A regex string to import column names from the table. Columns names
+            imported are string match, separated by "|".
             gene_level (str): {"gene", "transcript", "peptide"} Chooses the
                 level of the gene/transcript/peptide of the genes list in this
                 expression data. The expression DataFrame's index will be

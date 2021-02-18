@@ -56,9 +56,9 @@ class SequenceDataset(Dataset):
 
     @staticmethod
     def get_aggregator(agg=None):
-        """
+        """When performing groupby
         Args:
-            agg:
+            agg (str): default None. If "all", then
         """
         if agg == "all":
             agg_func = lambda x: list(x) if not isinstance(x, str) else x
@@ -175,13 +175,12 @@ class GENCODE(SequenceDataset):
         return entries_df
 
     def get_sequences(self, index, omic, agg_sequences, biotypes=None):
-        # type: (str, str, str, List[str]) -> None
         """
         Args:
-            index:
-            omic:
-            agg_sequences:
-            biotypes:
+            index (str):
+            omic (str):
+            agg_sequences (str):
+            biotypes ([str]):
         """
         agg_func = self.get_aggregator(agg_sequences)
 
@@ -350,13 +349,7 @@ class MirBase(SequenceDataset):
                 "U", "T")
         return entries_df
 
-    def get_sequences(self, index="gene_name", omic=None, agg_sequences="all"):
-        """
-        Args:
-            index:
-            omic:
-            agg_sequences:
-        """
+    def get_sequences(self, index="gene_name", omic=None, agg_sequences="all", **kwargs):
         if hasattr(self, "seq_dict"):
             logging.info("Using cached sequences dict")
             return self.seq_dict
