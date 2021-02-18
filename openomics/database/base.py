@@ -52,7 +52,7 @@ class Dataset(object):
         self.info() if verbose else None
 
     def info(self):
-        print("{}: {}".format(self.name(), self.data.columns.tolist()))
+        logging.info("{}: {}".format(self.name(), self.data.columns.tolist()))
 
     def validate_file_resources(self,
                                 path,
@@ -156,7 +156,6 @@ class Dataset(object):
         return DEFAULT_LIBRARIES
 
     def get_annotations(self, index, columns):
-        # type: (str, List[str]) -> Union[pd.DataFrame, dd.DataFrame]
         """Returns the Database's DataFrame such that it's indexed by :param
         index:, which then applies a groupby operation and aggregates all other
         columns by concatenating all unique values.
@@ -167,8 +166,8 @@ class Dataset(object):
         select (this saves computing cost). :type items: list
 
         Args:
-            index:
-            columns:
+            index (str):
+            columns ([str]):
 
         Returns:
             df (DataFrame): A dataframe to be used for annotation
@@ -255,27 +254,18 @@ class Annotatable(object):
         self.annotations.index.name = index
 
     def annotate_genomics(self, database, index, columns, fuzzy_match=False):
-        # type: (Dataset, str, List[str], bool) -> None
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present
         in both DataFrames. If there exists overlapping column in the join, then
         the fillna() is used to fill NaN values in the old column with non-NaN
-        values from the new column. :param database: Database which contains
-        annotation :type database: openomics.annotation.Database :param index:
-        The column name which exists in both the annotation and Database's
-        DataFrame :type index: str :param columns: a list of column name to join
-        to the annotation :type columns: list :param fuzzy_match: default False.
-        Whether to join the annotation by applying a fuzzy match on the index
-        with difflib.get_close_matches(). It is very computationally expensive
-        and thus should only be used sparingly. :type fuzzy_match: bool
+        values from the new column.
 
         Args:
-            database:
-            index:
-            columns:
-            fuzzy_match:
+            database (openomics.annotation.Dataset): Database which contains an annotation
+            index (str): The column name which exists in both the annotation and Database's DataFrame
+            columns ([str]): a list of column name to join to the annotation
+            fuzzy_match (bool): default False. Whether to join the annotation by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
         """
-        # Get dataframe table form database
         database_df = database.get_annotations(index, columns=columns)
 
         if fuzzy_match:
@@ -317,16 +307,6 @@ class Annotatable(object):
                            agg_sequences="longest",
                            omic=None,
                            **kwargs):
-        # type: (Dataset, str, str) -> None
-        # assert isinstance(database, SequenceDataset)
-        """
-        Args:
-            database:
-            index:
-            agg_sequences:
-            omic:
-            **kwargs:
-        """
         if omic is None:
             omic = self.name()
 
@@ -361,20 +341,18 @@ class Annotatable(object):
                             database.data.index)
 
     def annotate_interactions(self, database, index):
-        # type: (Interactions, str) -> None
         """
         Args:
-            database:
-            index:
+            database (Interactions):
+            index (str):
         """
         raise NotImplementedError
 
     def annotate_diseases(self, database, index):
-        # type: (DiseaseAssociation, str) -> None
         """
         Args:
-            database:
-            index:
+            database (DiseaseAssociation):
+            index (str):
         """
         self.annotations["disease_associations"] = self.annotations.index.map(
             database.get_disease_assocs(index=index, ))
