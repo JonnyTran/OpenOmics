@@ -177,8 +177,12 @@ class BioGRID(Interactions):
                  file_resources=None, source_col_name="Official Symbol Interactor A",
                  target_col_name="Official Symbol Interactor B",
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=['Score', 'Throughput', 'Experimental System', 'Experimental System Type'],
-                 filters={"Organism Interactor A": 9606}, directed=False, relabel_nodes=None):
+                 edge_attr=None,
+                 filters=None, directed=False, relabel_nodes=None):
+        if edge_attr is None:
+            edge_attr = ['Score', 'Throughput', 'Experimental System', 'Experimental System Type']
+        if filters is None:
+            filters = {"Organism Interactor A": 9606}
         if file_resources is None:
             file_resources = {}
             file_resources["BIOGRID-ALL-LATEST.tab2.zip"] = os.path.join(path, "BIOGRID-ALL-LATEST.tab2.zip")
@@ -215,13 +219,15 @@ class STRING(Interactions, SequenceDataset):
                  species_id="9606",
                  source_col_name="item_id_a", target_col_name="item_id_b", source_index="protein_name",
                  target_index="protein_name",
-                 edge_attr=["score"], directed=False,
+                 edge_attr=None, directed=False,
                  relabel_nodes=None, verbose=False):
         """
 
         Args:
             species_id (str): Required. Must provide species id number to download the correct STRING dataset.
         """
+        if edge_attr is None:
+            edge_attr = ["score"]
         if file_resources is None:
             file_resources = {}
             file_resources["protein.actions.txt"] = os.path.join(path,
@@ -288,8 +294,10 @@ class LncBase(Interactions, Dataset):
     def __init__(self, path, file_resources=None, strip_mirna_name=False,
                  source_col_name="mirna", target_col_name="geneId",
                  source_index="transcript_name", target_index="gene_id",
-                 edge_attr=None, filters={"species": "Homo sapiens"}, directed=True,
+                 edge_attr=None, filters=None, directed=True,
                  relabel_nodes=None, ):
+        if filters is None:
+            filters = {"species": "Homo sapiens"}
         self.strip_mirna_name = strip_mirna_name
 
         if edge_attr is None:
@@ -336,8 +344,10 @@ class LncReg(Interactions):
     def __init__(self, path, file_resources,
                  source_col_name='A_name_in_paper', target_col_name='B_name_in_paper',
                  source_index="transcript_name", target_index="gene_name",
-                 edge_attr=["relationship", "mechanism", "pmid"], filters=None, directed=True, relabel_nodes=None,
+                 edge_attr=None, filters=None, directed=True, relabel_nodes=None,
                  verbose=False):
+        if edge_attr is None:
+            edge_attr = ["relationship", "mechanism", "pmid"]
         if file_resources is None:
             file_resources = {}
             file_resources["data.xlsx"] = os.path.join(path, "data.xlsx")
@@ -412,7 +422,7 @@ class lncRInter(Interactions):
 
 class LncRNA2Target(Interactions):
     def __init__(self, path="http://123.59.132.21/lncrna2target/data/", file_resources=None, source_index="gene_name",
-                 target_index="gene_name", edge_attr=None, filters={"species_id": 9606, "Species": "Homo sapiens"},
+                 target_index="gene_name", edge_attr=None, filters=None,
                  directed=True, relabel_nodes=None, version="high_throughput", ):
         """
 
@@ -422,6 +432,8 @@ class LncRNA2Target(Interactions):
             species_id (str, int): one of [9606, "Homo sapiens"].
                 The species column in high_throughput is formatted in int (e.g. 9606) and in low_throughput is in str (e.g. "Homo sapiens")
         """
+        if filters is None:
+            filters = {"species_id": 9606, "Species": "Homo sapiens"}
         self.version = version
         if file_resources is None:
             file_resources = {}
@@ -493,8 +505,10 @@ class LncRNA2Target(Interactions):
 class lncRNome(Interactions, Dataset):
     def __init__(self, path, file_resources, source_col_name='Gene Name', target_col_name='Binding miRNAs',
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=["miRNA Interaction Site", "Transcript ID"], directed=True, relabel_nodes=None,
+                 edge_attr=None, directed=True, relabel_nodes=None,
                  npartitions=0):
+        if edge_attr is None:
+            edge_attr = ["miRNA Interaction Site", "Transcript ID"]
         if file_resources is None:
             file_resources = {}
             file_resources["miRNA_binding_sites.txt"] = os.path.join(path, "miRNA_binding_sites.txt")
@@ -528,9 +542,11 @@ class NPInter(Interactions):
     def __init__(self, path="http://bigdata.ibp.ac.cn/npinter4/download/", file_resources=None,
                  source_col_name='ncName', target_col_name='tarName',
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=["tarType", "tissueOrCell", "tag", "level"],
+                 edge_attr=None,
                  filters=None,
                  directed=True, relabel_nodes=None, verbose=False):
+        if edge_attr is None:
+            edge_attr = ["tarType", "tissueOrCell", "tag", "level"]
         if file_resources is None:
             file_resources = {}
             file_resources["interaction_NPInterv4.expr.txt"] = os.path.join(path,
@@ -599,8 +615,10 @@ class MiRTarBase(Interactions):
     def __init__(self, path="http://mirtarbase.mbc.nctu.edu.tw/cache/download/7.0/", file_resources=None,
                  source_col_name="miRNA", target_col_name="Target Gene",
                  source_index="transcript_name", target_index="gene_name",
-                 edge_attr=None, filters={"Species (Target Gene)": "Homo sapiens"}, directed=True, relabel_nodes=None,
+                 edge_attr=None, filters=None, directed=True, relabel_nodes=None,
                  strip_mirna_name=False):
+        if filters is None:
+            filters = {"Species (Target Gene)": "Homo sapiens"}
         if edge_attr is None:
             edge_attr = ["Support Type"]
         self.strip_mirna_name = strip_mirna_name
@@ -635,8 +653,10 @@ class MiRTarBase(Interactions):
 class TargetScan(Interactions, Dataset):
     def __init__(self, path, file_resources=None, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
                  source_index="transcript_name", target_index="transcript_name",
-                 edge_attr=["tissue", "positive_negative"], directed=True, relabel_nodes=None, species=9606,
+                 edge_attr=None, directed=True, relabel_nodes=None, species=9606,
                  strip_mirna_name=False):
+        if edge_attr is None:
+            edge_attr = ["tissue", "positive_negative"]
         if edge_attr is None:
             edge_attr = ["tissue", "positive_negative"]
         self.strip_mirna_name = strip_mirna_name

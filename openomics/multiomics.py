@@ -162,7 +162,7 @@ class MultiOmics:
 
         return matched_samples
 
-    def load_data(self, omics, target=['pathologic_stage'],
+    def load_data(self, omics, target=None,
                   pathologic_stages=None, histological_subtypes=None, predicted_subtypes=None, tumor_normal=None,
                   samples_barcode=None):
         # type: (Union[List[str], str], List[str], List[str], List[str], List[str], List[str], List[str]) -> (Dict[str, pd.DataFrame], pd.DataFrame)
@@ -189,6 +189,8 @@ class MultiOmics:
             (X, y): Returns X, a dictionary containing the multiomics data that
             have data
         """
+        if target is None:
+            target = ['pathologic_stage']
         if omics == 'all' or omics is None:
             omics = self._omics
 

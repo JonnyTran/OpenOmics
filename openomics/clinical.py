@@ -98,8 +98,7 @@ class ClinicalData:
 
     def add_drug_response_data(self, file_path="nationwidechildrens.org_clinical_drug.txt",
                                patient_column="bcr_patient_barcode",
-                               columns=['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name',
-                                        'pharmaceutical_therapy_type', 'treatment_best_response'],
+                               columns=None,
                                drug_name_col=None, response_column=None):
         """
         Args:
@@ -109,6 +108,9 @@ class ClinicalData:
             drug_name_col:
             response_column:
         """
+        if columns is None:
+            columns = ['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name',
+                                                'pharmaceutical_therapy_type', 'treatment_best_response']
         if not os.path.exists(file_path):
             raise FileNotFoundError(file_path)
 
@@ -125,13 +127,15 @@ class ClinicalData:
 
     def add_biospecimen_data(self, file_path="genome.wustl.edu_biospecimen_sample.txt",
                              patient_col_name="bcr_patient_barcode",
-                             columns=['bcr_sample_barcode', 'sample_type']):
+                             columns=None):
         """
         Args:
             file_path:
             patient_col_name:
             columns:
         """
+        if columns is None:
+            columns = ['bcr_sample_barcode', 'sample_type']
         if not os.path.exists(file_path):
             raise FileNotFoundError(file_path)
 

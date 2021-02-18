@@ -31,7 +31,7 @@ class MalaCards(DiseaseAssociation):
     COLUMNS_RENAME_DICT = {"geneSymbol": "gene_name", "maladyMainName": "disease_associations"}
 
     def __init__(self, path="http://zdzlab.einstein.yu.edu/1/hedd/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, **kwargs):
+                 col_rename=None, **kwargs):
         """
         Args:
             path:
@@ -39,6 +39,8 @@ class MalaCards(DiseaseAssociation):
             col_rename:
             **kwargs:
         """
+        if col_rename is None:
+            col_rename = COLUMNS_RENAME_DICT
         if file_resources is None:
             file_resources = {}
             file_resources["MalaCards.csv"] = "download.action.php?filename=DataDownload/MalaCards.csv"
@@ -61,7 +63,7 @@ class DisGeNet(DiseaseAssociation):
                            "diseaseName": "disease_associations"}
 
     def __init__(self, path="https://www.disgenet.org/static/disgenet_ap1/files/downloads/",
-                 file_resources=None, curated=True, col_rename=COLUMNS_RENAME_DICT,
+                 file_resources=None, curated=True, col_rename=None,
                  **kwargs):
         """
         Args:
@@ -71,6 +73,8 @@ class DisGeNet(DiseaseAssociation):
             col_rename:
             **kwargs:
         """
+        if col_rename is None:
+            col_rename = COLUMNS_RENAME_DICT
         if file_resources is None:
             file_resources = {}
             file_resources["curated_gene_disease_associations.tsv"] = "curated_gene_disease_associations.tsv.gz"
@@ -101,7 +105,7 @@ class HMDD(DiseaseAssociation):
                            "disease": "disease_associations"}
 
     def __init__(self, path="http://www.cuilab.cn/static/hmdd3/data/",
-                 file_resources=None, col_rename=COLUMNS_RENAME_DICT,
+                 file_resources=None, col_rename=None,
                  **kwargs):
         """
         Args:
@@ -110,6 +114,8 @@ class HMDD(DiseaseAssociation):
             col_rename:
             **kwargs:
         """
+        if col_rename is None:
+            col_rename = COLUMNS_RENAME_DICT
         if file_resources is None:
             file_resources = {}
             file_resources["alldata.txt"] = "alldata.txt"
@@ -132,7 +138,7 @@ class LncRNADisease(DiseaseAssociation):
                            "Disease name": "disease_associations"}
 
     def __init__(self, path="http://www.cuilab.cn/files/images/ldd/",
-                 file_resources=None, species="Human", col_rename=COLUMNS_RENAME_DICT,
+                 file_resources=None, species="Human", col_rename=None,
                  **kwargs):
         """
         Args:
@@ -142,6 +148,8 @@ class LncRNADisease(DiseaseAssociation):
             col_rename:
             **kwargs:
         """
+        if col_rename is None:
+            col_rename = COLUMNS_RENAME_DICT
         if file_resources is None:
             file_resources = {}
             file_resources["data_v2017.txt"] = "data_v2017.txt"

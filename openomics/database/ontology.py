@@ -127,11 +127,13 @@ class GeneOntology(Ontology):
     }
 
     def __init__(self, path="http://geneontology.org/gene-associations/",
-                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, npartitions=0, verbose=False):
+                 file_resources=None, col_rename=None, npartitions=0, verbose=False):
         """
         Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
         functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
         """
+        if col_rename is None:
+            col_rename = COLUMNS_RENAME_DICT
         if file_resources is None:
             file_resources = {
                 "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
@@ -205,7 +207,7 @@ class GeneOntology(Ontology):
         return go_terms_parents
 
 
-def traverse_predecessors(network, seed_node, type=["is_a", "part_of"]):
+def traverse_predecessors(network, seed_node, type=None):
     """
     Returns all successor terms from seed_node by traversing the ontology network with edges == `type`.
     Args:
@@ -214,6 +216,8 @@ def traverse_predecessors(network, seed_node, type=["is_a", "part_of"]):
     Returns:
         generator of list of lists for each dfs branches.
     """
+    if type is None:
+        type = ["is_a", "part_of"]
     parents = dict(network.pred[seed_node])
     for parent, v in parents.items():
         if list(v.keys())[0] in type:

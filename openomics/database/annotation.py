@@ -77,7 +77,7 @@ class ProteinAtlas(Dataset):
     }
 
     def __init__(self, path="https://www.proteinatlas.org/download/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, npartitions=0, verbose=False):
+                 col_rename=None, npartitions=0, verbose=False):
         """
         Args:
             path:
@@ -86,6 +86,8 @@ class ProteinAtlas(Dataset):
             npartitions:
             verbose:
         """
+        if col_rename is None:
+            col_rename = COLUMNS_RENAME_DICT
         if file_resources is None:
             file_resources = {}
             file_resources["proteinatlas.tsv"] = "proteinatlas.tsv.zip"
@@ -132,7 +134,7 @@ class RNAcentral(Dataset):
                            'GO terms': 'go_id'}
 
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, species=9606, npartitions=0, verbose=False):
+                 col_rename=None, species=9606, npartitions=0, verbose=False):
         """
         Args:
             path:
@@ -142,6 +144,8 @@ class RNAcentral(Dataset):
             npartitions:
             verbose:
         """
+        if col_rename is None:
+            col_rename = COLUMNS_RENAME_DICT
         self.species = species
 
         if file_resources is None:

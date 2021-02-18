@@ -124,7 +124,7 @@ logger = logging.getLogger(__name__)
 
 
 def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024, features=None,
-              intern_columns=["seqname", "source", "strand", "frame"], fix_quotes_columns=["attribute"]):
+              intern_columns=None, fix_quotes_columns=None):
     """
     Args:
         filepath_or_buffer (str or buffer object):
@@ -135,6 +135,10 @@ def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024, features=None,
         fix_quotes_columns (list): Most commonly the 'attribute' column which
             had broken quotes on some Ensembl release GTF files.
     """
+    if intern_columns is None:
+        intern_columns = ["seqname", "source", "strand", "frame"]
+    if fix_quotes_columns is None:
+        fix_quotes_columns = ["attribute"]
     if features is not None:
         features = set(features)
 
@@ -315,7 +319,7 @@ def parse_gtf_and_expand_attributes(filepath_or_buffer, npartitions=None, compre
 
 
 def read_gtf(filepath_or_buffer, npartitions=None, compression=None, expand_attribute_column=True,
-             infer_biotype_column=False, column_converters={}, usecols=None, features=None, chunksize=1024 * 1024):
+             infer_biotype_column=False, column_converters=None, usecols=None, features=None, chunksize=1024 * 1024):
     """Parse a GTF into a dictionary mapping column names to sequences of
     values.
 
@@ -341,6 +345,8 @@ def read_gtf(filepath_or_buffer, npartitions=None, compression=None, expand_attr
             features in the supplied set
         chunksize (int):
     """
+    if column_converters is None:
+        column_converters = {}
     if isinstance(filepath_or_buffer, string_types) and not exists(filepath_or_buffer):
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
 
