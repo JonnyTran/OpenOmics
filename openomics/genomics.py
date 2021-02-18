@@ -3,8 +3,19 @@ from openomics.database import Annotatable
 
 
 class SingleNucleotideVariants(ExpressionData, Annotatable):
-    def __init__(self, data, transpose, gene_index, usecols=None, gene_level=None, sample_level="sample_index",
-                 transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
+    def __init__(
+        self,
+        data,
+        transpose,
+        gene_index,
+        usecols=None,
+        gene_level=None,
+        sample_level="sample_index",
+        transform_fn=None,
+        dropna=False,
+        npartitions=None,
+        cohort_name=None,
+    ):
         """
         Args:
             data:
@@ -18,11 +29,18 @@ class SingleNucleotideVariants(ExpressionData, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(SingleNucleotideVariants, self).__init__(data=data, transpose=transpose, gene_index=gene_index,
-                                                       usecols=usecols,
-                                                       gene_level=gene_level, sample_level=sample_level,
-                                                       transform_fn=transform_fn, dropna=dropna,
-                                                       npartitions=npartitions, cohort_name=cohort_name)
+        super(SingleNucleotideVariants, self).__init__(
+            data=data,
+            transpose=transpose,
+            gene_index=gene_index,
+            usecols=usecols,
+            gene_level=gene_level,
+            sample_level=sample_level,
+            transform_fn=transform_fn,
+            dropna=dropna,
+            npartitions=npartitions,
+            cohort_name=cohort_name,
+        )
 
     @classmethod
     def name(cls):
@@ -30,8 +48,19 @@ class SingleNucleotideVariants(ExpressionData, Annotatable):
 
 
 class SomaticMutation(ExpressionData, Annotatable):
-    def __init__(self, data, transpose, gene_index, usecols=None, gene_level=None, sample_level="sample_index",
-                 transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
+    def __init__(
+        self,
+        data,
+        transpose,
+        gene_index,
+        usecols=None,
+        gene_level=None,
+        sample_level="sample_index",
+        transform_fn=None,
+        dropna=False,
+        npartitions=None,
+        cohort_name=None,
+    ):
         """
         Args:
             data:
@@ -45,10 +74,18 @@ class SomaticMutation(ExpressionData, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(SomaticMutation, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
-                                              gene_level=gene_level, sample_level=sample_level,
-                                              transform_fn=transform_fn, dropna=dropna,
-                                              npartitions=npartitions, cohort_name=cohort_name)
+        super(SomaticMutation, self).__init__(
+            data=data,
+            transpose=transpose,
+            gene_index=gene_index,
+            usecols=usecols,
+            gene_level=gene_level,
+            sample_level=sample_level,
+            transform_fn=transform_fn,
+            dropna=dropna,
+            npartitions=npartitions,
+            cohort_name=cohort_name,
+        )
 
     @classmethod
     def name(cls):
@@ -56,8 +93,19 @@ class SomaticMutation(ExpressionData, Annotatable):
 
 
 class DNAMethylation(ExpressionData, Annotatable):
-    def __init__(self, data, transpose, gene_index, usecols=None, gene_level=None, sample_level="sample_index",
-                 transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
+    def __init__(
+        self,
+        data,
+        transpose,
+        gene_index,
+        usecols=None,
+        gene_level=None,
+        sample_level="sample_index",
+        transform_fn=None,
+        dropna=False,
+        npartitions=None,
+        cohort_name=None,
+    ):
         """
         Args:
             data:
@@ -71,10 +119,18 @@ class DNAMethylation(ExpressionData, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(DNAMethylation, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
-                                             gene_level=gene_level, sample_level=sample_level,
-                                             transform_fn=transform_fn, dropna=dropna,
-                                             npartitions=npartitions, cohort_name=cohort_name)
+        super(DNAMethylation, self).__init__(
+            data=data,
+            transpose=transpose,
+            gene_index=gene_index,
+            usecols=usecols,
+            gene_level=gene_level,
+            sample_level=sample_level,
+            transform_fn=transform_fn,
+            dropna=dropna,
+            npartitions=npartitions,
+            cohort_name=cohort_name,
+        )
 
     @classmethod
     def name(cls):
@@ -82,8 +138,19 @@ class DNAMethylation(ExpressionData, Annotatable):
 
 
 class CopyNumberVariation(ExpressionData, Annotatable):
-    def __init__(self, data, transpose, gene_index, usecols=None, gene_level=None, sample_level="sample_index",
-                 transform_fn=None, dropna=False, npartitions=None, cohort_name=None):
+    def __init__(
+        self,
+        data,
+        transpose,
+        gene_index,
+        usecols=None,
+        gene_level=None,
+        sample_level="sample_index",
+        transform_fn=None,
+        dropna=False,
+        npartitions=None,
+        cohort_name=None,
+    ):
         """
         Args:
             data:
@@ -97,11 +164,18 @@ class CopyNumberVariation(ExpressionData, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(CopyNumberVariation, self).__init__(data=data, transpose=transpose, gene_index=gene_index,
-                                                  usecols=usecols,
-                                                  gene_level=gene_level, sample_level=sample_level,
-                                                  transform_fn=transform_fn, dropna=dropna,
-                                                  npartitions=npartitions, cohort_name=cohort_name)
+        super(CopyNumberVariation, self).__init__(
+            data=data,
+            transpose=transpose,
+            gene_index=gene_index,
+            usecols=usecols,
+            gene_level=gene_level,
+            sample_level=sample_level,
+            transform_fn=transform_fn,
+            dropna=dropna,
+            npartitions=npartitions,
+            cohort_name=cohort_name,
+        )
 
     @classmethod
     def name(cls):
