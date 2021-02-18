@@ -214,8 +214,7 @@ class Expression(object):
             index (str):
             old_index (str):
         """
-        assert isinstance(self, Annotatable) and isinstance(
-            self, Expression)
+        assert isinstance(self, Annotatable) and isinstance(self, Expression)
         # Change gene name columns in expressions
         rename_dict = self.get_rename_dict(from_index=old_index,
                                            to_index=index)
