@@ -6,7 +6,7 @@ def make_trie(words):
     Args:
         words:
     """
-    root = dict()
+    root = {}
     for word in words:
         current_dict = root
         for letter in word:
