@@ -37,7 +37,7 @@ def longest_common_prefix(strs):
 
     trie = make_trie(strs)
     lcp_branches = []
-    for branch in trie.keys():
+    for branch in trie:
         branch_lcp = traverse_trie(trie[branch], branch)
         lcp_branches.append(branch_lcp)
 
