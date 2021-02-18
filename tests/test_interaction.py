@@ -1,3 +1,4 @@
+import networkx as nx
 from openomics.database import MiRTarBase, STRING, LncRNA2Target
 from .test_multiomics import *
 
@@ -18,7 +19,7 @@ def test_import_LncRNA2Target(generate_LncRNA2Target):
 @pytest.fixture
 def generate_MiRTarBase():
     return MiRTarBase(
-        path="/data/datasets/Bioinformatics_ExternalData/miRTarBase/",
+        path="/data/datasets/Bioinformatics_ExternalData/miRTarBase/",  # Hard-coded
         strip_mirna_name=True,
         filters={"Species (Target Gene)": "Homo sapiens"})
 
@@ -51,6 +52,9 @@ def test_annotate_STRING(generate_TCGA_LUAD, generate_STRING):
         generate_TCGA_LUAD:
         generate_STRING:
     """
-    generate_TCGA_LUAD.Protein.annotate_sequences(generate_STRING,
-                                                  index="protein_name")
+    generate_TCGA_LUAD.Protein.annotate_sequences(generate_STRING, index="protein_name")
     assert not generate_TCGA_LUAD.Protein.annotations["sequence"].empty
+
+
+def test_get_interactions_lnc2target(generate_LncRNA2Target):
+    assert generate_LncRNA2Target.get_interactions() is not None

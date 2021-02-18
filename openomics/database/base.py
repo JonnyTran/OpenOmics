@@ -13,6 +13,7 @@ from openomics.utils.io import get_pkg_data_filename
 
 class Dataset(object):
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
+    SEQUENCE_COL_NAME = "sequence"
 
     def __init__(
         self,
@@ -160,14 +161,9 @@ class Dataset(object):
         index:, which then applies a groupby operation and aggregates all other
         columns by concatenating all unique values.
 
-        operation aggregates :param index: The index column name of the
-        Dataframe :type index: str :param columns: a list of column names :type
-        columns: list :param items: a list of items in the column `index` to
-        select (this saves computing cost). :type items: list
-
         Args:
-            index (str):
-            columns ([str]):
+            index (str): The index column name of the DataFrame to join by
+            columns ([str]): a list of column names
 
         Returns:
             df (DataFrame): A dataframe to be used for annotation
@@ -181,7 +177,7 @@ class Dataset(object):
         else:
             raise Exception(
                 "The columns argument must be a list such that it's subset of the following columns in the dataframe",
-                self.data.columns.tolist(),
+                f"These columns were not found: {set(columns) - set(self.data.columns.tolist())}",
             )
 
         if index != self.data.index.name and index in self.data.columns:
@@ -270,8 +266,7 @@ class Annotatable(object):
 
         if fuzzy_match:
             database_df.index = database_df.index.map(
-                lambda x: difflib.get_close_matches(x, self.annotations.index)[
-                    0])
+                lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
 
         # Join columns from `database` to `annotations`
         if index == self.annotations.index.name:
@@ -279,16 +274,18 @@ class Annotatable(object):
                                                      on=index,
                                                      rsuffix="_")
         else:
-            if type(self.annotations.index) == pd.MultiIndex:
+            if isinstance(self.annotations.index, pd.MultiIndex):
                 old_index = self.annotations.index.names
             else:
                 old_index = self.annotations.index.name
 
+            # Save old index, reset the old index, set_index to the join index, perform the join, then change back to the old index
+            # TODO: Must ensure the index in self.annotations aligns with the gene_index in self.expressions dataframes
             self.annotations = self.annotations.reset_index()
-            self.annotations.set_index(index, inplace=True)
+            self.annotations = self.annotations.set_index(index)
             self.annotations = self.annotations.join(
                 database_df, on=index, rsuffix="_").reset_index()
-            self.annotations.set_index(old_index, inplace=True)
+            self.annotations = self.annotations.set_index(old_index)
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
         duplicate_columns = [
@@ -299,7 +296,7 @@ class Annotatable(object):
             self.annotations[old_col].fillna(self.annotations[new_col],
                                              inplace=True,
                                              axis=0)
-            self.annotations.drop(columns=new_col, inplace=True)
+            self.annotations = self.annotations.drop(columns=new_col)
 
     def annotate_sequences(self,
                            database,
@@ -317,10 +314,10 @@ class Annotatable(object):
 
         if type(self.annotations.index) == pd.MultiIndex:
             self.annotations[
-                "sequence"] = self.annotations.index.get_level_values(
-                    index).map(sequences_entries)
+                Dataset.SEQUENCE_COL_NAME] = self.annotations.index.get_level_values(
+                index).map(sequences_entries)
         else:
-            self.annotations["sequence"] = self.annotations.index.map(
+            self.annotations[Dataset.SEQUENCE_COL_NAME] = self.annotations.index.map(
                 sequences_entries)
 
     def annotate_expressions(self, database, index, fuzzy_match=False):
