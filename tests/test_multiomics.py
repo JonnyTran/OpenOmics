@@ -35,7 +35,6 @@ def generate_TCGA_LUAD_MessengerRNA_dask():
         npartitions=4,
     )
     data.drop_genes(data.expressions.columns[50:])
-    data.drop_samples(data.expressions.index[:100])
     return data
 
 
@@ -110,7 +109,7 @@ def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA):
     """
     cohort_name = "LUAD"
     luad_data = MultiOmics(cohort_name)
-    luad_data.add_clinical_data(clinical_data=os.path.join(
+    luad_data.add_clinical_data(path=os.path.join(
         cohort_folder_path,
         "nationwidechildrens.org_clinical_patient_luad.txt"))
     luad_data.add_omic(generate_TCGA_LUAD_MessengerRNA)
@@ -136,7 +135,7 @@ def generate_TCGA_LUAD(
     """
     cohort_name = "LUAD"
     luad_data = MultiOmics(cohort_name)
-    luad_data.add_clinical_data(clinical_data=os.path.join(
+    luad_data.add_clinical_data(path=os.path.join(
         cohort_folder_path,
         "nationwidechildrens.org_clinical_patient_luad.txt"))
     luad_data.add_omic(generate_TCGA_LUAD_MessengerRNA)

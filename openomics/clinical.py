@@ -1,6 +1,7 @@
 import io
 import os
 
+import dask.dataframe as dd
 from openomics import backend as pd
 
 TUMOR = "Tumor"
@@ -17,19 +18,15 @@ class ClinicalData:
                             'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
                             'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
 
-    def __init__(self, patients_file, patient_id_col="bcr_patient_barcode", columns=None):
+    def __init__(self, file_path, patient_id_col, columns=None):
         """This class manages the clinical data tables to handle the phenotype,
         treatment, and sample data associated to a patient.
 
         Args:
-            patients_file (str): path to the patients clinical data file
+            file_path (str, io.StringIO, pd.DataFrame): either a path to the patients clinical data file, or a DataFrame.
             patient_id_col (str): the patient's ID column name
             columns (list): default None. Specifies the columns to import, if
-                None, then import all columns. Example: ['bcr_patient_barcode',
-                'gender', 'race', 'histologic_diagnosis', 'tumor_status',
-                'death_days_to',
-
-                    'ajcc_pathologic_tumor_stage']
+                None, then import all columns.
         """
         # self.cohort_name = cohort_name
         self.patient_column = patient_id_col
@@ -37,23 +34,26 @@ class ClinicalData:
         if columns and patient_id_col not in columns:
             columns.append(patient_id_col)
 
-        if isinstance(patients_file, io.StringIO):
-            patients_file.seek(0)  # Needed since the file was previous read to extract columns information
-            self.patient = pd.read_table(patients_file,
+        if isinstance(file_path, io.StringIO):
+            file_path.seek(0)  # Needed since the file was previous read to extract columns information
+            self.patient = pd.read_table(file_path,
                                          skiprows=[1, 2],
                                          na_values=["[Not Available]", "[Unknown]", "[Not Applicable]",
                                                     "[Discrepancy]"],
                                          usecols=columns
                                          )
-        elif type(patients_file) == str and os.path.exists(patients_file):
-            self.patient = pd.read_table(patients_file,
+        elif type(file_path) == str and os.path.exists(file_path):
+            self.patient = pd.read_table(file_path,
                                          skiprows=[1, 2],
                                          na_values=["[Not Available]", "[Unknown]", "[Not Applicable]",
                                                     "[Discrepancy]"],
                                          usecols=columns
                                          )
+        elif isinstance(file_path, (pd.DataFrame, dd.DataFrame)):
+            self.patient = file_path
+
         else:
-            raise IOError(patients_file)
+            raise IOError(file_path)
 
         self.patient_barcodes = self.patient[patient_id_col].tolist()
         self.patient.set_index(patient_id_col, inplace=True)
@@ -62,6 +62,7 @@ class ClinicalData:
         self.patient.rename({"ajcc_pathologic_tumor_stage": PATHOLOGIC_STAGE,
                              "histological_type": HISTOLOGIC_SUBTYPE,
                              "histologic_diagnosis.1": HISTOLOGIC_SUBTYPE}, axis=1, inplace=True)
+
         self.patient.replace({PATHOLOGIC_STAGE: ClinicalData.pathologic_stage_map}, inplace=True)
 
     @classmethod
