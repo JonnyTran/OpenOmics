@@ -3,16 +3,15 @@ import pandas as pd
 
 
 def concat_uniques(series: pd.Series):
-    """
+    """ An aggregation custom function to be applied to each column of a groupby
     Args:
         series (pd.Series):
     """
-    series = series.dropna().astype(str)
-    if not series.empty:
-        return "|".join(series.unique())
+    series_str = series.dropna().astype(str)
+    if not series_str.empty:
+        return "|".join(series_str.unique())
     else:
         return None
-
 
 def concat(series: pd.Series):
     """

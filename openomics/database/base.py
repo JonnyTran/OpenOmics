@@ -5,6 +5,7 @@ import filetype, zipfile, gzip, rarfile
 from abc import abstractmethod
 
 import validators
+import dask.dataframe as dd
 
 from openomics import backend as pd
 from openomics.utils.df import concat_uniques
@@ -156,7 +157,7 @@ class Dataset(object):
     def list_databases():
         return DEFAULT_LIBRARIES
 
-    def get_annotations(self, index, columns):
+    def get_annotations(self, index, columns, agg="sum"):
         """Returns the Database's DataFrame such that it's indexed by :param
         index:, which then applies a groupby operation and aggregates all other
         columns by concatenating all unique values.
@@ -164,31 +165,46 @@ class Dataset(object):
         Args:
             index (str): The index column name of the DataFrame to join by
             columns ([str]): a list of column names
+            agg (str): Function to aggregate when there is more than one values for each index instance. E.g. ['first', 'last', 'sum', 'mean', 'concat'], default 'concat'.
 
         Returns:
             df (DataFrame): A dataframe to be used for annotation
         """
-        if columns is not None:
-            if index in columns:
-                df = self.data[columns]
-                columns.pop(columns.index(index))
-            else:
-                df = self.data[columns + [index]]
-        else:
+        if not set(columns).issubset(set(self.data.columns)):
             raise Exception(
                 "The columns argument must be a list such that it's subset of the following columns in the dataframe",
-                f"These columns were not found: {set(columns) - set(self.data.columns.tolist())}",
+                f"These columns doesn't exist in database: {set(columns) - set(self.data.columns.tolist())}",
             )
+
+        # Select df columns including df. However the `columns` list shouldn't contain the index column
+        if index in columns:
+            columns.pop(columns.index(index))
+
+        df = self.data[columns + [index]]
 
         if index != self.data.index.name and index in self.data.columns:
             df = df.set_index(index)
 
-        # Groupby index, and Aggregate by all columns by concatenating unique values
-        df = df.groupby(index).agg({k: concat_uniques for k in columns})
+        # Groupby index
+        groupby = df.groupby(index)
 
-        if df.index.duplicated().sum() > 0:
+        #  Aggregate by all columns by concatenating unique values
+        if agg == "concat":
+            if isinstance(df, pd.DataFrame):
+                aggregated = groupby.agg({col: concat_uniques for col in columns})
+            else:
+                agg_func = dd.Aggregation('custom_agg',
+                                          chunk=lambda x: x,
+                                          agg=concat_uniques)
+                aggregated = groupby.agg({col: agg_func for col in columns})
+
+        # Any other aggregation functions
+        else:
+            aggregated = groupby.aggregate(agg)
+
+        if aggregated.index.duplicated().sum() > 0:
             raise ValueError("DataFrame must not have duplicates in index")
-        return df
+        return aggregated
 
     def get_expressions(self, index):
         """
