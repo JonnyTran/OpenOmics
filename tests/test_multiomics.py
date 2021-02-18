@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests for `openomics` package."""
 
 import os
@@ -13,20 +12,20 @@ cohort_folder_path = "tests/data/TCGA_LUAD"
 
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA():
-    mrna = MessengerRNA(
+    data = MessengerRNA(
         data=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"),
         transpose=True,
         usecols="GeneSymbol|TCGA",
         gene_index="GeneSymbol",
         gene_level="gene_name",
     )
-
-    return mrna
+    data.drop_genes(data.expressions.columns[50:])
+    return data
 
 
 @pytest.fixture
 def generate_TCGA_LUAD_MessengerRNA_dask():
-    return MessengerRNA(
+    data = MessengerRNA(
         data=os.path.join(cohort_folder_path, "LUAD__geneExp.txt"),
         transpose=True,
         usecols="GeneSymbol|TCGA",
@@ -34,50 +33,58 @@ def generate_TCGA_LUAD_MessengerRNA_dask():
         gene_level="gene_name",
         npartitions=4,
     )
+    data.drop_genes(data.expressions.columns[50:])
+    return data
 
 
 @pytest.fixture
 def generate_TCGA_LUAD_MicroRNA():
-    return MicroRNA(
+    data = MicroRNA(
         data=os.path.join(cohort_folder_path, "LUAD__miRNAExp__RPM.txt"),
         transpose=True,
         usecols="GeneSymbol|TCGA",
         gene_index="GeneSymbol",
         gene_level="gene_name",
     )
+    data.drop_genes(data.expressions.columns[50:])
+    return data
 
 
 @pytest.fixture
 def generate_TCGA_LUAD_LncRNA():
-    return LncRNA(
+    data = LncRNA(
         data=os.path.join(cohort_folder_path, "TCGA-rnaexpr.tsv"),
         transpose=True,
         usecols="Gene_ID|TCGA",
         gene_index="Gene_ID",
         gene_level="gene_id",
     )
+    data.drop_genes(data.expressions.columns[50:])
+    return data
 
 
 @pytest.fixture
 def generate_TCGA_LUAD_SomaticMutation():
-    return SomaticMutation(
+    data = SomaticMutation(
         data=os.path.join(cohort_folder_path,
                           "LUAD__somaticMutation_geneLevel.txt"),
         transpose=True,
         usecols="GeneSymbol|TCGA",
         gene_index="gene_name",
     )
-
+    data.drop_genes(data.expressions.columns[50:])
+    return data
 
 @pytest.fixture
 def generate_TCGA_LUAD_Protein():
-    return Protein(
+    data = Protein(
         data=os.path.join(cohort_folder_path, "protein_RPPA.txt"),
         transpose=True,
         usecols="GeneSymbol|TCGA",
         gene_index="GeneSymbol",
         gene_level="protein_name",
     )
+    return data
 
 
 def test_import_MessengerRNA_Dask(generate_TCGA_LUAD_MessengerRNA_dask):
