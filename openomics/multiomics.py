@@ -60,15 +60,15 @@ class MultiOmics:
             omic_data.annotations.index.name,
         )
 
-    def add_clinical_data(self, path=None):
+    def add_clinical_data(self, clinical):
         """
         Args:
-            path:
+            clinical (ClinicalData):
         """
-        if type(path) == ClinicalData:
-            self.clinical = path
-        else:
-            self.clinical = ClinicalData(path)
+        if type(clinical) != ClinicalData:
+            raise Exception("Must pass a ClinicalData in, not a file path.")
+
+        self.clinical = clinical
 
         self.data["PATIENTS"] = self.clinical.patient
         if hasattr(self.clinical, "biospecimen"):

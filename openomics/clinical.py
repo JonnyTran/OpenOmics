@@ -18,21 +18,21 @@ class ClinicalData:
                             'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
                             'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
 
-    def __init__(self, file_path, patient_id_col, columns=None):
+    def __init__(self, file_path, patient_index, columns=None):
         """This class manages the clinical data tables to handle the phenotype,
         treatment, and sample data associated to a patient.
 
         Args:
             file_path (str, io.StringIO, pd.DataFrame): either a path to the patients clinical data file, or a DataFrame.
-            patient_id_col (str): the patient's ID column name
+            patient_index (str): the patient's ID column name
             columns (list): default None. Specifies the columns to import, if
                 None, then import all columns.
         """
         # self.cohort_name = cohort_name
-        self.patient_column = patient_id_col
+        self.patient_column = patient_index
 
-        if columns and patient_id_col not in columns:
-            columns.append(patient_id_col)
+        if columns and patient_index not in columns:
+            columns.append(patient_index)
 
         if isinstance(file_path, io.StringIO):
             file_path.seek(0)  # Needed since the file was previous read to extract columns information
@@ -55,8 +55,8 @@ class ClinicalData:
         else:
             raise IOError(file_path)
 
-        self.patient_barcodes = self.patient[patient_id_col].tolist()
-        self.patient.set_index(patient_id_col, inplace=True)
+        self.patient_barcodes = self.patient[patient_index].tolist()
+        self.patient.set_index(patient_index, inplace=True)
 
         # Rename columns
         self.patient.rename({"ajcc_pathologic_tumor_stage": PATHOLOGIC_STAGE,

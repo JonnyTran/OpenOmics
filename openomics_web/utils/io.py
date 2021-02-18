@@ -82,7 +82,7 @@ def get_clinical_data(file_content, file_name, data_type, cohort_name, patient_i
         columns_selected:
     """
     file = handle_filestreams([file_content, ], [file_name, ])
-    clinical_data = ClinicalData(file, patient_id_col=patient_id_col, columns=columns_selected)
+    clinical_data = ClinicalData(file, patient_index=patient_id_col, columns=columns_selected)
 
     return clinical_data
 

@@ -7,6 +7,8 @@ import pytest
 from openomics import MessengerRNA, MicroRNA, LncRNA, Protein, SomaticMutation
 from openomics import MultiOmics
 
+from .test_clinical import *
+
 cohort_folder_path = "tests/data/TCGA_LUAD"
 
 
@@ -102,16 +104,14 @@ def test_import_MessengerRNA_Dask(generate_TCGA_LUAD_MessengerRNA_dask):
     assert generate_TCGA_LUAD_MessengerRNA_dask.expressions is not None
 
 
-def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA):
+def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA, generate_TCGA_clinical):
     """
     Args:
         generate_TCGA_LUAD_MessengerRNA:
     """
     cohort_name = "LUAD"
     luad_data = MultiOmics(cohort_name)
-    luad_data.add_clinical_data(path=os.path.join(
-        cohort_folder_path,
-        "nationwidechildrens.org_clinical_patient_luad.txt"))
+    luad_data.add_clinical_data(generate_TCGA_clinical)
     luad_data.add_omic(generate_TCGA_LUAD_MessengerRNA)
     luad_data.build_samples()
     print(luad_data.data.keys())
@@ -121,6 +121,7 @@ def test_import_expression_table_size(generate_TCGA_LUAD_MessengerRNA):
 
 @pytest.fixture
 def generate_TCGA_LUAD(
+    generate_TCGA_clinical,
     generate_TCGA_LUAD_MessengerRNA,
     generate_TCGA_LUAD_MicroRNA,
     generate_TCGA_LUAD_LncRNA,
@@ -135,9 +136,7 @@ def generate_TCGA_LUAD(
     """
     cohort_name = "LUAD"
     luad_data = MultiOmics(cohort_name)
-    luad_data.add_clinical_data(path=os.path.join(
-        cohort_folder_path,
-        "nationwidechildrens.org_clinical_patient_luad.txt"))
+    luad_data.add_clinical_data(generate_TCGA_clinical)
     luad_data.add_omic(generate_TCGA_LUAD_MessengerRNA)
     luad_data.add_omic(generate_TCGA_LUAD_MicroRNA)
     luad_data.add_omic(generate_TCGA_LUAD_LncRNA)

@@ -70,7 +70,7 @@ pro = Protein(data=folder_path + "protein_RPPA.txt",
 # Create an integrated MultiOmics dataset
 luad_data = MultiOmics(cohort_name="LUAD")
 luad_data.add_clinical_data(
-    path=folder_path + "nationwidechildrens.org_clinical_patient_luad.txt")
+    clinical=folder_path + "nationwidechildrens.org_clinical_patient_luad.txt")
 
 luad_data.add_omic(mRNA)
 luad_data.add_omic(miRNA)
