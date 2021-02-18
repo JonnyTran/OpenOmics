@@ -84,6 +84,7 @@ def generate_TCGA_LUAD_Protein():
         gene_index="GeneSymbol",
         gene_level="protein_name",
     )
+    data.drop_genes(data.expressions.columns[50:])
     return data
 
 

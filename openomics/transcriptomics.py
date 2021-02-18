@@ -225,13 +225,16 @@ class Expression(object):
         # Change index name in annotation
         self.set_index(index)
 
-    def drop_genes(self, genes_to_drop):
+    def drop_genes(self, gene_ids):
         """
         Drop columns representing genes/rna/proteins in self.expressions dataframe.
         Args:
-            genes_to_drop ([str]): list of strings that are a subset of the columns list.
+            gene_ids ([str]): list of strings that are a subset of the columns list.
         """
-        self.expressions.drop(genes_to_drop, axis=1, inplace=True)
+        self.expressions = self.expressions.drop(gene_ids, axis=1)
+
+    def drop_samples(self, sample_ids):
+        self.expressions = self.expressions.drop(sample_ids, axis=0)
 
     @classmethod
     def name(cls):
