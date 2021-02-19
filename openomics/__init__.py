@@ -1,10 +1,10 @@
 from __future__ import print_function, division, absolute_import
 
-import astropy
 import logging
 import os
 import sys
 
+import astropy
 import dask.dataframe as dd
 import pandas as pd
 
@@ -26,6 +26,7 @@ if not this.config:
 
     # Set cache download directory
     this.config["cache_dir"] = astropy.config.get_cache_dir(this.__name__)
+    astropy.config.set_temp_cache(path=this.config["cache_dir"], delete=False)
     logging.info("Cache directory is", this.config["cache_dir"])
 
 from . import database, utils
