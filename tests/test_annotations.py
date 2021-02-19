@@ -4,7 +4,9 @@ from .test_multiomics import *
 
 @pytest.fixture
 def generate_RNACentral_ftp():
-    return RNAcentral(path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/")
+    rnacentral = RNAcentral(path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/")
+    rnacentral.data = rnacentral.data.sample(frac=0.01)
+    return rnacentral
 
 
 @pytest.fixture
@@ -14,7 +16,9 @@ def generate_GTEx_expressions():
 
 @pytest.fixture
 def generate_GeneOntology():
-    return GeneOntology(path="http://geneontology.org/gene-associations/")
+    go = GeneOntology(path="http://geneontology.org/gene-associations/")
+    go.data = go.data.sample(frac=0.01)
+    return go
 
 
 def test_import_rnacentral_db(generate_RNACentral_ftp):

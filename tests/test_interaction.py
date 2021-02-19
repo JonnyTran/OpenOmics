@@ -1,4 +1,3 @@
-import networkx as nx
 from openomics.database import MiRTarBase, STRING, LncRNA2Target
 from .test_multiomics import *
 
@@ -14,6 +13,13 @@ def test_import_LncRNA2Target(generate_LncRNA2Target):
         generate_LncRNA2Target:
     """
     assert generate_LncRNA2Target.data_path is not None
+
+
+@pytest.fixture
+def generate_STRING():
+    string = STRING(edge_attr=["score"])
+    string.data = string.data.sample(frac=0.01)
+    return string
 
 
 @pytest.fixture
@@ -33,9 +39,6 @@ def generate_MiRTarBase():
 #     assert generate_MiRTarBase.data_path is not None
 
 
-@pytest.fixture
-def generate_STRING():
-    return STRING(edge_attr=["score"])
 
 
 def test_import_STRING(generate_STRING):

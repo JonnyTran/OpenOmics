@@ -161,17 +161,17 @@ class Dataset(object):
     def list_databases():
         return DEFAULT_LIBRARIES
 
-    def get_annotations(self, index, columns, agg="concat", filter_values=None):
+    def get_annotations(self, index: str, columns: list, agg: str = "concat", filter_values: pd.Series = None):
         """Returns the Database's DataFrame such that it's indexed by :param
         index:, which then applies a groupby operation and aggregates all other
         columns by concatenating all unique values.
 
         Args:
-            index (str): The index column name of the DataFrame to join by
-            columns ([str]): a list of column names
+            index (str): The column name of the DataFrame to join by.
+            columns ([str]): a list of column names.
             agg (str): Function to aggregate when there is more than one values for each index instance.
                 E.g. ['first', 'last', 'sum', 'mean', 'size', 'concat'], default 'concat'.
-            filter_values (pd.Series): A series of values on the `index` column to filter before performing the groupby-agg operations.
+            filter_values (pd.Series): The values on the `index` column to filter before performing the groupby-agg operations.
 
         Returns:
             df (DataFrame): A dataframe to be used for annotation
@@ -188,8 +188,9 @@ class Dataset(object):
 
         df = self.data[columns + [index]]
 
+        print(df.columns, index, columns)
         if filter_values is not None:
-            df = df[df[index].isin(filter_values)]
+            df = df[df[index].isin(list(filter_values))]
 
         # if index != self.data.index.name and index in self.data.columns:
         #     df = df.set_index(index)
@@ -304,9 +305,6 @@ class Annotatable(ABC):
 
         database_df = database.get_annotations(on, columns=columns, agg=agg, filter_values=filter_values)
 
-        print("self.annotations", self.annotations.index.name)
-        print("database_df", database_df.index.name)
-
         if len(database_df.columns) == 0:
             logging.warning("Database annotations is empty and has nothing to annotate.")
             return
@@ -320,24 +318,25 @@ class Annotatable(ABC):
             new_annotations = self.annotations.join(database_df,
                                                     on=on,
                                                     rsuffix="_")
-        elif on == self.annotations.index.name and isinstance(database_df, dd.DataFrame):
-            new_annotations = dd.merge(self.annotations, database_df, how="left", on=on, suffixes=("_", ""))
+        # elif on == self.annotations.index.name and isinstance(database_df, dd.DataFrame):
+        #     new_annotations = dd.merge(self.annotations, database_df, how="left", on=on, suffixes=("_", ""))
 
         # performing join on a different column
         else:
-            if isinstance(self.annotations.index, pd.MultiIndex):
-                old_index = self.annotations.index.names
-            else:
-                old_index = self.annotations.index.name
+            # if isinstance(self.annotations.index, pd.MultiIndex):
+            #     old_index = self.annotations.index.names
+            # else:
+            #     old_index = self.annotations.index.name
 
             # Save old index, reset the old index, set_index to the join index, perform the join, then change back to the old index
             # This also ensures the index in self.annotations aligns with the gene_index in self.expressions dataframes
-            # TODO: Very slow on dask dataframes
-            new_annotations = self.annotations.reset_index()
-            new_annotations = new_annotations.set_index(on)
-            new_annotations = new_annotations.join(
-                database_df, on=on, rsuffix="_").reset_index()
-            new_annotations = new_annotations.set_index(old_index)
+            # TODO: Could be very slow on dask dataframes
+            # new_annotations = self.annotations.reset_index()
+            # new_annotations = new_annotations.set_index(on)
+            # new_annotations = new_annotations.join(
+            #     database_df, on=on, rsuffix="_").reset_index()
+            # new_annotations = new_annotations.set_index(old_index)
+            new_annotations = dd.merge(self.annotations, database_df, how="left", on=on, suffixes=("_", ""))
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
         duplicate_cols = [col for col in new_annotations.columns \
