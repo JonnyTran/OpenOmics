@@ -1,7 +1,8 @@
 import logging
 from typing import List, Dict, Union
 
-from openomics import backend as pd
+import pandas as pd
+
 from .clinical import (
     ClinicalData,
     HISTOLOGIC_SUBTYPE,

@@ -2,7 +2,7 @@ import io
 import os
 
 import dask.dataframe as dd
-from openomics import backend as pd
+from pandas as pd
 
 TUMOR = "Tumor"
 NORMAL = "Normal"

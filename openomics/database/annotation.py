@@ -11,7 +11,7 @@ from openomics.utils.io import mkdirs
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
-from openomics import backend as pd
+import pandas as pd
 import dask.dataframe as dd
 
 class TANRIC(Dataset):

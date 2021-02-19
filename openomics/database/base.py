@@ -9,10 +9,10 @@ from abc import ABC, abstractmethod
 
 import dask.dataframe as dd
 import filetype
+import pandas as pd
 import rarfile
 import validators
 
-from openomics import backend as pd
 from openomics.utils.df import concat_uniques
 from openomics.utils.io import get_pkg_data_filename
 
