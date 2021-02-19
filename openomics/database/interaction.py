@@ -1,5 +1,5 @@
-from abc import abstractmethod
 import logging
+from abc import abstractmethod
 
 import networkx as nx
 from Bio import SeqIO
@@ -243,9 +243,9 @@ class STRING(Interactions, SequenceDataset):
                                      directed=directed, relabel_nodes=relabel_nodes, verbose=verbose)
 
         self.file_resources["protein.info.txt"].seek(0)
-        self.df = pd.read_table(file_resources["protein.info.txt"])
-        self.df = self.df.reset_index()
-        self.df = self.df.rename(columns=self.COLUMNS_RENAME_DICT)
+        self.data = pd.read_table(file_resources["protein.info.txt"])
+        self.data = self.data.reset_index()
+        self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         # protein_interactions = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)

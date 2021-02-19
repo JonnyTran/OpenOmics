@@ -53,7 +53,8 @@ def test_annotate_rnacentral(generate_TCGA_LUAD, generate_RNACentral_ftp):
         generate_TCGA_LUAD:
         generate_RNACentral_ftp:
     """
-    generate_TCGA_LUAD.MicroRNA.annotate_attributes(database=generate_RNACentral_ftp, on="gene_name",
+    generate_TCGA_LUAD.MicroRNA.annotate_attributes(database=generate_RNACentral_ftp,
+                                                    on="gene_name",
                                                     columns=['gene_name', 'RNA type'])
     assert {'RNA type'}.issubset(generate_TCGA_LUAD.MicroRNA.annotations.columns)
 
