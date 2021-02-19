@@ -2,7 +2,7 @@ import io
 import os
 
 import dask.dataframe as dd
-from pandas as pd
+import pandas as pd
 
 TUMOR = "Tumor"
 NORMAL = "Normal"
