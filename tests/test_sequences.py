@@ -49,9 +49,7 @@ def test_annotate_GENCODE(generate_TCGA_LUAD, generate_GENCODE):
         generate_TCGA_LUAD:
         generate_GENCODE:
     """
-    generate_TCGA_LUAD.LncRNA.annotate_genomics(generate_GENCODE,
-                                                index="gene_id",
-                                                columns=['gene_name'])
+    generate_TCGA_LUAD.LncRNA.annotate_genomics(generate_GENCODE, index="gene_id", columns=['gene_name'])
     assert {'gene_name'}.issubset(
         generate_TCGA_LUAD.LncRNA.get_annotations().columns)
 
@@ -64,9 +62,7 @@ def test_annotate_dask_GENCODE(generate_TCGA_LUAD, generate_GENCODE_dask):
     """
     generate_GENCODE_dask.data = generate_GENCODE_dask.data[generate_GENCODE_dask.data["gene_id"].notnull()]
 
-    generate_TCGA_LUAD.LncRNA.annotate_genomics(generate_GENCODE_dask,
-                                                index="gene_id",
-                                                columns=['gene_name'])
+    generate_TCGA_LUAD.LncRNA.annotate_genomics(generate_GENCODE_dask, index="gene_id", columns=['gene_name'])
     assert {'gene_name'}.issubset(
         generate_TCGA_LUAD.LncRNA.get_annotations().columns)
 

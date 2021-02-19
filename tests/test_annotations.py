@@ -70,7 +70,6 @@ def test_annotate_GeneOntology(generate_TCGA_LUAD, generate_GeneOntology):
         generate_TCGA_LUAD:
         generate_GeneOntology:
     """
-    generate_TCGA_LUAD.MicroRNA.annotate_genomics(database=generate_GeneOntology, index="gene_name",
-                                                  columns=['go_id'])
+    generate_TCGA_LUAD.MicroRNA.annotate_genomics(database=generate_GeneOntology, index="gene_name", columns=['go_id'])
     assert {'go_id'}.issubset(generate_TCGA_LUAD.MicroRNA.get_annotations().columns)
     assert not generate_TCGA_LUAD.MicroRNA.annotations["go_id"].empty

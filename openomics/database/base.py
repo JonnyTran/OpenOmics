@@ -202,8 +202,8 @@ class Dataset(object):
         else:
             aggregated = groupby.aggregate(agg)
 
-        if aggregated.index.duplicated().sum() > 0:
-            raise ValueError("DataFrame must not have duplicates in index")
+        # if aggregated.index.duplicated().sum() > 0:
+        #     raise ValueError("DataFrame must not have duplicates in index")
         return aggregated
 
     def get_expressions(self, index):
@@ -265,7 +265,7 @@ class Annotatable(object):
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_genomics(self, database, index, columns, fuzzy_match=False):
+    def annotate_genomics(self, database: Dataset, index, columns, agg="concat", fuzzy_match=False):
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present
         in both DataFrames. If there exists overlapping column in the join, then
@@ -276,15 +276,15 @@ class Annotatable(object):
             database (openomics.annotation.Dataset): Database which contains an annotation
             index (str): The column name which exists in both the annotation and Database's DataFrame
             columns ([str]): a list of column name to join to the annotation
+            agg (str): Function to aggregate when there is more than one values for each index instance. E.g. ['first', 'last', 'sum', 'mean', 'concat'], default 'concat'.
             fuzzy_match (bool): default False. Whether to join the annotation by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
         """
-        database_df = database.get_annotations(index, columns=columns)
+        database_df = database.get_annotations(index, columns=columns, agg=agg)
 
         if fuzzy_match:
             database_df.index = database_df.index.map(
                 lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
 
-        # Join columns from `database` to `annotations`
         if index == self.annotations.index.name:
             self.annotations = self.annotations.join(database_df,
                                                      on=index,
@@ -307,6 +307,7 @@ class Annotatable(object):
         duplicate_columns = [
             col for col in self.annotations.columns if col[-1] == "_"
         ]
+
         for new_col in duplicate_columns:
             old_col = new_col.strip("_")
             self.annotations[old_col].fillna(self.annotations[new_col],

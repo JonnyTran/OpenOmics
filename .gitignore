@@ -101,6 +101,6 @@ ENV/
 # mypy
 .mypy_cache/
 
-/.ipynb_checkpoints/
-/.idea/
+.ipynb_checkpoints/
+.idea/
 /notebooks/*
