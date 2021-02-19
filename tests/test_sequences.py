@@ -6,16 +6,29 @@ from .test_multiomics import *
 
 @pytest.fixture
 def generate_GENCODE():
-    return GENCODE(path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
-                   file_resources={"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
-                                   "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz"}, )
+    return GENCODE(
+        path=
+        "ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
+        file_resources={
+            "long_noncoding_RNAs.gtf":
+            "gencode.v32.long_noncoding_RNAs.gtf.gz",
+            "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
+        },
+    )
 
 
 @pytest.fixture
 def generate_GENCODE_dask():
-    return GENCODE(path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
-                   file_resources={"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
-                                   "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz"}, npartitions=8)
+    return GENCODE(
+        path=
+        "ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
+        file_resources={
+            "long_noncoding_RNAs.gtf":
+            "gencode.v32.long_noncoding_RNAs.gtf.gz",
+            "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
+        },
+        npartitions=8,
+    )
 
 
 @pytest.fixture
@@ -36,7 +49,9 @@ def test_import_GENCODE(generate_GENCODE):
     Args:
         generate_GENCODE:
     """
-    assert generate_GENCODE.data_path == 'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/'
+    assert (
+        generate_GENCODE.data_path ==
+        "ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/")
 
 
 def test_import_dask_GENCODE(generate_GENCODE_dask):
@@ -49,9 +64,11 @@ def test_annotate_GENCODE(generate_TCGA_LUAD, generate_GENCODE):
         generate_TCGA_LUAD:
         generate_GENCODE:
     """
-    generate_TCGA_LUAD.LncRNA.annotate_genomics(generate_GENCODE, index="gene_id", columns=['gene_name'])
-    assert {'gene_name'}.issubset(
-        generate_TCGA_LUAD.LncRNA.get_annotations().columns)
+    generate_TCGA_LUAD.LncRNA.annotate_genomics(generate_GENCODE,
+                                                index="gene_id",
+                                                columns=["gene_name"])
+    assert {"gene_name"
+            }.issubset(generate_TCGA_LUAD.LncRNA.get_annotations().columns)
 
 
 def test_annotate_dask_GENCODE(generate_TCGA_LUAD, generate_GENCODE_dask):
@@ -60,13 +77,18 @@ def test_annotate_dask_GENCODE(generate_TCGA_LUAD, generate_GENCODE_dask):
         generate_TCGA_LUAD:
         generate_GENCODE_dask:
     """
-    generate_GENCODE_dask.data = generate_GENCODE_dask.data[generate_GENCODE_dask.data["gene_id"].notnull()]
+    generate_GENCODE_dask.data = generate_GENCODE_dask.data[
+        generate_GENCODE_dask.data["gene_id"].notnull()]
 
-    generate_TCGA_LUAD.LncRNA.annotate_genomics(generate_GENCODE_dask, index="gene_id", columns=['gene_name'])
-    assert {'gene_name'}.issubset(
-        generate_TCGA_LUAD.LncRNA.get_annotations().columns)
+    generate_TCGA_LUAD.LncRNA.annotate_genomics(generate_GENCODE_dask,
+                                                index="gene_id",
+                                                columns=["gene_name"])
+    assert {"gene_name"
+            }.issubset(generate_TCGA_LUAD.LncRNA.get_annotations().columns)
 
 
 def test_annotate_sequence_GENCODE(generate_TCGA_LUAD, generate_GENCODE):
-    generate_TCGA_LUAD.LncRNA.annotate_sequences(generate_GENCODE, index="gene_id", omic="LncRNA",
+    generate_TCGA_LUAD.LncRNA.annotate_sequences(generate_GENCODE,
+                                                 index="gene_id",
+                                                 omic="LncRNA",
                                                  agg_sequences="longest")

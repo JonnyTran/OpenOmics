@@ -191,9 +191,11 @@ class Dataset(object):
         #  Aggregate by all columns by concatenating unique values
         if agg == "concat":
             if isinstance(df, pd.DataFrame):
-                aggregated = groupby.agg({col: concat_uniques for col in columns})
+                aggregated = groupby.agg(
+                    {col: concat_uniques
+                     for col in columns})
             else:
-                agg_func = dd.Aggregation('custom_agg',
+                agg_func = dd.Aggregation("custom_agg",
                                           chunk=lambda x: x,
                                           agg=concat_uniques)
                 aggregated = groupby.agg({col: agg_func for col in columns})
@@ -265,7 +267,12 @@ class Annotatable(object):
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_genomics(self, database: Dataset, index, columns, agg="concat", fuzzy_match=False):
+    def annotate_genomics(self,
+                          database: Dataset,
+                          index,
+                          columns,
+                          agg="concat",
+                          fuzzy_match=False):
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present
         in both DataFrames. If there exists overlapping column in the join, then
@@ -283,7 +290,8 @@ class Annotatable(object):
 
         if fuzzy_match:
             database_df.index = database_df.index.map(
-                lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
+                lambda x: difflib.get_close_matches(x, self.annotations.index)[
+                    0])
 
         if index == self.annotations.index.name:
             self.annotations = self.annotations.join(database_df,
@@ -331,11 +339,13 @@ class Annotatable(object):
 
         if type(self.annotations.index) == pd.MultiIndex:
             self.annotations[
-                Dataset.SEQUENCE_COL_NAME] = self.annotations.index.get_level_values(
-                index).map(sequences_entries)
+                Dataset.
+                SEQUENCE_COL_NAME] = self.annotations.index.get_level_values(
+                    index).map(sequences_entries)
         else:
-            self.annotations[Dataset.SEQUENCE_COL_NAME] = self.annotations.index.map(
-                sequences_entries)
+            self.annotations[
+                Dataset.SEQUENCE_COL_NAME] = self.annotations.index.map(
+                    sequences_entries)
 
     def annotate_expressions(self, database, index, fuzzy_match=False):
         """
