@@ -188,7 +188,6 @@ class Dataset(object):
 
         df = self.data[columns + [index]]
 
-        print(df.columns, index, columns)
         if filter_values is not None:
             df = df[df[index].isin(list(filter_values))]
 

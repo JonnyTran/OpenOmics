@@ -28,7 +28,7 @@ def get_pkg_data_filename(dataurl, file, verbose):
     logging.info(f"Fetching file from: {dataurl}{file}") if verbose else None
 
     with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
-        return data.get_pkg_data_filename(file, package="openomics.database", show_progress=True)
+        return data.get_pkg_data_filename(file, package="openomics", show_progress=True)
 
 
 def read_db(path, table, index_col):
