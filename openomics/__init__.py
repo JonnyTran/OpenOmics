@@ -12,7 +12,7 @@ import pandas as pd
 
 __author__ = """Nhat (Jonny) Tran"""
 __email__ = 'nhat.tran@mavs.uta.edu'
-__version__ = '0.8.5'
+__version__ = '0.8.6'
 
 __BACKEND__ = "pandas"
 backend = pd
