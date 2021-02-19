@@ -290,5 +290,5 @@ class MultiOmics:
             dictionary: A dictionary mapping patient's index to a subtype
         """
         self.data["PATIENTS"] = self.data["PATIENTS"].assign(
-            subtypes=self.data["PATIENTS"][
-                self.clinical.patient_column].map(dictionary))
+            subtypes=self.data["PATIENTS"][self.clinical.patient_column].map(
+                dictionary))
