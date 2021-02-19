@@ -62,10 +62,18 @@ def test_annotate_dask_GENCODE(generate_TCGA_LUAD, generate_GENCODE_dask):
     """
     generate_GENCODE_dask.data = generate_GENCODE_dask.data[generate_GENCODE_dask.data["gene_id"].notnull()]
 
+    # Test join on index column
     generate_TCGA_LUAD.LncRNA.annotate_attributes(generate_GENCODE_dask,
                                                   on="gene_id",
-                                                  columns=['gene_name', 'transcript_id'],
+                                                  columns=['gene_name'],
                                                   agg="concat")
+
+    # Test join on off-index
+    generate_TCGA_LUAD.LncRNA.annotate_attributes(generate_GENCODE_dask,
+                                                  on="gene_name",
+                                                  columns=['transcript_id'],
+                                                  agg="concat")
+
     assert {'gene_name', 'transcript_id'}.issubset(
         generate_TCGA_LUAD.LncRNA.annotations.columns)
 

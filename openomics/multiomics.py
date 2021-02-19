@@ -1,3 +1,4 @@
+import logging
 from typing import List, Dict, Union
 
 from openomics import backend as pd
@@ -49,10 +50,10 @@ class MultiOmics:
 
         # Initialize annotation
         if initialize_annotations:
-            omic_data.initialize_annotations(gene_list=None,
-                                             index=omic_data.gene_index)
+            omic_data.initialize_annotations(index=omic_data.gene_index,
+                                             gene_list=None)
 
-        print(
+        logging.info(
             omic_data.name(),
             self.data[omic_data.name()].shape if hasattr(
                 self.data[omic_data.name()], "shape") else ": None",
@@ -273,22 +274,21 @@ class MultiOmics:
                 if hasattr(self.data[omic], "shape") else "Didn't import data",
             )
 
-    def add_subtypes_to_patients_clinical(self, dictionary):
+    def annotate_patients(self, dictionary):
         """This function adds a "predicted_subtype" field to the patients
         clinical data. For instance, patients were classified into subtypes
         based on their expression profile using k-means, then, to use this
         function, do:
 
-        add_subtypes_to_patients_clinical(dict(zip(<list of patient
-        barcodes>, <list of corresponding patient's subtypes>)))
+        annotate_patients(dict(zip(patient index>, <list of corresponding patient's subtypes>)))
 
         Adding a field to the patients clinical data allows openomics to
-        query the patients data through the .load_data(predicted_subtypes=[])
+        query the patients data through the .load_data(subtypes=[])
         parameter,
 
         Args:
-            dictionary: A dictionary mapping patient's barcode to a subtype
+            dictionary: A dictionary mapping patient's index to a subtype
         """
         self.data["PATIENTS"] = self.data["PATIENTS"].assign(
-            predicted_subtype=self.data["PATIENTS"][
+            subtypes=self.data["PATIENTS"][
                 self.clinical.patient_column].map(dictionary))

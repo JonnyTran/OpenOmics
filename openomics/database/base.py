@@ -1,16 +1,16 @@
 import copy
 import difflib
+import gzip
 import itertools
 import logging
 import os
+import zipfile
 from abc import ABC, abstractmethod
 
 import dask.dataframe as dd
 import filetype
-import gzip
 import rarfile
 import validators
-import zipfile
 
 from openomics import backend as pd
 from openomics.utils.df import concat_uniques
@@ -266,7 +266,7 @@ class Annotatable(ABC):
             raise Exception("{} must run annotate_expressions() first.".format(
                 self.name()))
 
-    def initialize_annotations(self, gene_list, index):
+    def initialize_annotations(self, index, gene_list=None):
         """
         Args:
             gene_list:
