@@ -8,7 +8,7 @@ import requests
 import sqlalchemy as sa
 import validators
 from astropy.utils import data
-from requests.adapters import HTTPAdapter
+from requests.adapters import HTTPAdapter, Retry
 
 
 def get_pkg_data_filename(dataurl, file, verbose):
