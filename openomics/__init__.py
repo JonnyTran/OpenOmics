@@ -7,12 +7,11 @@ import sys
 
 import dask.dataframe as dd
 import pandas as pd
-
 """Top-level package for openomics."""
 
 __author__ = """Nhat (Jonny) Tran"""
-__email__ = 'nhat.tran@mavs.uta.edu'
-__version__ = '0.8.5'
+__email__ = "nhat.tran@mavs.uta.edu"
+__version__ = "0.8.5"
 
 # Initialize configurations
 this = sys.modules[__name__]
@@ -31,22 +30,19 @@ if not this.config:
 from . import database, utils
 
 from .transcriptomics import (
-    Expression, MessengerRNA, MicroRNA, LncRNA,
+    Expression,
+    MessengerRNA,
+    MicroRNA,
+    LncRNA,
 )
 
-from .genomics import (
-    SomaticMutation, DNAMethylation, CopyNumberVariation
-)
+from .genomics import SomaticMutation, DNAMethylation, CopyNumberVariation
 
-from .proteomics import (
-    Protein
-)
+from .proteomics import Protein
 
 from .clinical import ClinicalData
 
-from .multiomics import (
-    MultiOmics
-)
+from .multiomics import MultiOmics
 
 
 def set_backend(new):
