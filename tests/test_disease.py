@@ -38,7 +38,7 @@ def test_annotate_DisGeNet(generate_TCGA_LUAD, generate_DisGeNet_ftp):
         generate_DisGeNet_ftp:
     """
     generate_TCGA_LUAD.MessengerRNA.annotate_diseases(generate_DisGeNet_ftp, index="gene_name", )
-    assert {'disease_associations'}.issubset(generate_TCGA_LUAD.MessengerRNA.get_annotations().columns)
+    assert {'disease_associations'}.issubset(generate_TCGA_LUAD.MessengerRNA.annotations.columns)
 
 
 def test_import_HMDD(generate_HMDD_ftp):
@@ -57,7 +57,7 @@ def test_annotate_HMDD(generate_TCGA_LUAD, generate_HMDD_ftp):
         generate_HMDD_ftp:
     """
     generate_TCGA_LUAD.MicroRNA.annotate_diseases(generate_HMDD_ftp, index="gene_name", )
-    assert {'disease_associations'}.issubset(generate_TCGA_LUAD.MicroRNA.get_annotations().columns)
+    assert {'disease_associations'}.issubset(generate_TCGA_LUAD.MicroRNA.annotations.columns)
 
 
 def test_LncRNADisease(generate_LncRNADisease_ftp):
@@ -76,7 +76,7 @@ def test_annotate_LncRNADisease(generate_TCGA_LUAD, generate_LncRNADisease_ftp):
         generate_LncRNADisease_ftp:
     """
     generate_TCGA_LUAD.LncRNA.annotate_diseases(generate_LncRNADisease_ftp, index="gene_name", )
-    assert {'disease_associations'}.issubset(generate_TCGA_LUAD.LncRNA.get_annotations().columns)
+    assert {'disease_associations'}.issubset(generate_TCGA_LUAD.LncRNA.annotations.columns)
 
 
 def test_import_MalaCards(generate_MalaCards_ftp):

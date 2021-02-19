@@ -5,7 +5,6 @@ from glob import glob
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-
 # from Bio.UniProt import GOA
 from dask import delayed
 
@@ -231,6 +230,8 @@ class Expression(object):
             gene_ids ([str]): list of strings that are a subset of the columns list.
         """
         self.expressions = self.expressions.drop(gene_ids, axis=1)
+        if hasattr(self, "annotations") and not self.annotations.empty:
+            self.annotations = self.annotations.drop(gene_ids, axis=0)
 
     def drop_samples(self, sample_ids):
         self.expressions = self.expressions.drop(sample_ids, axis=0)

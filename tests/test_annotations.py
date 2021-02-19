@@ -49,12 +49,12 @@ def test_annotate_rnacentral(generate_TCGA_LUAD, generate_RNACentral_ftp):
         generate_TCGA_LUAD:
         generate_RNACentral_ftp:
     """
-    generate_TCGA_LUAD.MessengerRNA.annotate_genomics(database=generate_RNACentral_ftp, index="gene_name",
-                                                      columns=['gene_name', 'RNA type'])
-    assert {'RNA type'}.issubset(generate_TCGA_LUAD.MessengerRNA.get_annotations().columns)
+    generate_TCGA_LUAD.MicroRNA.annotate_attributes(database=generate_RNACentral_ftp, on="gene_name",
+                                                    columns=['gene_name', 'RNA type'])
+    assert {'RNA type'}.issubset(generate_TCGA_LUAD.MicroRNA.annotations.columns)
 
 
-def test_annotate_experessions_GTEx(generate_TCGA_LUAD, generate_GTEx_expressions):
+def test_annotate_expressions_GTEx(generate_TCGA_LUAD, generate_GTEx_expressions):
     """
     Args:
         generate_TCGA_LUAD:
@@ -70,6 +70,7 @@ def test_annotate_GeneOntology(generate_TCGA_LUAD, generate_GeneOntology):
         generate_TCGA_LUAD:
         generate_GeneOntology:
     """
-    generate_TCGA_LUAD.MicroRNA.annotate_genomics(database=generate_GeneOntology, index="gene_name", columns=['go_id'])
-    assert {'go_id'}.issubset(generate_TCGA_LUAD.MicroRNA.get_annotations().columns)
-    assert not generate_TCGA_LUAD.MicroRNA.annotations["go_id"].empty
+    generate_TCGA_LUAD.MessengerRNA.annotate_attributes(database=generate_GeneOntology, on="gene_name",
+                                                        columns=['go_id'])
+    assert {'go_id'}.issubset(generate_TCGA_LUAD.MessengerRNA.annotations.columns)
+    assert not generate_TCGA_LUAD.MessengerRNA.annotations["go_id"].empty

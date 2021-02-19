@@ -107,8 +107,8 @@ gencode = GENCODE(path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/
                   npartitions=5)
 
 # Annotate LncRNAs with GENCODE by gene_id
-luad_data.LncRNA.annotate_genomics(gencode, index="gene_id",
-                                   columns=['feature', 'start', 'end', 'strand', 'tag', 'havana_gene'])
+luad_data.LncRNA.annotate_attributes(gencode, on="gene_id",
+                                     columns=['feature', 'start', 'end', 'strand', 'tag', 'havana_gene'])
 
 luad_data.LncRNA.annotations.info()
 ```

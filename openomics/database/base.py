@@ -1,11 +1,16 @@
-import os, copy, logging
+import copy
 import difflib
-import filetype, zipfile, gzip, rarfile
+import itertools
+import logging
+import os
+from abc import ABC, abstractmethod
 
-from abc import abstractmethod
-
-import validators
 import dask.dataframe as dd
+import filetype
+import gzip
+import rarfile
+import validators
+import zipfile
 
 from openomics import backend as pd
 from openomics.utils.df import concat_uniques
@@ -14,7 +19,6 @@ from openomics.utils.io import get_pkg_data_filename
 
 class Dataset(object):
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
-    SEQUENCE_COL_NAME = "sequence"
 
     def __init__(
         self,
@@ -157,7 +161,7 @@ class Dataset(object):
     def list_databases():
         return DEFAULT_LIBRARIES
 
-    def get_annotations(self, index, columns, agg="sum"):
+    def get_annotations(self, index, columns, agg="concat", filter_values=None):
         """Returns the Database's DataFrame such that it's indexed by :param
         index:, which then applies a groupby operation and aggregates all other
         columns by concatenating all unique values.
@@ -165,7 +169,9 @@ class Dataset(object):
         Args:
             index (str): The index column name of the DataFrame to join by
             columns ([str]): a list of column names
-            agg (str): Function to aggregate when there is more than one values for each index instance. E.g. ['first', 'last', 'sum', 'mean', 'concat'], default 'concat'.
+            agg (str): Function to aggregate when there is more than one values for each index instance.
+                E.g. ['first', 'last', 'sum', 'mean', 'size', 'concat'], default 'concat'.
+            filter_values (pd.Series): A series of values on the `index` column to filter before performing the groupby-agg operations.
 
         Returns:
             df (DataFrame): A dataframe to be used for annotation
@@ -182,8 +188,11 @@ class Dataset(object):
 
         df = self.data[columns + [index]]
 
-        if index != self.data.index.name and index in self.data.columns:
-            df = df.set_index(index)
+        if filter_values is not None:
+            df = df[df[index].isin(filter_values)]
+
+        # if index != self.data.index.name and index in self.data.columns:
+        #     df = df.set_index(index)
 
         # Groupby index
         groupby = df.groupby(index)
@@ -192,15 +201,21 @@ class Dataset(object):
         if agg == "concat":
             if isinstance(df, pd.DataFrame):
                 aggregated = groupby.agg({col: concat_uniques for col in columns})
-            else:
-                agg_func = dd.Aggregation('custom_agg',
-                                          chunk=lambda x: x,
-                                          agg=concat_uniques)
-                aggregated = groupby.agg({col: agg_func for col in columns})
+
+            elif isinstance(df, dd.DataFrame):
+                collect_concat = dd.Aggregation(
+                    name='collect_concat',
+                    chunk=lambda s1: s1.apply(list),
+                    agg=lambda s2: s2.apply(lambda chunks: filter(
+                        lambda x: False if x == "None" or x is None else True,
+                        set(itertools.chain.from_iterable(chunks)))),
+                    finalize=lambda s3: s3.apply(lambda xx: '|'.join(xx))
+                )
+                aggregated = groupby.agg({col: collect_concat for col in columns})
 
         # Any other aggregation functions
         else:
-            aggregated = groupby.aggregate(agg)
+            aggregated = groupby.agg({col: agg for col in columns})
 
         # if aggregated.index.duplicated().sum() > 0:
         #     raise ValueError("DataFrame must not have duplicates in index")
@@ -229,14 +244,12 @@ class Dataset(object):
         raise NotImplementedError
 
 
-# from .sequence import SequenceDataset
-class Annotatable(object):
-    """This class provides an interface for the omics to annotate external data
-    downloaded from various databases. These data will be imported as attribute
-    information to the genes, or interactions between the genes.
+class Annotatable(ABC):
+    """This abstract class provides an interface for the omics to annotate external data
+    downloaded from various databases. The database will be imported as attributes
+    information to the genes's annotations, or interactions between the genes.
     """
-    def __init__(self):
-        pass
+    SEQUENCE_COL_NAME = "sequence"
 
     def get_annotations(self):
         if hasattr(self, "annotations"):
@@ -265,30 +278,52 @@ class Annotatable(object):
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_genomics(self, database: Dataset, index, columns, agg="concat", fuzzy_match=False):
+    def annotate_attributes(self, database: Dataset, on, columns, agg="concat", fuzzy_match=False):
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present
-        in both DataFrames. If there exists overlapping column in the join, then
-        the fillna() is used to fill NaN values in the old column with non-NaN
+        in both DataFrames. If there exists overlapping columns from the join, then
+        .fillna() is used to fill NaN values in the old column with non-NaN
         values from the new column.
 
         Args:
-            database (openomics.annotation.Dataset): Database which contains an annotation
-            index (str): The column name which exists in both the annotation and Database's DataFrame
-            columns ([str]): a list of column name to join to the annotation
+            database (openomics.database.Dataset): Database which contains an dataframe.
+            on (str): The column name which exists in both the annotations and Database dataframe to perform the join on.
+            columns ([str]): a list of column name to join to the annotation.
             agg (str): Function to aggregate when there is more than one values for each index instance. E.g. ['first', 'last', 'sum', 'mean', 'concat'], default 'concat'.
             fuzzy_match (bool): default False. Whether to join the annotation by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
         """
-        database_df = database.get_annotations(index, columns=columns, agg=agg)
+        if not hasattr(self, "annotations"):
+            raise Exception(f"Must run .initialize_annotations() on {self.__class__.__name__} first.")
+
+        if on in self.annotations.columns:
+            filter_values = self.annotations[on]
+        elif on == self.annotations.index.name:
+            filter_values = self.annotations.index
+        else:
+            filter_values = None
+
+        database_df = database.get_annotations(on, columns=columns, agg=agg, filter_values=filter_values)
+
+        print("self.annotations", self.annotations.index.name)
+        print("database_df", database_df.index.name)
+
+        if len(database_df.columns) == 0:
+            logging.warning("Database annotations is empty and has nothing to annotate.")
+            return
 
         if fuzzy_match:
             database_df.index = database_df.index.map(
-                lambda x: difflib.get_close_matches(x, self.annotations.index)[0])
+                lambda x: difflib.get_close_matches(x, self.annotations.index, n=1)[0])
 
-        if index == self.annotations.index.name:
-            self.annotations = self.annotations.join(database_df,
-                                                     on=index,
-                                                     rsuffix="_")
+        # performing join on the index column
+        if on == self.annotations.index.name and isinstance(database_df, pd.DataFrame):
+            new_annotations = self.annotations.join(database_df,
+                                                    on=on,
+                                                    rsuffix="_")
+        elif on == self.annotations.index.name and isinstance(database_df, dd.DataFrame):
+            new_annotations = dd.merge(self.annotations, database_df, how="left", on=on, suffixes=("_", ""))
+
+        # performing join on a different column
         else:
             if isinstance(self.annotations.index, pd.MultiIndex):
                 old_index = self.annotations.index.names
@@ -296,56 +331,70 @@ class Annotatable(object):
                 old_index = self.annotations.index.name
 
             # Save old index, reset the old index, set_index to the join index, perform the join, then change back to the old index
-            # TODO: Must ensure the index in self.annotations aligns with the gene_index in self.expressions dataframes
-            self.annotations = self.annotations.reset_index()
-            self.annotations = self.annotations.set_index(index)
-            self.annotations = self.annotations.join(
-                database_df, on=index, rsuffix="_").reset_index()
-            self.annotations = self.annotations.set_index(old_index)
+            # This also ensures the index in self.annotations aligns with the gene_index in self.expressions dataframes
+            # TODO: Very slow on dask dataframes
+            new_annotations = self.annotations.reset_index()
+            new_annotations = new_annotations.set_index(on)
+            new_annotations = new_annotations.join(
+                database_df, on=on, rsuffix="_").reset_index()
+            new_annotations = new_annotations.set_index(old_index)
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
-        duplicate_columns = [
-            col for col in self.annotations.columns if col[-1] == "_"
-        ]
+        duplicate_cols = [col for col in new_annotations.columns \
+                          if col[-1] == "_"]
 
-        for new_col in duplicate_columns:
+        # Fill in null values then drop duplicate columns
+        for new_col in duplicate_cols:
             old_col = new_col.strip("_")
-            self.annotations[old_col].fillna(self.annotations[new_col],
-                                             inplace=True,
-                                             axis=0)
-            self.annotations = self.annotations.drop(columns=new_col)
+            new_annotations[old_col].fillna(new_annotations[new_col],
+                                            inplace=True,
+                                            axis=0)
+            new_annotations = new_annotations.drop(columns=new_col)
+
+        # Assign the new results
+        self.annotations = new_annotations
 
     def annotate_sequences(self,
                            database,
                            index,
-                           agg_sequences="longest",
+                           agg="longest",
                            omic=None,
                            **kwargs):
+        """Annotate a genes list (based on index) with a dictionary of <gene_name: sequence>. If multiple sequences per
+        gene name, then perform some aggregation.
+
+        Args:
+            database (Dataset):
+            index (str): The gene index column name.
+            agg (str): The aggregation method, one of ["longest", "shortest", or "all"]. Default longest.
+            omic (str): Default None. Declare the omic type to fetch sequences for.
+            **kwargs:
+        """
         if omic is None:
             omic = self.name()
 
         sequences_entries = database.get_sequences(index=index,
                                                    omic=omic,
-                                                   agg_sequences=agg_sequences,
+                                                   agg_sequences=agg,
                                                    **kwargs)
 
         if type(self.annotations.index) == pd.MultiIndex:
             self.annotations[
-                Dataset.SEQUENCE_COL_NAME] = self.annotations.index.get_level_values(
+                Annotatable.SEQUENCE_COL_NAME] = self.annotations.index.get_level_values(
                 index).map(sequences_entries)
         else:
-            self.annotations[Dataset.SEQUENCE_COL_NAME] = self.annotations.index.map(
+            self.annotations[Annotatable.SEQUENCE_COL_NAME] = self.annotations.index.map(
                 sequences_entries)
 
     def annotate_expressions(self, database, index, fuzzy_match=False):
         """
+        Annotate
         Args:
             database:
             index:
             fuzzy_match:
         """
-        self.annotation_expressions = pd.DataFrame(
-            index=self.annotations.index)
+        self.annotation_expressions = pd.DataFrame(index=self.annotations.index)
 
         if self.annotations.index.name == index:
             self.annotation_expressions = self.annotation_expressions.join(
