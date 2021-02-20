@@ -5,6 +5,10 @@ python:
     - "3.7"
     - "3.6"
 
+os:
+    - linux
+    - osx
+
 env:
     - CODECOV_TOKEN="0cfdf951-48ac-4a61-818d-639e07fde3b4"
 
