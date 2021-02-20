@@ -36,11 +36,7 @@ if not os.path.exists(user_conf_path):
 
     if not os.path.exists(user_conf_path):
         base_config = {}
-        base_config['database'] = []
-
-        base_config['database'].append({
-            'cache_dir': astropy.config.get_cache_dir(this.__name__)
-        })
+        base_config['cache_dir'] = astropy.config.get_cache_dir(this.__name__)
 
         with open(user_conf_path, 'w+', encoding='utf-8') as file:
             json.dump(base_config, fp=file, indent=4)
