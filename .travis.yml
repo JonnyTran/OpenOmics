@@ -14,8 +14,7 @@ env:
 
 cache:
     -   pip: True
-    -   directories:
-            - /home/travis/.astropy/
+    -   directories: /home/travis/.astropy/
 
 install:
     - pip install -U tox-travis codecov
