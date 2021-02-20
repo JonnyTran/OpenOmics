@@ -3,6 +3,7 @@ import io
 import logging
 import os
 
+import astropy
 import dask.dataframe as dd
 import requests
 import sqlalchemy as sa
@@ -10,7 +11,10 @@ import validators
 from astropy.utils import data
 from requests.adapters import HTTPAdapter, Retry
 
+import openomics
 
+
+@astropy.config.set_temp_cache(openomics.config["cache_dir"])
 def get_pkg_data_filename(dataurl, file, verbose):
     """
     Downloads a remote file given the url, then caches it to the user's home folder.
@@ -25,8 +29,8 @@ def get_pkg_data_filename(dataurl, file, verbose):
     if validators.url(file):
         dataurl, file = os.path.split(file)
         dataurl = dataurl + "/"
-    logging.info(f"Fetching file from: {dataurl}{file}") if verbose else None
 
+    logging.info(f"Fetching file from: {dataurl}{file}, saving to {openomics.config['cache_dir']}")
     with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
         return data.get_pkg_data_filename(file, package="openomics", show_progress=True)
 
