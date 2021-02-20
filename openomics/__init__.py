@@ -8,12 +8,11 @@ import sys
 import astropy
 import dask.dataframe as dd
 import pandas as pd
-
 """Top-level package for openomics."""
 
 __author__ = """Nhat (Jonny) Tran"""
-__email__ = 'nhat.tran@mavs.uta.edu'
-__version__ = '0.8.5'
+__email__ = "nhat.tran@mavs.uta.edu"
+__version__ = "0.8.5"
 
 config_file_path = "~/.openomics/conf.json"
 
@@ -35,11 +34,10 @@ if not os.path.exists(config_file_path):
 
     if not os.path.exists(config_file_path):
         base_config = {}
-        base_config['database'].append({
-            'cache_dir': astropy.config.get_cache_dir(this.__name__)
-        })
+        base_config["database"].append(
+            {"cache_dir": astropy.config.get_cache_dir(this.__name__)})
 
-        with open(config_file_path, 'w') as config_file:
+        with open(config_file_path, "w") as config_file:
             json.dump(base_config, config_file)
 
 # Read configuration from ~/.openomics/conf.json
@@ -51,22 +49,19 @@ if os.path.exists(config_file_path):
 from . import database, utils
 
 from .transcriptomics import (
-    Expression, MessengerRNA, MicroRNA, LncRNA,
+    Expression,
+    MessengerRNA,
+    MicroRNA,
+    LncRNA,
 )
 
-from .genomics import (
-    SomaticMutation, DNAMethylation, CopyNumberVariation
-)
+from .genomics import SomaticMutation, DNAMethylation, CopyNumberVariation
 
-from .proteomics import (
-    Protein
-)
+from .proteomics import Protein
 
 from .clinical import ClinicalData
 
-from .multiomics import (
-    MultiOmics
-)
+from .multiomics import MultiOmics
 
 
 def set_backend(new):
