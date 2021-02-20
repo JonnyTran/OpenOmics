@@ -5,7 +5,7 @@
 [![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
 [![Documentation Status](https://readthedocs.org/projects/openomics/badge/?version=latest)](https://openomics.readthedocs.io/en/latest/?badge=latest)
 [![DOI](https://zenodo.org/badge/125549505.svg)](https://zenodo.org/badge/latestdoi/125549505)
-[![Build Status](https://travis-ci.com/BioMeCIS-Lab/OpenOmics.svg?branch=master)](https://travis-ci.com/BioMeCIS-Lab/OpenOmics)
+[![Build Status](https://travis-ci.org/BioMeCIS-Lab/OpenOmics.svg?branch=master)](https://travis-ci.org/BioMeCIS-Lab/OpenOmics)
 [![codecov](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg)](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics)
 [![Updates](https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/shield.svg)](https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/)
 
