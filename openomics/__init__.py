@@ -35,19 +35,21 @@ if not os.path.exists(user_conf_path):
         os.makedirs("~/.openomics")
 
     if not os.path.exists(user_conf_path):
-        base_config = {}
-        base_config['cache_dir'] = astropy.config.get_cache_dir(this.__name__)
+        base_conf = {}
+        base_conf['cache_dir'] = astropy.config.get_cache_dir(this.__name__)
+
+        print(base_conf)
 
         with open(user_conf_path, 'w', encoding='utf-8') as file:
-            json.dump(base_config, fp=file, indent=4)
+            json.dump(base_conf, fp=file, indent=4)
 
 # Read configuration from ~/.openomics/conf.json
 if os.path.exists(user_conf_path):
     with open(user_conf_path, 'a', encoding='utf-8') as file:
-        user_config = json.load(fp=file)
+        user_conf = json.load(fp=file)
 
-    if user_config:
-        for p in user_config['database']:
+    if user_conf:
+        for p in user_conf['database']:
             this.config.update(p)
 
 from . import database, utils
