@@ -3,7 +3,6 @@ import io
 import logging
 import os
 
-import astropy
 import dask.dataframe as dd
 import requests
 import sqlalchemy as sa
@@ -14,8 +13,8 @@ from requests.adapters import HTTPAdapter, Retry
 import openomics
 
 
-@astropy.config.set_temp_cache(openomics.config["cache_dir"])
-def get_pkg_data_filename(dataurl, file, verbose):
+# @astropy.config.set_temp_cache(openomics.config["cache_dir"])
+def get_pkg_data_filename(dataurl, file):
     """
     Downloads a remote file given the url, then caches it to the user's home folder.
     Args:

@@ -24,9 +24,7 @@ this.config = {}
 this.config["backend"] = pd
 
 # Set cache download directory
-this.config["cache_dir"] = astropy.config.get_cache_dir(
-    # this.__name__
-)
+this.config["cache_dir"] = astropy.config.get_cache_dir(this.__name__)
 logging.info("Cache directory is", this.config["cache_dir"])
 
 user_conf_path = "~/.openomics/conf.json"
@@ -46,7 +44,7 @@ if not os.path.exists(user_conf_path):
 # Read configuration from ~/.openomics/conf.json
 if os.path.isfile(user_conf_path):
     try:
-        with open(user_conf_path, 'a', encoding='utf-8') as file:
+        with open(user_conf_path, 'r', encoding='utf-8') as file:
             user_conf = json.load(fp=file)
 
         if user_conf:
