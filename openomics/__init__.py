@@ -28,6 +28,7 @@ this.config["cache_dir"] = astropy.config.get_cache_dir(this.__name__)
 logging.info("Cache directory is", this.config["cache_dir"])
 
 user_conf_path = "~/.openomics/conf.json"
+
 # Initialize user configuration file at ~/.openomics/conf.json
 if not os.path.exists(user_conf_path):
     if not os.path.exists("~/.openomics"):
@@ -41,12 +42,13 @@ if not os.path.exists(user_conf_path):
             'cache_dir': astropy.config.get_cache_dir(this.__name__)
         })
 
-        with open(user_conf_path, 'w', encoding='utf-8') as file:
+        with open(user_conf_path, 'w+', encoding='utf-8') as file:
             json.dump(base_config, fp=file, indent=4)
+            file.close()
 
 # Read configuration from ~/.openomics/conf.json
 if os.path.exists(user_conf_path):
-    with open(user_conf_path, 'r', encoding='utf-8') as file:
+    with open(user_conf_path, 'a+', encoding='utf-8') as file:
         user_config = json.load(fp=file)
 
     if user_config:
