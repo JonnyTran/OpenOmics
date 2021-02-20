@@ -42,7 +42,7 @@ if not os.path.exists(user_conf_path):
         })
 
         with open(user_conf_path, 'w', encoding='utf-8') as config_file:
-            json.dump(base_config, config_file, indent=4)
+            json.dump(base_config, fp=user_conf_path, indent=4)
 
 # Read configuration from ~/.openomics/conf.json
 if os.path.exists(user_conf_path):
