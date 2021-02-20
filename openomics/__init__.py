@@ -38,19 +38,20 @@ if not os.path.exists(user_conf_path):
         base_conf = {}
         base_conf['cache_dir'] = astropy.config.get_cache_dir(this.__name__)
 
-        print(base_conf)
-
         with open(user_conf_path, 'w', encoding='utf-8') as file:
             json.dump(base_conf, fp=file, indent=4)
 
 # Read configuration from ~/.openomics/conf.json
 if os.path.isfile(user_conf_path):
-    with open(user_conf_path, 'a', encoding='utf-8') as file:
-        user_conf = json.load(fp=file)
+    try:
+        with open(user_conf_path, 'a', encoding='utf-8') as file:
+            user_conf = json.load(fp=file)
 
-    if user_conf:
-        for p in user_conf['database']:
-            this.config.update(p)
+        if user_conf:
+            for p in user_conf['database']:
+                this.config.update(p)
+    except Exception as e:
+        logging.info("Could not import configurations from", user_conf_path)
 
 from . import database, utils
 
