@@ -34,7 +34,7 @@ if not os.path.exists(user_conf_path):
     if not os.path.exists("~/.openomics"):
         os.makedirs("~/.openomics")
 
-    if not os.path.exists(user_conf_path):
+    if not os.path.isfile(user_conf_path):
         base_conf = {}
         base_conf['cache_dir'] = astropy.config.get_cache_dir(this.__name__)
 
