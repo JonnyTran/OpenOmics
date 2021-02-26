@@ -4,7 +4,7 @@ from .test_multiomics import *
 
 @pytest.fixture
 def generate_LncRNA2Target():
-    return LncRNA2Target(version="low_throughput")
+    return LncRNA2Target(path="http://123.59.132.21/lncrna2target/data/", version="low_throughput")
 
 
 def test_import_LncRNA2Target(generate_LncRNA2Target):
