@@ -215,12 +215,7 @@ def parse_gtf_dask(filepath_or_buffer, npartitions=None, compression=None, featu
         filepath_or_buffer (str or buffer object):
         npartitions (int): Number of partitions for the dask dataframe. Default None.
         compression (str): Compression type to be passed into dask.dataframe.read_table(). Default None.
-        chunksize (int): Default 1048576.
         features (set or None): Drop entries which aren't one of these features
-        intern_columns (list): These columns are short strings which should be
-            interned
-        fix_quotes_columns (list): Most commonly the 'attribute' column which
-            had broken quotes on some Ensembl release GTF files.
     """
     if features is not None:
         features = set(features)
@@ -249,7 +244,7 @@ def parse_gtf_dask(filepath_or_buffer, npartitions=None, compression=None, featu
     # (see more complete description in docstring at top of file)
 
     # Uses Dask
-    logging.debug(f"dask.datafame.read_table, file={filepath_or_buffer}, compression={compression}")
+    logging.debug("dask.datafame.read_table, file={}, compression={}".format(filepath_or_buffer, compression))
     dataframe = dd.read_table(
         filepath_or_buffer,
         sep="\t",
@@ -350,7 +345,7 @@ def read_gtf(filepath_or_buffer, npartitions=None, compression=None, expand_attr
                                                     restrict_attribute_columns=usecols)
     else:
         if npartitions:
-            result_df = parse_gtf(filepath_or_buffer, features=features, compression=compression)
+            result_df = parse_gtf(filepath_or_buffer, features=features)
         else:
             result_df = parse_gtf_dask(filepath_or_buffer, npartitions=npartitions, features=features, compression=compression)
 

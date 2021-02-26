@@ -95,11 +95,11 @@ class Dataset(object):
                     file_resources[filename] = data_file
 
                 elif filepath_ext.extension == "gz":
-                    logging.debug(f"Uncompressed gzip file at {data_file}")
+                    logging.debug("Uncompressed gzip file at", data_file)
                     file_resources[filename] = gzip.open(data_file, "rt")
 
                 elif filepath_ext.extension == "zip":
-                    logging.debug(f"Uncompressed zip file at {data_file}")
+                    logging.debug("Uncompressed zip file at", data_file)
                     zf = zipfile.ZipFile(data_file, "r")
 
                     for subfile in zf.infolist():
@@ -110,7 +110,7 @@ class Dataset(object):
                                 subfile.filename, mode="r")
 
                 elif filepath_ext.extension == "rar":
-                    logging.debug(f"Uncompressed rar file at {data_file}")
+                    logging.debug("Uncompressed rar file at", data_file)
                     rf = rarfile.RarFile(data_file, "r")
 
                     for subfile in rf.infolist():
@@ -177,7 +177,7 @@ class Dataset(object):
         if not set(columns).issubset(set(self.data.columns)):
             raise Exception(
                 "The columns argument must be a list such that it's subset of the following columns in the dataframe",
-                f"These columns doesn't exist in database: {set(columns) - set(self.data.columns.tolist())}",
+                "These columns doesn't exist in database:", set(columns) - set(self.data.columns.tolist())
             )
 
         # Select df columns including df. However the `columns` list shouldn't contain the index column
@@ -291,7 +291,7 @@ class Annotatable(ABC):
             fuzzy_match (bool): default False. Whether to join the annotation by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
         """
         if not hasattr(self, "annotations"):
-            raise Exception(f"Must run .initialize_annotations() on {self.__class__.__name__} first.")
+            raise Exception("Must run .initialize_annotations() on, ", self.__class__.__name__, " first.")
 
         if on in self.annotations.columns:
             filter_values = self.annotations[on]
