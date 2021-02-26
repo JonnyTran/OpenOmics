@@ -16,11 +16,14 @@ jobs:
                 python-version: [ 3.6, 3.7, 3.8, 3.9 ]
                 include:
                     -   os: ubuntu-latest
-                        path: ~/.cache/pip
+                        pip_cache: ~/.cache/pip
+                        download_cache: ~/.astropy/cache/download/py3/
                     -   os: macos-latest
-                        path: ~/Library/Caches/pip
+                        pip_cache: ~/Library/Caches/pip
+                        download_cache: ~/.astropy/cache/download/py3/
                     -   os: windows-latest
-                        path: ~\AppData\Local\pip\Cache
+                        pip_cache: ~\AppData\Local\pip\Cache
+                        download_cache: ~\.astropy\cache\download\py3\
 
         steps:
             -   uses: actions/checkout@v2
@@ -32,10 +35,16 @@ jobs:
             -   name: Cache pip
                 uses: actions/cache@v2
                 with:
-                    path: ${{ matrix.path }}
+                    path: ${{ matrix.pip_cache }}
                     key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
                     restore-keys: |
                         ${{ runner.os }}-pip-
+
+            -   name: Cache database files
+                uses: actions/cache@v2
+                with:
+                    path: ${{ matrix.download_cache }}
+                    key: $*
 
             -   name: Install development dependencies
                 run: |

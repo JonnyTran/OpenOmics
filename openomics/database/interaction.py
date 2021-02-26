@@ -1,5 +1,6 @@
 import logging
 from abc import abstractmethod
+from typing import List, Dict
 
 import networkx as nx
 from Bio import SeqIO
@@ -10,8 +11,10 @@ from openomics.database.sequence import SequenceDataset
 
 
 class Interactions(Dataset):
-    def __init__(self, path, file_resources, source_col_name=None, target_col_name=None, source_index=None,
-                 target_index=None, edge_attr=None, filters=None, directed=True, relabel_nodes=None, verbose=False, ):
+    def __init__(self, path, file_resources: Dict, source_col_name: str = None, target_col_name: str = None,
+                 source_index: str = None,
+                 target_index: str = None, edge_attr: List[str] = None, filters: dict = None, directed: bool = True,
+                 relabel_nodes: dict = None, verbose: bool = False, ):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotation, functional annotation, sequences, and disease associations.
         Args:
@@ -275,6 +278,7 @@ class STRING(Interactions, SequenceDataset):
             elif index == "protein_id":
                 key = gene_id
 
+
             if key in self.seq_dict:
                 collisions += 1
 
@@ -500,9 +504,10 @@ class lncRNome(Interactions, Dataset):
             file_resources["miRNA_binding_sites.txt"] = os.path.join(path, "miRNA_binding_sites.txt")
             file_resources["general_information.txt"] = os.path.join(path, "general_information.txt")
 
-        super(lncRNome, self).__init__(path, file_resources, source_col_name, target_col_name, source_index,
-                                       target_index, edge_attr,
-                                       directed, relabel_nodes, npartitions)
+        super(lncRNome, self).__init__(path, file_resources=file_resources, source_col_name=source_col_name,
+                                       target_col_name=target_col_name, source_index=source_index,
+                                       target_index=target_index, edge_attr=edge_attr,
+                                       directed=directed, relabel_nodes=relabel_nodes, npartitions=npartitions)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         df = pd.read_table(self.file_resources["miRNA_binding_sites.txt"], header=0)
