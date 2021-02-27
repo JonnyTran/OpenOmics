@@ -12,16 +12,15 @@ from openomics.database.sequence import SequenceDataset
 
 class Interactions(Dataset):
     def __init__(self, path, file_resources: Dict, source_col_name: str = None, target_col_name: str = None,
-                 source_index: str = None,
-                 target_index: str = None, edge_attr: List[str] = None, filters: dict = None, directed: bool = True,
-                 relabel_nodes: dict = None, verbose: bool = False, ):
+                 source_index: str = None, target_index: str = None, edge_attr: List[str] = None, filters: dict = None,
+                 directed: bool = True, relabel_nodes: dict = None, verbose: bool = False):
         """
         This is an abstract class used to instantiate a database given a folder containing various file resources. When creating a Database class, the load_data function is called where the file resources are load as a DataFrame and performs necessary processings. This class provides an interface for RNA classes to annotate various genomic annotation, functional annotation, sequences, and disease associations.
         Args:
             path (str):
                 The folder path containing the data files.
-            file_resources (dict): default None,
-                Used to list required files for load_network of the dataset. A dictionary where keys are required filenames and value are file paths. If None, then the class constructor should automatically build the required file resources dict.
+            file_resources (dict):
+                Default None, used to list required files for load_network of the dataset. A dictionary where keys are required filenames and value are file paths. If None, then the class constructor should automatically build the required file resources dict.
             source_col_name (str):
                 Column name of DataFrame to be used as the source node names.
             target_col_name (str):
