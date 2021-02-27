@@ -29,7 +29,7 @@ def get_pkg_data_filename(dataurl, file):
         dataurl, file = os.path.split(file)
         dataurl = dataurl + "/"
 
-    logging.info("Fetching file from: {}{}, saving to {}".format(dataurl, file, openomics.config['cache_dir']))
+    print("Fetching file from: {}{}, saving to {}".format(dataurl, file, openomics.config['cache_dir']))
     with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
         return data.get_pkg_data_filename(file, package="openomics", show_progress=True)
 

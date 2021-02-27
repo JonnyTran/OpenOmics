@@ -81,6 +81,7 @@ class Dataset(object):
             npartitions (int): >0 if the files will be used to create a Dask Dataframe. Default None.
             verbose:
         """
+        print("file_resources", file_resources)  # TODO: Debugging
         if validators.url(path):
             for filename, filepath in copy.copy(file_resources).items():
                 data_file = get_pkg_data_filename(path, filepath)  # Download file and replace the file_resource path
@@ -210,6 +211,9 @@ class Dataset(object):
                     finalize=lambda s3: s3.apply(lambda xx: '|'.join(xx))
                 )
                 aggregated = groupby.agg({col: collect_concat for col in columns})
+
+            else:
+                raise Exception("Unsupported dataframe: {}".format(df))
 
         # Any other aggregation functions
         else:
