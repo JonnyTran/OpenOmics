@@ -40,11 +40,16 @@ jobs:
                     restore-keys: |
                         ${{ runner.os }}-pip-
 
-            -   name: Cache download files
-                uses: actions/cache@v2
+            #            -   name: Cache download files
+            #                uses: actions/cache@v2
+            #                with:
+            #                    path: ${{ matrix.download_cache }}
+            #                    key: ${{ hashFiles('*') }}
+            -   name: Cache download files with Folder Hash
+                uses: theowenyoung/folder-hash@v2
                 with:
                     path: ${{ matrix.download_cache }}
-                    key: $*
+
 
             -   name: Install development dependencies
                 run: |
