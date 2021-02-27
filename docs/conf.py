@@ -20,11 +20,23 @@
 #
 import os
 import sys
+
+# from recommonmark.transform import AutoStructify
+
 sys.path.insert(0, os.path.abspath('..'))
 
 import openomics
 
 # -- General configuration ---------------------------------------------
+github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/doc/'
+
+# def setup(app):
+#     app.add_config_value('recommonmark_config', {
+#         'url_resolver': lambda url: github_doc_root + url,
+#         'auto_toc_tree_section': 'Contents',
+#     }, True)
+#     app.add_transform(AutoStructify)
+
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #
@@ -32,7 +44,7 @@ import openomics
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.napoleon']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.napoleon', 'recommonmark']
 
 napoleon_google_docstring = True
 napoleon_use_param = True
@@ -44,8 +56,11 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.txt': 'markdown',
+    '.md': 'markdown',
+}
 
 # The master toctree document.
 master_doc = 'index'
