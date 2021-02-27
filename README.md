@@ -7,7 +7,6 @@
 [![DOI](https://zenodo.org/badge/125549505.svg)](https://zenodo.org/badge/latestdoi/125549505)
 [![OpenOmics](https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml/badge.svg?branch=master)](https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml)
 [![codecov](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg)](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics)
-[![Updates](https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/shield.svg)](https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/)
 
 This Python package provide a series of tools to integrate and query the genomics, transcriptomics, proteomics, and clinical data (aka multi-omics data).
 With scalable data-frame manipulation tools, OpenOmics facilitates the common coding tasks when preparing data for bioinformatics analysis.
