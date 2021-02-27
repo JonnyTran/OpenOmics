@@ -1,4 +1,4 @@
-name: OpenOmics
+name: Tests
 
 on:
     push:
