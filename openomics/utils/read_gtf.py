@@ -295,7 +295,7 @@ def parse_gtf_and_expand_attributes(filepath_or_buffer, npartitions=None, compre
 
         for column_name, values in expand_attribute_strings(attribute_values,
                                                             usecols=restrict_attribute_columns).items():
-            series = dd.from_array(np.array(values, dtype=np.str))
+            series = dd.from_array(np.array(values, dtype=str))
             df[column_name] = series
     else:
         df = parse_gtf(filepath_or_buffer, chunksize=chunksize, features=features)

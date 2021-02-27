@@ -17,13 +17,13 @@ jobs:
                 include:
                     -   os: ubuntu-latest
                         pip_cache: ~/.cache/pip
-                        download_cache: ~/.astropy/cache/download/py3/
+                        download_cache: ~/.openomics/cache
                     -   os: macos-latest
                         pip_cache: ~/Library/Caches/pip
-                        download_cache: ~/.astropy/cache/download/py3/
+                        download_cache: ~/.openomics/cache
                     -   os: windows-latest
                         pip_cache: ~\AppData\Local\pip\Cache
-                        download_cache: ~\.astropy\cache\download\py3\
+                        download_cache: ~\.openomics\cache
 
         steps:
             -   uses: actions/checkout@v2

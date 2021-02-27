@@ -5,6 +5,7 @@ import itertools
 import logging
 import os
 import zipfile
+
 from abc import ABC, abstractmethod
 
 import dask.dataframe as dd
@@ -81,10 +82,10 @@ class Dataset(object):
             npartitions (int): >0 if the files will be used to create a Dask Dataframe. Default None.
             verbose:
         """
-        print("file_resources", file_resources)  # TODO: Debugging
         if validators.url(path):
             for filename, filepath in copy.copy(file_resources).items():
                 data_file = get_pkg_data_filename(path, filepath)  # Download file and replace the file_resource path
+
                 filepath_ext = filetype.guess(data_file)
 
                 # This null if-clause is needed incase when filetype_ext is None, causing the next clauses to fail
@@ -132,6 +133,7 @@ class Dataset(object):
 
         self.data_path = path
         self.file_resources = file_resources
+        print("file_resources", file_resources)  # TODO: Debugging
 
     def close(self):
         # Close opened file resources
