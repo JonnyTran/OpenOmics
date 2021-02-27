@@ -50,7 +50,6 @@ jobs:
                 run: |
                     python -m pip install --upgrade pip
                     pip install -r requirements_dev.txt
-                    pip install -r requirements.txt
 
             -   name: Lint with flake8
                 run: |
@@ -61,7 +60,7 @@ jobs:
 
             -   name: Install requirement dependencies
                 run: |
-                    if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+                    pip install -r requirements.txt
 
             -   name: Test with pytest
                 run: |
