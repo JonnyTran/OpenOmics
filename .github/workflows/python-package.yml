@@ -44,11 +44,20 @@ jobs:
                 uses: actions/cache@v2
                 with:
                     path: ${{ matrix.download_cache }}
-                    key: ${{ hashFiles('*') }}
+                    key: ${{ hashFiles('**/download') }}
             #            -   name: Cache download files with Folder Hash
             #                uses: theowenyoung/folder-hash@v2
             #                with:
             #                    path: ${{ matrix.download_cache }}
+            -   name: Install
+                run: |
+                    if [ "${{ runner.os }}" == "Linux" ]; then
+                         sudo apt-get install unrar
+                    else
+                         echo "$RUNNER_OS not supported"
+                         exit 1
+                    fi
+                shell: bash
 
             -   name: Install development dependencies
                 run: |
