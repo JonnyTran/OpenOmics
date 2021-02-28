@@ -5,10 +5,10 @@ import pandas as pd
 
 from .clinical import (
     ClinicalData,
-    HISTOLOGIC_SUBTYPE,
-    PATHOLOGIC_STAGE,
-    TUMOR_NORMAL,
-    PREDICTED_SUBTYPE,
+    HISTOLOGIC_SUBTYPE_COL,
+    PATHOLOGIC_STAGE_COL,
+    TUMOR_NORMAL_COL,
+    PREDICTED_SUBTYPE_COL,
 )
 from .genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
 from .imageomics import WholeSlideImage
@@ -232,13 +232,13 @@ class MultiOmics:
 
             # Select only samples with certain cancer stage or subtype
             if pathologic_stages:
-                y = y[y[PATHOLOGIC_STAGE].isin(pathologic_stages)]
+                y = y[y[PATHOLOGIC_STAGE_COL].isin(pathologic_stages)]
             if histological_subtypes:
-                y = y[y[HISTOLOGIC_SUBTYPE].isin(histological_subtypes)]
+                y = y[y[HISTOLOGIC_SUBTYPE_COL].isin(histological_subtypes)]
             if predicted_subtypes:
-                y = y[y[PREDICTED_SUBTYPE].isin(predicted_subtypes)]
+                y = y[y[PREDICTED_SUBTYPE_COL].isin(predicted_subtypes)]
             if tumor_normal:
-                y = y[y[TUMOR_NORMAL].isin(tumor_normal)]
+                y = y[y[TUMOR_NORMAL_COL].isin(tumor_normal)]
 
             # Filter y target column labels
             y = y.filter(target)

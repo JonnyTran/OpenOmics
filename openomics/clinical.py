@@ -1,31 +1,34 @@
+from typing import List, Union
 import io
 import os
 
 import dask.dataframe as dd
 import pandas as pd
 
+BCR_PATIENT_BARCODE_COL = "bcr_patient_barcode"
+HISTOLOGIC_SUBTYPE_COL = "histologic_subtype"
+PATHOLOGIC_STAGE_COL = "pathologic_stage"
+TUMOR_NORMAL_COL = 'tumor_normal'
+PREDICTED_SUBTYPE_COL = 'predicted_subtype'
+
 TUMOR = "Tumor"
 NORMAL = "Normal"
 
-BCR_PATIENT_BARCODE = "bcr_patient_barcode"
-HISTOLOGIC_SUBTYPE = "histologic_subtype"
-PATHOLOGIC_STAGE = "pathologic_stage"
-TUMOR_NORMAL = 'tumor_normal'
-PREDICTED_SUBTYPE = 'predicted_subtype'
 
 class ClinicalData:
     pathologic_stage_map = {'Stage IA': 'Stage I', 'Stage IB': 'Stage I',
                             'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
                             'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
 
-    def __init__(self, file_path, patient_index, columns=None):
+    def __init__(self, file_path: Union[str, io.StringIO, pd.DataFrame, dd.DataFrame], patient_index: str,
+                 columns: List[str] = None):
         """This class manages the clinical data tables to handle the phenotype,
         treatment, and sample data associated to a patient.
 
         Args:
             file_path (str, io.StringIO, pd.DataFrame): either a path to the patients clinical data file, or a DataFrame.
             patient_index (str): the patient's ID column name
-            columns (list): default None. Specifies the columns to import, if
+            columns (List[str]): default None. Specifies the columns to import, if
                 None, then import all columns.
         """
         # self.cohort_name = cohort_name
@@ -42,7 +45,7 @@ class ClinicalData:
                                                     "[Discrepancy]"],
                                          usecols=columns
                                          )
-        elif type(file_path) == str and os.path.exists(file_path):
+        elif isinstance(file_path, str) and os.path.exists(file_path):
             self.patient = pd.read_table(file_path,
                                          skiprows=[1, 2],
                                          na_values=["[Not Available]", "[Unknown]", "[Not Applicable]",
@@ -59,19 +62,18 @@ class ClinicalData:
         self.patient.set_index(patient_index, inplace=True)
 
         # Rename columns
-        self.patient.rename({"ajcc_pathologic_tumor_stage": PATHOLOGIC_STAGE,
-                             "histological_type": HISTOLOGIC_SUBTYPE,
-                             "histologic_diagnosis.1": HISTOLOGIC_SUBTYPE}, axis=1, inplace=True)
+        self.patient.rename({"ajcc_pathologic_tumor_stage": PATHOLOGIC_STAGE_COL,
+                             "histological_type": HISTOLOGIC_SUBTYPE_COL,
+                             "histologic_diagnosis.1": HISTOLOGIC_SUBTYPE_COL}, axis=1, inplace=True)
 
-        self.patient.replace({PATHOLOGIC_STAGE: ClinicalData.pathologic_stage_map}, inplace=True)
+        self.patient.replace({PATHOLOGIC_STAGE_COL: ClinicalData.pathologic_stage_map}, inplace=True)
 
     @classmethod
     def name(self):
         return self.__class__.__name__
 
     def build_clinical_samples(self, all_samples, index="bcr_patient_barcode"):
-        # Build table with samples clinical data from patients
-        """
+        """ Build table with samples clinical data from patients
         Args:
             all_samples:
             index:
@@ -91,16 +93,15 @@ class ClinicalData:
 
         # self.samples.dropna(axis=0, subset=["bcr_patient_barcode"], inplace=True) # Remove samples without clinical data
 
-        self.samples = self.samples[self.samples[PATHOLOGIC_STAGE] != "[Discrepancy]"]
+        self.samples = self.samples[self.samples[PATHOLOGIC_STAGE_COL] != "[Discrepancy]"]
         self.samples.loc[self.samples.index.str.contains(
-            "-11"), TUMOR_NORMAL] = NORMAL  # Change stage label of normal samples to "Normal"
+            "-11"), TUMOR_NORMAL_COL] = NORMAL  # Change stage label of normal samples to "Normal"
         self.samples.loc[self.samples.index.str.contains(
-            "-01"), TUMOR_NORMAL] = TUMOR  # Change stage label of normal samples to "Normal"
+            "-01"), TUMOR_NORMAL_COL] = TUMOR  # Change stage label of normal samples to "Normal"
 
     def add_drug_response_data(self, file_path="nationwidechildrens.org_clinical_drug.txt",
                                patient_column="bcr_patient_barcode",
-                               columns=['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name',
-                                        'pharmaceutical_therapy_type', 'treatment_best_response'],
+                               columns=None,
                                drug_name_col=None, response_column=None):
         """
         Args:
@@ -110,6 +111,10 @@ class ClinicalData:
             drug_name_col:
             response_column:
         """
+        if columns is None:
+            columns = ['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name',
+                       'pharmaceutical_therapy_type', 'treatment_best_response']
+
         if not os.path.exists(file_path):
             raise FileNotFoundError(file_path)
 
