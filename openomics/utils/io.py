@@ -4,7 +4,6 @@ import logging
 import os
 from urllib.error import URLError
 
-import astropy
 import dask.dataframe as dd
 import requests
 import sqlalchemy as sa
@@ -15,7 +14,7 @@ from requests.adapters import HTTPAdapter, Retry
 import openomics
 
 
-@astropy.config.set_temp_cache(openomics.config["cache_dir"])
+# @astropy.config.set_temp_cache(openomics.config["cache_dir"])
 def get_pkg_data_filename(dataurl, file):
     """
     Downloads a remote file given the url, then caches it to the user's home folder.
@@ -37,8 +36,8 @@ def get_pkg_data_filename(dataurl, file):
         with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
             return data.get_pkg_data_filename(file, package="openomics", show_progress=True)
 
-    except URLError as e:
-        raise Exception("Unable to download file at {} due to {}. Please try manually downloading the files.".format(
+    except (URLError, ValueError) as e:
+        raise Exception("Unable to download file at {}. Please try manually downloading the files. Error: {}".format(
             os.path.join(dataurl, file), e.strerror))
 
 
