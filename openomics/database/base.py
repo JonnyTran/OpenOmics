@@ -5,8 +5,8 @@ import itertools
 import logging
 import os
 import zipfile
-
 from abc import ABC, abstractmethod
+from typing import List
 
 import dask.dataframe as dd
 import filetype
@@ -282,7 +282,8 @@ class Annotatable(ABC):
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_attributes(self, database: Dataset, on, columns, agg="concat", fuzzy_match=False):
+    def annotate_attributes(self, database: Dataset, on: str, columns: List[str], agg: str = "concat",
+                            fuzzy_match: bool = False):
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present
         in both DataFrames. If there exists overlapping columns from the join, then
