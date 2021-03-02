@@ -56,9 +56,6 @@ jobs:
                 run: |
                     if [ "${{ runner.os }}" == "Linux" ]; then
                          sudo apt-get install unrar
-                    else
-                         echo "$RUNNER_OS not supported"
-                         exit 1
                     fi
                 shell: bash
 
