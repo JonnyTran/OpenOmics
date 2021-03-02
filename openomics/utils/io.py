@@ -2,10 +2,9 @@ import errno
 import io
 import logging
 import os
-import astropy
-
 from urllib.error import URLError
 
+import astropy
 import dask.dataframe as dd
 import requests
 import sqlalchemy as sa
@@ -34,8 +33,10 @@ def get_pkg_data_filename(dataurl, file):
 
     try:
         logging.info("Fetching file from: {}{}, saving to {}".format(dataurl, file, openomics.config['cache_dir']))
+
         with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
             return data.get_pkg_data_filename(file, package="openomics", show_progress=True)
+
     except URLError as e:
         raise Exception("Unable to download file at {} due to {}. Please try manually downloading the files.".format(
             os.path.join(dataurl, file), e.strerror))
