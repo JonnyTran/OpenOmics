@@ -44,7 +44,9 @@ jobs:
                 uses: actions/cache@v2
                 with:
                     path: ${{ matrix.download_cache }}
-                    key: ${{ hashFiles('**/download') }}
+                    key: ${{ hashFiles('**/contents') }}
+                    restore-keys: ${{ hashFiles('*/url') }}
+
             #            -   name: Cache download files with Folder Hash
             #                uses: theowenyoung/folder-hash@v2
             #                with:

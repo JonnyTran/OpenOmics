@@ -21,7 +21,7 @@
 import os
 import sys
 
-# from recommonmark.transform import AutoStructify
+from recommonmark.transform import AutoStructify
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -30,12 +30,13 @@ import openomics
 # -- General configuration ---------------------------------------------
 github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/doc/'
 
-# def setup(app):
-#     app.add_config_value('recommonmark_config', {
-#         'url_resolver': lambda url: github_doc_root + url,
-#         'auto_toc_tree_section': 'Contents',
-#     }, True)
-#     app.add_transform(AutoStructify)
+
+def setup(app):
+    app.add_config_value('recommonmark_config', {
+        'url_resolver': lambda url: github_doc_root + url,
+        'auto_toc_tree_section': 'Contents',
+    }, True)
+    app.add_transform(AutoStructify)
 
 
 # If your documentation needs a minimal Sphinx version, state it here.
