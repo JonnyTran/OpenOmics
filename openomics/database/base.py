@@ -175,7 +175,7 @@ class Dataset(object):
             filter_values (pd.Series): The values on the `index` column to filter before performing the groupby-agg operations.
 
         Returns:
-            df (DataFrame): A dataframe to be used for annotation
+            DataFrame: A dataframe to be used for annotation
         """
         if not set(columns).issubset(set(self.data.columns)):
             raise Exception(
@@ -233,19 +233,6 @@ class Dataset(object):
         return self.data.groupby(index).median(
         )  # TODO if index by gene, aggregate medians of transcript-level expressions
 
-    @abstractmethod
-    def get_rename_dict(self, from_index, to_index):
-        """Used to retrieve a lookup dictionary to convert from one index to
-        another, e.g., gene_id to gene_name
-
-        Returns
-            rename_dict (dict): a rename dict
-
-        Args:
-            from_index: an index on the DataFrame for key
-            to_index: an index on the DataFrame for value
-        """
-        raise NotImplementedError
 
 
 class Annotatable(ABC):
@@ -434,12 +421,21 @@ class Annotatable(ABC):
         self.annotations = self.annotations.reset_index().set_index(new_index)
 
     def get_rename_dict(self, from_index, to_index):
-        """
+        """Used to retrieve a lookup dictionary to convert from one index to
+        another, e.g., gene_id to gene_name, obtained from two columns in the data frame.
+
         Args:
-            from_index:
-            to_index:
+            from_index (str): an index on the DataFrame for key
+            to_index (str0: an index on the DataFrame for value
+
+        Returns
+            Dict[str, str]: the lookup dictionary.
         """
-        dataframe = self.annotations.reset_index()
+        if self.annotations.index.name in [from_index, to_index]:
+            dataframe = self.annotations.reset_index()
+        else:
+            dataframe = self.annotations
+
         dataframe = dataframe[dataframe[to_index].notnull()]
         return pd.Series(dataframe[to_index].values,
                          index=dataframe[from_index]).to_dict()
