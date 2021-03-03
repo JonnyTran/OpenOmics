@@ -121,7 +121,6 @@ html_static_path = ['_static']
 htmlhelp_basename = 'openomicsdoc'
 
 
-
 # -- Options for manual page output ------------------------------------
 
 # One entry per manual page. List of tuples

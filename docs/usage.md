@@ -2,7 +2,7 @@
 
 # To use openomics in a project
 
-```
+```{code-block} python
 import openomics
 ```
 
@@ -13,7 +13,7 @@ load the GTEx database from the path https://storage.googleapis.com/gtex_analysi
 download and parse the gene_median_tpm files to create gene expression matrix. The matrix can be accessed at `gtex.data`
 .
 
-```python
+```{code-block} python
 import pandas as pd
 from openomics.database import GTEx
 
@@ -42,7 +42,7 @@ Here, we loads both "long_noncoding_RNAs.gtf" and "basic.annotation.gtf" which b
 annotations for both lncRNAs and mRNAs. You can specify different annotation files options from GENCODE by modifying
 the `file_resources` dict argument.
 
-```python
+```{code-block} python
 from openomics.database import GENCODE, EnsemblGenes
 
 gencode = GENCODE(path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
@@ -62,7 +62,7 @@ We instantiate the MessengerRNA, MicroRNA and LncRNA -omics expression data from
 were not seperated by RNA type, we use GENCODE and Ensembl gene annotations to filter the list of mRNA, miRNA, and
 lncRNAs.
 
-```python
+```{code-block} python
 from openomics import MessengerRNA, MicroRNA, LncRNA
 
 # Gene Expression
@@ -87,7 +87,7 @@ Create a MultiOmics dataset
 ---------------------------
 Now, we create a MultiOmics dataset object by combining the messengerRNA, microRNA, and lncRNA.
 
-```
+```{code-block} python
    from openomics import MultiOmics
 
    gtex_data = MultiOmics(cohort_name="GTEx Tissue Avg Expressions")
