@@ -21,22 +21,12 @@
 import os
 import sys
 
-from recommonmark.transform import AutoStructify
-
 sys.path.insert(0, os.path.abspath('..'))
 
 import openomics
 
 # -- General configuration ---------------------------------------------
 github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/doc/'
-
-
-def setup(app):
-    app.add_config_value('recommonmark_config', {
-        'url_resolver': lambda url: github_doc_root + url,
-        'auto_toc_tree_section': 'Contents',
-    }, True)
-    app.add_transform(AutoStructify)
 
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -49,9 +39,9 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.coverage',
               'sphinx.ext.napoleon',
               'sphinx.ext.intersphinx',
-              "sphinx.ext.mathjax",
+              'sphinx.ext.mathjax',
               "sphinx.ext.viewcode",
-              'recommonmark']
+              'myst_parser']
 
 napoleon_google_docstring = True
 napoleon_use_param = True
@@ -102,8 +92,13 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = False
+todo_include_todos = True
 
+# -- Options for Markdown files ----------------------------------------------
+
+myst_admonition_enable = True
+myst_deflist_enable = True
+myst_heading_anchors = 3
 
 # -- Options for HTML output -------------------------------------------
 
@@ -130,35 +125,6 @@ html_static_path = ['_static']
 htmlhelp_basename = 'openomicsdoc'
 
 
-# -- Options for LaTeX output ------------------------------------------
-
-latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
-
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    # 'pointsize': '10pt',
-
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
-}
-
-# Grouping the document tree into LaTeX files. List of tuples
-# (source start file, target name, title, author, documentclass
-# [howto, manual, or own class]).
-latex_documents = [
-    (master_doc, 'openomics.tex',
-     u'openOmics Documentation',
-     u'Nhat Chau Tran', 'manual'),
-]
-
 
 # -- Options for manual page output ------------------------------------
 
@@ -170,20 +136,6 @@ man_pages = [
      [author], 1)
 ]
 
-
-# -- Options for Texinfo output ----------------------------------------
-
-# Grouping the document tree into Texinfo files. List of tuples
-# (source start file, target name, title, author,
-#  dir menu entry, description, category)
-texinfo_documents = [
-    (master_doc, 'openomics',
-     u'OpenOmics Documentation',
-     author,
-     'openomics',
-     'One line description of project.',
-     'Miscellaneous'),
-]
 
 
 
