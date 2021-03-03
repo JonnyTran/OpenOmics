@@ -41,7 +41,7 @@ Table of Content
    readme
    installation
    usage
-   source/modules
+   modules
    contributing
 
 Indices and tables
