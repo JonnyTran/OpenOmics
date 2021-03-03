@@ -32,16 +32,16 @@ Features
 * Provides researchers with means to consistently store and explore their experimental datasets.
 * Enables scalable performance with parallel computing, while easily configurable to deploy on both single machine and a cluster.
 
-Contents
---------
+Table of Content
+----------------
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption:
 
    readme
    installation
    usage
-   source
+   source/modules
    contributing
 
 Indices and tables
