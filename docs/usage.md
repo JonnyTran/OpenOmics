@@ -1,11 +1,17 @@
 # Usage
 
 # To use openomics in a project
-   import openomics
+
+```
+import openomics
+```
 
 ## Import GTEx Tissue-specific gene expression dataset (directly from URL)
 
-We start with tissue-specific gene expression data set from The Genotype-Tissue Expression (GTEx) project. First, we load the GTEx database from the path https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/, which automatically download and parse the gene_median_tpm files to create gene expression matrix. The matrix can be accessed at `gtex.data`.
+We start with tissue-specific gene expression data set from The Genotype-Tissue Expression (GTEx) project. First, we
+load the GTEx database from the path https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/, which automatically
+download and parse the gene_median_tpm files to create gene expression matrix. The matrix can be accessed at `gtex.data`
+.
 
 ```python
 import pandas as pd
