@@ -355,7 +355,7 @@ class Annotatable(ABC):
         gene name, then perform some aggregation.
 
         Args:
-            database (Dataset):
+            database (Dataset): The database
             index (str): The gene index column name.
             agg (str): The aggregation method, one of ["longest", "shortest", or "all"]. Default longest.
             omic (str): Default None. Declare the omic type to fetch sequences for.
