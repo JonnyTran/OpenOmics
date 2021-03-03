@@ -22,7 +22,6 @@ OpenOmics
      :alt: Updates
 
 
-OpenOmics provides a bioinformatics API and web-app platform integrate, analyze, and visualize the multi-omics and clinical data.
 
 
 * Free software: MIT license
@@ -37,7 +36,6 @@ Features
 * Highly flexible to different data types and missing data.
 * Provides researchers with means to consistently store and explore their experimental datasets.
 * Enables scalable performance with parallel computing, while easily configurable to deploy on both single machine and a cluster.
-* Usable by both developers and scientists with its intuitive Python API and web-app dashboard interface (WIP).
 
 Credits
 -------

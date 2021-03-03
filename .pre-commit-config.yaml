@@ -1,5 +1,0 @@
-repos:
-    -   repo: https://github.com/BioMeCIS-Lab/OpenOmics
-        rev: '3.7.9'
-        hooks:
-            -   id: flake8
