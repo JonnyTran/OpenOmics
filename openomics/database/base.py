@@ -241,6 +241,7 @@ class Annotatable(ABC):
     information to the genes's annotations, or interactions between the genes.
     """
     SEQUENCE_COL_NAME = "sequence"
+    DISEASE_ASSOCIATIONS_COL = "disease_associations"
 
     def get_annotations(self):
         if hasattr(self, "annotations"):
@@ -407,13 +408,13 @@ class Annotatable(ABC):
             database (DiseaseAssociation):
             index (str):
         """
-        self.annotations["disease_associations"] = self.annotations.index.map(
+        self.annotations[Annotatable.DISEASE_ASSOCIATIONS_COL] = self.annotations.index.map(
             database.get_disease_assocs(index=index, ))
 
     def set_index(self, new_index):
-        """
+        """ Resets
         Args:
-            new_index:
+            new_index (str):
         """
         self.annotations[new_index].fillna(self.annotations.index.to_series(),
                                            axis=0,
