@@ -25,10 +25,6 @@ sys.path.insert(0, os.path.abspath('..'))
 
 import openomics
 
-# -- General configuration ---------------------------------------------
-github_doc_root = 'https://github.com/rtfd/recommonmark/tree/master/doc/'
-
-
 # If your documentation needs a minimal Sphinx version, state it here.
 #
 # needs_sphinx = '1.0'
