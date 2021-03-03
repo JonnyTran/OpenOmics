@@ -47,11 +47,8 @@ class UploadCommand(Command):
         sys.exit()
 
 
-with open('docs/readme.rst') as readme_file:
+with open('README.md') as readme_file:
     readme = readme_file.read()
-
-with open('HISTORY.rst') as history_file:
-    history = history_file.read()
 
 # Package meta-data.
 NAME = 'openomics'
@@ -64,7 +61,6 @@ AUTHOR = 'Jonny Tran'
 
 requirements = pd.read_table("./requirements.txt", header=None)[0].tolist()
 setup_requirements = ['pytest-runner', 'twine']
-
 test_requirements = ['pytest', ]
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -102,7 +98,7 @@ setup(
     author=AUTHOR,
     author_email=EMAIL,
     description=DESCRIPTION,
-    long_description=readme + '\n\n' + history,
+    long_description=readme,
     long_description_content_type="text/markdown",
     cmdclass={
         'upload': UploadCommand,
