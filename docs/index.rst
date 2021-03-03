@@ -37,7 +37,6 @@ Table of Content
 .. toctree::
    :maxdepth: 2
 
-   readme
    installation
    usage
    modules
