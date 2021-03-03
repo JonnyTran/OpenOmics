@@ -27,5 +27,4 @@ rarfile
 filetype
 goatools
 obonet
-furo
-myst-parser
+

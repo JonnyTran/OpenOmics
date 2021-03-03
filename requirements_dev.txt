@@ -10,3 +10,5 @@ twine
 pytest
 pytest-runner
 pytest-cov
+furo
+myst-parser
