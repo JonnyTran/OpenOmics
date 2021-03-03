@@ -1,6 +1,3 @@
-Welcome to OpenOmics's documentation!
-======================================
-
 .. image:: https://github.com/BioMeCIS-Lab/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png
 
 .. image:: https://img.shields.io/pypi/v/OpenOmics.svg
@@ -16,6 +13,8 @@ Welcome to OpenOmics's documentation!
 .. image:: https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/BioMeCIS-Lab/OpenOmics
 
+Welcome to OpenOmics's documentation!
+=====================================
 
 This Python package provide a series of tools to integrate and query the genomics, transcriptomics, proteomics, and
 clinical data (aka, the multi-omics data). With scalable data-frame manipulation tools, OpenOmics facilitates the common
