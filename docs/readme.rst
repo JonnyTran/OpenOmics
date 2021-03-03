@@ -1,5 +1,5 @@
 =========
-OpenOmics
+Overview
 =========
 
 .. image:: https://github.com/BioMeCIS-Lab/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png
@@ -17,15 +17,12 @@ OpenOmics
     :target: https://openomics.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/shield.svg
-     :target: https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/
-     :alt: Updates
-
-
-
-
 * Free software: MIT license
 * Documentation: https://openomics.readthedocs.io.
+
+This Python package provide a series of tools to integrate and query the genomics, transcriptomics, proteomics, and
+clinical data (aka, the multi-omics data). With scalable data-frame manipulation tools, OpenOmics facilitates the common
+coding tasks when preparing data for RNA-seq bioinformatics analysis.
 
 
 Features
