@@ -42,8 +42,6 @@ Features
    usage
    modules
    contributing
-   contributors
-   history
 
 Indices and tables
 ==================
