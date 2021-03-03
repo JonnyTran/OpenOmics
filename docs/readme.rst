@@ -5,17 +5,17 @@ OpenOmics
 .. image:: https://github.com/BioMeCIS-Lab/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png
 
 .. image:: https://img.shields.io/pypi/v/OpenOmics.svg
-        :target: https://pypi.python.org/pypi/OpenOmics
+    :target: https://pypi.python.org/pypi/OpenOmics
 
-.. image:: https://img.shields.io/travis/BioMeCIS-Lab/OpenOmics.svg
-        :target: https://travis-ci.org/BioMeCIS-Lab/OpenOmics
+.. image:: https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml/badge.svg?branch=master
+    :target: https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml
 
 .. image:: https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg
-        :target: https://codecov.io/gh/BioMeCIS-Lab/OpenOmics
+    :target: https://codecov.io/gh/BioMeCIS-Lab/OpenOmics
 
 .. image:: https://readthedocs.org/projects/openomics/badge/?version=latest
-        :target: https://openomics.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
+    :target: https://openomics.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
 
 .. image:: https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/shield.svg
      :target: https://pyup.io/repos/github/BioMeCIS-Lab/OpenOmics/
