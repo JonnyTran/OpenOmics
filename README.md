@@ -563,7 +563,18 @@ for omic in ["MessengerRNA", "MicroRNA"]:
 ## Citations
 The journal paper for this scientific package is currently being reviewed. In the meanwhile, the current package version can be cited with:
 
-    Nhat Tran, pyup.io bot, DeepSource Bot, & Steve Moss. (2021, February 19). BioMeCIS-Lab/OpenOmics: Bug fixes from pyOpenSci Reviewer 2 (Version v0.8.5). Zenodo. http://doi.org/10.5281/zenodo.4552831
+    @software{nhat_jonny_tran_2021_4552831,
+      author       = {Nhat Tran and
+                      Jean Gao},
+      title        = {{BioMeCIS-Lab/OpenOmics: Bug fixes from pyOpenSci 
+                       Reviewer 2}},
+      month        = feb,
+      year         = 2021,
+      publisher    = {Zenodo},
+      version      = {v0.8.5},
+      doi          = {10.5281/zenodo.4552831},
+      url          = {https://doi.org/10.5281/zenodo.4552831}
+    }
 
 
 ## Credits
