@@ -560,12 +560,12 @@ for omic in ["MessengerRNA", "MicroRNA"]:
 
     avg / total       0.47      0.69      0.56       109
 
+## Citations
+The journal paper for this scientific package is currently being reviewed. In the meanwhile, the current package version can be cited with:
 
-Credits
--------
+    Nhat Tran, pyup.io bot, DeepSource Bot, & Steve Moss. (2021, February 19). BioMeCIS-Lab/OpenOmics: Bug fixes from pyOpenSci Reviewer 2 (Version v0.8.5). Zenodo. http://doi.org/10.5281/zenodo.4552831
 
-This package was created with Cookiecutter_ and the `pyOpenSci/cookiecutter-pyopensci`_ project template, based off `audreyr/cookiecutter-pypackage`_.
 
-.. _Cookiecutter: https://github.com/audreyr/cookiecutter
-.. _`pyOpenSci/cookiecutter-pyopensci`: https://github.com/pyOpenSci/cookiecutter-pyopensci
-.. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+## Credits
+
+This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [pyOpenSci/cookiecutter-pyopensci](https://github.com/pyOpenSci/cookiecutter-pyopensci) project template, based off [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage).
