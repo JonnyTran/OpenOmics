@@ -37,10 +37,12 @@ coding tasks when preparing data for RNA-seq bioinformatics analysis.
 ---
 maxdepth: 2
 ---
-installation
-   usage
-   modules
-   contributing
+    installation
+    usage
+    modules
+    contributing
+    source/modules
+    source
 ```
 
 ## Indices and tables
