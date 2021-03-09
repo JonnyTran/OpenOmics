@@ -41,8 +41,6 @@ maxdepth: 2
     usage
     modules
     contributing
-    source/modules
-    source
 ```
 
 ## Indices and tables
