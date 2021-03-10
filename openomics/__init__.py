@@ -53,25 +53,26 @@ if os.path.isfile(user_conf_path):
     except Exception as e:
         logging.info("Could not import configurations from", user_conf_path)
 
-from . import database, utils
+from . import database, utils, transcriptomics, proteomics, clinical, multiomics
 
-from .transcriptomics import (
-    Expression, MessengerRNA, MicroRNA, LncRNA,
-)
 
-from .genomics import (
-    SomaticMutation, DNAMethylation, CopyNumberVariation
-)
-
-from .proteomics import (
-    Protein
-)
-
-from .clinical import ClinicalData
-
-from .multiomics import (
-    MultiOmics
-)
+# from .transcriptomics import (
+#     Expression, MessengerRNA, MicroRNA, LncRNA,
+# )
+#
+# from .genomics import (
+#     SomaticMutation, DNAMethylation, CopyNumberVariation
+# )
+#
+# from .proteomics import (
+#     Protein
+# )
+#
+# from .clinical import ClinicalData
+#
+# from .multiomics import (
+#     MultiOmics
+# )
 
 
 def set_backend(new):

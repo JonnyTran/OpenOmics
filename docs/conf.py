@@ -20,7 +20,6 @@
 #
 import os
 import sys
-import sphinx_automodapi
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -32,17 +31,26 @@ import openomics
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.autosummary',
-              'sphinx_autodoc_typehints',
-              'sphinx.ext.linkcode',
-              'sphinx.ext.coverage',
-              'sphinx.ext.napoleon',
-              'sphinx.ext.intersphinx',
-              'sphinx.ext.mathjax',
-              "sphinx.ext.viewcode",
-              'sphinx_automodapi.automodapi',
-              'myst_parser']
+extensions = [
+    'sphinx.ext.autodoc',
+    # 'sphinx.ext.autosummary',
+    'sphinx_autodoc_typehints',
+    'sphinx.ext.linkcode',
+    'sphinx.ext.napoleon',
+    'myst_parser',
+
+    # User Usability
+    'sphinx_autobuild',
+    'sphinx_copybutton',
+    'sphinx_inline_tabs',
+
+    'sphinx.ext.coverage',
+    'sphinx.ext.intersphinx',
+    "sphinx.ext.viewcode",
+    'sphinx_automodapi.automodapi',
+    'sphinx_automodapi.smart_resolver',
+    'sphinx.ext.inheritance_diagram',
+]
 
 autosummary_generate = False
 autosummary_imported_members = True
@@ -114,15 +122,23 @@ html_theme = 'furo'
 # Theme options are theme-specific and customize the look and feel of a
 # theme further.  For a list of options available for each theme, see the
 # documentation.
-#
-# html_theme_options = {}
+
+html_theme_options = {
+    "sidebar_hide_name": True,
+    "light_css_variables": {
+        # "color-brand-primary": "#ff5c84",
+        # "color-brand-content": "#ff5c84",
+        "color-admonition-background": "#33cccc",
+    },
+}
+
+html_logo = "../openomics_web/assets/openomics_logo.png"
+html_favicon = '_static/favicon.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
-html_favicon = '_static/favicon.png'
 
 # -- Options for HTMLHelp output ---------------------------------------
 
