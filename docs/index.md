@@ -1,7 +1,5 @@
 # Welcome to OpenOmics's documentation!
 
-![Logo](https://github.com/BioMeCIS-Lab/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png)
-
 [![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
 [![Documentation Status](https://readthedocs.org/projects/openomics/badge/?version=latest)](https://openomics.readthedocs.io/en/latest/?badge=latest)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
@@ -46,19 +44,26 @@ contributing
 
 ## Modules
 
-```{autosummary}
-:toctree: _autosummary
-:template: custom-module-template.rst
+[comment]: <> (```{autosummary})
 
-openomics.multiomics
-openomics.clinical
-openomics.transcriptomics
-openomics.database
-```
+[comment]: <> (:toctree: _autosummary)
+
+[comment]: <> (:template: custom-module-template.rst)
+
+[comment]: <> (openomics.multiomics)
+
+[comment]: <> (openomics.clinical)
+
+[comment]: <> (openomics.transcriptomics)
+
+[comment]: <> (openomics.database)
+
+[comment]: <> (```)
 
 ```{eval-rst}
 .. automodapi::
 
+openomics
 openomics
 ```
 
