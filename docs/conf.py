@@ -32,6 +32,9 @@ import openomics
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc',
+              'sphinx.ext.autosummary',
+              'sphinx_autodoc_typehints',
+              'sphinx.ext.linkcode',
               'sphinx.ext.coverage',
               'sphinx.ext.napoleon',
               'sphinx.ext.intersphinx',
@@ -39,12 +42,16 @@ extensions = ['sphinx.ext.autodoc',
               "sphinx.ext.viewcode",
               'myst_parser']
 
+autosummary_generate = True
+autosummary_imported_members = True
 napoleon_google_docstring = True
 napoleon_use_param = True
 napoleon_use_ivar = True
+numpydoc_show_class_members = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+exclude_patterns = ['_build', '_templates']
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
@@ -88,12 +95,11 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 pygments_style = 'sphinx'
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
-todo_include_todos = True
+# todo_include_todos = True
 
 # -- Options for Markdown files ----------------------------------------------
 
-myst_admonition_enable = True
-myst_deflist_enable = True
+myst_enable_extensions = ["colon_fence", "deflist"]
 myst_heading_anchors = 3
 
 # -- Options for HTML output -------------------------------------------
@@ -132,5 +138,10 @@ man_pages = [
 ]
 
 
-
-
+def linkcode_resolve(domain, info):
+    if domain != 'py':
+        return None
+    if not info['module']:
+        return None
+    filename = info['module'].replace('.', '/')
+    return "https://github.com/BioMeCIS-Lab/OpenOmics/%s.py" % filename

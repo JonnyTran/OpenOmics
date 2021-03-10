@@ -29,3 +29,4 @@ goatools
 obonet
 furo
 myst-parser
+sphinx_autodoc_typehints

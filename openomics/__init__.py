@@ -1,3 +1,14 @@
+"""This module demonstrates basic Sphinx usage with Python modules.
+
+Submodules
+==========
+
+.. autosummary::
+    :toctree: _autosummary
+
+
+"""
+
 from __future__ import print_function, division, absolute_import
 
 import json

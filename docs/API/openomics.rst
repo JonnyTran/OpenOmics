@@ -12,6 +12,14 @@ Subpackages
 Submodules
 ----------
 
+openomics.multiomics module
+---------------------------
+
+.. automodule:: openomics.multiomics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 openomics.clinical module
 -------------------------
 
@@ -31,7 +39,7 @@ openomics.genomics module
 openomics.image module
 ----------------------
 
-.. automodule:: openomics.image
+.. automodule:: openomics.imageomics
    :members:
    :undoc-members:
    :show-inheritance:
@@ -44,13 +52,6 @@ openomics.multicohorts module
    :undoc-members:
    :show-inheritance:
 
-openomics.multiomics module
----------------------------
-
-.. automodule:: openomics.multiomics
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 openomics.proteomics module
 ---------------------------
