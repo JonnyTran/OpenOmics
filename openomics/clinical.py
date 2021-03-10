@@ -16,15 +16,17 @@ NORMAL = "Normal"
 
 
 class ClinicalData:
+    """This class manages the clinical data tables to handle the phenotype,
+    treatment, and sample data associated to a patient.
+    """
+
     pathologic_stage_map = {'Stage IA': 'Stage I', 'Stage IB': 'Stage I',
                             'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
                             'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
 
     def __init__(self, file_path: Union[str, io.StringIO, pd.DataFrame, dd.DataFrame], patient_index: str,
                  columns: List[str] = None):
-        """This class manages the clinical data tables to handle the phenotype,
-        treatment, and sample data associated to a patient.
-
+        """
         Args:
             file_path (str, io.StringIO, pd.DataFrame): either a path to the
                 patients clinical data file, or a DataFrame.
@@ -71,6 +73,9 @@ class ClinicalData:
 
     @classmethod
     def name(self):
+        """
+        Returns the name of the class, i.e. 'ClinicalData'
+        """
         return self.__class__.__name__
 
     def build_clinical_samples(self, all_samples, index="bcr_patient_barcode"):

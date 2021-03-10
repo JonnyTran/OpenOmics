@@ -16,14 +16,17 @@ import openomics
 
 # @astropy.config.set_temp_cache(openomics.config["cache_dir"])
 def get_pkg_data_filename(dataurl, file):
-    """
-    Downloads a remote file given the url, then caches it to the user's home folder.
+    """Downloads a remote file given the url, then caches it to the user's home
+    folder. :param dataurl: Url to the download path, excluding the file name
+    :param file: The file path to download
+
     Args:
-        dataurl: Url to the download path, excluding the file name
-        file: The file path to download
+        dataurl:
+        file:
 
     Returns:
-        filename (str): A file path on the local file system corresponding to the data requested in data_name.
+        filename (str): A file path on the local file system corresponding to
+        the data requested in data_name.
     """
     # Split data url and file name if the user provided a whole path in file_resources
     if validators.url(file):
@@ -42,6 +45,12 @@ def get_pkg_data_filename(dataurl, file):
 
 
 def read_db(path, table, index_col):
+    """
+    Args:
+        path:
+        table:
+        index_col:
+    """
     engine = sa.create_engine(path)
     conn = engine.connect()
     m = sa.MetaData()
@@ -60,6 +69,10 @@ def read_db(path, table, index_col):
 
 
 def mkdirs(outdir):
+    """ Make a directory.
+    Args:
+        outdir: directory path.
+    """
     try:
         os.makedirs(outdir)
     except OSError as exc:
@@ -69,13 +82,14 @@ def mkdirs(outdir):
 
 
 def retry(num=5):
-    """"retry connection.
+    """retry connection.
 
-        define max tries num
-        if the backoff_factor is 0.1, then sleep() will sleep for
-        [0.1s, 0.2s, 0.4s, ...] between retries.
-        It will also force a retry if the status code returned is 500, 502, 503 or 504.
+    define max tries num if the backoff_factor is 0.1, then sleep() will
+    sleep for [0.1s, 0.2s, 0.4s, ...] between retries. It will also force a
+    retry if the status code returned is 500, 502, 503 or 504.
 
+    Args:
+        num:
     """
     s = requests.Session()
     retries = Retry(total=num, backoff_factor=0.1,
@@ -86,6 +100,10 @@ def retry(num=5):
 
 
 def get_decompressed_text_gzip(gzip_file):
+    """
+    Args:
+        gzip_file:
+    """
     # compressedFile = StringIO()
     # compressedFile.write(gzip_file.read())
     # compressedFile.seek(0)
