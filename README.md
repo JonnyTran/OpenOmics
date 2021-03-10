@@ -32,13 +32,14 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 - Accessible by both developers and scientists with a Python API that works seamlessly with external Galaxy tool
   interface or the built-in Dash web interface (WIP).
 
-<br/>
 
 ## Installation via pip:
 
 ```
 $ pip install openomics
 ```
+
+## 
 
 ## Citations
 The journal paper for this scientific package is currently being reviewed. In the meanwhile, the current package version can be cited with:
