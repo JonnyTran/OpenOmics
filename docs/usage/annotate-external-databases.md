@@ -1,6 +1,4 @@
-# Work with annotation databases
-
-
+# External annotation databases
 
 ## Import GENCODE human release 32
 

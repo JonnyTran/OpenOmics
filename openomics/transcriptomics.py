@@ -1,6 +1,7 @@
 import io
 import os
 from glob import glob
+from typing import Union
 
 import dask.dataframe as dd
 import numpy as np
@@ -39,10 +40,16 @@ class Expression(object):
         indices.
 
         Args:
-            data (str, byte-like, pandas.DataFrame): Path or file stream of the table file to import. If a pandas DataFrame is passed, then import this dataframe and skip preprocessing steps.
-            transpose (bool): True if given data table has samples or columns and variables for rows. False if the table has samples for row index, and gene names as columns.
-            gene_index (str): The column name of gene/transcript/protein to index by.
-            usecols: A regex string to import column names from the table. Columns names imported are string match, separated by "|".
+            data (str, byte-like, pandas.DataFrame): Path or file stream of the
+                table file to import. If a pandas DataFrame is passed, then
+                import this dataframe and skip preprocessing steps.
+            transpose (bool): True if given data table has samples or columns
+                and variables for rows. False if the table has samples for row
+                index, and gene names as columns.
+            gene_index (str): The column name of gene/transcript/protein to
+                index by.
+            usecols: A regex string to import column names from the table.
+                Columns names imported are string match, separated by "|".
             gene_level (str): {"gene", "transcript", "peptide"} Chooses the
                 level of the gene/transcript/peptide of the genes list in this
                 expression data. The expression DataFrame's index will be
@@ -93,15 +100,17 @@ class Expression(object):
     def gene_index(self):
         return self.expressions.columns.name
 
-    def load_dataframe(self, data, transpose, usecols, gene_index):
+    def load_dataframe(self, data: Union[str, pd.DataFrame, dd.DataFrame], transpose: bool, usecols: str,
+                       gene_index: str):
         """Reading table data inputs to create a DataFrame.
 
         Args:
             data: either a file path, a glob file path (e.g. "table- *.tsv"), a
                 pandas.DataFrame, or a dask DataFrame.
-            transpose: True if table oriented with samples columns, else False.
-            usecols: A regex string to select columns. Default None.
-            gene_index:
+            transpose (bool): True if table oriented with samples columns, else
+                False.
+            usecols (str): A regex string to select columns. Default None.
+            gene_index (str):
         """
         if isinstance(data, pd.DataFrame):
             df = data
@@ -123,14 +132,14 @@ class Expression(object):
         # TODO implement handling for multiple file ByteIO
         return df
 
-    def load_dataframe_glob(self, globstring, usecols, genes_index, transpose):
+    def load_dataframe_glob(self, globstring: str, usecols: str, genes_index: str, transpose: bool):
         # type: (str, str, str, bool) -> dd.DataFrame
         """
         Args:
-            globstring:
-            usecols:
-            genes_index:
-            transpose:
+            globstring (str):
+            usecols (str):
+            genes_index (str):
+            transpose (bool):
         """
         lazy_dataframes = []
         for file_path in glob(globstring):
@@ -143,14 +152,13 @@ class Expression(object):
 
     def preprocess_table(
         self,
-        df,
-        usecols=None,
-        gene_index=None,
-        transposed=True,
-        sort_index=False,
-        dropna=True,
+        df: pd.DataFrame,
+        usecols: str = None,
+        gene_index: str = None,
+        transposed: bool = True,
+        sort_index: bool = False,
+        dropna: bool = True,
     ):
-        # type: (pd.DataFrame, str, str, bool, bool, bool) -> pd.DataFrame
         """This function preprocesses the expression table files where columns
         are samples and rows are gene/transcripts :param df: A Dask or Pandas
         DataFrame :type df: DataFrame :param usecols: A regular expression
@@ -161,12 +169,12 @@ class Expression(object):
         samples.
 
         Args:
-            df:
-            usecols:
-            gene_index:
-            transposed:
-            sort_index:
-            dropna:
+            df (pd.DataFrame):
+            usecols (str):
+            gene_index (str):
+            transposed (bool):
+            sort_index (bool):
+            dropna (bool):
 
         Returns:
             dataframe: a processed Dask DataFrame
@@ -223,27 +231,33 @@ class Expression(object):
         # Change index name in annotation
         self.set_index(index)
 
-    def drop_genes(self, gene_ids):
-        """
-        Drop columns representing genes/rna/proteins in self.expressions dataframe.
+    def drop_genes(self, gene_ids: str):
+        """Drop columns representing genes/rna/proteins in self.expressions
+        dataframe.
+
         Args:
-            gene_ids ([str]): list of strings that are a subset of the columns list.
+            gene_ids (str): list of strings that are a subset of the columns
+                list
         """
         self.expressions = self.expressions.drop(gene_ids, axis=1)
         if hasattr(self, "annotations") and not self.annotations.empty:
             self.annotations = self.annotations.drop(gene_ids, axis=0)
 
     def drop_samples(self, sample_ids):
+        """
+        Args:
+            sample_ids:
+        """
         self.expressions = self.expressions.drop(sample_ids, axis=0)
 
     @classmethod
     def name(cls):
         raise NotImplementedError
 
-    def get_genes_list(self, level=None):
+    def get_genes_list(self, level: int = None):
         """
         Args:
-            level:
+            level (int): Default None. Only needed if gene index is a :class:`pd.MultiIndex`
         """
         index = self.expressions.columns
 
@@ -328,19 +342,6 @@ class MessengerRNA(Expression, Annotatable):
         npartitions=None,
         cohort_name=None,
     ):
-        """
-        Args:
-            data:
-            transpose:
-            gene_index:
-            usecols:
-            gene_level:
-            sample_level:
-            transform_fn:
-            dropna:
-            npartitions:
-            cohort_name:
-        """
         super(MessengerRNA, self).__init__(
             data=data,
             transpose=transpose,
@@ -373,19 +374,6 @@ class MicroRNA(Expression, Annotatable):
         npartitions=None,
         cohort_name=None,
     ):
-        """
-        Args:
-            data:
-            transpose:
-            gene_index:
-            usecols:
-            gene_level:
-            sample_level:
-            transform_fn:
-            dropna:
-            npartitions:
-            cohort_name:
-        """
         super(MicroRNA, self).__init__(
             data=data,
             transpose=transpose,

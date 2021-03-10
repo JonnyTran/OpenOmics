@@ -1,6 +1,6 @@
-from typing import List, Union
 import io
 import os
+from typing import List, Union
 
 import dask.dataframe as dd
 import pandas as pd
@@ -26,10 +26,11 @@ class ClinicalData:
         treatment, and sample data associated to a patient.
 
         Args:
-            file_path (str, io.StringIO, pd.DataFrame): either a path to the patients clinical data file, or a DataFrame.
+            file_path (str, io.StringIO, pd.DataFrame): either a path to the
+                patients clinical data file, or a DataFrame.
             patient_index (str): the patient's ID column name
-            columns (List[str]): default None. Specifies the columns to import, if
-                None, then import all columns.
+            columns (List[str]): default None. Specifies the columns to import,
+                if None, then import all columns.
         """
         # self.cohort_name = cohort_name
         self.patient_column = patient_index
@@ -73,7 +74,9 @@ class ClinicalData:
         return self.__class__.__name__
 
     def build_clinical_samples(self, all_samples, index="bcr_patient_barcode"):
-        """ Build table with samples clinical data from patients
+        """Build table with samples clinical data from patients :param
+        all_samples:
+
         Args:
             all_samples:
             index:

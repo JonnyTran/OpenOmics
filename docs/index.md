@@ -45,30 +45,14 @@ contributing
 ## Modules
 
 [comment]: <> (```{autosummary})
-
 [comment]: <> (:toctree: _autosummary)
-
 [comment]: <> (:template: custom-module-template.rst)
 
-[comment]: <> (openomics.multiomics)
-
-[comment]: <> (openomics.clinical)
-
-[comment]: <> (openomics.transcriptomics)
-
-[comment]: <> (openomics.database)
+[comment]: <> (openomics)
 
 [comment]: <> (```)
 
 ```{eval-rst}
 .. automodapi::
-
-openomics
-openomics
-```
-
-```{eval-rst}
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+    openomics
 ```

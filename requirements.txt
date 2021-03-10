@@ -27,10 +27,3 @@ rarfile
 filetype
 goatools
 obonet
-furo
-myst-parser
-sphinx_autodoc_typehints
-sphinx-inline-tabs
-sphinx-autobuild
-sphinx-copybutton
-sphinx-automodapi
