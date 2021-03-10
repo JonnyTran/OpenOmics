@@ -36,6 +36,7 @@ usage/getting-started
 usage/import-your-dataset
 usage/annotate-external-databases
 usage/network-data
+usage/preprocess-downstream-analysis
 ```
 
 ```{toctree}
