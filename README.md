@@ -14,7 +14,7 @@ coding tasks when preparing data for RNA-seq bioinformatics analysis.
 
 Documentation ([Latest](https://openomics.readthedocs.io/en/latest/)
 | [Stable](https://openomics.readthedocs.io/en/stable/))
-| [OpenOmics at a glance](https://openomics.readthedocs.io/en/latest/usage.html)
+| [OpenOmics at a glance](https://openomics.readthedocs.io/en/latest/usage/getting-started.html)
 
 ## Features
 OpenOmics assist in integration of heterogeneous multi-omics bioinformatics data. The library provides a Python API as well as an interactive Dash web interface.
