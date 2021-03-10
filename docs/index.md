@@ -56,13 +56,9 @@ openomics
 ```
 
 [comment]: <> (```{eval-rst})
-
 [comment]: <> (.. autoclass:: openomics)
-
 [comment]: <> (    :show-inheritance:)
-
 [comment]: <> (    :members: parse)
-
 [comment]: <> (```)
 
 ```{eval-rst}
