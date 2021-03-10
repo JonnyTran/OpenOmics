@@ -42,17 +42,16 @@ usage/preprocess-downstream-analysis
 contributing
 ```
 
-## Modules
+```{toctree}
+:maxdepth: 1
+:caption: API
 
-[comment]: <> (```{autosummary})
-[comment]: <> (:toctree: _autosummary)
-[comment]: <> (:template: custom-module-template.rst)
-
-[comment]: <> (openomics)
-
-[comment]: <> (```)
-
-```{eval-rst}
-.. automodapi::
-    openomics
+modules/openomics.multiomics
+modules/openomics.database.annotation
+modules/openomics.database.sequence
+modules/openomics.database.interaction
+modules/openomics.database.disease
+modules/openomics.database.ontology
+modules/openomics.utils
 ```
+

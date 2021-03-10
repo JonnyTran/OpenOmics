@@ -3,6 +3,7 @@ from typing import List, Dict, Union
 
 import pandas as pd
 
+import openomics
 from .clinical import (
     ClinicalData,
     HISTOLOGIC_SUBTYPE_COL,
@@ -62,10 +63,11 @@ class MultiOmics:
             omic_data.annotations.index.name,
         )
 
-    def add_clinical_data(self, clinical):
-        """
+    def add_clinical_data(self, clinical: openomics.clinical.ClinicalData):
+        """ Add a ClinicalData instance to the MultiOmics instance.
+
         Args:
-            clinical (ClinicalData):
+            clinical (openomics.clinical.ClinicalData):
         """
         if type(clinical) != ClinicalData:
             raise Exception("Must pass a ClinicalData in, not a file path.")
