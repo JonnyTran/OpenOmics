@@ -14,6 +14,19 @@ from .utils.df import drop_duplicate_columns
 
 
 class Expression(object):
+    """This class handles importing of any quantitative omics data that is
+        in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame
+        from file with the user-specified columns and genes column name, then
+        tranpose it such that the rows are samples and columns are
+        gene/transcript/peptides. The user will also specify the index argument,
+        which specifies if the genes are ensembl genes ID or gene name, or
+        transcripts id/names. The user should be careful about choosing the
+        right genes index which makes it easier to annotate functional,
+        sequence, and interaction data to it. The dataframe should only contain
+        numeric values besides the genes_col_name and the sample barcode id
+        indices.
+
+    """
     def __init__(
         self,
         data,

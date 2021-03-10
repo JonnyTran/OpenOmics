@@ -18,8 +18,9 @@ from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, Expression
 
 
 class MultiOmics:
+    """A data object which holds multiple -omics data for a single clinical cohort."""
     def __init__(self, cohort_name):
-        """Load all multi-omics data from a given cohort_folder path.
+        """
 
         Args:
             cohort_name (str): the clinical cohort name

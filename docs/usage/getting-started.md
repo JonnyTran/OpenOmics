@@ -1,5 +1,8 @@
 # Getting started
 
+Welcome! This tutorial highlights OpenOmics’s core features; for further details, see the links within, or the
+documentation index which has links to conceptual and API doc sections.
+
 ## To use openomics in a project
 
 ```{code-block} python
