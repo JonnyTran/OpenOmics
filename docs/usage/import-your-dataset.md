@@ -95,7 +95,7 @@ Now, we create a MultiOmics dataset object by combining the messengerRNA, microR
 ## Accessing clinical data
 Each multi-omics and clinical data can be accessed through luad_data.data[], like:
 
-```python
+```{code-block} python
 luad_data.data["PATIENTS"]
 ```
 <div>

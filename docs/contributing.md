@@ -6,10 +6,11 @@ helps, and credit will always be given.
 You can contribute in many ways:
 
 ## Types of Contributions
-- Implement general purpose utilities for importing various fasta, gtf and sequencing files.
-- Organize the library of genomics, functional ontologies, interactions, and sequence databases for variety of biological studies.
+- Web development with the Dash for the OpenOmics dashboard webserver.
 - Documentation standards for the OpenOmics Python API.
-- Webdies
+- Organize the library of genomics, functional ontologies, interactions, and sequence databases for variety of
+  biological studies.
+- Implement general purpose utilities for importing various fasta, gtf and sequencing files.
 
 ## Report Bugs
 
@@ -74,48 +75,51 @@ Ready to contribute? Here's how to set up `openomics` for local development.
    tests, including testing other Python versions with tox::
 
     $ flake8 openomics tests
-    $ python setup.py test or py.test
-    $ tox
+   $ python setup.py test or py.test $ tox
 
    To get flake8 and tox, just pip install them into your virtualenv.
 
 6. Commit your changes and push your branch to GitHub::
 
-    $ git add .
-    $ git commit -m "Your detailed description of your changes."
-    $ git push develop name-of-your-bugfix-or-feature
+   $ git add . $ git commit -m "Your detailed description of your changes."
+   $ git push develop name-of-your-bugfix-or-feature
 
-7. Submit a pull request through the GitHub website to the develop branch. Once major features are tested, we can create another pull-request to the master branch.
+7. Submit a pull request through the GitHub website to the develop branch. Once major features are tested, we can create
+   another pull-request to the **master** branch.
 
 ## Pull Request Guidelines
 
 Before you submit a pull request, check that it meets these guidelines:
 
-1. The pull request should include tests. Run tests by with `pytest tests/` and make sure tests are 100% passing.
-2. If the pull request adds functionality, the docs should be updated. Put
-   your new functionality into a function with a docstring, and add the
-   feature to the list in README.rst.
+1. The pull request should include tests. Run tests by with `pytest ./` and make sure tests are 100% passing.
+2. If the pull request adds functionality, the docs should be updated. Put your new functionality into a function with a
+   docstring, and add the feature to the list in https://github.com/BioMeCIS-Lab/OpenOmics/blob/master/docs/index.md.
 3. The pull request should work for Python 3.6 or higher, and for PyPi. Check
-   https://travis-ci.org/BioMeCIS-Lab/openomics/pull_requests
-   and make sure that the tests pass for all supported Python versions.
+   https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml
+   and make sure that the tests pass for all supported Python versions and operating systems.
 
 ## Tips
 
-To run a subset of tests::
+To run the automated tests locally, run this at the root directory:
+
+    pytest ./
+
+To run a subset of tests:
 
     $ py.test tests.test_openomics
 
+To run tests targeting various operating systems and Python versions, make a pull-request to the **master** branch which
+will run as (Github Actions Tests)[https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml]
+
 ## Deploying
 
-A reminder for the maintainers on how to deploy.
-Make sure all your changes are committed (including an entry in HISTORY.rst).
-Then run::
+A reminder for the maintainers on how to deploy. Make sure all your changes are committed (including an entry in
+HISTORY.rst). Then run::
 
     $ bumpversion patch # possible: major / minor / patch
-    $ git push
     $ git push --tags
 
-Travis will then deploy to PyPI if tests pass.
+Github Actions will then deploy to PyPI if tests pass.
 
 ## Code of Conduct
 Please note that the OpenOmics project is released with a Contributor Code of Conduct. By contributing to this project you agree to abide by its terms.

@@ -49,16 +49,18 @@ contributing
 ```{autosummary}
 :toctree: _autosummary
 :template: custom-module-template.rst
-:recursive:
+
+openomics.multiomics
+openomics.clinical
+openomics.transcriptomics
+openomics.database
+```
+
+```{eval-rst}
+.. automodapi::
 
 openomics
 ```
-
-[comment]: <> (```{eval-rst})
-[comment]: <> (.. autoclass:: openomics)
-[comment]: <> (    :show-inheritance:)
-[comment]: <> (    :members: parse)
-[comment]: <> (```)
 
 ```{eval-rst}
 * :ref:`genindex`

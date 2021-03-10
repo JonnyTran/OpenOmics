@@ -20,6 +20,7 @@
 #
 import os
 import sys
+import sphinx_automodapi
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -40,9 +41,10 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.intersphinx',
               'sphinx.ext.mathjax',
               "sphinx.ext.viewcode",
+              'sphinx_automodapi.automodapi',
               'myst_parser']
 
-autosummary_generate = True
+autosummary_generate = False
 autosummary_imported_members = True
 napoleon_google_docstring = True
 napoleon_use_param = True
