@@ -17,9 +17,9 @@ Report bugs at https://github.com/BioMeCIS-Lab/openomics/issues.
 
 If you are reporting a bug, please include:
 
-* Your operating system name and version.
-* Any details about your local setup that might be helpful in troubleshooting.
-* Detailed steps to reproduce the bug.
+- Your operating system name and version.
+- Any details about your local setup that might be helpful in troubleshooting.
+- Detailed steps to reproduce the bug.
 
 ## Fix Bugs
 
@@ -111,9 +111,9 @@ A reminder for the maintainers on how to deploy.
 Make sure all your changes are committed (including an entry in HISTORY.rst).
 Then run::
 
-$ bumpversion patch # possible: major / minor / patch
-$ git push
-$ git push --tags
+    $ bumpversion patch # possible: major / minor / patch
+    $ git push
+    $ git push --tags
 
 Travis will then deploy to PyPI if tests pass.
 
