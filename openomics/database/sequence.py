@@ -1,3 +1,4 @@
+from typing import Union
 import logging
 from abc import abstractmethod
 
@@ -24,29 +25,26 @@ class SequenceDataset(Dataset):
         super(SequenceDataset, self).__init__(**kwargs)
 
     @abstractmethod
-    def read_fasta(self, fasta_file, replace_U2T, npartitions=None):
+    def read_fasta(self, fasta_file:str, replace_U2T:bool, npartitions=None):
         """Returns a pandas DataFrame containing the fasta sequence entries.
-        With a column named 'sequence'. :param npartitions: :param replace_U2T:
-        :param fasta_file: path to the fasta file, usually as
-        self.file_resources[<file_name>] :type fasta_file: str
+        With a column named 'sequence'.
 
         Args:
-            fasta_file:
-            replace_U2T:
+            fasta_file (str): path to the fasta file, usually as
+                self.file_resources[<file_name>]
+            replace_U2T (bool):
             npartitions:
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, index, omic, agg_sequences, **kwargs):
+    def get_sequences(self, index:str, omic:str, agg_sequences:str, **kwargs):
         """Returns a dictionary where keys are 'index' and values are
-        sequence(s). :param index: {"gene_id", "gene_name", "transcript_id",
-        "transcript_name"}
-
-            The index
+        sequence(s).
 
         Args:
-            index:
+            index (str): {"gene_id", "gene_name", "transcript_id",
+                "transcript_name"}
             omic (str): {"lncRNA", "microRNA", "messengerRNA"}
             agg_sequences (str): {"all", "shortest", "longest"}
             **kwargs: any additional argument to pass to
@@ -55,10 +53,11 @@ class SequenceDataset(Dataset):
         raise NotImplementedError
 
     @staticmethod
-    def get_aggregator(agg=None):
-        """When performing groupby
+    def get_aggregator(agg:Union[str, callable]=None):
+        """Returns a function used aggregate a list of sequences from a groupby on a given key.
+
         Args:
-            agg (str): default None. If "all", then
+            agg: One of ("all", "shortest", "longest"), default "all". If "all", then for all
         """
         if agg == "all":
             agg_func = lambda x: list(x) if not isinstance(x, str) else x
@@ -66,6 +65,8 @@ class SequenceDataset(Dataset):
             agg_func = lambda x: min(x, key=len)
         elif agg == "longest":
             agg_func = lambda x: max(x, key=len)
+        elif isinstance(agg, callable):
+            return agg
         else:
             raise Exception(
                 "agg_sequences argument must be one of {'all', 'shortest', 'longest'}"
@@ -89,8 +90,10 @@ class GENCODE(SequenceDataset):
             file_resources:
             col_rename:
             npartitions:
-            replace_U2T (bool): Whether to replace nucleotides from U to T on the RNA primary sequences.
-            remove_version_num (bool): Whether to drop the version number on the ensembl ID.
+            replace_U2T (bool): Whether to replace nucleotides from U to T on
+                the RNA primary sequences.
+            remove_version_num (bool): Whether to drop the version number on the
+                ensembl ID.
         """
         if file_resources is None:
             file_resources = {
@@ -227,10 +230,10 @@ class MirBase(SequenceDataset):
     def __init__(
         self,
         path="ftp://mirbase.org/pub/mirbase/CURRENT/",
-        sequence="hairpin",
-        species="Homo sapiens",
-        species_id=9606,
         file_resources=None,
+        sequence:str="hairpin",
+        species:str="Homo sapiens",
+        species_id:str=9606,
         col_rename=None,
         npartitions=0,
         replace_U2T=True,
@@ -238,10 +241,10 @@ class MirBase(SequenceDataset):
         """
         Args:
             path:
-            sequence:
-            species (int): Species code, e.g., 9606 for human
-            species_id:
             file_resources:
+            sequence (str):
+            species (str): Species code, e.g., 9606 for human
+            species_id (str):
             col_rename:
             npartitions:
             replace_U2T:
@@ -354,6 +357,13 @@ class MirBase(SequenceDataset):
                       omic=None,
                       agg_sequences="all",
                       **kwargs):
+        """
+        Args:
+            index:
+            omic:
+            agg_sequences:
+            **kwargs:
+        """
         if hasattr(self, "seq_dict"):
             logging.info("Using cached sequences dict")
             return self.seq_dict
