@@ -17,3 +17,4 @@ sphinx-inline-tabs
 sphinx-autobuild
 sphinx-copybutton
 sphinx-automodapi
+graphviz
