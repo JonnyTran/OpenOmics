@@ -1,4 +1,4 @@
-# Importing your own multi-omics dataset
+# Loading a multi-omics dataset
 
 Import TCGA LUAD data included in tests dataset (preprocessed from TCGA-Assembler). It is located at [tests/data/TCGA_LUAD](https://github.com/BioMeCIS-Lab/OpenOmics/tree/master/tests/data/TCGA_LUAD).
 

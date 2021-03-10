@@ -53,32 +53,33 @@ if os.path.isfile(user_conf_path):
     except Exception as e:
         logging.info("Could not import configurations from", user_conf_path)
 
+# Import submodule
 from . import database, utils, transcriptomics, proteomics, clinical, multiomics
 
+from .transcriptomics import (
+    Expression, MessengerRNA, MicroRNA, LncRNA,
+)
 
-# from .transcriptomics import (
-#     Expression, MessengerRNA, MicroRNA, LncRNA,
-# )
-#
-# from .genomics import (
-#     SomaticMutation, DNAMethylation, CopyNumberVariation
-# )
-#
-# from .proteomics import (
-#     Protein
-# )
-#
-# from .clinical import ClinicalData
-#
-# from .multiomics import (
-#     MultiOmics
-# )
+from .genomics import (
+    SomaticMutation, DNAMethylation, CopyNumberVariation
+)
+
+from .proteomics import (
+    Protein
+)
+
+from .clinical import ClinicalData
+
+from .multiomics import (
+    MultiOmics
+)
 
 
-def set_backend(new):
-    """
+def set_backend(new: str = "pandas"):
+    """Set the dataframe processing backend to either Pandas or Dask.
+
     Args:
-        new:
+        new (str): Either "dask" or "pandas". Default "pandas.
     """
     assert new in ["dask", "pandas"]
 
@@ -88,7 +89,13 @@ def set_backend(new):
         this.config["backend"] = pd
 
 
-def set_cache_dir(path, delete_temp=False):
+def set_cache_dir(path: str, delete_temp: bool = False):
+    """Set the path where external databases downloaded from URL are saved.
+
+    Args:
+        path (str):
+        delete_temp (bool):
+    """
     if not os.path.exists(path):
         raise NotADirectoryError(path)
 
