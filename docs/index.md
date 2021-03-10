@@ -28,7 +28,7 @@ coding tasks when preparing data for RNA-seq bioinformatics analysis.
 ## Table of Content
 
 ```{toctree}
-:maxdepth: 2
+:maxdepth: 1
 :caption: Using OpenOmics
 :name: mastertoc
 installation
@@ -55,11 +55,15 @@ contributing
 openomics
 ```
 
-```{eval-rst}
-.. autoclass:: openomics
-    :show-inheritance:
-    :members: parse
-```
+[comment]: <> (```{eval-rst})
+
+[comment]: <> (.. autoclass:: openomics)
+
+[comment]: <> (    :show-inheritance:)
+
+[comment]: <> (    :members: parse)
+
+[comment]: <> (```)
 
 ```{eval-rst}
 * :ref:`genindex`
