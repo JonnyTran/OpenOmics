@@ -40,13 +40,6 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 $ pip install openomics
 ```
 
-## Importing the openomics library
-
-```python
-from openomics import MultiOmics
-```
-
-
 ## Citations
 The journal paper for this scientific package is currently being reviewed. In the meanwhile, the current package version can be cited with:
 
