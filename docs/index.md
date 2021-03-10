@@ -1,19 +1,13 @@
 # Welcome to OpenOmics's documentation!
 
-.. image:: https://github.com/BioMeCIS-Lab/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png
+![Logo](https://github.com/BioMeCIS-Lab/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png)
 
-.. image:: https://img.shields.io/pypi/v/OpenOmics.svg
-:target: https://pypi.python.org/pypi/OpenOmics
-
-.. image:: https://readthedocs.org/projects/openomics/badge/?version=latest
-:target: https://openomics.readthedocs.io/en/latest/?badge=latest
-:alt: Documentation Status
-
-.. image:: https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml/badge.svg?branch=master
-:target: https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml
-
-.. image:: https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg
-:target: https://codecov.io/gh/BioMeCIS-Lab/OpenOmics
+[![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
+[![Documentation Status](https://readthedocs.org/projects/openomics/badge/?version=latest)](https://openomics.readthedocs.io/en/latest/?badge=latest)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+[![Build Status](https://travis-ci.com/JonnyTran/OpenOmics.svg?branch=master)](https://travis-ci.com/JonnyTran/OpenOmics)
+[![codecov](https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg)](https://codecov.io/gh/JonnyTran/OpenOmics)
+[![Updates](https://pyup.io/repos/github/JonnyTran/OpenOmics/shield.svg)](https://pyup.io/repos/github/JonnyTran/OpenOmics/)
 
 This Python package provide a series of tools to integrate and query the genomics, transcriptomics, proteomics, and
 clinical data (aka, the multi-omics data). With scalable data-frame manipulation tools, OpenOmics facilitates the common
@@ -34,17 +28,40 @@ coding tasks when preparing data for RNA-seq bioinformatics analysis.
 ## Table of Content
 
 ```{toctree}
----
-maxdepth: 2
----
-    installation
-    usage
-    modules
-    contributing
+:maxdepth: 2
+:caption: Using OpenOmics
+:name: mastertoc
+installation
+usage/getting-started
+usage/import-your-dataset
+usage/annotate-external-databases
+usage/network-data
 ```
 
-## Indices and tables
+```{toctree}
+:maxdepth: 1
+:caption: Reference and Contributing
+contributing
+```
 
+## Modules
+
+```{autosummary}
+:toctree: _autosummary
+:template: custom-module-template.rst
+:recursive:
+
+openomics
+```
+
+```{eval-rst}
+.. autoclass:: openomics
+    :show-inheritance:
+    :members: parse
+```
+
+```{eval-rst}
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+```

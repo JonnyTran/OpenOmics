@@ -7,7 +7,7 @@ Submodules
 openomics.utils.GTF module
 --------------------------
 
-.. automodule:: openomics.utils.GTF
+.. automodule:: openomics.utils.read_gtf
    :members:
    :undoc-members:
    :show-inheritance:
