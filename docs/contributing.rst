@@ -1,22 +1,17 @@
-.. highlight:: shell
-
-============
-Contributing
-============
+# Contributing
 
 Contributions are welcome, and they are greatly appreciated! Every little bit
 helps, and credit will always be given.
 
 You can contribute in many ways:
 
-Types of Contributions
-----------------------
-* Implement general purpose utilities for importing various fasta, gtf and sequencing files.
-* Organize the library of genomics, functional ontologies, interactions, and sequence databases.
-* Documentation standards for the openomics API.
+## Types of Contributions
+- Implement general purpose utilities for importing various fasta, gtf and sequencing files.
+- Organize the library of genomics, functional ontologies, interactions, and sequence databases for variety of biological studies.
+- Documentation standards for the OpenOmics Python API.
+- Webdies
 
-Report Bugs
-~~~~~~~~~~~
+## Report Bugs
 
 Report bugs at https://github.com/BioMeCIS-Lab/openomics/issues.
 
@@ -26,39 +21,34 @@ If you are reporting a bug, please include:
 * Any details about your local setup that might be helpful in troubleshooting.
 * Detailed steps to reproduce the bug.
 
-Fix Bugs
-~~~~~~~~
+## Fix Bugs
 
 Look through the GitHub issues for bugs. Anything tagged with "bug" and "help
 wanted" is open to whoever wants to implement it.
 
-Implement Features
-~~~~~~~~~~~~~~~~~~
+## Implement Features
 
 Look through the GitHub issues for features. Anything tagged with "enhancement"
 and "help wanted" is open to whoever wants to implement it.
 
-Write Documentation
-~~~~~~~~~~~~~~~~~~~
+## Write Documentation
 
-openOmics could always use more documentation, whether as part of the
-official openOmics docs, in docstrings, or even on the web in blog posts,
+OpenOmics could always use more documentation, whether as part of the
+official OpenOmics docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
-Submit Feedback
-~~~~~~~~~~~~~~~
+## Submit Feedback
 
 The best way to send feedback is to file an issue at https://github.com/BioMeCIS-Lab/openomics/issues.
 
 If you are proposing a feature:
 
-* Explain in detail how it would work.
-* Keep the scope as narrow as possible, to make it easier to implement.
-* Remember that this is a volunteer-driven project, and that contributions
+- Explain in detail how it would work.
+- Keep the scope as narrow as possible, to make it easier to implement.
+- Remember that this is a volunteer-driven project, and that contributions
   are welcome :)
 
-Get Started!
-------------
+## Get Started!
 
 Ready to contribute? Here's how to set up `openomics` for local development.
 
@@ -97,8 +87,7 @@ Ready to contribute? Here's how to set up `openomics` for local development.
 
 7. Submit a pull request through the GitHub website to the develop branch. Once major features are tested, we can create another pull-request to the master branch.
 
-Pull Request Guidelines
------------------------
+## Pull Request Guidelines
 
 Before you submit a pull request, check that it meets these guidelines:
 
@@ -110,15 +99,13 @@ Before you submit a pull request, check that it meets these guidelines:
    https://travis-ci.org/BioMeCIS-Lab/openomics/pull_requests
    and make sure that the tests pass for all supported Python versions.
 
-Tips
-----
+## Tips
 
 To run a subset of tests::
 
     $ py.test tests.test_openomics
 
-Deploying
----------
+## Deploying
 
 A reminder for the maintainers on how to deploy.
 Make sure all your changes are committed (including an entry in HISTORY.rst).
@@ -130,6 +117,5 @@ $ git push --tags
 
 Travis will then deploy to PyPI if tests pass.
 
-Code of Conduct
----------------
-Please note that the openOmics project is released with a Contributor Code of Conduct. By contributing to this project you agree to abide by its terms.
+## Code of Conduct
+Please note that the OpenOmics project is released with a Contributor Code of Conduct. By contributing to this project you agree to abide by its terms.
