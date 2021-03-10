@@ -8,6 +8,7 @@ python:
         path: .
         extra_requirements:
             - docs
+            - graphviz
       - method: setuptools
         path: .
    system_packages: true
