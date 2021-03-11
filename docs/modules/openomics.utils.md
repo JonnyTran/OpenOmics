@@ -1,4 +1,4 @@
-# openomics.utils
+# Utilities
 
 ```{eval-rst}
 .. automodapi:: openomics.utils

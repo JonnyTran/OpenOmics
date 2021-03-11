@@ -128,12 +128,17 @@ html_theme_options = {
     "light_css_variables": {
         # "color-brand-primary": "#ff5c84",
         # "color-brand-content": "#ff5c84",
-        "color-admonition-background": "#33cccc",
+        # "color-admonition-background": "#33cccc",
+        # "font-stack": "Arial, sans-serif",
+        # "font-stack--monospace": "Courier, monospace",
     },
 }
 
 html_logo = "../openomics_web/assets/openomics_logo.png"
 html_favicon = '_static/favicon.png'
+
+pygments_style = "sphinx"
+pygments_dark_style = "monokai"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

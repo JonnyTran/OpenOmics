@@ -14,6 +14,9 @@ from .base import Dataset
 
 
 class SequenceDataset(Dataset):
+    """Provides a series of methods to extract sequence data from
+    SequenceDataset.
+    """
     def __init__(self, replace_U2T=False, **kwargs):
         """
         Args:
@@ -54,10 +57,12 @@ class SequenceDataset(Dataset):
 
     @staticmethod
     def get_aggregator(agg:Union[str, callable]=None):
-        """Returns a function used aggregate a list of sequences from a groupby on a given key.
+        """Returns a function used aggregate a list of sequences from a groupby
+        on a given key.
 
         Args:
-            agg: One of ("all", "shortest", "longest"), default "all". If "all", then for all
+            agg: One of ("all", "shortest", "longest"), default "all". If "all",
+                then for all
         """
         if agg == "all":
             agg_func = lambda x: list(x) if not isinstance(x, str) else x
@@ -75,6 +80,16 @@ class SequenceDataset(Dataset):
 
 
 class GENCODE(SequenceDataset):
+    """Loads the GENCODE database from https://www.gencodegenes.org/ .
+
+    Default path: ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/ .
+    Default file_resources: {
+        "basic.annotation.gtf": "gencode.v32.basic.annotation.gtf.gz",
+        "long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
+        "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
+        "transcripts.fa": "gencode.v32.transcripts.fa.gz",
+    }
+    """
     def __init__(
         self,
         path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
