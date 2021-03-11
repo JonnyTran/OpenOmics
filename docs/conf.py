@@ -47,7 +47,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     "sphinx.ext.viewcode",
     'sphinx_automodapi.automodapi',
-    # 'sphinx_automodapi.smart_resolver',
+    'sphinx_automodapi.smart_resolver',
     'sphinx.ext.graphviz',
     'sphinx.ext.inheritance_diagram',
 ]
@@ -57,7 +57,6 @@ autosummary_imported_members = True
 napoleon_google_docstring = True
 napoleon_use_param = True
 napoleon_use_ivar = True
-numpydoc_show_class_members = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
