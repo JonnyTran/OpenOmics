@@ -1,12 +1,20 @@
 # Release history
 
-## 0.8.5 (Pending)
+## 0.9.0 (Future)
 - Build web-app dashboard interface for importing user multiomics data files
 
+## 0.8.6 (Pending)
+- Changed to Github Actions CI from Travis CI
+- Revamped openomics.readthedocs.io
+- Fixed bugs from pyOpenSci reviews.
+
+## 0.8.5 (2020-02-19)
+- Importing GENCODE gtf files using dask now works with gzip compressed files.
+- Improved coverage and performance of automated tests.
 
 ## 0.8.4 (2020-01-07)
-- Replace Pandas Dataframe with Dask DataFrame for parallel processings
-
+- Enabled the support for Dask dataframes for ExpressionData and Annotation Dataset's. To use this feature, simply use
+  the npartitions argument when instantiating an ExpressionData or Annotation/Sequence/Interaction Dataset.
 
 ## 0.7.2 (2019-09-01)
 - Added compatibility for Python 2.7
