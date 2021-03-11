@@ -1,5 +1,6 @@
-# openomics.MultiOmics
+# MultiOmics data
 
 ```{eval-rst}
-.. automodapi:: openomics
+.. automodapi::
+openomics
 ```

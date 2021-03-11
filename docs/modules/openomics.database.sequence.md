@@ -1,4 +1,4 @@
-# openomics.Database.Sequence
+# Sequence databases
 
 ```{eval-rst}
 .. automodapi:: openomics.database.sequence

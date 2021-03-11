@@ -104,9 +104,12 @@ To run the automated tests locally, run this at the root directory:
 
     pytest ./
 
+```{hint}
 To run a subset of tests:
 
     $ py.test tests.test_openomics
+
+```
 
 To run tests targeting various operating systems and Python versions, make a pull-request to the **master** branch which
 will run as (Github Actions Tests)[https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml]

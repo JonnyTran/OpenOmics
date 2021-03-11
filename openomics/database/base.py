@@ -1,3 +1,4 @@
+from typing import Dict, Tuple, List
 import copy
 import difflib
 import gzip
@@ -19,6 +20,14 @@ from openomics.utils.io import get_pkg_data_filename
 
 
 class Dataset(object):
+    """This is a class used to instantiate a Dataset given a a set of files from
+    either local files or URLs. When creating a Dataset class, the
+    `load_dataframe()` function is called where the file_resources are used to
+    load (Pandas or Dask) DataFrames, then performs data wrangling to yield a
+    dataframe at `self.data` . This class also provides an interface for -omics
+    tables, e.g. `ExpressionData` , to annotate various annotations,
+    expressions, sequences, and disease associations.
+    """
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
 
     def __init__(
@@ -29,17 +38,20 @@ class Dataset(object):
         npartitions=None,
         verbose=False,
     ):
-        """This is a class used to instantiate a Dataset given a a set of files from either local files or URLs. When
-        creating a Dataset class, the `load_dataframe()` function is called where the file_resources are used to
-        load (Pandas or Dask) DataFrames, then performs data wrangling to yield a dataframe at `self.data`. This class
-        also provides an interface for -omics tables, e.g. `ExpressionData`, to annotate various annotations, expressions,
-        sequences, and disease associations.
-
+        """
         Args:
-            path: The folder or url path containing the data file resources. If url path, the files will be downloaded and cached to the user's home folder (at ~/.astropy/).
-            file_resources: Used to list required files for preprocessing of the database. A dictionary where keys are required filenames and value are file paths. If None, then the class constructor should automatically build the required file resources dict.
-            col_rename (dict): default None, A dictionary to rename columns in the data table. If None, then automatically load defaults.
-            npartitions (int): [0-n], default 0 If 0, then uses a Pandas DataFrame, if >1, then creates an off-memory Dask DataFrame with n partitions
+            path: The folder or url path containing the data file resources. If
+                url path, the files will be downloaded and cached to the user's
+                home folder (at ~/.astropy/).
+            file_resources: Used to list required files for preprocessing of the
+                database. A dictionary where keys are required filenames and
+                value are file paths. If None, then the class constructor should
+                automatically build the required file resources dict.
+            col_rename (dict): default None, A dictionary to rename columns in
+                the data table. If None, then automatically load defaults.
+            npartitions (int): [0-n], default 0 If 0, then uses a Pandas
+                DataFrame, if >1, then creates an off-memory Dask DataFrame with
+                n partitions
             verbose (bool): Default False.
         """
         self.npartitions = npartitions
@@ -66,20 +78,21 @@ class Dataset(object):
                                 file_resources,
                                 npartitions=None,
                                 verbose=False) -> None:
-        """For each file in file_resources, download the file if path+file is a URL
-        or load from disk if a local path. Additionally unzip or unrar if the
-        file is compressed.
+        """For each file in file_resources, download the file if path+file is a
+        URL or load from disk if a local path. Additionally unzip or unrar if
+        the file is compressed.
 
         Args:
             path (str): The folder or url path containing the data file
-                resources. If a url path, the files will be downloaded and cached
-                to the user's home folder (at ~/.astropy/).
+                resources. If a url path, the files will be downloaded and
+                cached to the user's home folder (at ~/.astropy/).
             file_resources (dict): default None, Used to list required files for
                 preprocessing of the database. A dictionary where keys are
                 required filenames and value are file paths. If None, then the
                 class constructor should automatically build the required file
                 resources dict.
-            npartitions (int): >0 if the files will be used to create a Dask Dataframe. Default None.
+            npartitions (int): >0 if the files will be used to create a Dask
+                Dataframe. Default None.
             verbose:
         """
         if validators.url(path):
@@ -142,15 +155,14 @@ class Dataset(object):
                 self.file_resources[filename].close()
 
     @abstractmethod
-    def load_dataframe(self, file_resources, npartitions=None):
-        # type: (dict, int) -> pd.DataFrame
+    def load_dataframe(self, file_resources:Dict[str, str], npartitions:int=None):
         """Handles data preprocessing given the file_resources input, and
         returns a DataFrame.
 
         Args:
             file_resources (dict): A dict with keys as filenames and values as
                 full file path.
-            npartitions:
+            npartitions (int):
         """
         raise NotImplementedError
 
@@ -169,10 +181,12 @@ class Dataset(object):
 
         Args:
             index (str): The column name of the DataFrame to join by.
-            columns ([str]): a list of column names.
-            agg (str): Function to aggregate when there is more than one values for each index instance.
-                E.g. ['first', 'last', 'sum', 'mean', 'size', 'concat'], default 'concat'.
-            filter_values (pd.Series): The values on the `index` column to filter before performing the groupby-agg operations.
+            columns (list): a list of column names.
+            agg (str): Function to aggregate when there is more than one values
+                for each index instance. E.g. ['first', 'last', 'sum', 'mean',
+                'size', 'concat'], default 'concat'.
+            filter_values (pd.Series): The values on the `index` column to
+                filter before performing the groupby-agg operations.
 
         Returns:
             DataFrame: A dataframe to be used for annotation
@@ -236,9 +250,10 @@ class Dataset(object):
 
 
 class Annotatable(ABC):
-    """This abstract class provides an interface for the omics to annotate external data
-    downloaded from various databases. The database will be imported as attributes
-    information to the genes's annotations, or interactions between the genes.
+    """This abstract class provides an interface for the omics to annotate
+    external data downloaded from various databases. The database will be
+    imported as attributes information to the genes's annotations, or
+    interactions between the genes.
     """
     SEQUENCE_COL_NAME = "sequence"
     DISEASE_ASSOCIATIONS_COL = "disease_associations"
@@ -261,8 +276,8 @@ class Annotatable(ABC):
     def initialize_annotations(self, index, gene_list=None):
         """
         Args:
-            gene_list:
             index:
+            gene_list:
         """
         if gene_list is None:
             gene_list = self.get_genes_list()
@@ -274,16 +289,22 @@ class Annotatable(ABC):
                             fuzzy_match: bool = False):
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present
-        in both DataFrames. If there exists overlapping columns from the join, then
-        .fillna() is used to fill NaN values in the old column with non-NaN
+        in both DataFrames. If there exists overlapping columns from the join,
+        then .fillna() is used to fill NaN values in the old column with non-NaN
         values from the new column.
 
         Args:
-            database (openomics.database.Dataset): Database which contains an dataframe.
-            on (str): The column name which exists in both the annotations and Database dataframe to perform the join on.
+            database (Dataset): Database which contains an dataframe.
+            on (str): The column name which exists in both the annotations and
+                Database dataframe to perform the join on.
             columns ([str]): a list of column name to join to the annotation.
-            agg (str): Function to aggregate when there is more than one values for each index instance. E.g. ['first', 'last', 'sum', 'mean', 'concat'], default 'concat'.
-            fuzzy_match (bool): default False. Whether to join the annotation by applying a fuzzy match on the index with difflib.get_close_matches(). It is very computationally expensive and thus should only be used sparingly.
+            agg (str): Function to aggregate when there is more than one values
+                for each index instance. E.g. ['first', 'last', 'sum', 'mean',
+                'concat'], default 'concat'.
+            fuzzy_match (bool): default False. Whether to join the annotation by
+                applying a fuzzy match on the index with
+                difflib.get_close_matches(). It is very computationally
+                expensive and thus should only be used sparingly.
         """
         if not hasattr(self, "annotations"):
             raise Exception("Must run .initialize_annotations() on, ", self.__class__.__name__, " first.")
@@ -351,14 +372,17 @@ class Annotatable(ABC):
                            agg="longest",
                            omic=None,
                            **kwargs):
-        """Annotate a genes list (based on index) with a dictionary of <gene_name: sequence>. If multiple sequences per
-        gene name, then perform some aggregation.
+        """Annotate a genes list (based on index) with a dictionary of
+        <gene_name: sequence>. If multiple sequences per gene name, then perform
+        some aggregation.
 
         Args:
             database (Dataset): The database
             index (str): The gene index column name.
-            agg (str): The aggregation method, one of ["longest", "shortest", or "all"]. Default longest.
-            omic (str): Default None. Declare the omic type to fetch sequences for.
+            agg (str): The aggregation method, one of ["longest", "shortest", or
+                "all"]. Default longest.
+            omic (str): Default None. Declare the omic type to fetch sequences
+                for.
             **kwargs:
         """
         if omic is None:
@@ -378,8 +402,8 @@ class Annotatable(ABC):
                 sequences_entries)
 
     def annotate_expressions(self, database, index, fuzzy_match=False):
-        """
-        Annotate
+        """Annotate :param database: :param index: :param fuzzy_match:
+
         Args:
             database:
             index:
@@ -412,9 +436,10 @@ class Annotatable(ABC):
             database.get_disease_assocs(index=index, ))
 
     def set_index(self, new_index):
-        """ Resets
+        """Resets :param new_index: :type new_index: str
+
         Args:
-            new_index (str):
+            new_index:
         """
         self.annotations[new_index].fillna(self.annotations.index.to_series(),
                                            axis=0,
@@ -423,14 +448,15 @@ class Annotatable(ABC):
 
     def get_rename_dict(self, from_index, to_index):
         """Used to retrieve a lookup dictionary to convert from one index to
-        another, e.g., gene_id to gene_name, obtained from two columns in the data frame.
-
-        Args:
-            from_index (str): an index on the DataFrame for key
-            to_index (str0: an index on the DataFrame for value
+        another, e.g., gene_id to gene_name, obtained from two columns in the
+        data frame.
 
         Returns
             Dict[str, str]: the lookup dictionary.
+
+        Args:
+            from_index (str): an index on the DataFrame for key
+            to_index:
         """
         if self.annotations.index.name in [from_index, to_index]:
             dataframe = self.annotations.reset_index()
