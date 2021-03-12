@@ -21,9 +21,9 @@ jobs:
                     -   os: macos-latest
                         pip_cache: ~/Library/Caches/pip
                         download_cache: ~/.astropy/cache/download/url/
-                    -   os: windows-latest
-                        pip_cache: ~\AppData\Local\pip\Cache
-                        download_cache: ~\.astropy\cache\download\url\
+#                    -   os: windows-latest
+#                        pip_cache: ~\AppData\Local\pip\Cache
+#                        download_cache: ~\.astropy\cache\download\url\
 
         steps:
             -   uses: actions/checkout@v2
