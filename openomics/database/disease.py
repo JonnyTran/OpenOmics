@@ -1,10 +1,10 @@
 from abc import abstractmethod
 
 from openomics.database.annotation import *
-from openomics.database.base import Dataset
+from openomics.database.base import Database
 
 
-class DiseaseAssociation(Dataset):
+class DiseaseAssociation(Database):
     def __init__(self, path, file_resources=None, **kwargs):
         """
         Args:

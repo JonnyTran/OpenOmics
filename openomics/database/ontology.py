@@ -4,11 +4,11 @@ import obonet
 import pandas as pd
 from Bio.UniProt import GOA
 
-from .base import Dataset
+from .base import Database
 from ..utils.df import slice_adj
 
 
-class Ontology(Dataset):
+class Ontology(Database):
     DELIM = "|"
 
     def __init__(self,

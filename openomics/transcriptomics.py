@@ -1,4 +1,7 @@
+from typing import Union, Dict
+import logging
 import io
+import re
 import os
 from glob import glob
 from typing import Union
@@ -38,7 +41,8 @@ class Expression(object):
         transform_fn=None,
         dropna=False,
         npartitions=None,
-        cohort_name=None,
+        prefix=None,
+        **kwargs,
     ):
         """This class handles importing of any quantitative omics data that is
         in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame
@@ -75,16 +79,11 @@ class Expression(object):
             npartitions (int): [0-n], default 0 If 0, then uses a Pandas
                 DataFrame, if >1, then creates an off-memory Dask DataFrame with
                 n partitions
-            cohort_name (str): The unique cohort code name string.
         """
-        self.cohort_name = cohort_name
         self.gene_level = gene_level
         self.sample_level = sample_level
 
-        df = self.load_dataframe(data,
-                                 transpose=transpose,
-                                 usecols=usecols,
-                                 gene_index=gene_index)
+        df = self.load_dataframe(data, transpose=transpose, usecols=usecols, gene_index=gene_index, dropna=dropna,)
         self.expressions = self.preprocess_table(
             df,
             usecols=usecols,
@@ -113,59 +112,46 @@ class Expression(object):
     def gene_index(self):
         return self.expressions.columns.name
 
-    def load_dataframe(self, data: Union[str, pd.DataFrame, dd.DataFrame], transpose: bool, usecols: str,
-                       gene_index: str):
+    def load_dataframe(self, data: Union[str, pd.DataFrame, dd.DataFrame, io.StringIO], transpose: bool, usecols: str,
+                       gene_index: str, dropna: bool):
         """Reading table data inputs to create a DataFrame.
 
         Args:
-            data: either a file path, a glob file path (e.g. "table- *.tsv"), a
+            data: either a file path, a glob file path (e.g. "table-*.tsv"), a
                 pandas.DataFrame, or a dask DataFrame.
             transpose (bool): True if table oriented with samples columns, else
                 False.
             usecols (str): A regex string to select columns. Default None.
             gene_index (str):
+            dropna (bool): Whether to drop rows with null values
         """
         if isinstance(data, pd.DataFrame):
             df = data
-            df = df.reset_index()
+
         elif isinstance(data, dd.DataFrame):
             df = data
-        elif "*" in data:
-            df = self.load_dataframe_glob(data, usecols, gene_index, transpose)
+
+        elif isinstance(data, str) and "*" in data:
+            df = self.load_dataframe_glob(globstring=data, usecols=usecols, gene_index=gene_index, transpose=transpose,
+                                          dropna=dropna)
+            # print(df.head())
+
         elif isinstance(data, io.StringIO):
-            data.seek(
-                0
-            )  # Needed since the file was previous read to extract columns information
+            # Needed since the file was previous read to extract columns information
+            data.seek(0)
             df = pd.read_table(data)
+
         elif isinstance(data, str) and os.path.isfile(data):
             df = pd.read_table(data, sep=None, engine="python")
+
         else:
             raise IOError(data)
 
         # TODO implement handling for multiple file ByteIO
         return df
 
-    def load_dataframe_glob(self, globstring: str, usecols: str, genes_index: str, transpose: bool):
-        # type: (str, str, str, bool) -> dd.DataFrame
-        """
-        Args:
-            globstring (str):
-            usecols (str):
-            genes_index (str):
-            transpose (bool):
-        """
-        lazy_dataframes = []
-        for file_path in glob(globstring):
-            df = delayed(pd.read_table)(file_path, )
-            df = delayed(self.preprocess_table)(df, usecols, genes_index,
-                                                transpose, True)
-            lazy_dataframes.append(df)
-
-        return dd.from_delayed(lazy_dataframes, divisions=None)
-
-    def preprocess_table(
-        self,
-        df: pd.DataFrame,
+    def preprocess_table(self,
+        df: Union[pd.DataFrame, dd.DataFrame],
         usecols: str = None,
         gene_index: str = None,
         transposed: bool = True,
@@ -188,17 +174,26 @@ class Expression(object):
             transposed (bool):
             sort_index (bool):
             dropna (bool):
-
         Returns:
             dataframe: a processed Dask DataFrame
         """
-
         # Filter columns
-        if usecols is not None:
+        if usecols is not None and isinstance(usecols, str):
             if gene_index not in usecols:
-                usecols = (usecols + "|" + gene_index
-                           )  # include index column in the filter regex query
-            df = df.filter(regex=usecols)
+                # include index column in the filter regex query
+                usecols = (usecols + "|" + gene_index)
+
+            if isinstance(df, pd.DataFrame):
+                df = df.filter(regex=usecols)
+            elif isinstance(df, dd.DataFrame):
+                r = re.compile(usecols)
+                columns = list(filter(r.match, df.columns))
+                df = df[columns]
+
+        elif usecols is not None and isinstance(usecols, list):
+            if gene_index not in usecols:
+                usecols.append(gene_index)
+            df =  df[usecols]
 
         # Drop duplicate sample names
         df = drop_duplicate_columns(df)
@@ -207,14 +202,13 @@ class Expression(object):
         if dropna:
             df.dropna(axis=0, inplace=True)
 
-        # Remove entries with unknown geneID
-        if gene_index is not None:
-            df = df[df[gene_index] != "?"]
-            df.set_index(gene_index, inplace=True)
+        if gene_index is not None and df.index.name != gene_index:
+            print(gene_index, "index", df.index.name, "cols", df.columns)
+            df = df.set_index(gene_index)
 
         # Needed for Dask Delayed
         if sort_index is True:
-            df.sort_index(axis=0, ascending=True, inplace=True)
+            df = df.sort_index(axis=0, ascending=True)
 
         # Select only numerical columns
         df = df.select_dtypes(include="number")
@@ -227,6 +221,42 @@ class Expression(object):
         df = drop_duplicate_columns(df)
 
         return df
+
+    def load_dataframe_glob(self, globstring: str, usecols: str, gene_index: str, transpose: bool, dropna: bool):
+        """
+        Args:
+            globstring (str):
+            usecols (str):
+            gene_index (str):
+            transpose (bool):
+        Returns:
+            dd.DataFrame
+        """
+        def convert_numerical_to_float(df:pd.DataFrame):
+            cols = df.columns[~df.dtypes.eq('object')]
+            df[cols] = df[cols].astype(float)
+            return df
+
+        filenames = []
+
+        lazy_dataframes = []
+        for file_path in glob(globstring):
+            filenames.append(os.path.split(file_path)[1])
+
+            df = delayed(pd.read_table)(file_path)
+            # df = delayed(convert_numerical_to_float)(df)
+            df = delayed(self.preprocess_table)(
+                df,
+                usecols,
+                gene_index,
+                transpose,
+                True, # sort_index
+                dropna)
+            lazy_dataframes.append(df)
+
+        logging.info("Files matched: {}".format(filenames))
+
+        return dd.from_delayed(lazy_dataframes, divisions=None, verify_meta=True)
 
     def set_genes_index(self, index: str, old_index: str):
         """

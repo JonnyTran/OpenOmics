@@ -1,29 +1,29 @@
-Dataset
-=======
+Database
+========
 
 .. currentmodule:: openomics.database.base
 
-.. autoclass:: Dataset
+.. autoclass:: Database
    :show-inheritance:
 
    .. rubric:: Attributes Summary
 
    .. autosummary::
 
-      ~Dataset.COLUMNS_RENAME_DICT
+      ~Database.COLUMNS_RENAME_DICT
 
    .. rubric:: Methods Summary
 
    .. autosummary::
 
-      ~Dataset.close
-      ~Dataset.get_annotations
-      ~Dataset.get_expressions
-      ~Dataset.info
-      ~Dataset.list_databases
-      ~Dataset.load_dataframe
-      ~Dataset.name
-      ~Dataset.validate_file_resources
+      ~Database.close
+      ~Database.get_annotations
+      ~Database.get_expressions
+      ~Database.info
+      ~Database.list_databases
+      ~Database.load_dataframe
+      ~Database.name
+      ~Database.validate_file_resources
 
    .. rubric:: Attributes Documentation
 

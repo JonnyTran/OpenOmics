@@ -6,11 +6,11 @@ import networkx as nx
 from Bio import SeqIO
 
 from openomics.database.annotation import *
-from openomics.database.base import Dataset
-from openomics.database.sequence import SequenceDataset
+from openomics.database.base import Database
+from openomics.database.sequence import SequenceDatabase
 
 
-class Interactions(Dataset):
+class Interactions(Database):
     def __init__(self, path, file_resources: Dict, source_col_name: str = None, target_col_name: str = None,
                  source_index: str = None, target_index: str = None, edge_attr: List[str] = None, filters: dict = None,
                  directed: bool = True, relabel_nodes: dict = None, verbose: bool = False):
@@ -207,7 +207,7 @@ class BioGRID(Interactions):
         return network
 
 
-class STRING(Interactions, SequenceDataset):
+class STRING(Interactions, SequenceDatabase):
     COLUMNS_RENAME_DICT = {
         "protein_external_id": "protein_id",
         "preferred_name": "protein_name",
@@ -287,7 +287,7 @@ class STRING(Interactions, SequenceDataset):
         return self.seq_dict
 
 
-class LncBase(Interactions, Dataset):
+class LncBase(Interactions, Database):
     def __init__(self, path, file_resources=None, strip_mirna_name=False,
                  source_col_name="mirna", target_col_name="geneId",
                  source_index="transcript_name", target_index="gene_id",
@@ -493,7 +493,7 @@ class LncRNA2Target(Interactions):
         return lncrna2target_low_throughput_network
 
 
-class lncRNome(Interactions, Dataset):
+class lncRNome(Interactions, Database):
     def __init__(self, path, file_resources, source_col_name='Gene Name', target_col_name='Binding miRNAs',
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=["miRNA Interaction Site", "Transcript ID"], directed=True, relabel_nodes=None,
@@ -636,7 +636,7 @@ class MiRTarBase(Interactions):
         return mir_target_network
 
 
-class TargetScan(Interactions, Dataset):
+class TargetScan(Interactions, Database):
     def __init__(self, path, file_resources=None, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
                  source_index="transcript_name", target_index="transcript_name",
                  edge_attr=["tissue", "positive_negative"], directed=True, relabel_nodes=None, species=9606,

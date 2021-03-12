@@ -9,9 +9,6 @@ This Python package provide a series of tools to integrate and query the genomic
 clinical data (aka, the multi-omics data). With scalable data-frame manipulation tools, OpenOmics facilitates the common
 coding tasks when preparing data for RNA-seq bioinformatics analysis.
 
-- Free software: MIT license
-- Documentation: https://openomics.readthedocs.io.
-
 ## Features
 
 - Provides a bioinformatics workflow to generate integrative results from multi-omics data.
@@ -25,7 +22,7 @@ coding tasks when preparing data for RNA-seq bioinformatics analysis.
 
 ```{toctree}
 :maxdepth: 2
-:caption: Using OpenOmics
+:caption: Using OpenOmics Python API
 :name: mastertoc
 installation
 usage/getting-started
@@ -36,12 +33,7 @@ usage/preprocess-downstream-analysis
 ```
 
 
-```{toctree}
-:maxdepth: 1
-:caption: Contributing and releases
-contributing
-history
-```
+
 
 
 ```{toctree}
@@ -58,3 +50,16 @@ modules/openomics.database.ontology
 modules/openomics.utils
 ```
 
+```{toctree}
+:maxdepth: 1
+:caption: MISC
+
+misc/faq
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Contributing and releases
+contributing
+history
+```
