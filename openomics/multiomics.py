@@ -68,7 +68,7 @@ class MultiOmics:
             omic_data.annotations.index.name,
         )
 
-    def add_clinical_data(self, clinical: openomics.clinical.ClinicalData):
+    def add_clinical_data(self, clinical: openomics.clinical.ClinicalData, **kwargs):
         """ Add a ClinicalData instance to the MultiOmics instance.
 
         Args:
@@ -84,6 +84,8 @@ class MultiOmics:
             self.data["BIOSPECIMENS"] = self.clinical.biospecimen
         if hasattr(self.clinical, "drugs"):
             self.data["DRUGS"] = self.clinical.drugs
+
+        self.build_samples(**kwargs)
 
     def get_omics_list(self):
         return self._omics
@@ -235,7 +237,7 @@ class MultiOmics:
         if hasattr(self, "clinical") and isinstance(self.clinical,
                                                     ClinicalData):
             # Build targets clinical data
-            y = self.get_patients_clinical(matched_samples)
+            y = self.get_sample_attributes(matched_samples)
 
             # Select only samples with certain cancer stage or subtype
             if pathologic_stages:
@@ -262,7 +264,7 @@ class MultiOmics:
 
         return X_multiomics, y
 
-    def get_patients_clinical(self, matched_samples):
+    def get_sample_attributes(self, matched_samples):
         """Fetch patient's clinical data for each given samples barcodes in the
         matched_samples
 
@@ -282,7 +284,7 @@ class MultiOmics:
                 if hasattr(self.data[omic], "shape") else "Didn't import data",
             )
 
-    def annotate_patients(self, dictionary):
+    def annotate_samples(self, dictionary):
         """This function adds a "predicted_subtype" field to the patients
         clinical data. For instance, patients were classified into subtypes
         based on their expression profile using k-means, then, to use this

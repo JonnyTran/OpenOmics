@@ -35,8 +35,13 @@ and "help wanted" is open to whoever wants to implement it.
 ## Write Documentation
 
 OpenOmics could always use more documentation, whether as part of the
-official OpenOmics docs, in docstrings, or even on the web in blog posts,
+[official OpenOmics docs](https://openomics.readthedocs.io/), in docstrings within the API, or even on the web in blog posts,
 articles, and such.
+
+If you'd like to help write RTD documentations, note:
+- Documentation pages are written in markdown using [myst-parser](https://myst-parser.readthedocs.io/en/latest/index.html)
+- The Sphinx theme used is [furo](https://pradyunsg.me/furo/)
+- The autodoc package used is [sphinx-automodapi](https://sphinx-automodapi.readthedocs.io/en/latest/)
 
 ## Submit Feedback
 
