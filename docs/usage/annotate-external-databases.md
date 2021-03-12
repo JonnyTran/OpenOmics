@@ -8,7 +8,7 @@ species and release version. We also pass a dictionary `file_resources`, with ke
 file and value is the suffix of the file download URL.
 
 For example, file_resources={"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz"} will download file
-located at `ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/gencode.v32.long_noncoding_RNAs.gtf.gz`
+located at <ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/gencode.v32.long_noncoding_RNAs.gtf.gz>
 to process the `long_noncoding_RNAs.gtf` file.
 
 Here, we loads both "long_noncoding_RNAs.gtf" and "basic.annotation.gtf" which builds a dataframe of combined
@@ -27,5 +27,19 @@ gencode = GENCODE(path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/
 
 # We also loads Ensembl genes to get list of miRNA gene IDs
 ensembl = EnsemblGenes(biomart='hsapiens_gene_ensembl', npartitions=8, )
+```
+
+## Setting the cache download directory
+The package `astropy` is used to automatically cache downloaded files. It defaults to saving the files at
+`~/.astropy/cache/`, where the cached content is retrieved given the matching URL. To change the path for the cache download file, run:
+
+```python
+import openomics
+
+openomics.set_cache_dir(path="PATH/OF/YOUR/CHOICE/")
+```
+
+```{note}
+Note that this setting doesn't persist across different programming sessions. Ideally, the cache dir should be in one location to minimize automatic FTP downloads, which may cause unnecessary stress on the database server.
 ```
 
