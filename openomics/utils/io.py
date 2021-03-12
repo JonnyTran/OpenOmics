@@ -8,21 +8,21 @@ import dask.dataframe as dd
 import requests
 import sqlalchemy as sa
 import validators
+import astropy
 from astropy.utils import data
 from requests.adapters import HTTPAdapter, Retry
 
 import openomics
 
 
-# @astropy.config.set_temp_cache(openomics.config["cache_dir"])
+@astropy.config.set_temp_cache(openomics.config["cache_dir"])
 def get_pkg_data_filename(dataurl, file):
     """Downloads a remote file given the url, then caches it to the user's home
-    folder. :param dataurl: Url to the download path, excluding the file name
-    :param file: The file path to download
+    folder.
 
     Args:
-        dataurl:
-        file:
+        dataurl: Url to the download path, excluding the file name
+        file: The file path to download
 
     Returns:
         filename (str): A file path on the local file system corresponding to
@@ -37,11 +37,11 @@ def get_pkg_data_filename(dataurl, file):
         logging.info("Fetching file from: {}{}, saving to {}".format(dataurl, file, openomics.config['cache_dir']))
 
         with data.conf.set_temp("dataurl", dataurl), data.conf.set_temp("remote_timeout", 30):
-            return data.get_pkg_data_filename(file, package="openomics", show_progress=True)
+            return data.get_pkg_data_filename(file, package="openomics.database", show_progress=True)
 
     except (URLError, ValueError) as e:
-        raise Exception("Unable to download file at {}. Please try manually downloading the files. Error: {}".format(
-            os.path.join(dataurl, file), e.strerror))
+        raise Exception("Unable to download file at {}. Please try manually downloading the files. \n{}".format(
+            os.path.join(dataurl, file), e))
 
 
 def read_db(path, table, index_col):
@@ -69,9 +69,10 @@ def read_db(path, table, index_col):
 
 
 def mkdirs(outdir):
-    """ Make a directory.
+    """Make a directory.
+
     Args:
-        outdir: directory path.
+        outdir: directory path
     """
     try:
         os.makedirs(outdir)

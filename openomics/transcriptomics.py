@@ -3,6 +3,7 @@ import logging
 import io
 import re
 import os
+import validators
 from glob import glob
 from typing import Union
 
@@ -14,6 +15,7 @@ from dask import delayed
 
 from .database import Annotatable
 from .utils.df import drop_duplicate_columns
+from .utils import get_pkg_data_filename
 
 
 class Expression(object):
@@ -124,6 +126,9 @@ class Expression(object):
             usecols (str): A regex string to select columns. Default None.
             gene_index (str):
             dropna (bool): Whether to drop rows with null values
+
+        Returns:
+            Union[pd.DataFrame, dd.DataFrame]: The preprocessed dataframe.
         """
         if isinstance(data, pd.DataFrame):
             df = data
@@ -132,9 +137,9 @@ class Expression(object):
             df = data
 
         elif isinstance(data, str) and "*" in data:
+            # TODO implement handling for multiple file ByteIO
             df = self.load_dataframe_glob(globstring=data, usecols=usecols, gene_index=gene_index, transpose=transpose,
                                           dropna=dropna)
-            # print(df.head())
 
         elif isinstance(data, io.StringIO):
             # Needed since the file was previous read to extract columns information
@@ -144,10 +149,14 @@ class Expression(object):
         elif isinstance(data, str) and os.path.isfile(data):
             df = pd.read_table(data, sep=None, engine="python")
 
+        elif isinstance(data, str) and validators.url(data):
+            dataurl, filename = os.path.split(data)
+            file = get_pkg_data_filename(dataurl+"/", filename)
+            df = pd.read_table(file)
+
         else:
             raise IOError(data)
 
-        # TODO implement handling for multiple file ByteIO
         return df
 
     def preprocess_table(self,
