@@ -19,15 +19,16 @@ from openomics.utils.df import concat_uniques
 from openomics.utils.io import get_pkg_data_filename
 
 
-class Dataset(object):
-    """This is a class used to instantiate a Dataset given a a set of files from
-    either local files or URLs. When creating a Dataset class, the
+class Database(object):
+    """This is a base class used to instantiate an external Database given a a set
+    of files from either local files or URLs. When creating a Database class, the
     `load_dataframe()` function is called where the file_resources are used to
     load (Pandas or Dask) DataFrames, then performs data wrangling to yield a
     dataframe at `self.data` . This class also provides an interface for -omics
     tables, e.g. `ExpressionData` , to annotate various annotations,
     expressions, sequences, and disease associations.
     """
+
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
 
     def __init__(
@@ -250,10 +251,11 @@ class Dataset(object):
 
 
 class Annotatable(ABC):
-    """This abstract class provides an interface for the omics to annotate
-    external data downloaded from various databases. The database will be
-    imported as attributes information to the genes's annotations, or
-    interactions between the genes.
+    """This abstract class provides an interface for the -omics
+    (:class:`Expression`) to annotate its genes list with the external data
+    downloaded from various databases. The database will be imported as
+    attributes information to the genes's annotations, or interactions between
+    the genes.
     """
     SEQUENCE_COL_NAME = "sequence"
     DISEASE_ASSOCIATIONS_COL = "disease_associations"
@@ -285,7 +287,7 @@ class Annotatable(ABC):
         self.annotations = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_attributes(self, database: Dataset, on: str, columns: List[str], agg: str = "concat",
+    def annotate_attributes(self, database: Database, on: str, columns: List[str], agg: str = "concat",
                             fuzzy_match: bool = False):
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present
@@ -294,7 +296,7 @@ class Annotatable(ABC):
         values from the new column.
 
         Args:
-            database (Dataset): Database which contains an dataframe.
+            database (Database): Database which contains an dataframe.
             on (str): The column name which exists in both the annotations and
                 Database dataframe to perform the join on.
             columns ([str]): a list of column name to join to the annotation.
@@ -377,7 +379,7 @@ class Annotatable(ABC):
         some aggregation.
 
         Args:
-            database (Dataset): The database
+            database (Database): The database
             index (str): The gene index column name.
             agg (str): The aggregation method, one of ["longest", "shortest", or
                 "all"]. Default longest.
@@ -505,3 +507,4 @@ DEFAULT_LIBRARIES = [
     "STRING_PPI"
     "TargetScan"
 ]
+

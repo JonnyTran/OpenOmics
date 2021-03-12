@@ -2,11 +2,9 @@
 
 ## To prepare the data for classification
 
-
 ```python
 # This function selects only patients with patholotic stages "Stage I" and "Stage II"
-X_multiomics, y = luad_data.load_dataframe(modalities=["MessengerRNA", "MicroRNA", "LncRNA"], target=['pathologic_stage'],
-                                     pathologic_stages=['Stage I', 'Stage II'])
+X_multiomics, y = luad_data.load_dataframe(,,
 print(X_multiomics['MessengerRNA'].shape, X_multiomics['MicroRNA'].shape, X_multiomics['LncRNA'].shape, y.shape)
 ```
 

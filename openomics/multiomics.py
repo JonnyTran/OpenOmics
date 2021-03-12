@@ -19,7 +19,7 @@ from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, Expression
 
 class MultiOmics:
     """A data object which holds multiple -omics data for a single clinical cohort."""
-    def __init__(self, cohort_name):
+    def __init__(self, cohort_name, omics_data=None):
         """
 
         Args:
@@ -30,6 +30,10 @@ class MultiOmics:
 
         # This is a data dictionary accessor to retrieve individual -omic data
         self.data = {}
+
+        if omics_data:
+            for omics in omics_data:
+                self.add_omic(omics)
 
     def add_omic(self,
                  omic_data: Expression,

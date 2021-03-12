@@ -1,18 +1,18 @@
-SequenceDataset
-===============
+SequenceDatabase
+================
 
 .. currentmodule:: openomics.database.sequence
 
-.. autoclass:: SequenceDataset
+.. autoclass:: SequenceDatabase
    :show-inheritance:
 
    .. rubric:: Methods Summary
 
    .. autosummary::
 
-      ~SequenceDataset.get_aggregator
-      ~SequenceDataset.get_sequences
-      ~SequenceDataset.read_fasta
+      ~SequenceDatabase.get_aggregator
+      ~SequenceDatabase.get_sequences
+      ~SequenceDatabase.read_fasta
 
    .. rubric:: Methods Documentation
 

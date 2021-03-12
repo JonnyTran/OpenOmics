@@ -8,12 +8,12 @@ from Bio import SeqIO
 
 import openomics
 from openomics.utils.read_gtf import read_gtf
-from .base import Dataset
+from .base import Database
 
 # from gtfparse import read_gtf
 
 
-class SequenceDataset(Dataset):
+class SequenceDatabase(Database):
     """Provides a series of methods to extract sequence data from
     SequenceDataset.
     """
@@ -25,7 +25,7 @@ class SequenceDataset(Dataset):
         """
         self.replace_U2T = replace_U2T
 
-        super(SequenceDataset, self).__init__(**kwargs)
+        super(SequenceDatabase, self).__init__(**kwargs)
 
     @abstractmethod
     def read_fasta(self, fasta_file:str, replace_U2T:bool, npartitions=None):
@@ -79,7 +79,7 @@ class SequenceDataset(Dataset):
         return agg_func
 
 
-class GENCODE(SequenceDataset):
+class GENCODE(SequenceDatabase):
     """Loads the GENCODE database from https://www.gencodegenes.org/ .
 
     Default path: ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/ .
@@ -241,7 +241,7 @@ class GENCODE(SequenceDataset):
         return ensembl_id_to_gene_name
 
 
-class MirBase(SequenceDataset):
+class MirBase(SequenceDatabase):
     def __init__(
         self,
         path="ftp://mirbase.org/pub/mirbase/CURRENT/",

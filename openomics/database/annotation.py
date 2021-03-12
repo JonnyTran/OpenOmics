@@ -4,7 +4,7 @@ from os.path import expanduser
 
 from bioservices import BioMart
 
-from openomics.database.base import Dataset
+from openomics.database.base import Database
 from openomics.utils.df import concat_uniques
 from openomics.utils.io import mkdirs
 
@@ -14,7 +14,7 @@ DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 import pandas as pd
 import dask.dataframe as dd
 
-class TANRIC(Dataset):
+class TANRIC(Database):
     def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
         """
         Args:
@@ -70,7 +70,7 @@ class TANRIC(Dataset):
         return df
 
 
-class ProteinAtlas(Dataset):
+class ProteinAtlas(Database):
     COLUMNS_RENAME_DICT = {
         "Gene": "protein_name",
         "Ensembl": "gene_id",
@@ -125,7 +125,7 @@ class ProteinAtlas(Dataset):
         return expressions
 
 
-class RNAcentral(Dataset):
+class RNAcentral(Database):
     COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
                            'gene symbol': 'gene_name',
                            'external id': 'transcript_id',
@@ -199,7 +199,7 @@ class RNAcentral(Dataset):
         return gene_ids
 
 
-class GTEx(Dataset):
+class GTEx(Database):
     COLUMNS_RENAME_DICT = {
         "Name": "gene_id",
         "Description": "gene_name"
@@ -271,7 +271,7 @@ class GTEx(Dataset):
         return gene_exp_medians
 
 
-class NONCODE(Dataset):
+class NONCODE(Database):
     def __init__(self, path, file_resources=None, col_rename=None, verbose=False, npartitions=None):
         """
         Args:
@@ -399,7 +399,7 @@ class BioMartManager:
         return df
 
 
-class EnsemblGenes(BioMartManager, Dataset):
+class EnsemblGenes(BioMartManager, Database):
     COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
                            'external_gene_name': 'gene_name',
                            'ensembl_transcript_id': 'transcript_id',
