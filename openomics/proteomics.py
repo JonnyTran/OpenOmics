@@ -23,8 +23,7 @@ class Protein(Expression, Annotatable):
         """
         super(Protein, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
                                       gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
-                                      dropna=dropna,
-                                      npartitions=npartitions, cohort_name=cohort_name)
+                                      dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
 
     @classmethod
     def name(cls):

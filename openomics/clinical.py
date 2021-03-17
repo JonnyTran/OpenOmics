@@ -27,11 +27,13 @@ class ClinicalData:
                             'Stage IIA': 'Stage II', 'Stage IIB': 'Stage II',
                             'Stage IIIA': 'Stage III', 'Stage IIIB': 'Stage III'}
 
-    def __init__(self, file_path: Union[str, io.StringIO, pd.DataFrame, dd.DataFrame], patient_index: str,
+    def __init__(self,
+                 file: Union[str, io.StringIO, pd.DataFrame, dd.DataFrame],
+                 patient_index: str,
                  columns: List[str] = None):
         """
         Args:
-            file_path (str, io.StringIO, pd.DataFrame): either a path to the
+            file (str, io.StringIO, pd.DataFrame): either a path to the
                 patients clinical data file, or a DataFrame.
             patient_index (str): the patient's ID column name
             columns (List[str]): default None. Specifies the columns to import,
@@ -43,32 +45,32 @@ class ClinicalData:
         if columns and patient_index not in columns:
             columns.append(patient_index)
 
-        if isinstance(file_path, io.StringIO):
-            file_path.seek(0)  # Needed since the file was previous read to extract columns information
-            self.patient = pd.read_table(file_path,
+        if isinstance(file, io.StringIO):
+            file.seek(0)  # Needed since the file was previous read to extract columns information
+            self.patient = pd.read_table(file,
                                          skiprows=[1, 2],
                                          na_values=["[Not Available]", "[Unknown]", "[Not Applicable]",
                                                     "[Discrepancy]"],
                                          usecols=columns
                                          )
-        elif isinstance(file_path, str) and os.path.exists(file_path):
-            self.patient = pd.read_table(file_path,
+        elif isinstance(file, str) and os.path.isfile(file):
+            self.patient = pd.read_table(file,
                                          skiprows=[1, 2],
                                          na_values=["[Not Available]", "[Unknown]", "[Not Applicable]",
                                                     "[Discrepancy]"],
                                          usecols=columns
                                          )
-        elif isinstance(file_path, (pd.DataFrame, dd.DataFrame)):
-            self.patient = file_path
+        elif isinstance(file, (pd.DataFrame, dd.DataFrame)):
+            self.patient = file
 
-        elif isinstance(file_path, str) and validators.url(file_path):
-            dataurl, filename = os.path.split(file_path)
+        elif isinstance(file, str) and validators.url(file):
+            dataurl, filename = os.path.split(file)
             file = get_pkg_data_filename(dataurl + "/", filename)
             self.patient = pd.read_table(file)
 
 
         else:
-            raise IOError(file_path)
+            raise FileNotFoundError("{}".format(file))
 
         self.patient_barcodes = self.patient[patient_index].tolist()
         self.patient.set_index(patient_index, inplace=True)

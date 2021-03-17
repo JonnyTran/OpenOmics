@@ -7,7 +7,7 @@ from openomics import MultiOmics
 
 from .test_clinical import generate_TCGA_clinical
 
-cohort_folder_path = "tests/data/TCGA_LUAD"
+cohort_folder_path = "tests/data/TCGA_LUAD/"
 
 
 @pytest.fixture

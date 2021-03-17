@@ -32,20 +32,8 @@ class Expression(object):
         indices.
 
     """
-    def __init__(
-        self,
-        data,
-        transpose,
-        gene_index=None,
-        usecols=None,
-        gene_level=None,
-        sample_level="sample_index",
-        transform_fn=None,
-        dropna=False,
-        npartitions=None,
-        prefix=None,
-        **kwargs,
-    ):
+    def __init__(self, data, transpose, gene_index=None, usecols=None, gene_level=None, sample_level="sample_index",
+                 transform_fn=None, dropna=False, npartitions=None, **kwargs):
         """This class handles importing of any quantitative omics data that is
         in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame
         from file with the user-specified columns and genes column name, then
@@ -114,8 +102,12 @@ class Expression(object):
     def gene_index(self):
         return self.expressions.columns.name
 
-    def load_dataframe(self, data: Union[str, pd.DataFrame, dd.DataFrame, io.StringIO], transpose: bool, usecols: str,
-                       gene_index: str, dropna: bool):
+    def load_dataframe(self,
+                       data: Union[str, pd.DataFrame, dd.DataFrame, io.StringIO],
+                       transpose: bool,
+                       usecols: str,
+                       gene_index: str,
+                       dropna: bool):
         """Reading table data inputs to create a DataFrame.
 
         Args:
@@ -124,11 +116,11 @@ class Expression(object):
             transpose (bool): True if table oriented with samples columns, else
                 False.
             usecols (str): A regex string to select columns. Default None.
-            gene_index (str):
+            gene_index (str): The column name what contains the gene names or IDs.
             dropna (bool): Whether to drop rows with null values
 
         Returns:
-            Union[pd.DataFrame, dd.DataFrame]: The preprocessed dataframe.
+            Union[pd.DataFrame, dd.DataFrame]: The loaded dataframe.
         """
         if isinstance(data, (pd.DataFrame, dd.DataFrame)):
             df = data
@@ -152,7 +144,7 @@ class Expression(object):
             df = pd.read_table(file)
 
         else:
-            raise IOError(data)
+            raise FileNotFoundError(data)
 
         return df
 
@@ -181,7 +173,7 @@ class Expression(object):
             sort_index (bool):
             dropna (bool):
         Returns:
-            dataframe: a processed Dask DataFrame
+            Union[pd.DataFrame, dd.DataFrame]: a processed Dask DataFrame
         """
         # Filter columns
         if usecols is not None and isinstance(usecols, str):
@@ -359,18 +351,9 @@ class LncRNA(Expression, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(LncRNA, self).__init__(
-            data=data,
-            transpose=transpose,
-            gene_index=gene_index,
-            usecols=usecols,
-            gene_level=gene_level,
-            sample_level=sample_level,
-            transform_fn=transform_fn,
-            dropna=dropna,
-            npartitions=npartitions,
-            cohort_name=cohort_name,
-        )
+        super(LncRNA, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
+                                     gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
+                                     dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
 
     @classmethod
     def name(cls):
@@ -391,18 +374,9 @@ class MessengerRNA(Expression, Annotatable):
         npartitions=None,
         cohort_name=None,
     ):
-        super(MessengerRNA, self).__init__(
-            data=data,
-            transpose=transpose,
-            gene_index=gene_index,
-            usecols=usecols,
-            gene_level=gene_level,
-            sample_level=sample_level,
-            transform_fn=transform_fn,
-            dropna=dropna,
-            npartitions=npartitions,
-            cohort_name=cohort_name,
-        )
+        super(MessengerRNA, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
+                                           gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
+                                           dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
 
     @classmethod
     def name(cls):
@@ -423,18 +397,9 @@ class MicroRNA(Expression, Annotatable):
         npartitions=None,
         cohort_name=None,
     ):
-        super(MicroRNA, self).__init__(
-            data=data,
-            transpose=transpose,
-            gene_index=gene_index,
-            usecols=usecols,
-            gene_level=gene_level,
-            sample_level=sample_level,
-            transform_fn=transform_fn,
-            dropna=dropna,
-            npartitions=npartitions,
-            cohort_name=cohort_name,
-        )
+        super(MicroRNA, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
+                                       gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
+                                       dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
 
     @classmethod
     def name(cls):
