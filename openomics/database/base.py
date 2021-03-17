@@ -111,11 +111,11 @@ class Database(object):
                     file_resources[filename] = data_file
 
                 elif filepath_ext.extension == "gz":
-                    logging.debug("Uncompressed gzip file at", data_file)
+                    logging.debug("Decompressed gzip file at {}".format(data_file))
                     file_resources[filename] = gzip.open(data_file, "rt")
 
                 elif filepath_ext.extension == "zip":
-                    logging.debug("Uncompressed zip file at", data_file)
+                    logging.debug("Decompressed zip file at {}".format(data_file))
                     zf = zipfile.ZipFile(data_file, "r")
 
                     for subfile in zf.infolist():
@@ -126,7 +126,7 @@ class Database(object):
                                 subfile.filename, mode="r")
 
                 elif filepath_ext.extension == "rar":
-                    logging.debug("Uncompressed rar file at", data_file)
+                    logging.debug("Decompressed rar file at {}".format(data_file))
                     rf = rarfile.RarFile(data_file, "r")
 
                     for subfile in rf.infolist():
@@ -147,7 +147,7 @@ class Database(object):
 
         self.data_path = path
         self.file_resources = file_resources
-        print("file_resources", file_resources)  # TODO: Debugging
+        logging.info("{} file_resources: {}".format(self.name(), file_resources))
 
     def close(self):
         # Close opened file resources
