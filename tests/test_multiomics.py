@@ -1,9 +1,11 @@
 """Tests for `openomics` package."""
 
+import os, pytest
+
 from openomics import MessengerRNA, MicroRNA, LncRNA, Protein, SomaticMutation
 from openomics import MultiOmics
 
-from .test_clinical import *
+from .test_clinical import generate_TCGA_clinical
 
 cohort_folder_path = "tests/data/TCGA_LUAD"
 

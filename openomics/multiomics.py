@@ -74,7 +74,7 @@ class MultiOmics:
         Args:
             clinical (openomics.clinical.ClinicalData):
         """
-        if type(clinical) != ClinicalData:
+        if not isinstance(clinical, ClinicalData):
             raise Exception("Must pass a ClinicalData in, not a file path.")
 
         self.clinical = clinical
@@ -90,8 +90,7 @@ class MultiOmics:
     def get_omics_list(self):
         return self._omics
 
-    def __getitem__(self, item):
-        # type: (str) -> object
+    def __getitem__(self, item:str):
         """This function allows the MultiOmicData class objects to access
         individual omics by a dictionary lookup, e.g. openomics["MicroRNA"]
 

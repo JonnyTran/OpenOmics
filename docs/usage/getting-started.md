@@ -128,7 +128,7 @@ print(mrna.expressions)
 
 ## Creating a multi-omics dataset
 
-With multiple single-omics, each with different sets of genes and samples, you can use the {class}`MultiOmics` to integrate them.
+With multiple single-omics, each with different sets of genes and samples, you can use the {class}`openomics.MultiOmics` to integrate them.
 
 ```{code-block} python
 from openomics.multiomics import MessengerRNA, MicroRNA, LncRNA, SomaticMutation, Protein
@@ -363,7 +363,7 @@ gencode.data
 <br/>
 
 ## Annotate your expression dataset with attributes
-With the annotation database, you can perform a join operation to add attributes to you dataset. To annotate attributes for the `gene_id` list in `mRNA.expression.columns`, we can identify the corresponding `gencode.data` column name with matching keys, typically `gene_id` or `gene_name`. The following are code snippets for a variety of database types.
+With the annotation database, you can perform a join operation to add gene attributes to your {class}`openomics.transcriptomics.Expression` dataset. To annotate attributes for the `gene_id` list `mRNA.expression`, you must first select the corresponding column in `gencode.data` with matching `gene_id` keys. The following are code snippets for a variety of database types.
 
 ````{tab} Genomics attributes
 ```python
