@@ -10,7 +10,7 @@
 
 This Python package provide a series of tools to integrate and query the genomics, transcriptomics, proteomics, and
 clinical data (aka multi-omics data). With scalable data-frame manipulation tools, OpenOmics facilitates the common
-coding tasks when preparing data for RNA-seq bioinformatics analysis.
+data wrangling tasks when preparing data for RNA-seq bioinformatics analysis.
 
 Documentation ([Latest](https://openomics.readthedocs.io/en/latest/)
 | [Stable](https://openomics.readthedocs.io/en/stable/))
@@ -27,10 +27,8 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 - Providing a standard pipeline for dataset indexing, table joining and querying, which are transparent and customizable
   for end-users.
 - Providing Efficient disk storage for large multi-omics dataset with Parquet data structures.
-- Integrating various data types including interactions and sequence data, then exporting to NetworkX graphs or data
-  generators for down-stream machine learning.
-- Accessible by both developers and scientists with a Python API that works seamlessly with external Galaxy tool
-  interface or the built-in Dash web interface (WIP).
+- Integrating various data types including interactions and sequence data, then exporting to NetworkX graphs or data generators for down-stream machine learning.
+- Accessible by both developers and scientists with a Python API that works seamlessly with an external Galaxy tool interface or the built-in Dash web interface (WIP).
 
 
 ## Installation via pip:
