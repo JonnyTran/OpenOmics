@@ -151,11 +151,12 @@ class MultiOmics:
         Args:
             agg_by (str): ["union", "intersection"]
         """
-        if len(self._omics
-               ) < 1:  # make sure at least one ExpressionData present
-            print(
+        # make sure at least one ExpressionData present
+        if len(self._omics) < 1:
+            logging.debug(
                 "build_samples() does nothing. Must add at least one omic to this MultiOmics object."
             )
+            return
 
         all_samples = pd.Index([])
         for omic in self._omics:
