@@ -130,10 +130,7 @@ class Expression(object):
         Returns:
             Union[pd.DataFrame, dd.DataFrame]: The preprocessed dataframe.
         """
-        if isinstance(data, pd.DataFrame):
-            df = data
-
-        elif isinstance(data, dd.DataFrame):
+        if isinstance(data, (pd.DataFrame, dd.DataFrame)):
             df = data
 
         elif isinstance(data, str) and "*" in data:
