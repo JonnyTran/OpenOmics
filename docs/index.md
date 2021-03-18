@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
 [![Documentation Status](https://readthedocs.org/projects/openomics/badge/?version=latest)](https://openomics.readthedocs.io/en/latest/?badge=latest)
 [![OpenOmics](https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml/badge.svg?branch=master)](https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml)
-[![codecov](https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg)](https://codecov.io/gh/JonnyTran/OpenOmics)
+[![codecov](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg?token=WAN3PJwM42)](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics)
 
 This Python package provide a series of tools to integrate and query the genomics, transcriptomics, proteomics, and
 clinical data (aka, the multi-omics data). With scalable data-frame manipulation tools, OpenOmics facilitates the common
