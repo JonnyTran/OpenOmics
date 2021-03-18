@@ -15,7 +15,7 @@ print(X_multiomics['MessengerRNA'].shape,
 
 
 ```python
-y
+print(y)
 ```
 
 
