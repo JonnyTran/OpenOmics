@@ -52,7 +52,7 @@ with open('README.md') as readme_file:
 
 # Package meta-data.
 NAME = 'openomics'
-version='0.8.6'
+version='0.8.7'
 DESCRIPTION = 'OpenOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.'
 URL = 'https://github.com/BioMeCIS-Lab/OpenOmics'
 EMAIL = 'nhat.tran@mavs.uta.edu'
