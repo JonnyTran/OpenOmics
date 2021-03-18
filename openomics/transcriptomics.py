@@ -74,6 +74,7 @@ class Expression(object):
         self.sample_level = sample_level
 
         df = self.load_dataframe(data, transpose=transpose, usecols=usecols, gene_index=gene_index, dropna=dropna,)
+
         self.expressions = self.preprocess_table(
             df,
             usecols=usecols,
@@ -201,7 +202,6 @@ class Expression(object):
             df.dropna(axis=0, inplace=True)
 
         if gene_index is not None and df.index.name != gene_index:
-            print(gene_index, "index", df.index.name, "cols", df.columns)
             df = df.set_index(gene_index)
 
         # Needed for Dask Delayed
