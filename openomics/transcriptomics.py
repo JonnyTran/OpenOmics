@@ -173,6 +173,7 @@ class Expression(object):
             transposed (bool):
             sort_index (bool):
             dropna (bool):
+
         Returns:
             Union[pd.DataFrame, dd.DataFrame]: a processed Dask DataFrame
         """
@@ -194,7 +195,7 @@ class Expression(object):
                 usecols.append(gene_index)
             df =  df[usecols]
 
-        # Drop duplicate sample names
+        # Drop duplicate column names
         df = drop_duplicate_columns(df)
 
         # Drop NA geneID rows
@@ -214,9 +215,8 @@ class Expression(object):
         # Transpose dataframe to sample rows and gene columns
         if transposed:
             df = df.T
-
-        # Drop duplicate genes
-        df = drop_duplicate_columns(df)
+            # Drop duplicate genes
+            df = drop_duplicate_columns(df)
 
         return df
 
