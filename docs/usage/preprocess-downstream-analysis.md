@@ -3,7 +3,7 @@
 ## To prepare the data for classification
 
 ```python
-X_multiomics, y = luad_data.load_data(omics="all", remove_duplicates=True)
+X_multiomics, y = luad_data.load_data(omics="all", target=["pathologic_stage"], remove_duplicates=True)
 
 print(X_multiomics['MessengerRNA'].shape,
       X_multiomics['MicroRNA'].shape,
@@ -11,7 +11,7 @@ print(X_multiomics['MessengerRNA'].shape,
       y.shape)
 ```
 
-    (338, 20472) (338, 1870) (338, 12727) (338, 1)
+> (338, 20472) (338, 1870) (338, 12727) (338, 1)
 
 
 ```python
