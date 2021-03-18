@@ -44,15 +44,34 @@ luad_data.build_samples()
 
 Each data is stored as a Pandas DataFrame. Below are all the data imported for TCGA LUAD. For each, the first number represents the number of samples, the second number is the number of features.
 
-    PATIENTS (522, 5)
-    SAMPLES (1160, 6)
-    DRUGS (461, 4)
-    MessengerRNA (576, 20472)
-    SomaticMutation (587, 21070)
-    MicroRNA (494, 1870)
-    LncRNA (546, 12727)
-    Protein (364, 154)
+> PATIENTS (522, 5)
+  SAMPLES (1160, 6)
+  DRUGS (461, 4)
+  MessengerRNA (576, 20472)
+  SomaticMutation (587, 21070)
+  MicroRNA (494, 1870)
+  LncRNA (546, 12727)
+  Protein (364, 154)
 
+You may notice that in this dataset, the samples index (e.g. TCGA-XX-XXXX) across different omics does not match. It may
+be necessary to change them to be 12 characters in total.
+
+```python
+lncRNA.expressions.index = lncRNA.expressions.index.str.slice(-12, )
+miRNA.expressions.index = miRNA.expressions.index.str.slice(0, 12)
+mRNA.expressions.index = mRNA.expressions.index.str.slice(0, 12)
+som.expressions.index = som.expressions.index.str.slice(0, 12)
+pro.expressions.index = pro.expressions.index.str.slice(0, 12)
+
+luad_data.build_samples()
+luad_data.samples
+```
+> Index(['TCGA-05-4244', 'TCGA-05-4249', 'TCGA-05-4250', 'TCGA-05-4382',
+    'TCGA-05-4384', 'TCGA-05-4389', 'TCGA-05-4390', 'TCGA-05-4395',
+    'TCGA-05-4396', 'TCGA-05-4397', ...
+    'TCGA-NJ-A4YG', 'TCGA-NJ-A4YI', 'TCGA-NJ-A4YP', 'TCGA-NJ-A4YQ',
+    'TCGA-NJ-A55A', 'TCGA-NJ-A55O', 'TCGA-NJ-A55R', 'TCGA-NJ-A7XG',
+    'TCGA-O1-A52J', 'TCGA-S2-AA1A'], dtype='object', length=952)
 
 ## Load single omics expressions for MessengerRNA, MicroRNA, LncRNA
 
