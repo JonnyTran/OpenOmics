@@ -3,12 +3,15 @@
 ## To prepare the data for classification
 
 ```python
-# This function selects only patients with patholotic stages "Stage I" and "Stage II"
-X_multiomics, y = luad_data.load_dataframe(,,
-print(X_multiomics['MessengerRNA'].shape, X_multiomics['MicroRNA'].shape, X_multiomics['LncRNA'].shape, y.shape)
+X_multiomics, y = luad_data.load_data(omics="all", remove_duplicates=True)
+
+print(X_multiomics['MessengerRNA'].shape,
+      X_multiomics['MicroRNA'].shape,
+      X_multiomics['LncRNA'].shape,
+      y.shape)
 ```
 
-    (336, 20472) (336, 1870) (336, 12727) (336, 1)
+    (338, 20472) (338, 1870) (338, 12727) (338, 1)
 
 
 ```python

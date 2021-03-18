@@ -18,12 +18,14 @@ from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, Expression
 
 
 class MultiOmics:
-    """A data object which holds multiple -omics data for a single clinical cohort."""
+    """A data object which holds multiple -omics data for a single clinical
+    cohort.
+    """
     def __init__(self, cohort_name, omics_data=None):
         """
-
         Args:
             cohort_name (str): the clinical cohort name
+            omics_data:
         """
         self._cohort_name = cohort_name
         self._omics = []
@@ -61,18 +63,17 @@ class MultiOmics:
                                              gene_list=None)
 
         logging.info(
-            omic_data.name(),
-            self.data[omic_data.name()].shape if hasattr(
-                self.data[omic_data.name()], "shape") else ": None",
-            ", indexed by:",
-            omic_data.annotations.index.name,
-        )
+            "{} {} , indexed by: {}".format(omic_data.name(),
+                                            self.data[omic_data.name()].shape if hasattr(
+                                                self.data[omic_data.name()], "shape") else ": None",
+                                            omic_data.annotations.index.name))
 
     def add_clinical_data(self, clinical: openomics.clinical.ClinicalData, **kwargs):
-        """ Add a ClinicalData instance to the MultiOmics instance.
+        """Add a ClinicalData instance to the MultiOmics instance.
 
         Args:
             clinical (openomics.clinical.ClinicalData):
+            **kwargs:
         """
         if not isinstance(clinical, ClinicalData):
             raise Exception("Must pass a ClinicalData in, not a file path.")
@@ -124,7 +125,10 @@ class MultiOmics:
         elif item.lower() == "patients":
             return self.clinical.patient
         elif item.lower() == "samples":
-            return self.clinical.samples
+            if hasattr(self, "clinical"):
+                return self.clinical.samples
+            else:
+                return self.samples
         elif item.lower() == "drugs":
             return self.clinical.drugs
         else:
@@ -166,15 +170,15 @@ class MultiOmics:
 
         if hasattr(self, "clinical"):
             self.clinical.build_clinical_samples(all_samples)
-            self.data["SAMPLES"] = self.clinical.samples.index
+            self.samples = self.clinical.samples.index
         else:
-            self.data["SAMPLES"] = all_samples
+            self.samples = all_samples
 
     def __dir__(self):
         return list(self.data.keys())
 
     def match_samples(self, omics) -> pd.Index:
-        """Return the index of bcr_sample_barcodes of the intersection of
+        """Return the index of sample IDs of the intersection of
         samples from all modalities
 
         Args:
@@ -192,18 +196,17 @@ class MultiOmics:
 
         return matched_samples
 
-    def load_data(
-        self,
-        omics,
-        target=["pathologic_stage"],
-        pathologic_stages=None,
-        histological_subtypes=None,
-        predicted_subtypes=None,
-        tumor_normal=None,
-        samples_barcode=None,
-    ):
-        # type: (Union[List[str], str], List[str], List[str], List[str], List[str], List[str], List[str]) -> (Dict[str, pd.DataFrame], pd.DataFrame)
-        """
+    def load_data(self,
+                  omics: Union[List[str], str],
+                  target: List[str] = ["pathologic_stage"],
+                  pathologic_stages=None,
+                  histological_subtypes=None,
+                  predicted_subtypes=None,
+                  tumor_normal=None,
+                  samples_barcode=None,
+                  remove_duplicates=True):
+        """ Prepare the multiomics data in format
+
         Args:
             omics (list): A list of the data modalities to load. Default "all"
                 to select all modalities
@@ -221,10 +224,12 @@ class MultiOmics:
                 tumor or normal sample types.
             samples_barcode: A list of sample's barcode. If not None, only fetch
                 data with matching samples provided in this list.
+            remove_duplicates (bool): If True, only selects samples with non-duplicated index.
 
         Returns:
-            (X, y): Returns X, a dictionary containing the multiomics data that
-            have data
+            Tuple[Dict[str, pd.DataFrame], pd.DataFrame]: Returns (X, y), where
+            X is a dictionary containing the multiomics data with matched
+            samples, and y contain the :param target: labels for those samples.
         """
         if omics == "all" or omics is None:
             omics = self._omics
@@ -259,8 +264,10 @@ class MultiOmics:
         # Build expression matrix for each omic, indexed by matched_samples
         X_multiomics = {}
         for omic in omics:
-            X_multiomics[omic] = self.data[omic].loc[
-                matched_samples, self[omic].get_genes_list()]
+            X_multiomics[omic] = self.data[omic].loc[matched_samples, self[omic].get_genes_list()]
+
+            if remove_duplicates:
+                X_multiomics[omic] = X_multiomics[omic].loc[~X_multiomics[omic].index.duplicated(keep="first")]
 
         return X_multiomics, y
 
@@ -281,7 +288,7 @@ class MultiOmics:
             print(
                 omic,
                 self.data[omic].shape
-                if hasattr(self.data[omic], "shape") else "Didn't import data",
+                if hasattr(self.data[omic], "shape") else "None",
             )
 
     def annotate_samples(self, dictionary):
@@ -290,11 +297,11 @@ class MultiOmics:
         based on their expression profile using k-means, then, to use this
         function, do:
 
-        annotate_patients(dict(zip(patient index>, <list of corresponding patient's subtypes>)))
+        annotate_patients(dict(zip(patient index>, <list of corresponding
+        patient's subtypes>)))
 
         Adding a field to the patients clinical data allows openomics to
-        query the patients data through the .load_data(subtypes=[])
-        parameter,
+        query the patients data through the .load_data(subtypes=[]) parameter,
 
         Args:
             dictionary: A dictionary mapping patient's index to a subtype
