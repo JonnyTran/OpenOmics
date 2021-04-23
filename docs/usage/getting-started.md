@@ -131,7 +131,7 @@ print(mrna.expressions)
 With multiple single-omics, each with different sets of genes and samples, you can use the {class}`openomics.MultiOmics` to integrate them.
 
 ```{code-block} python
-from openomics.multiomics import MessengerRNA, MicroRNA, LncRNA, SomaticMutation, Protein
+from openomics.multiomics import MultiOmics, MessengerRNA, MicroRNA, LncRNA, SomaticMutation, Protein
 
 path = "https://raw.githubusercontent.com/BioMeCIS-Lab/OpenOmics/master/tests/data/TCGA_LUAD/"
 
