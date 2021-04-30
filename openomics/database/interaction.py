@@ -140,6 +140,15 @@ class Interactions(Database):
 
 
 class GeneMania(Interactions):
+    """Loads the GeneMania database from  .
+
+    Default path: local_directory .
+    Default file_resources: {
+        "COMBINED.DEFAULT_NETWORKS.BP_COMBINING.txt": "COMBINED.DEFAULT_NETWORKS.BP_COMBINING.txt",
+        "identifier_mappings.txt": "identifier_mappings.txt",
+    }
+    """
+
     def __init__(self, path, file_resources=None, source_col_name="Gene_A", target_col_name="Gene_B",
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=None, filters=None, directed=True, relabel_nodes=None):
@@ -175,6 +184,14 @@ class GeneMania(Interactions):
 
 
 class BioGRID(Interactions):
+    """Loads the BioGRID database from https://thebiogrid.org .
+
+    Default path: "https://downloads.thebiogrid.org/Download/BioGRID/Latest-Release/" .
+    Default file_resources: {
+        "BIOGRID-ALL-LATEST.tab2.zip": "BIOGRID-ALL-LATEST.tab2.zip",
+    }
+    """
+
     def __init__(self, path="https://downloads.thebiogrid.org/Download/BioGRID/Latest-Release/",
                  file_resources=None, source_col_name="Official Symbol Interactor A",
                  target_col_name="Official Symbol Interactor B",
@@ -208,6 +225,16 @@ class BioGRID(Interactions):
 
 
 class STRING(Interactions, SequenceDatabase):
+    """Loads the STRING database from https://string-db.org/ .
+
+    Default path: "https://stringdb-static.org/download/" .
+    Default file_resources: {
+        "protein.actions.txt": f"protein.actions.v11.0/{species_id}.protein.actions.v11.0.txt.gz",
+        "protein.links.txt": f"protein.links.v11.0/{species_id}.protein.links.v11.0.txt.gz",
+        "protein.info.txt": f"protein.info.v11.0/{species_id}.protein.info.v11.0.txt.gz",
+        "protein.sequences.fa": f"protein.sequences.v11.0/{species_id}.protein.sequences.v11.0.fa.gz"
+    }
+    """
     COLUMNS_RENAME_DICT = {
         "protein_external_id": "protein_id",
         "preferred_name": "protein_name",
@@ -288,6 +315,14 @@ class STRING(Interactions, SequenceDatabase):
 
 
 class LncBase(Interactions, Database):
+    """Loads the LncBase database from http://carolina.imis.athena-innovation.gr/diana_tools/web/index.php?r=lncbasev2%2Findex .
+
+    Default path: local_directory .
+    Default file_resources: {
+        "LncBasev2_download.csv": "LncBasev2_download.csv"",
+    }
+    """
+
     def __init__(self, path, file_resources=None, strip_mirna_name=False,
                  source_col_name="mirna", target_col_name="geneId",
                  source_index="transcript_name", target_index="gene_id",
@@ -335,7 +370,15 @@ class LncBase(Interactions, Database):
 
 
 class LncReg(Interactions):
+    """Loads the  database from  .
 
+    Default path:  .
+    Default file_resources: {
+        "": "",
+        "": "",
+        "": "",
+    }
+    """
     def __init__(self, path, file_resources,
                  source_col_name='A_name_in_paper', target_col_name='B_name_in_paper',
                  source_index="transcript_name", target_index="gene_name",
@@ -370,7 +413,15 @@ class LncReg(Interactions):
 
 
 class lncRInter(Interactions):
+    """Loads the  database from  .
 
+    Default path:  .
+    Default file_resources: {
+        "": "",
+        "": "",
+        "": "",
+    }
+    """
     def __init__(self, path, file_resources=None, source_col_name="lncrna",
                  target_col_name='Interacting partner',
                  source_index="gene_name", target_index="gene_name",
@@ -414,6 +465,16 @@ class lncRInter(Interactions):
 
 
 class LncRNA2Target(Interactions):
+    """Loads the  database from  .
+
+            Default path:  .
+            Default file_resources: {
+                "": "",
+                "": "",
+                "": "",
+            }
+            """
+
     def __init__(self, path="http://123.59.132.21/lncrna2target/data/", file_resources=None, source_index="gene_name",
                  target_index="gene_name", edge_attr=None, filters={"species_id": 9606, "Species": "Homo sapiens"},
                  directed=True, relabel_nodes=None, version="high_throughput", ):
@@ -494,6 +555,16 @@ class LncRNA2Target(Interactions):
 
 
 class lncRNome(Interactions, Database):
+    """Loads the lncRNome database from  .
+
+    Default path:  .
+    Default file_resources: {
+        "": "",
+        "": "",
+        "": "",
+    }
+    """
+
     def __init__(self, path, file_resources, source_col_name='Gene Name', target_col_name='Binding miRNAs',
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=["miRNA Interaction Site", "Transcript ID"], directed=True, relabel_nodes=None,
@@ -528,7 +599,13 @@ class lncRNome(Interactions, Database):
 
 
 class NPInter(Interactions):
+    """Loads the NPInter database from http://bigdata.ibp.ac.cn/npinter4/ .
 
+    Default path: "http://bigdata.ibp.ac.cn/npinter4/download/" .
+    Default file_resources: {
+        "interaction_NPInterv4.expr.txt": "file/interaction_NPInterv4.expr.txt.gz",
+    }
+    """
     def __init__(self, path="http://bigdata.ibp.ac.cn/npinter4/download/", file_resources=None,
                  source_col_name='ncName', target_col_name='tarName',
                  source_index="gene_name", target_index="gene_name",
@@ -568,7 +645,15 @@ class NPInter(Interactions):
 
 
 class StarBase(Interactions):
+    """Loads the  database from  .
 
+    Default path:  .
+    Default file_resources: {
+        "": "",
+        "": "",
+        "": "",
+    }
+    """
     def __init__(self, path, file_resources, source_col_name="geneName", target_col_name="pairGeneName",
                  source_index="gene_name", target_index="gene_name",
                  min_interactionNum=1, min_expNum=1,
@@ -600,6 +685,16 @@ class StarBase(Interactions):
 
 
 class MiRTarBase(Interactions):
+    """Loads the  database from  .
+
+            Default path:  .
+            Default file_resources: {
+                "": "",
+                "": "",
+                "": "",
+            }
+            """
+
     def __init__(self, path="http://mirtarbase.mbc.nctu.edu.tw/cache/download/7.0/", file_resources=None,
                  source_col_name="miRNA", target_col_name="Target Gene",
                  source_index="transcript_name", target_index="gene_name",
@@ -637,7 +732,18 @@ class MiRTarBase(Interactions):
 
 
 class TargetScan(Interactions, Database):
-    def __init__(self, path, file_resources=None, source_col_name="MiRBase ID", target_col_name="Gene Symbol",
+    """Loads the TargetScan database from "http://www.targetscan.org/" .
+
+    Default path: "http://www.targetscan.org/vert_72/vert_72_data_download/" .
+    Default file_resources: {
+        "miR_Family_Info.txt": "miR_Family_Info.txt.zip",
+        "Predicted_Targets_Info.default_predictions.txt": "Predicted_Targets_Info.default_predictions.txt.zip",
+        "": "",
+    }
+    """
+
+    def __init__(self, path="http://www.targetscan.org/vert_72/vert_72_data_download/", file_resources=None,
+                 source_col_name="MiRBase ID", target_col_name="Gene Symbol",
                  source_index="transcript_name", target_index="transcript_name",
                  edge_attr=["tissue", "positive_negative"], directed=True, relabel_nodes=None, species=9606,
                  strip_mirna_name=False):
@@ -647,7 +753,7 @@ class TargetScan(Interactions, Database):
         self.species = species
         if file_resources is None:
             file_resources = {}
-            file_resources["miR_Family_Info.txt"] = os.path.join(path, "miR_Family_Info.txt")
+            file_resources["miR_Family_Info.txt"] = os.path.join(path, "miR_Family_Info.txt.zip")
             file_resources["Predicted_Targets_Info.default_predictions.txt"] = os.path.join(path,
                                                                                             "Predicted_Targets_Info.default_predictions.txt")
 
