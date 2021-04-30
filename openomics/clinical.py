@@ -1,10 +1,11 @@
-import validators
 import io
 import os
 from typing import List, Union
 
 import dask.dataframe as dd
 import pandas as pd
+import validators
+
 from .utils import get_pkg_data_filename
 
 BCR_PATIENT_BARCODE_COL = "bcr_patient_barcode"
@@ -45,7 +46,10 @@ class ClinicalData:
         if columns and patient_index not in columns:
             columns.append(patient_index)
 
-        if isinstance(file, io.StringIO):
+        if isinstance(file, (pd.DataFrame, dd.DataFrame)):
+            self.patient = file
+
+        elif isinstance(file, io.StringIO):
             file.seek(0)  # Needed since the file was previous read to extract columns information
             self.patient = pd.read_table(file,
                                          skiprows=[1, 2],
@@ -53,6 +57,13 @@ class ClinicalData:
                                                     "[Discrepancy]"],
                                          usecols=columns
                                          )
+
+        elif isinstance(file, str) and validators.url(file):
+            dataurl, filename = os.path.split(file)
+            file = get_pkg_data_filename(dataurl + "/", filename)
+            self.patient = pd.read_table(file)
+
+
         elif isinstance(file, str) and os.path.isfile(file):
             self.patient = pd.read_table(file,
                                          skiprows=[1, 2],
@@ -60,14 +71,6 @@ class ClinicalData:
                                                     "[Discrepancy]"],
                                          usecols=columns
                                          )
-        elif isinstance(file, (pd.DataFrame, dd.DataFrame)):
-            self.patient = file
-
-        elif isinstance(file, str) and validators.url(file):
-            dataurl, filename = os.path.split(file)
-            file = get_pkg_data_filename(dataurl + "/", filename)
-            self.patient = pd.read_table(file)
-
 
         else:
             raise FileNotFoundError("{}".format(file))
