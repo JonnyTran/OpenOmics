@@ -44,18 +44,20 @@ $ pip install openomics
 The journal paper for this scientific package is currently being reviewed. In the meanwhile, the current package version can be cited with:
 
     # BibTeX
-    @software{nhat_jonny_tran_2021_4552831,
+    @software{nhat_tran_2021_4731011,
       author       = {Nhat Tran and
                       Jean Gao},
-      title        = {{BioMeCIS-Lab/OpenOmics: Bug fixes from pyOpenSci
-                       Reviewer 2}},
-      month        = feb,
+      title        = {{OpenOmics: A bioinformatics API and web-app to 
+                       integrate multi-omics datasets and interface with
+                       public databases.}},
+      month        = apr,
       year         = 2021,
       publisher    = {Zenodo},
-      version      = {v0.8.5},
-      doi          = {10.5281/zenodo.4552831},
-      url          = {https://doi.org/10.5281/zenodo.4552831}
+      version      = {v0.8.8},
+      doi          = {10.5281/zenodo.4731011},
+      url          = {https://doi.org/10.5281/zenodo.4731011}
     }
+
 
 ## Credits
 
