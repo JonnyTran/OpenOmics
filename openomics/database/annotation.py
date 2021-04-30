@@ -71,6 +71,15 @@ class TANRIC(Database):
 
 
 class ProteinAtlas(Database):
+    """Loads the  database from  .
+
+        Default path:  .
+        Default file_resources: {
+            "": "",
+            "": "",
+            "": "",
+        }
+        """
     COLUMNS_RENAME_DICT = {
         "Gene": "protein_name",
         "Ensembl": "gene_id",
@@ -126,6 +135,15 @@ class ProteinAtlas(Database):
 
 
 class RNAcentral(Database):
+    """Loads the RNAcentral database from https://rnacentral.org/ .
+
+        Default path: ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/ .
+        Default file_resources: {
+            "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
+            "database_mappings/gencode.tsv": "id_mapping/database_mappings/gencode.tsv",
+            "database_mappings/mirbase.tsv": "id_mapping/database_mappings/mirbase.tsv",
+        }
+    """
     COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
                            'gene symbol': 'gene_name',
                            'external id': 'transcript_id',
@@ -200,6 +218,15 @@ class RNAcentral(Database):
 
 
 class GTEx(Database):
+    """Loads the  database from https://www.gtexportal.org/home/ .
+
+    Default path: "https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/" .
+    Default file_resources: {
+        "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct": "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz",
+        "GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt": "https://storage.googleapis.com/gtex_analysis_v8/annotations/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt",
+        "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct": "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz",
+    }
+    """
     COLUMNS_RENAME_DICT = {
         "Name": "gene_id",
         "Description": "gene_name"
@@ -272,7 +299,18 @@ class GTEx(Database):
 
 
 class NONCODE(Database):
-    def __init__(self, path, file_resources=None, col_rename=None, verbose=False, npartitions=None):
+    """Loads the NONCODE database from http://noncode.org .
+
+    Default path: "http://www.noncode.org/datadownload" .
+    Default file_resources: {
+        "NONCODEv6_human.fa": "NONCODEv6_human.fa.gz",
+        "": "",
+        "": "",
+    }
+    """
+
+    def __init__(self, path="http://www.noncode.org/datadownload", file_resources=None, col_rename=None, verbose=False,
+                 npartitions=None):
         """
         Args:
             path:
@@ -322,6 +360,10 @@ class NONCODE(Database):
 
 
 class BioMartManager:
+    """
+    A base class with functions to query Ensembl Biomarts "https://www.ensembl.org/biomart".
+    """
+
     def __init__(self, dataset, attributes, host, filename):
         """
         Args:

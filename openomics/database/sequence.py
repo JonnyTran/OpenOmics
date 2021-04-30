@@ -1,6 +1,6 @@
-from typing import Union
 import logging
 from abc import abstractmethod
+from typing import Union
 
 import dask.dataframe as dd
 import pandas as pd
@@ -9,6 +9,7 @@ from Bio import SeqIO
 import openomics
 from openomics.utils.read_gtf import read_gtf
 from .base import Database
+
 
 # from gtfparse import read_gtf
 
@@ -242,13 +243,24 @@ class GENCODE(SequenceDatabase):
 
 
 class MirBase(SequenceDatabase):
+    """Loads the MirBase database from https://mirbase.org .
+
+    Default path: "ftp://mirbase.org/pub/mirbase/CURRENT/" .
+    Default file_resources: {
+        "aliases.txt": "aliases.txt.gz",
+        "mature.fa": "mature.fa.gz",
+        "hairpin.fa": "hairpin.fa.gz",
+        "rnacentral.mirbase.tsv": "ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/id_mapping/database_mappings/mirbase.tsv",
+    }
+    """
+
     def __init__(
         self,
         path="ftp://mirbase.org/pub/mirbase/CURRENT/",
         file_resources=None,
-        sequence:str="hairpin",
-        species:str="Homo sapiens",
-        species_id:str=9606,
+        sequence: str = "hairpin",
+        species: str = "Homo sapiens",
+        species_id: str = 9606,
         col_rename=None,
         npartitions=0,
         replace_U2T=True,

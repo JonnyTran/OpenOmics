@@ -28,6 +28,13 @@ class OMIM(DiseaseAssociation):
 
 
 class MalaCards(DiseaseAssociation):
+    """Loads the MalaCards database from "http://zdzlab.einstein.yu.edu/1/hedd/" .
+
+    Default path: "http://zdzlab.einstein.yu.edu/1/hedd/" .
+    Default file_resources: {
+        "MalaCards.csv": "download.action.php?filename=DataDownload/MalaCards.csv",
+    }
+    """
     COLUMNS_RENAME_DICT = {"geneSymbol": "gene_name", "maladyMainName": "disease_associations"}
 
     def __init__(self, path="http://zdzlab.einstein.yu.edu/1/hedd/", file_resources=None,
@@ -57,6 +64,15 @@ class MalaCards(DiseaseAssociation):
 
 
 class DisGeNet(DiseaseAssociation):
+    """Loads the  database from  .
+
+    Default path:  .
+    Default file_resources: {
+        "": "",
+        "": "",
+        "": "",
+    }
+    """
     COLUMNS_RENAME_DICT = {"geneSymbol": "gene_name",
                            "diseaseName": "disease_associations"}
 
@@ -97,6 +113,13 @@ class DisGeNet(DiseaseAssociation):
 
 
 class HMDD(DiseaseAssociation):
+    """Loads the HMDD database from "http://www.cuilab.cn/static/hmdd3" .
+
+    Default path: "http://www.cuilab.cn/static/hmdd3/data/" .
+    Default file_resources: {
+        "alldata.txt": "alldata.txt",
+    }
+    """
     COLUMNS_RENAME_DICT = {"mir": "gene_name",
                            "disease": "disease_associations"}
 
