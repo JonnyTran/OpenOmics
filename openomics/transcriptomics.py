@@ -136,13 +136,15 @@ class Expression(object):
             data.seek(0)
             df = pd.read_table(data, **kwargs)
 
-        elif isinstance(data, str) and os.path.isfile(data):
-            df = pd.read_table(data, sep=None, engine="python", **kwargs)
 
         elif isinstance(data, str) and validators.url(data):
             dataurl, filename = os.path.split(data)
             file = get_pkg_data_filename(dataurl + "/", filename)
             df = pd.read_table(file, **kwargs)
+
+        elif isinstance(data, str) and os.path.isfile(data):
+            df = pd.read_table(data, sep=None, engine="python")
+
 
         else:
             raise FileNotFoundError(data)
