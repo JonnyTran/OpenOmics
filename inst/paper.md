@@ -1,5 +1,5 @@
 ---
-title: 'OpenOmics: Bioinformatics Library to Integrate Multi-Omics and Annotation Data'
+title: 'OpenOmics: A bioinformatics API to integrate multi-omics datasets and interface with public databases.'
 tags:
   - Python
   - bioinformatics
