@@ -10,7 +10,7 @@
 [![codecov](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg?token=6N1UZ27MPH)](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics)
 
 This Python package provide a series of tools to integrate and explore the genomics, transcriptomics, proteomics, and
-clinical data (aka multi-omics data). With scalable data-frame manipulation tools, OpenOmics facilitates the common
+clinical data (aka multi-omics data). With interfaces to popular annotation databases and scalable data-frame manipulation tools, OpenOmics facilitates the common
 data wrangling tasks when preparing data for RNA-seq bioinformatics analysis.
 
 Documentation ([Latest](https://openomics.readthedocs.io/en/latest/)
