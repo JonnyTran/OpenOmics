@@ -189,7 +189,7 @@ OpenOmics simply requires one line of code to activate parallel computing functi
 We developed OpenOmics following modern software best-practices and package publishing standards. For the version
 control of our source-code, we utilized a public GitHub repository which contains two branches, master and develop. The
 master branch contains stable and well-tested releases of the package, while the develop branch is used for building new
-features or software refactoring. Before each version is released, we utilizes Travis CI for continuous integration,
+features or software refactoring. Before each version is released, we utilize Github Actions for continuous integration,
 building, and testing for version and dependency compatibility. Our automated test suite covers essential functions of
 the package and a reasonable range of inputs and conditions.
 
