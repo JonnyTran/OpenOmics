@@ -4,12 +4,13 @@
 
 [![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
 [![Documentation Status](https://readthedocs.org/projects/openomics/badge/?version=latest)](https://openomics.readthedocs.io/en/latest/?badge=latest)
+[![pyOpenSci](https://tinyurl.com/y22nb8up)](https://github.com/pyOpenSci/software-review/issues/31)
 [![DOI](https://zenodo.org/badge/125549505.svg)](https://zenodo.org/badge/latestdoi/125549505)
 [![OpenOmics](https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml/badge.svg?branch=master)](https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml)
-[![codecov](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg?token=WAN3PJwM42)](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics)
+[![codecov](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg?token=6N1UZ27MPH)](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics)
 
 This Python package provide a series of tools to integrate and explore the genomics, transcriptomics, proteomics, and
-clinical data (aka multi-omics data). With scalable data-frame manipulation tools, OpenOmics facilitates the common
+clinical data (aka multi-omics data). With interfaces to popular annotation databases and scalable data-frame manipulation tools, OpenOmics facilitates the common
 data wrangling tasks when preparing data for RNA-seq bioinformatics analysis.
 
 Documentation ([Latest](https://openomics.readthedocs.io/en/latest/)
@@ -43,18 +44,20 @@ $ pip install openomics
 The journal paper for this scientific package is currently being reviewed. In the meanwhile, the current package version can be cited with:
 
     # BibTeX
-    @software{nhat_jonny_tran_2021_4552831,
+    @software{nhat_tran_2021_4731011,
       author       = {Nhat Tran and
                       Jean Gao},
-      title        = {{BioMeCIS-Lab/OpenOmics: Bug fixes from pyOpenSci
-                       Reviewer 2}},
-      month        = feb,
+      title        = {{OpenOmics: A bioinformatics API and web-app to 
+                       integrate multi-omics datasets and interface with
+                       public databases.}},
+      month        = apr,
       year         = 2021,
       publisher    = {Zenodo},
-      version      = {v0.8.5},
-      doi          = {10.5281/zenodo.4552831},
-      url          = {https://doi.org/10.5281/zenodo.4552831}
+      version      = {v0.8.8},
+      doi          = {10.5281/zenodo.4731011},
+      url          = {https://doi.org/10.5281/zenodo.4731011}
     }
+
 
 ## Credits
 

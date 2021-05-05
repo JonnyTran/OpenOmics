@@ -1,21 +1,20 @@
-from typing import Union, Dict
-import logging
 import io
-import re
+import logging
 import os
-import validators
+import re
 from glob import glob
 from typing import Union
 
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+import validators
 # from Bio.UniProt import GOA
 from dask import delayed
 
 from .database import Annotatable
-from .utils.df import drop_duplicate_columns
 from .utils import get_pkg_data_filename
+from .utils.df import drop_duplicate_columns
 
 
 class Expression(object):
@@ -34,8 +33,7 @@ class Expression(object):
     """
     def __init__(self, data, transpose, gene_index=None, usecols=None, gene_level=None, sample_level="sample_index",
                  transform_fn=None, dropna=False, npartitions=None, **kwargs):
-        """This class handles importing of any quantitative omics data that is
-        in a table format (e.g. csv, tsv, excel). Pandas will load the DataFrame
+        """This constructor will create a DataFrame
         from file with the user-specified columns and genes column name, then
         tranpose it such that the rows are samples and columns are
         gene/transcript/peptides. The user will also specify the index argument,
@@ -69,11 +67,13 @@ class Expression(object):
             npartitions (int): [0-n], default 0 If 0, then uses a Pandas
                 DataFrame, if >1, then creates an off-memory Dask DataFrame with
                 n partitions
+            **kwargs: Any arguments to pass into pd.read_table(**kwargs)
         """
         self.gene_level = gene_level
         self.sample_level = sample_level
 
-        df = self.load_dataframe(data, transpose=transpose, usecols=usecols, gene_index=gene_index, dropna=dropna,)
+        df = self.load_dataframe(data, transpose=transpose, usecols=usecols, gene_index=gene_index, dropna=dropna,
+                                 **kwargs)
 
         self.expressions = self.preprocess_table(
             df,
@@ -108,7 +108,7 @@ class Expression(object):
                        transpose: bool,
                        usecols: str,
                        gene_index: str,
-                       dropna: bool):
+                       dropna: bool, **kwargs):
         """Reading table data inputs to create a DataFrame.
 
         Args:
@@ -129,20 +129,22 @@ class Expression(object):
         elif isinstance(data, str) and "*" in data:
             # TODO implement handling for multiple file ByteIO
             df = self.load_dataframe_glob(globstring=data, usecols=usecols, gene_index=gene_index, transpose=transpose,
-                                          dropna=dropna)
+                                          dropna=dropna, **kwargs)
 
         elif isinstance(data, io.StringIO):
             # Needed since the file was previous read to extract columns information
             data.seek(0)
-            df = pd.read_table(data)
+            df = pd.read_table(data, **kwargs)
+
+
+        elif isinstance(data, str) and validators.url(data):
+            dataurl, filename = os.path.split(data)
+            file = get_pkg_data_filename(dataurl + "/", filename)
+            df = pd.read_table(file, **kwargs)
 
         elif isinstance(data, str) and os.path.isfile(data):
             df = pd.read_table(data, sep=None, engine="python")
 
-        elif isinstance(data, str) and validators.url(data):
-            dataurl, filename = os.path.split(data)
-            file = get_pkg_data_filename(dataurl+"/", filename)
-            df = pd.read_table(file)
 
         else:
             raise FileNotFoundError(data)
@@ -220,7 +222,8 @@ class Expression(object):
 
         return df
 
-    def load_dataframe_glob(self, globstring: str, usecols: str, gene_index: str, transpose: bool, dropna: bool):
+    def load_dataframe_glob(self, globstring: str, usecols: str, gene_index: str, transpose: bool, dropna: bool,
+                            **kwargs):
         """
         Args:
             globstring (str):
@@ -230,7 +233,8 @@ class Expression(object):
         Returns:
             dd.DataFrame
         """
-        def convert_numerical_to_float(df:pd.DataFrame):
+
+        def convert_numerical_to_float(df: pd.DataFrame):
             cols = df.columns[~df.dtypes.eq('object')]
             df[cols] = df[cols].astype(float)
             return df
@@ -241,7 +245,7 @@ class Expression(object):
         for file_path in glob(globstring):
             filenames.append(os.path.split(file_path)[1])
 
-            df = delayed(pd.read_table)(file_path)
+            df = delayed(pd.read_table)(file_path, **kwargs)
             # df = delayed(convert_numerical_to_float)(df)
             df = delayed(self.preprocess_table)(
                 df,

@@ -139,6 +139,16 @@ class HumanPhenotypeOntology(Ontology):
 
 
 class GeneOntology(Ontology):
+    """Loads the GeneOntology database from http://geneontology.org .
+
+    Default path: "http://geneontology.org/gene-associations/" .
+    Default file_resources: {
+        "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
+        "goa_human.gaf": "goa_human.gaf.gz",
+        "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
+        "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz",
+    }
+    """
     COLUMNS_RENAME_DICT = {
         "DB_Object_Symbol": "gene_name",
         "DB_Object_ID": "gene_id",
@@ -159,8 +169,7 @@ class GeneOntology(Ontology):
         """
         if file_resources is None:
             file_resources = {
-                "go-basic.obo":
-                "http://purl.obolibrary.org/obo/go/go-basic.obo",
+                "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
                 "goa_human.gaf": "goa_human.gaf.gz",
                 "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
                 "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz",

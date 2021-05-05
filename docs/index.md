@@ -32,10 +32,6 @@ usage/network-data
 usage/preprocess-downstream-analysis
 ```
 
-
-
-
-
 ```{toctree}
 :maxdepth: 1
 :caption: API Reference
@@ -50,6 +46,7 @@ modules/openomics.database.ontology
 modules/openomics.utils
 ```
 
+
 ```{toctree}
 :maxdepth: 1
 :caption: MISC
@@ -57,9 +54,11 @@ modules/openomics.utils
 misc/faq
 ```
 
+
 ```{toctree}
 :maxdepth: 1
 :caption: Contributing and releases
+
 contributing
 history
 ```
