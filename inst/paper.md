@@ -74,12 +74,12 @@ programming interface, it doesn't yet leverage high-performance distributed stor
 while O-Miner can perform end-to-end analysis in an integrated platform, its interim analysis results cannot be exported
 elsewhere for down-stream analysis.
 
+![Overall OpenOmics System Architecture, Data Flow, and Use Cases.\label{architecture}](figure.pdf)
+
 # The OpenOmics library
 
 OpenOmics consists of two core modules: multi-omics integration and annotation interface. An overview visualization of
 the OpenOmics system architecture is provided in Figure \autoref{architecture}.
-
-![Overall OpenOmics System Architecture, Data Flow, and Use Cases.\label{architecture}](figure.pdf)
 
 ## Multi-omics integration
 
