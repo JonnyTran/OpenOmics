@@ -98,9 +98,9 @@ supported omic types:
 - Transcriptomics: RNA-Seq, miRNA expression, lncRNA expression, microarrays
 - Proteomics: reverse phase protein array (RPPA), iTRAQ
 
-After importing each single omics data, OpenOmics stores a Pandas Dataframe [@reback2020pandas] that is flexible for a
-wide range of tabular operations. For instance, the user is presented with several functions for preprocessing of the
-expression quantifications to normalize, filter outliers, or reduce noise.
+After importing each single omics data, OpenOmics stores a Pandas Dataframe [@mckinney-proc-scipy-2010] that is flexible
+for a wide range of tabular operations. For instance, the user is presented with several functions for preprocessing of
+the expression quantifications to normalize, filter outliers, or reduce noise.
 
 Within a study cohort, the clinical characteristics are crucial for the study of a disease or biological phenomenon. The
 user can characterize the set of samples using the Clinical Data structure, which is comprised of two levels: Patient
