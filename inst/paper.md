@@ -98,9 +98,9 @@ supported omic types:
 - Transcriptomics: RNA-Seq, miRNA expression, lncRNA expression, microarrays
 - Proteomics: reverse phase protein array (RPPA), iTRAQ
 
-After importing each single omics data, OpenOmics stores a Pandas Dataframe that is flexible for a wide range of tabular
-operations. For instance, the user is presented with several functions for preprocessing of the expression
-quantifications to normalize, filter outliers, or reduce noise.
+After importing each single omics data, OpenOmics stores a Pandas Dataframe [@reback2020pandas] that is flexible for a
+wide range of tabular operations. For instance, the user is presented with several functions for preprocessing of the
+expression quantifications to normalize, filter outliers, or reduce noise.
 
 Within a study cohort, the clinical characteristics are crucial for the study of a disease or biological phenomenon. The
 user can characterize the set of samples using the Clinical Data structure, which is comprised of two levels: Patient
@@ -138,9 +138,9 @@ customize the selection and aggregation of biological measurements at different 
 
 | Data Repository | Annotation Data Available                       | Index     | # entries  |
 | --------------- | ----------------------------------------------- | --------- | ---------- |
-| GENCODE         | Genomic annotations, primary sequence           | RNAs      | 60660      |
-| Ensembl         | Genomic annotations & &                        | Genes     | 232,186    |
-| MiRBase         | MicroRNA sequences and annotatinos              | MicroRNAs | 38589      |
+| GENCODE         | Genomic annotations, primary sequence           | RNAs      | 60,660     |
+| Ensembl         | Genomic annotations                             | Genes     | 232,186    |
+| MiRBase         | MicroRNA sequences and annotatinos              | MicroRNAs | 38,589     |
 | RNA Central     | ncRNA sequence and annotation collection        | ncRNAs    | 14,784,981 |
 | NONCODE         | lncRNA sequences and annotations                | LncRNAs   | 173,112    |
 | lncrnadb        | lncRNA functional annotations                   | LncRNAs   | 100        |
@@ -162,11 +162,11 @@ the design choices in the development operations.
 
 While the in-memory Pandas dataframes utilized in our data structures are fast, they have size and speed limitations
 when the dataset size approaches the system memory limit. When this is an issue, the user can enable out-of-memory
-distributed data processing on all OpenOmics operations, implemented by the Dask framework^[https://dask.org/]. When
-memory resources is limited, data in a Dask dataframe can be read directly from disk and is only brought into memory
-when needed during computations (also called lazy evaluations). When performing data query operations on Dask
-dataframes, a task graph containing each operation is built and is only evaluated on command, in a process called lazy
-loading.
+distributed data processing on all OpenOmics operations, implemented by the Dask
+framework [@matthew_rocklin-proc-scipy-2015]. When memory resources is limited, data in a Dask dataframe can be read
+directly from disk and is only brought into memory when needed during computations (also called lazy evaluations). When
+performing data query operations on Dask dataframes, a task graph containing each operation is built and is only
+evaluated on command, in a process called lazy loading.
 
 Operations on Dask dataframes are the same as Pandas dataframes, but can utilize multiple workers and can scale up to
 clusters by connecting to a cluster client with minimal configuration. To enable this feature in OpenOmics, the user
