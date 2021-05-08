@@ -39,15 +39,15 @@ cancer and other diseases. These methods have already been applied to a number o
 indeed several integrative disease
 studies [@zhang2014proteogenomic; @cancer2014comprehensive; @ren2016integration; @hassan2020integration]. In addition to
 the genome-wide measurements of different genetic characterizations, the growing public knowledge-base of functional
-annotations [@rnacentral2016rnacentral, @derrien2012gencode], experimentally-verified
-interactions [@chou2015mirtarbase, @yuan2013npinter, @chou2017mirtarbase, @oughtred2019biogrid], and gene-disease
-associations [@huang2018hmdd, @pinero2016disgenet, @chen2012lncrnadisease] also provides the prior-knowledge essential
+annotations [@rnacentral2016rnacentral; @derrien2012gencode], experimentally-verified
+interactions [@chou2015mirtarbase; @yuan2013npinter; @chou2017mirtarbase; @oughtred2019biogrid], and gene-disease
+associations [@huang2018hmdd; @pinero2016disgenet; @chen2012lncrnadisease] also provides the prior-knowledge essential
 for system-level analyses. Leveraging these data sources allow for a systematic investigation of disease mechanisms at
 multiple molecular and regulatory layers; however, such task remains nontrivial due to the complexity of multi-omics
 data.
 
 While researchers have developed several mature tools to access or analyze a particular single omic data
-type [@wolf2018scanpy, @stuart2019integrative], the current state of integrative data platforms for multi-omics data is
+type [@wolf2018scanpy; @stuart2019integrative], the current state of integrative data platforms for multi-omics data is
 lacking due to three reasons. First, pipelines for data integration carry out a sequential tasks that does not process
 multi-omics datasets holistically. Second, the vast size and heterogeneity of the data poses a challenge on the
 necessary data storage and computational processing. And third, implementations of data pipelines are close-ended for
@@ -79,7 +79,7 @@ elsewhere for down-stream analysis.
 # The OpenOmics library
 
 OpenOmics consists of two core modules: multi-omics integration and annotation interface. An overview visualization of
-the OpenOmics system architecture is provided in Figure \autoref{architecture}.
+the OpenOmics system architecture is provided in \autoref{architecture}.
 
 ## Multi-omics integration
 
@@ -157,7 +157,7 @@ Table 1: Public annotation databases and availability of data in the Human genom
 
 # System design
 
-This chapter describes the various implementation details behind the scalable processing and efficient data storage, and
+This section describes the various implementation details behind the scalable processing and efficient data storage, and
 the design choices in the development operations.
 
 While the in-memory Pandas dataframes utilized in our data structures are fast, they have size and speed limitations
