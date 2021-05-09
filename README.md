@@ -42,22 +42,22 @@ $ pip install openomics
 ## 
 
 ## Citations
-The journal paper for this scientific package is currently being reviewed. In the meanwhile, the current package version can be cited with:
+The journal paper for this scientific package was reviewed by JOSS at <https://joss.theoj.org/papers/10.21105/joss.03249#>, and can be cited with:
 
     # BibTeX
-    @software{nhat_tran_2021_4731011,
-      author       = {Nhat Tran and
-                      Jean Gao},
-      title        = {{OpenOmics: A bioinformatics API and web-app to 
-                       integrate multi-omics datasets and interface with
-                       public databases.}},
-      month        = apr,
-      year         = 2021,
-      publisher    = {Zenodo},
-      version      = {v0.8.8},
-      doi          = {10.5281/zenodo.4731011},
-      url          = {https://doi.org/10.5281/zenodo.4731011}
+    @article{Tran2021,
+      doi = {10.21105/joss.03249},
+      url = {https://doi.org/10.21105/joss.03249},
+      year = {2021},
+      publisher = {The Open Journal},
+      volume = {6},
+      number = {61},
+      pages = {3249},
+      author = {Nhat C. Tran and Jean X. Gao},
+      title = {OpenOmics: A bioinformatics API to integrate multi-omics datasets and interface with public databases.},
+      journal = {Journal of Open Source Software}
     }
+
 
 
 ## Credits
