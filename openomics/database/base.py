@@ -284,7 +284,7 @@ class Annotatable(ABC):
         if gene_list is None:
             gene_list = self.get_genes_list()
 
-        self.annotations = pd.DataFrame(index=gene_list)
+        self.annotations: pd.DataFrame = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
     def annotate_attributes(self, database: Database, on: str, columns: List[str], agg: str = "concat",
