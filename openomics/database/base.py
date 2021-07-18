@@ -1,4 +1,3 @@
-from typing import Dict, Tuple, List
 import copy
 import difflib
 import gzip
@@ -7,6 +6,7 @@ import logging
 import os
 import zipfile
 from abc import ABC, abstractmethod
+from typing import Dict
 from typing import List
 
 import dask.dataframe as dd
@@ -360,9 +360,7 @@ class Annotatable(ABC):
         # Fill in null values then drop duplicate columns
         for new_col in duplicate_cols:
             old_col = new_col.strip("_")
-            new_annotations[old_col].fillna(new_annotations[new_col],
-                                            inplace=True,
-                                            axis=0)
+            new_annotations[old_col] = new_annotations[old_col].fillna(new_annotations[new_col], axis=0)
             new_annotations = new_annotations.drop(columns=new_col)
 
         # Assign the new results
