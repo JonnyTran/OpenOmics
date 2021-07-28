@@ -31,7 +31,7 @@ class MultiOmics:
         self._omics = []
 
         # This is a data dictionary accessor to retrieve individual -omic data
-        self.data = {}
+        self.data: Dict[str, pd.DataFrame] = {}
 
         if omics_data:
             for omics in omics_data:
@@ -91,7 +91,7 @@ class MultiOmics:
     def get_omics_list(self):
         return self._omics
 
-    def __getitem__(self, item:str):
+    def __getitem__(self, item: str) -> Expression:
         """This function allows the MultiOmicData class objects to access
         individual omics by a dictionary lookup, e.g. openomics["MicroRNA"]
 

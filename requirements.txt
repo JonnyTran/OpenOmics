@@ -2,8 +2,8 @@ biopython
 large-image
 bokeh
 dask[complete]
-networkx>=2.1
-numpy>=1.16.5
+networkx
+numpy
 pandas
 matplotlib
 scipy
