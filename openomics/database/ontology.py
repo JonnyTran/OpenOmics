@@ -5,6 +5,7 @@ import pandas as pd
 from Bio.UniProt import GOA
 
 from .base import Database
+from .interaction import Interactions
 from ..utils.df import slice_adj
 
 
@@ -132,6 +133,9 @@ class Ontology(Database):
         print(go_id_colors.unique().shape,
               go_colors["HCL.color"].unique().shape)
         return go_id_colors
+
+
+Ontology.to_scipy_adjacency = Interactions.to_scipy_adjacency
 
 
 class HumanPhenotypeOntology(Ontology):

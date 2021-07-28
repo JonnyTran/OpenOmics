@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from typing import List, Dict
+from typing import List, Dict, Iterable
 
 import networkx as nx
 from Bio import SeqIO
@@ -113,21 +113,31 @@ class Interactions(Database):
         else:
             return self.network.edges(nbunch=nodelist, data=data)
 
-    def to_scipy_adjacency(self, nodes):
+    def to_scipy_adjacency(self, nodes: List[str], edge_types: List = None, format="coo"):
 
         if not isinstance(self.network, nx.MultiGraph):
             raise NotImplementedError
 
-        edge_types = {e for u, v, e in self.network.edges}
+        if not isinstance(edge_types, Iterable):
+            edge_types = ["_E"]
 
         edge_index_dict = {}
         for etype in edge_types:
+            if isinstance(self.network, nx.MultiGraph):
+                subg_edges = self.network.edge_subgraph([(u, v, e) for u, v, e in self.network.edges if e == etype])
+            else:
+                subg_edges = self.network.edges
+
             biadj = nx.bipartite.biadjacency_matrix(
-                self.network.edge_subgraph([(u, v, e) for u, v, e in self.network.edges if e == etype]),
+                subg_edges,
                 row_order=nodes,
                 column_order=nodes,
-                format="coo")
-            edge_index_dict[("_N", etype, "_N")] = (biadj.row, biadj.col)
+                format=format)
+
+            if format == "coo":
+                edge_index_dict[("_N", etype, "_N")] = (biadj.row, biadj.col)
+            else:
+                edge_index_dict[("_N", etype, "_N")] = biadj
 
         return edge_index_dict
 
