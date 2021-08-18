@@ -139,7 +139,49 @@ Ontology.to_scipy_adjacency = Interactions.to_scipy_adjacency
 
 
 class HumanPhenotypeOntology(Ontology):
-    pass
+    """Loads the Human Phenotype Ontology database from https://hpo.jax.org/app/ .
+
+        Default path: "http://geneontology.org/gene-associations/" .
+        Default file_resources: {
+            "hp.obo": "http://purl.obolibrary.org/obo/hp.obo",
+        }
+        """
+    COLUMNS_RENAME_DICT = {}
+
+    def __init__(
+        self,
+        path="https://hpo.jax.org/",
+        file_resources=None,
+        col_rename=COLUMNS_RENAME_DICT,
+        npartitions=0,
+        verbose=False,
+    ):
+        """
+        Handles downloading the latest Human Phenotype Ontology obo and annotation data, preprocesses them. It provide
+        functionalities to create a directed acyclic graph of Ontology terms, filter terms, and filter annotations.
+        """
+        if file_resources is None:
+            file_resources = {
+                "hp.obo": "http://purl.obolibrary.org/obo/hp.obo",
+            }
+        super(HumanPhenotypeOntology, self).__init__(
+            path,
+            file_resources,
+            col_rename=col_rename,
+            npartitions=npartitions,
+            verbose=verbose,
+        )
+
+    def info(self):
+        print("network {}".format(nx.info(self.network)))
+
+    def load_network(self, file_resources):
+        for file in file_resources:
+            if ".obo" in file:
+                network = obonet.read_obo(file_resources[file])
+                # network = network.reverse(copy=True)
+                node_list = np.array(network.nodes)
+        return network, node_list
 
 
 class GeneOntology(Ontology):
