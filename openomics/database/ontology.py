@@ -2,7 +2,7 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
-from Bio.UniProt import GOA
+from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
 
 from .base import Database
 from .interaction import Interactions
@@ -184,6 +184,18 @@ class HumanPhenotypeOntology(Ontology):
         return network, node_list
 
 
+def gafiterator(handle):
+    inline = handle.readline()
+    if inline.strip().startswith("!gaf-version: 2"):
+        # sys.stderr.write("gaf 2.0\n")
+        return _gaf20iterator(handle)
+    elif inline.strip() == "!gaf-version: 1.0":
+        # sys.stderr.write("gaf 1.0\n")
+        return _gaf10iterator(handle)
+    else:
+        raise ValueError(f"Unknown GAF version {inline}\n")
+
+
 class GeneOntology(Ontology):
     """Loads the GeneOntology database from http://geneontology.org .
 
@@ -210,6 +222,16 @@ class GeneOntology(Ontology):
         verbose=False,
     ):
         """
+        Loads the GeneOntology database from http://geneontology.org .
+
+            Default path: "http://geneontology.org/gene-associations/" .
+            Default file_resources: {
+                "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
+                "goa_human.gaf": "goa_human.gaf.gz",
+                "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
+                "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz",
+            }
+
         Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
         functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
         """
@@ -236,7 +258,7 @@ class GeneOntology(Ontology):
         for file in file_resources:
             if ".gaf" in file:
                 go_lines = []
-                for line in GOA.gafiterator(file_resources[file]):
+                for line in gafiterator(file_resources[file]):
                     go_lines.append(line)
                 go_annotation_dfs.append(pd.DataFrame(go_lines))
 
