@@ -254,32 +254,29 @@ class GeneOntology(Ontology):
         print("network {}".format(nx.info(self.network)))
 
     def load_dataframe(self, file_resources, npartitions=None):
-        go_annotation_dfs = []
+        go_annotations = pd.DataFrame.from_dict(dict(self.network.nodes(data=True)), orient='index')
+        go_annotations["def"] = go_annotations["def"].apply(lambda x: x.split('"')[1])
+        go_annotations.index.name = "go_id"
+
+        # Handle .gaf annotation files
+        gaf_annotation_dfs = []
         for file in file_resources:
             if ".gaf" in file:
                 go_lines = []
                 for line in gafiterator(file_resources[file]):
                     go_lines.append(line)
-                go_annotation_dfs.append(pd.DataFrame(go_lines))
+                gaf_annotation_dfs.append(pd.DataFrame(go_lines))
 
-        go_annotations = pd.concat(go_annotation_dfs)
-
-        go_terms = pd.DataFrame.from_dict(self.network.nodes,
-                                          orient="index",
-                                          dtype="object")
-
-        go_annotations["go_name"] = go_annotations["GO_ID"].map(
-            go_terms["name"])
-        go_annotations["namespace"] = go_annotations["GO_ID"].map(
-            go_terms["namespace"])
-        go_annotations["is_a"] = go_annotations["GO_ID"].map(go_terms["is_a"])
+        if len(gaf_annotation_dfs):
+            gaf_annotations = pd.concat(gaf_annotation_dfs)
+            print("gaf_annotations", gaf_annotations.columns)
 
         return go_annotations
 
     def load_network(self, file_resources):
         for file in file_resources:
             if ".obo" in file:
-                network = obonet.read_obo(file_resources[file])
+                network: nx.MultiDiGraph = obonet.read_obo(file_resources[file])
                 # network = network.reverse(copy=True)
                 node_list = np.array(network.nodes)
         return network, node_list
