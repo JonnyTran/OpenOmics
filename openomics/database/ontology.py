@@ -179,7 +179,7 @@ class HumanPhenotypeOntology(Ontology):
         for file in file_resources:
             if ".obo" in file:
                 network = obonet.read_obo(file_resources[file])
-                # network = network.reverse(copy=True)
+                network = network.reverse(copy=True)
                 node_list = np.array(network.nodes)
         return network, node_list
 
@@ -287,8 +287,7 @@ class GeneOntology(Ontology):
         Args:
             namespace: one of {"biological_process", "cellular_component", "molecular_function"}
         """
-        terms = self.data[self.data["namespace"] ==
-                          namespace]["go_id"].unique()
+        terms = self.data[self.data["namespace"] == namespace]["go_id"].unique()
         print("{} terms: {}".format(namespace,
                                     len(terms))) if self.verbose else None
         self.network = self.network.subgraph(nodes=list(terms))
