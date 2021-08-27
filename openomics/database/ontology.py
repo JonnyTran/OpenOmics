@@ -277,7 +277,7 @@ class GeneOntology(Ontology):
         for file in file_resources:
             if ".obo" in file:
                 network: nx.MultiDiGraph = obonet.read_obo(file_resources[file])
-                # network = network.reverse(copy=True)
+                network = network.reverse(copy=True)
                 node_list = np.array(network.nodes)
         return network, node_list
 
