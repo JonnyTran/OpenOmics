@@ -193,7 +193,7 @@ def gafiterator(handle):
         # sys.stderr.write("gaf 1.0\n")
         return _gaf10iterator(handle)
     else:
-        raise ValueError(f"Unknown GAF version {inline}\n")
+        return _gaf20iterator(handle)
 
 
 class GeneOntology(Ontology):
