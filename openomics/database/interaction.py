@@ -113,8 +113,7 @@ class Interactions(Database):
         else:
             return self.network.edges(nbunch=nodelist, data=data)
 
-    def to_scipy_adjacency(self, nodes: List[str], edge_types: List = None, format="coo"):
-
+    def to_scipy_adjacency(self, nodes: List[str], edge_types: List[str] = None, format="coo"):
         if not isinstance(self.network, nx.MultiGraph):
             raise NotImplementedError
 
@@ -125,8 +124,10 @@ class Interactions(Database):
         for etype in edge_types:
             if isinstance(self.network, nx.MultiGraph):
                 subg_edges = self.network.edge_subgraph([(u, v, e) for u, v, e in self.network.edges if e == etype])
-            else:
+            elif etype == "_E":
                 subg_edges = self.network.edges
+            else:
+                raise Exception(f"Edge types `{edge_types}` is ill formed.")
 
             biadj = nx.bipartite.biadjacency_matrix(
                 subg_edges,
