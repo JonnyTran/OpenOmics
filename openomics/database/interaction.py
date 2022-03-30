@@ -142,29 +142,29 @@ class Interactions(Database):
 
         return edge_index_dict
 
-    def filter_values(self, df: pd.DataFrame, filters: dict, case=False):
+    def filter_values(self, df: pd.DataFrame, filters: Dict[str, List], case: bool = False):
         if filters is None:
             return df
 
-        for key, values in filters.items():
-            if key not in df.columns:
-                logging.info("Filter key `", key, "` must be in one of ", df.columns)
+        for col, values in filters.items():
+            if col not in df.columns:
+                logging.info("Filter key `", col, "` must be in one of ", df.columns)
                 continue
             n_rows = df.shape[0]
 
             if isinstance(values, list):
                 if case is False:
-                    df = df[df[key].str.upper().isin([val.upper() for val in values])]
+                    df = df[df[col].str.upper().isin([val.upper() for val in values])]
                 else:
-                    df = df[df[key].isin(values)]
+                    df = df[df[col].isin(values)]
             elif isinstance(values, str):
-                df = df[df[key].str.contains(values, case=case)]
+                df = df[df[col].str.contains(values, case=case)]
             else:
-                df = df[df[key] == values]
+                df = df[df[col] == values]
 
-            logging.info("INFO: Removed ", n_rows - df.shape[0], " rows with `", key, "` != ", values)
+            logging.info("INFO: Removed ", n_rows - df.shape[0], " rows with `", col, "` != ", values)
 
-        assert df.shape[0] > 0, "ERROR: Dataframe is empty because of filter: {filters}"
+        assert df.shape[0] > 0, f"ERROR: Dataframe is empty ({df.shape}) because of filter: {filters}"
         return df
 
 
