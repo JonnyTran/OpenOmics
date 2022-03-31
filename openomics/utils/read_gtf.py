@@ -168,7 +168,7 @@ def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024, features=None,
         names=REQUIRED_COLUMNS,
         skipinitialspace=True,
         skip_blank_lines=True,
-        error_bad_lines=True,
+        on_bad_lines='error',
         chunksize=chunksize,
         engine="c",
         dtype={
@@ -253,7 +253,7 @@ def parse_gtf_dask(filepath_or_buffer, npartitions=None, compression=None, featu
         names=REQUIRED_COLUMNS,
         skipinitialspace=True,
         skip_blank_lines=True,
-        error_bad_lines=True,
+        on_bad_lines='error',
         # chunksize=chunksize,
         engine="c",
         dtype={
