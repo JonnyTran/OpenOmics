@@ -229,7 +229,7 @@ class GENCODE(SequenceDatabase):
 
             return seq_df.groupby(index)["sequence"].agg(agg_func)
 
-        elif "transcript" in index:
+        else:
             return seq_df.groupby(index)["sequence"].first()
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
