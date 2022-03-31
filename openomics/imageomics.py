@@ -1,7 +1,7 @@
 import os
 
 import h5py
-import large_image
+# import large_image
 import numpy as np
 from dask import delayed
 
