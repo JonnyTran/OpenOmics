@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from typing import Union
+from typing import Union, List
 
 import dask.dataframe as dd
 import pandas as pd
@@ -114,10 +114,8 @@ class GENCODE(SequenceDatabase):
         if file_resources is None:
             file_resources = {
                 "basic.annotation.gtf": "gencode.v32.basic.annotation.gtf.gz",
-                "long_noncoding_RNAs.gtf":
-                "gencode.v32.long_noncoding_RNAs.gtf.gz",
-                "lncRNA_transcripts.fa":
-                "gencode.v32.lncRNA_transcripts.fa.gz",
+                "long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
+                "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
                 "transcripts.fa": "gencode.v32.transcripts.fa.gz",
             }
 
@@ -158,13 +156,16 @@ class GENCODE(SequenceDatabase):
 
         return annotation_df
 
-    def read_fasta(self, fasta_file, replace_U2T, npartitions=None):
+    def read_fasta(self, fasta_file, replace_U2T=False, npartitions=None):
         """
         Args:
             fasta_file:
             replace_U2T:
             npartitions:
         """
+        if hasattr(self, '_seq_df_dict') and fasta_file in self._seq_df_dict:
+            return self._seq_df_dict[fasta_file]
+
         entries = []
         for record in SeqIO.parse(fasta_file, "fasta"):
             record_dict = {
@@ -179,27 +180,31 @@ class GENCODE(SequenceDatabase):
 
             entries.append(record_dict)
 
-        entries_df = pd.DataFrame(entries)
+        seq_df = pd.DataFrame(entries)
         if npartitions:
-            entries_df = dd.from_pandas(entries_df)
+            seq_df = dd.from_pandas(seq_df)
 
         if replace_U2T:
-            entries_df["sequence"] = entries_df["sequence"].str.replace(
-                "U", "T")
-        if self.remove_version_num:
-            entries_df["gene_id"] = entries_df["gene_id"].str.replace(
-                "[.].*", "")
-            entries_df["transcript_id"] = entries_df[
-                "transcript_id"].str.replace("[.].*", "")
-        return entries_df
+            seq_df["sequence"] = seq_df["sequence"].str.replace("U", "T")
 
-    def get_sequences(self, index, omic, agg_sequences, biotypes=None):
+        if self.remove_version_num:
+            seq_df["gene_id"] = seq_df["gene_id"].str.replace("[.].*", "")
+            seq_df["transcript_id"] = seq_df["transcript_id"].str.replace("[.].*", "")
+
+        # Cache the seq_df
+        if not hasattr(self, '_seq_df_dict'):
+            self._seq_df_dict = {}
+        self._seq_df_dict[fasta_file] = seq_df
+
+        return seq_df
+
+    def get_sequences(self, index: Union[str, List[str]], omic: str, agg_sequences: str, biotypes: List[str] = None):
         """
         Args:
             index (str):
             omic (str):
             agg_sequences (str):
-            biotypes ([str]):
+            biotypes (List[str]):
         """
         agg_func = self.get_aggregator(agg_sequences)
 
@@ -212,24 +217,20 @@ class GENCODE(SequenceDatabase):
             raise Exception(
                 "omic argument must be one of {'MessengerRNA', 'LncRNA'}")
 
-        entries_df = self.read_fasta(fasta_file, self.replace_U2T)
+        seq_df = self.read_fasta(fasta_file, replace_U2T=self.replace_U2T)
 
         if "gene" in index:
             if biotypes:
-                entries_df = entries_df[entries_df["transcript_biotype"].isin(
-                    biotypes)]
+                seq_df = seq_df[seq_df["transcript_biotype"].isin(biotypes)]
             else:
                 print(
                     "INFO: You can pass in a list of transcript biotypes to filter using the argument 'biotypes'."
                 )
 
-            return entries_df.groupby(index)["sequence"].agg(agg_func)
+            return seq_df.groupby(index)["sequence"].agg(agg_func)
+
         elif "transcript" in index:
-            return entries_df.groupby(index)["sequence"].first()
-        else:
-            raise Exception(
-                "The level argument must be one of {'gene_id', 'transcript_id', or 'gene_name', or 'transcript_name'}"
-            )
+            return seq_df.groupby(index)["sequence"].first()
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
         """

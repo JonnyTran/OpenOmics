@@ -6,7 +6,7 @@ import logging
 import os
 import zipfile
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, Union
 from typing import List
 
 import dask.dataframe as dd
@@ -367,8 +367,8 @@ class Annotatable(ABC):
         self.annotations = new_annotations
 
     def annotate_sequences(self,
-                           database,
-                           index,
+                           database: Database,
+                           index: Union[str, List[str]],
                            agg="longest",
                            omic=None,
                            **kwargs):
@@ -393,13 +393,15 @@ class Annotatable(ABC):
                                                    agg_sequences=agg,
                                                    **kwargs)
 
-        if type(self.annotations.index) == pd.MultiIndex:
-            self.annotations[
-                Annotatable.SEQUENCE_COL_NAME] = self.annotations.index.get_level_values(
-                index).map(sequences_entries)
+        if type(self.annotations.index) == pd.MultiIndex and self.annotations.index.names in index:
+            seqs = self.annotations.index.get_level_values(index).map(sequences_entries)
+        elif self.annotations.index.name == index:
+            seqs = self.annotations.index.map(sequences_entries)
         else:
-            self.annotations[Annotatable.SEQUENCE_COL_NAME] = self.annotations.index.map(
-                sequences_entries)
+            # Index is a multi columns
+            seqs = self.annotations.reset_index()[index].map(sequences_entries)
+
+        self.annotations[Annotatable.SEQUENCE_COL_NAME] = seqs
 
     def annotate_expressions(self, database, index, fuzzy_match=False):
         """Annotate :param database: :param index: :param fuzzy_match:
@@ -432,8 +434,11 @@ class Annotatable(ABC):
             database (DiseaseAssociation):
             index (str):
         """
-        self.annotations[Annotatable.DISEASE_ASSOCIATIONS_COL] = self.annotations.index.map(
-            database.get_disease_assocs(index=index, ))
+        if self.annotations.index.name != index:
+            self.annotations.set_index(index, inplace=True)
+        disease_assocs = self.annotations.index.map(database.get_disease_assocs(index=index, ))
+
+        self.annotations[Annotatable.DISEASE_ASSOCIATIONS_COL] = disease_assocs
 
     def set_index(self, new_index):
         """Resets :param new_index: :type new_index: str
