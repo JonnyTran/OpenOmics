@@ -1,7 +1,7 @@
 biopython
 large-image
 bokeh
-dask[complete]
+dask
 networkx
 numpy
 pandas
@@ -9,8 +9,6 @@ matplotlib
 scipy
 astropy
 h5py
-requests
-setuptools
 typing
 bioservices
 itsdangerous
