@@ -178,7 +178,7 @@ class Database(object):
     def get_annotations(self, index: Union[str, List[str]],
                         columns: List[str],
                         agg: str = "concat",
-                        filter_values: pd.Series = None):
+                        subset: pd.Series = None):
         """Returns the Database's DataFrame such that it's indexed by :param
         index:, which then applies a groupby operation and aggregates all other
         columns by concatenating all unique values.
@@ -189,7 +189,7 @@ class Database(object):
             agg (str): Function to aggregate when there is more than one values
                 for each index instance. E.g. ['first', 'last', 'sum', 'mean',
                 'size', 'concat'], default 'concat'.
-            filter_values (pd.Series): The values on the `index` column to
+            subset (pd.Series): The values on the `index` column to
                 filter before performing the groupby-agg operations.
 
         Returns:
@@ -197,18 +197,19 @@ class Database(object):
         """
         if not set(columns).issubset(set(self.data.columns)):
             raise Exception(
-                "The columns argument must be a list such that it's subset of the following columns in the dataframe",
-                "These columns doesn't exist in database:", set(columns) - set(self.data.columns.tolist())
+                f"The columns argument must be a list such that it's subset of the following columns in the dataframe. "
+                f"These columns doesn't exist in database: {list(set(columns) - set(self.data.columns.tolist()))}"
             )
 
         # Select df columns including df. However the `columns` list shouldn't contain the index column
         if index in columns:
             columns.pop(columns.index(index))
 
-        df = self.data[columns + [index]]
+        select_col = columns + ([index] if not isinstance(index, list) else index)
+        df = self.data[select_col]
 
-        if filter_values is not None:
-            df = df[df[index].isin(list(filter_values))]
+        if subset is not None:
+            df = df[df[index].isin(list(subset))]
 
         # Groupby index
         groupby = df.groupby(index)
@@ -308,16 +309,21 @@ class Annotatable(ABC):
         if not hasattr(self, "annotations"):
             raise Exception("Must run .initialize_annotations() on, ", self.__class__.__name__, " first.")
 
-        if on in self.annotations.columns:
-            filter_values = self.annotations[on]
+        if_pandas_df = isinstance(self.annotations, pd.DataFrame)
+        old_index = self.annotations.index.name
+
+        if isinstance(on, str) and on in self.annotations.columns:
+            keys = self.annotations[on]
+        elif isinstance(on, list) and set(on).issubset(self.annotations.columns):
+            keys = self.annotations[on]
         elif on == self.annotations.index.name:
-            filter_values = self.annotations.index
+            keys = self.annotations.index
         else:
-            filter_values = None
+            keys = None
 
-        database_df = database.get_annotations(on, columns=columns, agg=agg, filter_values=filter_values)
+        database_df = database.get_annotations(on, columns=columns, agg=agg, subset=keys)
 
-        if len(database_df.columns) == 0:
+        if len(database_df) == 0:
             logging.warning("Database annotations is empty and has nothing to annotate.")
             return
 
@@ -326,12 +332,12 @@ class Annotatable(ABC):
                 lambda x: difflib.get_close_matches(x, self.annotations.index, n=1)[0])
 
         # performing join on the index column
-        if on == self.annotations.index.name and isinstance(database_df, pd.DataFrame):
+        if isinstance(database_df, pd.DataFrame):
             new_annotations = self.annotations.join(database_df, on=on, rsuffix="_")
         # performing join on a different column
-        else:
-            if_pandas_df = isinstance(self.annotations, pd.DataFrame)
+        elif isinstance(database_df, dd.DataFrame):
             new_annotations = dd.merge(self.annotations, database_df, how="left", on=on, suffixes=("_", ""))
+            # Revert back to Pandas df if not previously a dask df
             if if_pandas_df and isinstance(new_annotations, dd.DataFrame):
                 new_annotations = new_annotations.compute()
 
@@ -343,6 +349,9 @@ class Annotatable(ABC):
             old_col = new_col.strip("_")
             new_annotations[old_col] = new_annotations[old_col].fillna(new_annotations[new_col], axis=0)
             new_annotations = new_annotations.drop(columns=new_col)
+
+        if old_index != self.annotations.index.name and old_index != self.annotations.index.names:
+            self.annotations = self.annotations.set_index(old_index)
 
         # Assign the new results
         self.annotations = new_annotations
@@ -414,9 +423,10 @@ class Annotatable(ABC):
             database (DiseaseAssociation):
             on (str):
         """
-        if self.annotations.index.name != on:
-            self.annotations.set_index(on, inplace=True)
-        disease_assocs = self.annotations.index.map(database.get_disease_assocs(index=on, ))
+        keys = self.annotations.index if on == self.annotations.index.name or on == self.annotations.index.names else \
+        self.annotations[on]
+        keys = pd.MultiIndex.from_frame(keys) if isinstance(keys, pd.DataFrame) else pd.Index(keys)
+        disease_assocs = keys.map(database.get_disease_assocs(index=on, ))
 
         self.annotations[Annotatable.DISEASE_ASSOCIATIONS_COL] = disease_assocs
 
