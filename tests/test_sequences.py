@@ -95,7 +95,7 @@ def test_annotate_dask_GENCODE(generate_TCGA_LUAD, generate_GENCODE_dask):
 
 def test_annotate_sequence_GENCODE(generate_TCGA_LUAD, generate_GENCODE):
     generate_TCGA_LUAD.LncRNA.annotate_sequences(generate_GENCODE,
-                                                 index="gene_id",
+                                                 on="gene_id",
                                                  omic="LncRNA",
                                                  agg="longest")
 

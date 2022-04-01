@@ -333,29 +333,15 @@ class Annotatable(ABC):
             new_annotations = self.annotations.join(database_df,
                                                     on=on,
                                                     rsuffix="_")
-        # elif on == self.annotations.index.name and isinstance(database_df, dd.DataFrame):
-        #     new_annotations = dd.merge(self.annotations, database_df, how="left", on=on, suffixes=("_", ""))
-
         # performing join on a different column
         else:
-            # if isinstance(self.annotations.index, pd.MultiIndex):
-            #     old_index = self.annotations.index.names
-            # else:
-            #     old_index = self.annotations.index.name
-
-            # Save old index, reset the old index, set_index to the join index, perform the join, then change back to the old index
-            # This also ensures the index in self.annotations aligns with the gene_index in self.expressions dataframes
-            # TODO: Could be very slow on dask dataframes
-            # new_annotations = self.annotations.reset_index()
-            # new_annotations = new_annotations.set_index(on)
-            # new_annotations = new_annotations.join(
-            #     database_df, on=on, rsuffix="_").reset_index()
-            # new_annotations = new_annotations.set_index(old_index)
+            if_pandas_df = isinstance(self.annotations, pd.DataFrame)
             new_annotations = dd.merge(self.annotations, database_df, how="left", on=on, suffixes=("_", ""))
+            if if_pandas_df and isinstance(new_annotations, dd.DataFrame):
+                new_annotations = new_annotations.compute()
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
-        duplicate_cols = [col for col in new_annotations.columns \
-                          if col[-1] == "_"]
+        duplicate_cols = [col for col in new_annotations.columns if col[-1] == "_"]
 
         # Fill in null values then drop duplicate columns
         for new_col in duplicate_cols:
@@ -368,7 +354,7 @@ class Annotatable(ABC):
 
     def annotate_sequences(self,
                            database: Database,
-                           index: Union[str, List[str]],
+                           on: Union[str, List[str]],
                            agg="longest",
                            omic=None,
                            **kwargs):
@@ -378,7 +364,7 @@ class Annotatable(ABC):
 
         Args:
             database (Database): The database
-            index (str): The gene index column name.
+            on (str): The gene index column name.
             agg (str): The aggregation method, one of ["longest", "shortest", or
                 "all"]. Default longest.
             omic (str): Default None. Declare the omic type to fetch sequences
@@ -388,18 +374,18 @@ class Annotatable(ABC):
         if omic is None:
             omic = self.name()
 
-        sequences_entries = database.get_sequences(index=index,
+        sequences_entries = database.get_sequences(index=on,
                                                    omic=omic,
                                                    agg_sequences=agg,
                                                    **kwargs)
 
-        if type(self.annotations.index) == pd.MultiIndex and self.annotations.index.names in index:
-            seqs = self.annotations.index.get_level_values(index).map(sequences_entries)
-        elif self.annotations.index.name == index:
+        if type(self.annotations.index) == pd.MultiIndex and self.annotations.index.names in on:
+            seqs = self.annotations.index.get_level_values(on).map(sequences_entries)
+        elif self.annotations.index.name == on:
             seqs = self.annotations.index.map(sequences_entries)
         else:
             # Index is a multi columns
-            seqs = self.annotations.reset_index()[index].map(sequences_entries)
+            seqs = self.annotations.reset_index()[on].map(sequences_entries)
 
         self.annotations[Annotatable.SEQUENCE_COL_NAME] = seqs
 
