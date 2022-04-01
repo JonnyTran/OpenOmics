@@ -150,7 +150,7 @@ class RNAcentral(Database):
                            'GO terms': 'go_id'}
 
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, species=9606, npartitions=0, verbose=False):
+                 col_rename=COLUMNS_RENAME_DICT, species: int = 9606, npartitions=None, verbose=False):
         """
         Args:
             path:
@@ -161,6 +161,7 @@ class RNAcentral(Database):
             verbose:
         """
         self.species = species
+        assert isinstance(self.species, int)
 
         if file_resources is None:
             file_resources = {}
@@ -194,25 +195,28 @@ class RNAcentral(Database):
                                                names=["RNAcentral id", "database", "external id", "species", "RNA type",
                                                       "gene symbol"])
 
+                # id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d", "", regex=True)
+
                 gene_ids.append(id_mapping)
 
         if npartitions:
-            gene_ids = dd.concat(gene_ids, join="inner")
+            gene_ids = dd.concat(gene_ids, axis=0)
         else:
-            gene_ids = pd.concat(gene_ids, join="inner")
+            gene_ids = pd.concat(gene_ids, axis=0)
 
         gene_ids["species"] = gene_ids["species"].astype("O")
-        if self.species is not None:
+        if self.species:
             gene_ids = gene_ids[gene_ids["species"] == self.species]
 
-        lnc_go_terms = go_terms[go_terms["RNAcentral id"].isin(gene_ids["RNAcentral id"])].groupby("RNAcentral id")[
-            "GO terms"].apply(lambda x: "|".join(x.unique()))
-        lnc_rfams = go_terms[go_terms["RNAcentral id"].isin(gene_ids["RNAcentral id"])].groupby("RNAcentral id")[
-            "Rfams"].apply(lambda x: "|".join(x.unique()))
+        id2go_terms = go_terms[go_terms["RNAcentral id"].isin(gene_ids["RNAcentral id"])] \
+            .groupby("RNAcentral id")["GO terms"] \
+            .apply(lambda x: "|".join(x.unique()))
+        id2rfams = go_terms[go_terms["RNAcentral id"].isin(gene_ids["RNAcentral id"])] \
+            .groupby("RNAcentral id")["Rfams"] \
+            .apply(lambda x: "|".join(x.unique()))
 
-        gene_ids["GO terms"] = gene_ids["RNAcentral id"].map(lnc_go_terms)
-        gene_ids["Rfams"] = gene_ids["RNAcentral id"].map(lnc_rfams)
-        gene_ids = gene_ids[gene_ids["GO terms"].notnull() | gene_ids["Rfams"].notnull()]
+        gene_ids["GO terms"] = gene_ids["RNAcentral id"].map(id2go_terms)
+        gene_ids["Rfams"] = gene_ids["RNAcentral id"].map(id2rfams)
 
         return gene_ids
 

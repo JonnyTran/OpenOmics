@@ -149,10 +149,8 @@ class GENCODE(SequenceDatabase):
             annotation_df = pd.concat(dfs)
 
         if self.remove_version_num:
-            annotation_df["gene_id"] = annotation_df["gene_id"].str.replace(
-                "[.].*", "", regex=True)
-            annotation_df["transcript_id"] = annotation_df[
-                "transcript_id"].str.replace("[.].*", "", regex=True)
+            annotation_df["gene_id"] = annotation_df["gene_id"].str.replace("[.].\d", "", regex=True)
+            annotation_df["transcript_id"] = annotation_df["transcript_id"].str.replace("[.].\d", "", regex=True)
 
         return annotation_df
 
