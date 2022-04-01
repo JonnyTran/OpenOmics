@@ -55,7 +55,7 @@ def test_annotate_STRING(generate_TCGA_LUAD, generate_STRING):
         generate_TCGA_LUAD:
         generate_STRING:
     """
-    generate_TCGA_LUAD.Protein.annotate_sequences(generate_STRING, index="protein_name")
+    generate_TCGA_LUAD.Protein.annotate_sequences(generate_STRING, on="protein_name")
     assert not generate_TCGA_LUAD.Protein.annotations["sequence"].empty
 
 
