@@ -185,6 +185,7 @@ class GENCODE(SequenceDatabase):
             seq_df = dd.from_pandas(seq_df)
 
         if replace_U2T:
+            print(seq_df)
             seq_df["sequence"] = seq_df["sequence"].str.replace("U", "T")
 
         if self.remove_version_num:

@@ -414,15 +414,15 @@ class Annotatable(ABC):
         """
         raise NotImplementedError
 
-    def annotate_diseases(self, database, index):
+    def annotate_diseases(self, database, on):
         """
         Args:
             database (DiseaseAssociation):
-            index (str):
+            on (str):
         """
-        if self.annotations.index.name != index:
-            self.annotations.set_index(index, inplace=True)
-        disease_assocs = self.annotations.index.map(database.get_disease_assocs(index=index, ))
+        if self.annotations.index.name != on:
+            self.annotations.set_index(on, inplace=True)
+        disease_assocs = self.annotations.index.map(database.get_disease_assocs(index=on, ))
 
         self.annotations[Annotatable.DISEASE_ASSOCIATIONS_COL] = disease_assocs
 
