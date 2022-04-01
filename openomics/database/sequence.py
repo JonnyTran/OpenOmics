@@ -189,8 +189,8 @@ class GENCODE(SequenceDatabase):
             seq_df["sequence"] = seq_df["sequence"].str.replace("U", "T")
 
         if self.remove_version_num:
-            seq_df["gene_id"] = seq_df["gene_id"].str.replace("[.].*", "")
-            seq_df["transcript_id"] = seq_df["transcript_id"].str.replace("[.].*", "")
+            seq_df["gene_id"] = seq_df["gene_id"].str.replace("[.].*", "", regex=True)
+            seq_df["transcript_id"] = seq_df["transcript_id"].str.replace("[.].*", "", regex=True)
 
         # Cache the seq_df
         if not hasattr(self, '_seq_df_dict'):

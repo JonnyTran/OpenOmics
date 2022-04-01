@@ -175,7 +175,10 @@ class Database(object):
     def list_databases():
         return DEFAULT_LIBRARIES
 
-    def get_annotations(self, index: str, columns: list, agg: str = "concat", filter_values: pd.Series = None):
+    def get_annotations(self, index: Union[str, List[str]],
+                        columns: List[str],
+                        agg: str = "concat",
+                        filter_values: pd.Series = None):
         """Returns the Database's DataFrame such that it's indexed by :param
         index:, which then applies a groupby operation and aggregates all other
         columns by concatenating all unique values.
@@ -207,9 +210,6 @@ class Database(object):
         if filter_values is not None:
             df = df[df[index].isin(list(filter_values))]
 
-        # if index != self.data.index.name and index in self.data.columns:
-        #     df = df.set_index(index)
-
         # Groupby index
         groupby = df.groupby(index)
 
@@ -236,8 +236,6 @@ class Database(object):
         else:
             aggregated = groupby.agg({col: agg for col in columns})
 
-        # if aggregated.index.duplicated().sum() > 0:
-        #     raise ValueError("DataFrame must not have duplicates in index")
         return aggregated
 
     def get_expressions(self, index):
@@ -287,7 +285,8 @@ class Annotatable(ABC):
         self.annotations: pd.DataFrame = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_attributes(self, database: Database, on: str, columns: List[str], agg: str = "concat",
+    def annotate_attributes(self, database: Database, on: Union[str, List[str]],
+                            columns: List[str], agg: str = "concat",
                             fuzzy_match: bool = False):
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present
@@ -303,10 +302,8 @@ class Annotatable(ABC):
             agg (str): Function to aggregate when there is more than one values
                 for each index instance. E.g. ['first', 'last', 'sum', 'mean',
                 'concat'], default 'concat'.
-            fuzzy_match (bool): default False. Whether to join the annotation by
-                applying a fuzzy match on the index with
-                difflib.get_close_matches(). It is very computationally
-                expensive and thus should only be used sparingly.
+            fuzzy_match (bool): default False. Whether to join the annotation by applying a fuzzy match on the index
+                with difflib.get_close_matches(). It can be slow and thus should only be used sparingly.
         """
         if not hasattr(self, "annotations"):
             raise Exception("Must run .initialize_annotations() on, ", self.__class__.__name__, " first.")
@@ -330,9 +327,7 @@ class Annotatable(ABC):
 
         # performing join on the index column
         if on == self.annotations.index.name and isinstance(database_df, pd.DataFrame):
-            new_annotations = self.annotations.join(database_df,
-                                                    on=on,
-                                                    rsuffix="_")
+            new_annotations = self.annotations.join(database_df, on=on, rsuffix="_")
         # performing join on a different column
         else:
             if_pandas_df = isinstance(self.annotations, pd.DataFrame)
@@ -385,7 +380,7 @@ class Annotatable(ABC):
             seqs = self.annotations.index.map(sequences_entries)
         else:
             # Index is a multi columns
-            seqs = self.annotations.reset_index()[on].map(sequences_entries)
+            seqs = pd.MultiIndex.from_frame(self.annotations.reset_index()[on]).map(sequences_entries)
 
         self.annotations[Annotatable.SEQUENCE_COL_NAME] = seqs
 
@@ -403,8 +398,7 @@ class Annotatable(ABC):
             self.annotation_expressions = self.annotation_expressions.join(
                 database.get_expressions(index=index))
         else:
-            raise Exception("index argument must be one of",
-                            database.data.index)
+            raise Exception(f"index argument must be one of {database.data.index}")
 
     def annotate_interactions(self, database, index):
         """
@@ -438,9 +432,9 @@ class Annotatable(ABC):
         self.annotations = self.annotations.reset_index().set_index(new_index)
 
     def get_rename_dict(self, from_index, to_index):
-        """Used to retrieve a lookup dictionary to convert from one index to
-        another, e.g., gene_id to gene_name, obtained from two columns in the
-        data frame.
+        """
+        Utility function used to retrieve a lookup dictionary to convert from one index to
+        another, e.g., gene_id to gene_name, obtained from two columns in the dataframe.
 
         Returns
             Dict[str, str]: the lookup dictionary.
