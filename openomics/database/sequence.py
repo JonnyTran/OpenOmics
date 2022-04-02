@@ -25,7 +25,7 @@ class SequenceDatabase(Database):
         """
         self.replace_U2T = replace_U2T
 
-        super(SequenceDatabase, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     @abstractmethod
     def read_fasta(self, fasta_file:str, replace_U2T:bool, npartitions=None):
@@ -120,7 +120,7 @@ class GENCODE(SequenceDatabase):
 
         self.remove_version_num = remove_version_num
 
-        super(GENCODE, self).__init__(
+        super().__init__(
             path=path,
             file_resources=file_resources,
             col_rename=col_rename,
@@ -253,7 +253,7 @@ class MirBase(SequenceDatabase):
         self,
         path="ftp://mirbase.org/pub/mirbase/CURRENT/",
         file_resources=None,
-        sequence: str = "hairpin",
+        sequence: str = "mature",
         species: str = "Homo sapiens",
         species_id: str = 9606,
         col_rename=None,
@@ -282,7 +282,7 @@ class MirBase(SequenceDatabase):
         self.sequence = sequence
         self.species_id = species_id
         self.species = species
-        super(MirBase, self).__init__(
+        super().__init__(
             path=path,
             file_resources=file_resources,
             col_rename=col_rename,
@@ -352,7 +352,8 @@ class MirBase(SequenceDatabase):
             npartitions:
         """
         entries = []
-        for record in SeqIO.parse(fasta_file, "fasta"):
+        for i, record in enumerate(SeqIO.parse(fasta_file, "fasta")):
+            if i == 0: print(record)
             record_dict = {
                 "gene_id": record.id,
                 "gene_name": str(record.name),

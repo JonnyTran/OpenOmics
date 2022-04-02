@@ -355,9 +355,9 @@ class LncRNA(Expression, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(LncRNA, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
-                                     gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
-                                     dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
+        super().__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
+                         gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
+                         dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
 
     @classmethod
     def name(cls):
@@ -378,9 +378,9 @@ class MessengerRNA(Expression, Annotatable):
         npartitions=None,
         cohort_name=None,
     ):
-        super(MessengerRNA, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
-                                           gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
-                                           dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
+        super().__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
+                         gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
+                         dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
 
     @classmethod
     def name(cls):
@@ -401,9 +401,9 @@ class MicroRNA(Expression, Annotatable):
         npartitions=None,
         cohort_name=None,
     ):
-        super(MicroRNA, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
-                                       gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
-                                       dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
+        super().__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
+                         gene_level=gene_level, sample_level=sample_level, transform_fn=transform_fn,
+                         dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
 
     @classmethod
     def name(cls):
