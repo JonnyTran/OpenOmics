@@ -1,4 +1,3 @@
-import logging
 from abc import abstractmethod
 from typing import Union, List, Callable
 
@@ -154,7 +153,7 @@ class GENCODE(SequenceDatabase):
 
         return annotation_df
 
-    def read_fasta(self, fasta_file, replace_U2T=False, npartitions=None):
+    def read_fasta(self, fasta_file, npartitions=None):
         """
         Args:
             fasta_file:
@@ -182,8 +181,7 @@ class GENCODE(SequenceDatabase):
         if npartitions:
             seq_df = dd.from_pandas(seq_df)
 
-        if replace_U2T:
-            print(seq_df)
+        if self.replace_U2T:
             seq_df["sequence"] = seq_df["sequence"].str.replace("U", "T")
 
         if self.remove_version_num:
@@ -213,18 +211,15 @@ class GENCODE(SequenceDatabase):
         elif omic == openomics.LncRNA.name():
             fasta_file = self.file_resources["lncRNA_transcripts.fa"]
         else:
-            raise Exception(
-                "omic argument must be one of {'MessengerRNA', 'LncRNA'}")
+            raise Exception("omic argument must be one of {'MessengerRNA', 'LncRNA'}")
 
-        seq_df = self.read_fasta(fasta_file, replace_U2T=self.replace_U2T)
+        seq_df = self.read_fasta(fasta_file)
 
         if "gene" in index:
             if biotypes:
                 seq_df = seq_df[seq_df["transcript_biotype"].isin(biotypes)]
             else:
-                print(
-                    "INFO: You can pass in a list of transcript biotypes to filter using the argument 'biotypes'."
-                )
+                print("INFO: You can pass in a list of transcript biotypes to filter using the argument 'biotypes'.")
 
             return seq_df.groupby(index)["sequence"].agg(agg_func)
 
@@ -263,7 +258,7 @@ class MirBase(SequenceDatabase):
         species_id: str = 9606,
         col_rename=None,
         npartitions=0,
-        replace_U2T=True,
+        replace_U2T=False,
     ):
         """
         Args:
@@ -350,11 +345,10 @@ class MirBase(SequenceDatabase):
 
         return mirbase_aliases
 
-    def read_fasta(self, fasta_file, replace_U2T, npartitions=None):
+    def read_fasta(self, fasta_file, npartitions=None):
         """
         Args:
             fasta_file:
-            replace_U2T:
             npartitions:
         """
         entries = []
@@ -374,7 +368,7 @@ class MirBase(SequenceDatabase):
         if npartitions:
             entries_df = dd.from_pandas(entries_df)
 
-        if replace_U2T:
+        if self.replace_U2T:
             entries_df["sequence"] = entries_df["sequence"].str.replace("U", "T")
 
         return entries_df
@@ -391,9 +385,9 @@ class MirBase(SequenceDatabase):
             agg_sequences:
             **kwargs:
         """
-        if hasattr(self, "seq_dict"):
-            logging.info("Using cached sequences dict")
-            return self.seq_dict
+        if hasattr(self, "_seq_dict"):
+            print("Using cached sequences dict")
+            return self._seq_dict
 
         if self.sequence == "hairpin":
             file = self.file_resources["hairpin.fa"]
@@ -402,9 +396,9 @@ class MirBase(SequenceDatabase):
         else:
             raise Exception("sequence must be either 'hairpin' or 'mature'")
 
-        seq_df = self.read_fasta(file, self.replace_U2T)
+        seq_df = self.read_fasta(file)
 
-        self.seq_dict = seq_df.set_index(index)["sequence"].agg(
+        self._seq_dict = seq_df.groupby(index)["sequence"].agg(
             self.get_aggregator(agg_sequences))
 
-        return self.seq_dict
+        return self._seq_dict

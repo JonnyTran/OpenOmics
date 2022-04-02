@@ -283,16 +283,16 @@ class STRING(Interactions, SequenceDatabase):
         if file_resources is None:
             file_resources = {}
             file_resources["protein.actions.txt"] = os.path.join(path,
-                                                                 "protein.actions.v11.0/{}.protein.actions.v11.0.txt.gz".format(
+                                                                 "protein.actions.v11.5/{}.protein.actions.v11.5.txt.gz".format(
                                                                      species_id))
             file_resources["protein.links.txt"] = os.path.join(path,
-                                                               "protein.links.v11.0/{}.protein.links.v11.0.txt.gz".format(
+                                                               "protein.links.v11.5/{}.protein.links.v11.5.txt.gz".format(
                                                                    species_id))
             file_resources["protein.info.txt"] = os.path.join(path,
-                                                              "protein.info.v11.0/{}.protein.info.v11.0.txt.gz".format(
+                                                              "protein.info.v11.5/{}.protein.info.v11.5.txt.gz".format(
                                                                   species_id))
             file_resources["protein.sequences.fa"] = os.path.join(path,
-                                                                  "protein.sequences.v11.0/{}.protein.sequences.v11.0.fa.gz".format(
+                                                                  "protein.sequences.v11.5/{}.protein.sequences.v11.5.fa.gz".format(
                                                                       species_id))
 
         super(STRING, self).__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
@@ -390,7 +390,7 @@ class LncBase(Interactions, Database):
 
         if self.strip_mirna_name:
             df['mirna'] = df['mirna'].str.lower()
-            df['mirna'] = df['mirna'].str.replace("-3p.*|-5p.*", "")
+            df['mirna'] = df['mirna'].str.replace("-3p.*|-5p.*", "", regex=True)
 
         lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                                                edge_attr=edge_attr,
