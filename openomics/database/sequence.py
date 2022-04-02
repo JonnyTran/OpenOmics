@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from typing import Union, List
+from typing import Union, List, Callable
 
 import dask.dataframe as dd
 import pandas as pd
@@ -57,21 +57,21 @@ class SequenceDatabase(Database):
         raise NotImplementedError
 
     @staticmethod
-    def get_aggregator(agg:Union[str, callable]=None):
+    def get_aggregator(agg: Union[str, Callable] = None) -> Callable:
         """Returns a function used aggregate a list of sequences from a groupby
         on a given key.
 
         Args:
             agg: One of ("all", "shortest", "longest"), default "all". If "all",
-                then for all
+                then return a list of sequences.
         """
         if agg == "all":
             agg_func = lambda x: list(x) if not isinstance(x, str) else x
         elif agg == "shortest":
-            agg_func = lambda x: min(x, key=len)
+            agg_func = lambda x: min(x, key=len) if isinstance(x, list) else x
         elif agg == "longest":
-            agg_func = lambda x: max(x, key=len)
-        elif isinstance(agg, callable):
+            agg_func = lambda x: max(x, key=len) if isinstance(x, list) else x
+        elif callable(agg):
             return agg
         else:
             raise Exception(
@@ -362,7 +362,7 @@ class MirBase(SequenceDatabase):
             record_dict = {
                 "gene_id": record.id,
                 "gene_name": str(record.name),
-                "mirbase id": record.description.split(" ")[1],
+                "mirbase_id": record.description.split(" ")[1],
                 "mir_name": record.description.split(" ")[5],
                 "species": " ".join(record.description.split(" ")[2:4]),
                 "sequence": str(record.seq),
@@ -402,9 +402,9 @@ class MirBase(SequenceDatabase):
         else:
             raise Exception("sequence must be either 'hairpin' or 'mature'")
 
-        fasta_df = self.read_fasta(file, self.replace_U2T)
+        seq_df = self.read_fasta(file, self.replace_U2T)
 
-        self.seq_dict = fasta_df.set_index(index)["sequence"].agg(
+        self.seq_dict = seq_df.set_index(index)["sequence"].agg(
             self.get_aggregator(agg_sequences))
 
         return self.seq_dict
