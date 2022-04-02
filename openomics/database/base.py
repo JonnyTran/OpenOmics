@@ -387,9 +387,11 @@ class Annotatable(ABC):
             seqs = self.annotations.index.get_level_values(on).map(sequences_entries)
         elif self.annotations.index.name == on:
             seqs = self.annotations.index.map(sequences_entries)
-        else:
+        elif isinstance(on, list):
             # Index is a multi columns
             seqs = pd.MultiIndex.from_frame(self.annotations.reset_index()[on]).map(sequences_entries)
+        else:
+            seqs = pd.Index(self.annotations.reset_index()[on]).map(sequences_entries)
 
         self.annotations[Annotatable.SEQUENCE_COL_NAME] = seqs
 
