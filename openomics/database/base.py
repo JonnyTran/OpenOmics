@@ -378,20 +378,21 @@ class Annotatable(ABC):
         if omic is None:
             omic = self.name()
 
-        sequences_entries = database.get_sequences(index=on,
-                                                   omic=omic,
-                                                   agg_sequences=agg,
-                                                   **kwargs)
+        sequences = database.get_sequences(index=on,
+                                           omic=omic,
+                                           agg_sequences=agg,
+                                           **kwargs)
 
+        # Map sequences to the keys of `on` columns.
         if type(self.annotations.index) == pd.MultiIndex and self.annotations.index.names in on:
-            seqs = self.annotations.index.get_level_values(on).map(sequences_entries)
+            seqs = self.annotations.index.get_level_values(on).map(sequences)
         elif self.annotations.index.name == on:
-            seqs = self.annotations.index.map(sequences_entries)
+            seqs = self.annotations.index.map(sequences)
         elif isinstance(on, list):
             # Index is a multi columns
-            seqs = pd.MultiIndex.from_frame(self.annotations.reset_index()[on]).map(sequences_entries)
+            seqs = pd.MultiIndex.from_frame(self.annotations.reset_index()[on]).map(sequences)
         else:
-            seqs = pd.Index(self.annotations.reset_index()[on]).map(sequences_entries)
+            seqs = pd.Index(self.annotations.reset_index()[on]).map(sequences)
 
         self.annotations[Annotatable.SEQUENCE_COL_NAME] = seqs
 
