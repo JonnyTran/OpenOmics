@@ -12,7 +12,7 @@ class DiseaseAssociation(Database):
             file_resources:
             **kwargs:
         """
-        super(DiseaseAssociation, self).__init__(path, file_resources, **kwargs)
+        super().__init__(path, file_resources, **kwargs)
 
     @abstractmethod
     def get_disease_assocs(self, index="gene_name"):
@@ -50,7 +50,7 @@ class MalaCards(DiseaseAssociation):
             file_resources = {}
             file_resources["MalaCards.csv"] = "download.action.php?filename=DataDownload/MalaCards.csv"
 
-        super(MalaCards, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
+        super().__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources, npartitions=None):
         # type: (dict, int) -> pd.DataFrame
@@ -93,7 +93,7 @@ class DisGeNet(DiseaseAssociation):
             file_resources["all_gene_disease_associations.tsv"] = "all_gene_disease_associations.tsv.gz"
 
         self.curated = curated
-        super(DisGeNet, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
+        super().__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources, npartitions=None):
         """
@@ -137,7 +137,7 @@ class HMDD(DiseaseAssociation):
             file_resources = {}
             file_resources["alldata.txt"] = "alldata.txt"
 
-        super(HMDD, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
+        super().__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources, npartitions=None):
         """
@@ -170,7 +170,7 @@ class LncRNADisease(DiseaseAssociation):
             file_resources["data_v2017.txt"] = "data_v2017.txt"
 
         self.species = species
-        super(LncRNADisease, self).__init__(path, file_resources, col_rename=col_rename, **kwargs)
+        super().__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources, npartitions=None):
         """

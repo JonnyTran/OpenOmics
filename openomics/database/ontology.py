@@ -31,7 +31,7 @@ class Ontology(Database):
         """
         self.network, self.node_list = self.load_network(file_resources)
 
-        super(Ontology, self).__init__(
+        super().__init__(
             path=path,
             file_resources=file_resources,
             col_rename=col_rename,
@@ -164,7 +164,7 @@ class HumanPhenotypeOntology(Ontology):
             file_resources = {
                 "hp.obo": "http://purl.obolibrary.org/obo/hp.obo",
             }
-        super(HumanPhenotypeOntology, self).__init__(
+        super().__init__(
             path,
             file_resources,
             col_rename=col_rename,
@@ -242,7 +242,7 @@ class GeneOntology(Ontology):
                 "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
                 "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz",
             }
-        super(GeneOntology, self).__init__(
+        super().__init__(
             path,
             file_resources,
             col_rename=col_rename,

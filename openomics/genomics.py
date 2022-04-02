@@ -18,10 +18,10 @@ class SingleNucleotideVariants(Expression, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(SingleNucleotideVariants, self).__init__(data=data, transpose=transpose, gene_index=gene_index,
-                                                       usecols=usecols, gene_level=gene_level,
-                                                       sample_level=sample_level, transform_fn=transform_fn,
-                                                       dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
+        super().__init__(data=data, transpose=transpose, gene_index=gene_index,
+                         usecols=usecols, gene_level=gene_level,
+                         sample_level=sample_level, transform_fn=transform_fn,
+                         dropna=dropna, npartitions=npartitions, cohort_name=cohort_name)
 
     @classmethod
     def name(cls):
@@ -44,10 +44,10 @@ class SomaticMutation(Expression, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(SomaticMutation, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
-                                              gene_level=gene_level, sample_level=sample_level,
-                                              transform_fn=transform_fn, dropna=dropna, npartitions=npartitions,
-                                              cohort_name=cohort_name)
+        super().__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
+                         gene_level=gene_level, sample_level=sample_level,
+                         transform_fn=transform_fn, dropna=dropna, npartitions=npartitions,
+                         cohort_name=cohort_name)
 
     @classmethod
     def name(cls):
@@ -70,10 +70,10 @@ class DNAMethylation(Expression, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(DNAMethylation, self).__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
-                                             gene_level=gene_level, sample_level=sample_level,
-                                             transform_fn=transform_fn, dropna=dropna, npartitions=npartitions,
-                                             cohort_name=cohort_name)
+        super().__init__(data=data, transpose=transpose, gene_index=gene_index, usecols=usecols,
+                         gene_level=gene_level, sample_level=sample_level,
+                         transform_fn=transform_fn, dropna=dropna, npartitions=npartitions,
+                         cohort_name=cohort_name)
 
     @classmethod
     def name(cls):
@@ -96,10 +96,10 @@ class CopyNumberVariation(Expression, Annotatable):
             npartitions:
             cohort_name:
         """
-        super(CopyNumberVariation, self).__init__(data=data, transpose=transpose, gene_index=gene_index,
-                                                  usecols=usecols, gene_level=gene_level, sample_level=sample_level,
-                                                  transform_fn=transform_fn, dropna=dropna, npartitions=npartitions,
-                                                  cohort_name=cohort_name)
+        super().__init__(data=data, transpose=transpose, gene_index=gene_index,
+                         usecols=usecols, gene_level=gene_level, sample_level=sample_level,
+                         transform_fn=transform_fn, dropna=dropna, npartitions=npartitions,
+                         cohort_name=cohort_name)
 
     @classmethod
     def name(cls):

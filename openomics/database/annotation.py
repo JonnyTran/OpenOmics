@@ -24,7 +24,7 @@ class TANRIC(Database):
             npartitions:
             verbose:
         """
-        super(TANRIC, self).__init__(path, file_resources, col_rename, npartitions, verbose)
+        super().__init__(path, file_resources, col_rename, npartitions, verbose)
 
     def load_dataframe(self, file_resources, npartitions=None):
         """
@@ -99,7 +99,7 @@ class ProteinAtlas(Database):
             file_resources = {}
             file_resources["proteinatlas.tsv"] = "proteinatlas.tsv.zip"
 
-        super(ProteinAtlas, self).__init__(path, file_resources, col_rename, npartitions, verbose)
+        super().__init__(path, file_resources, col_rename, npartitions, verbose)
 
     def load_dataframe(self, file_resources, npartitions=None):
         """
@@ -169,8 +169,8 @@ class RNAcentral(Database):
             file_resources["database_mappings/gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
             file_resources["database_mappings/mirbase.tsv"] = "id_mapping/database_mappings/mirbase.tsv"
 
-        super(RNAcentral, self).__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions,
-                                         verbose=verbose)
+        super().__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions,
+                         verbose=verbose)
 
     def load_dataframe(self, file_resources, npartitions=None):
         """
@@ -256,7 +256,7 @@ class GTEx(Database):
             file_resources[
                 "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct"] = "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"
 
-        super(GTEx, self).__init__(path, file_resources, col_rename=None, npartitions=npartitions, verbose=verbose)
+        super().__init__(path, file_resources, col_rename=None, npartitions=npartitions, verbose=verbose)
 
     def load_dataframe(self, file_resources, npartitions=None):  # type: (dict) -> pd.DataFrame
         """
@@ -329,7 +329,7 @@ class NONCODE(Database):
             file_resources["NONCODEv5_Transcript2Gene"] = os.path.join(path, "NONCODEv5_Transcript2Gene")
             file_resources["NONCODEv5_human.func"] = os.path.join(path, "NONCODEv5_human.func")
 
-        super(NONCODE, self).__init__(path, file_resources, col_rename, verbose=verbose, npartitions=npartitions)
+        super().__init__(path, file_resources, col_rename, verbose=verbose, npartitions=npartitions)
 
     def load_dataframe(self, file_resources, npartitions=None):
         """
