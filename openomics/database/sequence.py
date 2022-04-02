@@ -149,8 +149,8 @@ class GENCODE(SequenceDatabase):
             annotation_df = pd.concat(dfs)
 
         if self.remove_version_num:
-            annotation_df["gene_id"] = annotation_df["gene_id"].str.replace("[.].\d", "", regex=True)
-            annotation_df["transcript_id"] = annotation_df["transcript_id"].str.replace("[.].\d", "", regex=True)
+            annotation_df["gene_id"] = annotation_df["gene_id"].str.replace("[.].*", "", regex=True)
+            annotation_df["transcript_id"] = annotation_df["transcript_id"].str.replace("[.].*", "", regex=True)
 
         return annotation_df
 
@@ -375,8 +375,8 @@ class MirBase(SequenceDatabase):
             entries_df = dd.from_pandas(entries_df)
 
         if replace_U2T:
-            entries_df["sequence"] = entries_df["sequence"].str.replace(
-                "U", "T")
+            entries_df["sequence"] = entries_df["sequence"].str.replace("U", "T")
+
         return entries_df
 
     def get_sequences(self,
