@@ -295,12 +295,11 @@ class GeneOntology(Ontology):
 
     def get_predecessor_terms(self, annotation: pd.Series, type="is_a"):
 
-        go_terms_parents = annotation.map(lambda x: list({
-            parent
-            for term in x
-            for parent in list(nx.descendants(self.network, term))
-        }) if isinstance(x, list) else [
-        ])  # flatten(self.traverse_predecessors(term, type))}) \
+        go_terms_parents = annotation.map(
+            lambda annotations: list({
+                parent for term in annotations \
+                for parent in list(nx.ancestors(self.network, term))}) \
+                if isinstance(annotations, list) else [])  # flatten(self.traverse_predecessors(term, type))}) \
         return go_terms_parents
 
     def add_predecessor_terms(self, annotation: pd.Series, return_str=False):
@@ -310,8 +309,7 @@ class GeneOntology(Ontology):
         else:
             go_terms_annotations = annotation
 
-        go_terms_parents = go_terms_annotations + self.get_predecessor_terms(
-            annotation)
+        go_terms_parents = go_terms_annotations + self.get_predecessor_terms(annotation)
 
         if return_str:
             go_terms_parents = go_terms_parents.map(

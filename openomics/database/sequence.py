@@ -356,9 +356,9 @@ class MirBase(SequenceDatabase):
             if i == 0: print(record)
             record_dict = {
                 "gene_id": record.id,
-                "gene_name": str(record.name),
+                "gene_name": str(record.name).lower(),
                 "mirbase_id": record.description.split(" ")[1],
-                "mir_name": record.description.split(" ")[5],
+                # "mir_name": record.description.split(" ")[5],
                 "species": " ".join(record.description.split(" ")[2:4]),
                 "sequence": str(record.seq),
             }
