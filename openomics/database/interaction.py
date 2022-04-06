@@ -133,10 +133,14 @@ class Interactions(Database):
                 subg_edges,
                 row_order=nodes,
                 column_order=nodes,
-                format=format)
+                format="coo")
 
             if format == "coo":
                 edge_index_dict[("_N", etype, "_N")] = (biadj.row, biadj.col)
+            elif format == "edge_index":
+                import torch
+                edge_index_dict[("_N", etype, "_N")] = torch.stack([torch.tensor(biadj.row, dtype=torch.long),
+                                                                    torch.tensor(biadj.col, dtype=torch.long)])
             else:
                 edge_index_dict[("_N", etype, "_N")] = biadj
 
