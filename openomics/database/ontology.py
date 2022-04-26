@@ -1,7 +1,11 @@
+from io import TextIOWrapper
+from typing import Tuple, List, Dict
+
 import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
+import tqdm
 from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
 
 from .base import Database
@@ -39,7 +43,7 @@ class Ontology(Database):
             verbose=verbose,
         )
 
-    def load_network(self, file_resources) -> (nx.MultiDiGraph, list):
+    def load_network(self, file_resources) -> Tuple[nx.MultiDiGraph, List[str]]:
         raise NotImplementedError
 
     def get_adjacency_matrix(self, node_list):
@@ -253,7 +257,7 @@ class GeneOntology(Ontology):
     def info(self):
         print("network {}".format(nx.info(self.network)))
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], npartitions=None):
         go_annotations = pd.DataFrame.from_dict(dict(self.network.nodes(data=True)), orient='index')
         go_annotations["def"] = go_annotations["def"].apply(lambda x: x.split('"')[1])
         go_annotations.index.name = "go_id"
@@ -263,13 +267,14 @@ class GeneOntology(Ontology):
         for file in file_resources:
             if ".gaf" in file:
                 go_lines = []
-                for line in gafiterator(file_resources[file]):
+                for line in tqdm.tqdm(gafiterator(file_resources[file]), desc=file):
                     go_lines.append(line)
                 gaf_annotation_dfs.append(pd.DataFrame(go_lines))
 
         if len(gaf_annotation_dfs):
-            gaf_annotations = pd.concat(gaf_annotation_dfs)
-            print("gaf_annotations", gaf_annotations.columns)
+            self.gaf_annotations = pd.concat(gaf_annotation_dfs)
+            self.gaf_annotations["Date"] = pd.to_datetime(self.gaf_annotations["Date"], )
+            print("gaf_annotations:", self.gaf_annotations.columns.tolist())
 
         return go_annotations
 
@@ -277,8 +282,9 @@ class GeneOntology(Ontology):
         for file in file_resources:
             if ".obo" in file:
                 network: nx.MultiDiGraph = obonet.read_obo(file_resources[file])
-                network = network.reverse(copy=True)
+                # network = network.reverse(copy=True)
                 node_list = np.array(network.nodes)
+
         return network, node_list
 
     def filter_network(self, namespace):
