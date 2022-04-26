@@ -1,6 +1,6 @@
 import logging
 from abc import abstractmethod
-from typing import List, Dict, Iterable
+from typing import List, Dict, Iterable, Tuple, Union
 
 import networkx as nx
 from Bio import SeqIO
@@ -113,7 +113,9 @@ class Interactions(Database):
         else:
             return self.network.edges(nbunch=nodelist, data=data)
 
-    def to_scipy_adjacency(self, nodes: List[str], edge_types: List[str] = None, format="coo"):
+    def to_scipy_adjacency(self, nodes: Union[List[str], Dict[str, List[str]]],
+                           edge_types: Union[List[str], Tuple[str, str, str]] = None,
+                           format="coo", d_ntype="_N"):
         if not isinstance(self.network, nx.MultiGraph):
             raise NotImplementedError
 
@@ -122,27 +124,43 @@ class Interactions(Database):
 
         edge_index_dict = {}
         for etype in edge_types:
-            if isinstance(self.network, nx.MultiGraph):
+            if isinstance(self.network, nx.MultiGraph) and isinstance(etype, str):
                 subg_edges = self.network.edge_subgraph([(u, v, e) for u, v, e in self.network.edges if e == etype])
+                nodes_A = nodes
+                nodes_B = nodes
+                metapath = (d_ntype, etype, d_ntype)
+
+            elif isinstance(self.network, nx.MultiGraph) and isinstance(etype, tuple) and isinstance(nodes, dict):
+                metapath: Tuple[str, str, str] = etype
+                head, etype, tail = metapath
+                subg_edges = self.network.edge_subgraph([(u, v, e) for u, v, e in self.network.edges if e == etype])
+
+                nodes_A = nodes[head]
+                nodes_B = nodes[tail]
+
             elif etype == "_E":
                 subg_edges = self.network.edges
+                nodes_A = nodes
+                nodes_B = nodes
+                metapath = (d_ntype, etype, d_ntype)
             else:
                 raise Exception(f"Edge types `{edge_types}` is ill formed.")
 
             biadj = nx.bipartite.biadjacency_matrix(
                 subg_edges,
-                row_order=nodes,
-                column_order=nodes,
+                row_order=nodes_A,
+                column_order=nodes_B,
                 format="coo")
 
             if format == "coo":
-                edge_index_dict[("_N", etype, "_N")] = (biadj.row, biadj.col)
-            elif format == "edge_index":
+                edge_index_dict[metapath] = (biadj.row, biadj.col)
+            elif format == "pyg":
                 import torch
-                edge_index_dict[("_N", etype, "_N")] = torch.stack([torch.tensor(biadj.row, dtype=torch.long),
-                                                                    torch.tensor(biadj.col, dtype=torch.long)])
+                edge_index_dict[metapath] = torch.stack(
+                    [torch.tensor(biadj.row, dtype=torch.long),
+                     torch.tensor(biadj.col, dtype=torch.long)])
             else:
-                edge_index_dict[("_N", etype, "_N")] = biadj
+                edge_index_dict[metapath] = biadj
 
         return edge_index_dict
 

@@ -321,7 +321,10 @@ class Annotatable(ABC):
         else:
             keys = None
 
-        database_df = database.get_annotations(on, columns=columns, agg=agg, subset=keys)
+        if isinstance(database, pd.DataFrame):
+            database_df = database.groupby(on).agg({col: concat_uniques for col in columns})
+        else:
+            database_df = database.get_annotations(on, columns=columns, agg=agg, subset=keys)
 
         if len(database_df) == 0:
             logging.warning("Database annotations is empty and has nothing to annotate.")
