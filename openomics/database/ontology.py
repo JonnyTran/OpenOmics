@@ -272,7 +272,7 @@ class GeneOntology(Ontology):
                 gaf_annotation_dfs.append(pd.DataFrame(go_lines))
 
         if len(gaf_annotation_dfs):
-            self.gaf_annotations = pd.concat(gaf_annotation_dfs)
+            self.gaf_annotations = pd.concat(gaf_annotation_dfs).reset_index(drop=True)
             self.gaf_annotations["Date"] = pd.to_datetime(self.gaf_annotations["Date"], )
             print("gaf_annotations:", self.gaf_annotations.columns.tolist())
 
