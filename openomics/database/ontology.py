@@ -183,7 +183,7 @@ class HumanPhenotypeOntology(Ontology):
         for file in file_resources:
             if ".obo" in file:
                 network = obonet.read_obo(file_resources[file])
-                network = network.reverse(copy=True)
+                # network = network.reverse(copy=True)
                 node_list = np.array(network.nodes)
         return network, node_list
 
@@ -259,7 +259,7 @@ class GeneOntology(Ontology):
 
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], npartitions=None):
         go_annotations = pd.DataFrame.from_dict(dict(self.network.nodes(data=True)), orient='index')
-        go_annotations["def"] = go_annotations["def"].apply(lambda x: x.split('"')[1])
+        go_annotations["def"] = go_annotations["def"].apply(lambda x: x.split('"')[1] if isinstance(x, str) else None)
         go_annotations.index.name = "go_id"
 
         # Handle .gaf annotation files
@@ -310,7 +310,7 @@ class GeneOntology(Ontology):
 
     def add_predecessor_terms(self, annotation: pd.Series, return_str=False):
         if (annotation.dtypes == np.object
-                and annotation.str.contains("\||;", regex=True).any()):
+            and annotation.str.contains("\||;", regex=True).any()):
             go_terms_annotations = annotation.str.split("|")
         else:
             go_terms_annotations = annotation
