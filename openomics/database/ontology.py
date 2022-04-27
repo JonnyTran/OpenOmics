@@ -7,6 +7,7 @@ import obonet
 import pandas as pd
 import tqdm
 from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
+from pandas import DataFrame
 
 from .base import Database
 from .interaction import Interactions
@@ -288,7 +289,7 @@ class GeneOntology(Ontology):
 
         return network, node_list
 
-    def filter_network(self, namespace):
+    def filter_network(self, namespace) -> Tuple[DataFrame]:
         """
         Filter the subgraph node_list to only `namespace` terms.
         Args:
@@ -299,6 +300,27 @@ class GeneOntology(Ontology):
                                     len(terms))) if self.verbose else None
         self.network = self.network.subgraph(nodes=list(terms))
         self.node_list = np.array(list(terms))
+
+    def annotation_train_val_test_split(self, train_date: str = "2017-06-15", valid_date: str = "2017-11-15",
+                                        exclude: List[str] = ["ISS", "ISO", "ISA", "ISM", "IGC", "RCA", "IEA"]):
+        gaf_annotations = self.gaf_annotations[~self.gaf_annotations["Evidence"].isin(exclude)]
+
+        train_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(train_date)]
+        valid_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(valid_date)]
+
+        test_go_ann = gaf_annotations.drop(index=valid_go_ann.index)
+        valid_go_ann = valid_go_ann.drop(index=train_go_ann.index)
+
+        outputs = []
+        for go_ann in [train_go_ann, valid_go_ann, test_go_ann]:
+            is_neg_ann = go_ann["Qualifier"].map(lambda li: "NOT" in li)
+            gene_go_anns = go_ann[~is_neg_ann].groupby(["gene_name"]).agg(go_id=("go_id", "unique"))
+            neg_ann = go_ann[is_neg_ann].groupby(["gene_name"]).agg(neg_go_id=("go_id", "unique"))
+
+            gene_go_anns["neg_go_id"] = neg_ann["neg_go_id"]
+            outputs.append(gene_go_anns)
+
+        return tuple(outputs)
 
     def get_predecessor_terms(self, annotation: pd.Series, type="is_a"):
 
