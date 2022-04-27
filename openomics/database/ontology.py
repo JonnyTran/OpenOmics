@@ -315,10 +315,11 @@ class GeneOntology(Ontology):
         outputs = []
         for go_ann in [train_go_ann, valid_go_ann, test_go_ann]:
             is_neg_ann = go_ann["Qualifier"].map(lambda li: "NOT" in li)
-            gene_go_anns = go_ann[~is_neg_ann].groupby(["gene_name"]).agg(go_id=("go_id", "unique"))
+            gene_go_anns: DataFrame = go_ann[~is_neg_ann].groupby(["gene_name"]).agg(go_id=("go_id", "unique"))
             neg_ann = go_ann[is_neg_ann].groupby(["gene_name"]).agg(neg_go_id=("go_id", "unique"))
 
             gene_go_anns["neg_go_id"] = neg_ann["neg_go_id"]
+            gene_go_anns.drop(index=[""], inplace=True, errors="ignore")
             outputs.append(gene_go_anns)
 
         return tuple(outputs)
