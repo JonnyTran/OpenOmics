@@ -274,7 +274,7 @@ class GeneOntology(Ontology):
         if len(gaf_annotation_dfs):
             self.gaf_annotations = pd.concat(gaf_annotation_dfs).reset_index(drop=True)
             self.gaf_annotations["Date"] = pd.to_datetime(self.gaf_annotations["Date"], )
-            self.gaf_annotations = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
+            self.gaf_annotations = self.gaf_annotations.rename(columns=self.COLUMNS_RENAME_DICT)
             print("gaf_annotations:", self.gaf_annotations.columns.tolist())
 
         return go_annotations
