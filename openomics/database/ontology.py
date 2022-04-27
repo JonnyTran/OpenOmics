@@ -303,8 +303,7 @@ class GeneOntology(Ontology):
 
     def annotation_train_val_test_split(self, train_date: str = "2017-06-15", valid_date: str = "2017-11-15",
                                         exclude: List[str] = ["ISS", "ISO", "ISA", "ISM", "IGC", "RCA", "IEA"]):
-        gaf_annotations = self.gaf_annotations[~self.gaf_annotations["Evidence"].isin(exclude) & \
-                                               self.gaf_annotations["gene_name"].notnull()]
+        gaf_annotations = self.gaf_annotations[~self.gaf_annotations["Evidence"].isin(exclude)]
 
         train_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(train_date)]
         valid_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(valid_date)]
