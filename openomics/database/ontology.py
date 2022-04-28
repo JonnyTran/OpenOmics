@@ -273,9 +273,11 @@ class GeneOntology(Ontology):
                 gaf_annotation_dfs.append(pd.DataFrame(go_lines))
 
         if len(gaf_annotation_dfs):
-            self.gaf_annotations = pd.concat(gaf_annotation_dfs).reset_index(drop=True)
-            self.gaf_annotations["Date"] = pd.to_datetime(self.gaf_annotations["Date"], )
+            self.gaf_annotations: pd.DataFrame = pd.concat(gaf_annotation_dfs).reset_index(drop=True)
             self.gaf_annotations = self.gaf_annotations.rename(columns=self.COLUMNS_RENAME_DICT)
+
+            self.gaf_annotations["Date"] = pd.to_datetime(self.gaf_annotations["Date"], )
+
             print("gaf_annotations:", self.gaf_annotations.columns.tolist())
 
         return go_annotations
@@ -302,7 +304,8 @@ class GeneOntology(Ontology):
         self.node_list = np.array(list(terms))
 
     def annotation_train_val_test_split(self, train_date: str = "2017-06-15", valid_date: str = "2017-11-15",
-                                        exclude: List[str] = ["ISS", "ISO", "ISA", "ISM", "IGC", "RCA", "IEA"]):
+                                        exclude: List[str] = ["ISS", "ISO", "ISA", "ISM", "IGC", "RCA", "IEA"],
+                                        groupby=["gene_name"]):
         gaf_annotations = self.gaf_annotations[~self.gaf_annotations["Evidence"].isin(exclude)]
 
         train_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(train_date)]
@@ -314,8 +317,8 @@ class GeneOntology(Ontology):
         outputs = []
         for go_ann in [train_go_ann, valid_go_ann, test_go_ann]:
             is_neg_ann = go_ann["Qualifier"].map(lambda li: "NOT" in li)
-            gene_go_anns: DataFrame = go_ann[~is_neg_ann].groupby(["gene_name"]).agg(go_id=("go_id", "unique"))
-            neg_ann = go_ann[is_neg_ann].groupby(["gene_name"]).agg(neg_go_id=("go_id", "unique"))
+            gene_go_anns: DataFrame = go_ann[~is_neg_ann].groupby(groupby).agg(go_id=("go_id", "unique"))
+            neg_ann = go_ann[is_neg_ann].groupby(groupby).agg(neg_go_id=("go_id", "unique"))
 
             gene_go_anns["neg_go_id"] = neg_ann["neg_go_id"]
             gene_go_anns.drop(index=[""], inplace=True, errors="ignore")

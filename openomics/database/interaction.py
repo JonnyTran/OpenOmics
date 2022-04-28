@@ -4,7 +4,6 @@ from typing import List, Dict, Iterable, Tuple, Union
 
 import networkx as nx
 from Bio import SeqIO
-
 from openomics.database.annotation import *
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
@@ -125,7 +124,7 @@ class Interactions(Database):
         edge_index_dict = {}
         for etype in edge_types:
             if isinstance(self.network, nx.MultiGraph) and isinstance(etype, str):
-                subg_edges = self.network.edge_subgraph([(u, v, e) for u, v, e in self.network.edges if e == etype])
+                edge_subgraph = self.network.edge_subgraph([(u, v, e) for u, v, e in self.network.edges if e == etype])
                 nodes_A = nodes
                 nodes_B = nodes
                 metapath = (d_ntype, etype, d_ntype)
@@ -133,24 +132,21 @@ class Interactions(Database):
             elif isinstance(self.network, nx.MultiGraph) and isinstance(etype, tuple) and isinstance(nodes, dict):
                 metapath: Tuple[str, str, str] = etype
                 head, etype, tail = metapath
-                subg_edges = self.network.edge_subgraph([(u, v, e) for u, v, e in self.network.edges if e == etype])
+                edge_subgraph = self.network.edge_subgraph([(u, v, e) for u, v, e in self.network.edges if e == etype])
 
                 nodes_A = nodes[head]
                 nodes_B = nodes[tail]
 
             elif etype == "_E":
-                subg_edges = self.network.edges
+                edge_subgraph = self.network.edges
                 nodes_A = nodes
                 nodes_B = nodes
                 metapath = (d_ntype, etype, d_ntype)
             else:
                 raise Exception(f"Edge types `{edge_types}` is ill formed.")
 
-            biadj = nx.bipartite.biadjacency_matrix(
-                subg_edges,
-                row_order=nodes_A,
-                column_order=nodes_B,
-                format="coo")
+            biadj = nx.bipartite.biadjacency_matrix(edge_subgraph, row_order=nodes_A, column_order=nodes_B,
+                                                    format="coo")
 
             if format == "coo":
                 edge_index_dict[metapath] = (biadj.row, biadj.col)
