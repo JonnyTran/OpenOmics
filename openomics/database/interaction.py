@@ -4,6 +4,7 @@ from typing import List, Dict, Iterable, Tuple, Union
 
 import networkx as nx
 from Bio import SeqIO
+
 from openomics.database.annotation import *
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
@@ -114,8 +115,13 @@ class Interactions(Database):
 
     def to_scipy_adjacency(self, nodes: Union[List[str], Dict[str, List[str]]],
                            edge_types: Union[List[str], Tuple[str, str, str]] = None,
+                           reverse=False,
                            format="coo", d_ntype="_N"):
-        if not isinstance(self.network, nx.MultiGraph):
+        g: nx.DiGraph = self.network
+        if reverse:
+            g = g.reverse(copy=True)
+
+        if not isinstance(g, nx.MultiGraph):
             raise NotImplementedError
 
         if not isinstance(edge_types, Iterable):
@@ -123,22 +129,22 @@ class Interactions(Database):
 
         edge_index_dict = {}
         for etype in edge_types:
-            if isinstance(self.network, nx.MultiGraph) and isinstance(etype, str):
-                edge_subgraph = self.network.edge_subgraph([(u, v, e) for u, v, e in self.network.edges if e == etype])
+            if isinstance(g, nx.MultiGraph) and isinstance(etype, str):
+                edge_subgraph = g.edge_subgraph([(u, v, e) for u, v, e in g.edges if e == etype])
                 nodes_A = nodes
                 nodes_B = nodes
                 metapath = (d_ntype, etype, d_ntype)
 
-            elif isinstance(self.network, nx.MultiGraph) and isinstance(etype, tuple) and isinstance(nodes, dict):
+            elif isinstance(g, nx.MultiGraph) and isinstance(etype, tuple) and isinstance(nodes, dict):
                 metapath: Tuple[str, str, str] = etype
                 head, etype, tail = metapath
-                edge_subgraph = self.network.edge_subgraph([(u, v, e) for u, v, e in self.network.edges if e == etype])
+                edge_subgraph = g.edge_subgraph([(u, v, e) for u, v, e in g.edges if e == etype])
 
                 nodes_A = nodes[head]
                 nodes_B = nodes[tail]
 
             elif etype == "_E":
-                edge_subgraph = self.network.edges
+                edge_subgraph = g.edges
                 nodes_A = nodes
                 nodes_B = nodes
                 metapath = (d_ntype, etype, d_ntype)
