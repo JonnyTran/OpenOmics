@@ -304,9 +304,9 @@ class GeneOntology(Ontology):
         self.node_list = np.array(list(terms))
 
     def annotation_train_val_test_split(self, train_date: str = "2017-06-15", valid_date: str = "2017-11-15",
-                                        exclude: List[str] = ["ISS", "ISO", "ISA", "ISM", "IGC", "RCA", "IEA"],
+                                        include: List[str] = ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC'],
                                         groupby=["gene_name"]):
-        gaf_annotations = self.gaf_annotations[~self.gaf_annotations["Evidence"].isin(exclude)]
+        gaf_annotations = self.gaf_annotations[self.gaf_annotations["Evidence"].isin(include)]
 
         train_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(train_date)]
         valid_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(valid_date)]
@@ -322,6 +322,11 @@ class GeneOntology(Ontology):
 
             gene_go_anns["neg_go_id"] = neg_ann["neg_go_id"]
             gene_go_anns.drop(index=[""], inplace=True, errors="ignore")
+
+            # Remove "GO:0005515" (protein binding) annotations for a gene if it's the gene's only annotation
+            gene_go_anns.loc[gene_go_anns["go_id"].map(lambda li: len(li) == 1 and "GO:0005515" in li), "go_id"] = None
+            gene_go_anns.drop(gene_go_anns.isna().all(1), inplace=True)
+
             outputs.append(gene_go_anns)
 
         return tuple(outputs)
