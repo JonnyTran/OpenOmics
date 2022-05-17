@@ -308,6 +308,7 @@ class GeneOntology(Ontology):
                                         groupby=["gene_name"]):
         gaf_annotations = self.gaf_annotations[self.gaf_annotations["Evidence"].isin(include)]
 
+        # Split train/valid/test annotations
         train_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(train_date)]
         valid_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(valid_date)]
 
@@ -315,25 +316,26 @@ class GeneOntology(Ontology):
         valid_go_ann = valid_go_ann.drop(index=train_go_ann.index)
 
         outputs = []
-        for go_ann in [train_go_ann, valid_go_ann, test_go_ann]:
-            is_neg_ann = go_ann["Qualifier"].map(lambda li: "NOT" in li)
-            gene_go_anns: DataFrame = go_ann[~is_neg_ann].groupby(groupby).agg(go_id=("go_id", "unique"))
-            neg_ann = go_ann[is_neg_ann].groupby(groupby).agg(neg_go_id=("go_id", "unique"))
+        for go_anns in [train_go_ann, valid_go_ann, test_go_ann]:
+            is_neg_ann = go_anns["Qualifier"].map(lambda li: "NOT" in li)
 
-            gene_go_anns["neg_go_id"] = neg_ann["neg_go_id"]
+            # Positive and negative gene-GO annotations
+            gene_go_anns: DataFrame = go_anns[~is_neg_ann].groupby(groupby).agg(go_id=("go_id", "unique"))
+            neg_anns = go_anns[is_neg_ann].groupby(groupby).agg(neg_go_id=("go_id", "unique"))
+
+            gene_go_anns["neg_go_id"] = neg_anns["neg_go_id"]
             gene_go_anns.drop(index=[""], inplace=True, errors="ignore")
 
             # Remove "GO:0005515" (protein binding) annotations for a gene if it's the gene's only annotation
             gene_go_anns.loc[gene_go_anns["go_id"].map(lambda li: len(li) == 1 and "GO:0005515" in li), "go_id"] = None
-            gene_go_anns.drop(gene_go_anns.isna().all(1), inplace=True)
+            gene_go_anns.drop(index=gene_go_anns.index[gene_go_anns.isna().all(1)], inplace=True)
 
             outputs.append(gene_go_anns)
 
         return tuple(outputs)
 
-    def get_predecessor_terms(self, annotation: pd.Series, type="is_a"):
-
-        go_terms_parents = annotation.map(
+    def get_predecessor_terms(self, annotations: pd.Series, type="is_a"):
+        go_terms_parents = annotations.map(
             lambda annotations: list({
                 parent for term in annotations \
                 for parent in list(nx.ancestors(self.network, term))}) \
