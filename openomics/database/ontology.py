@@ -316,7 +316,8 @@ class GeneOntology(Ontology):
         test_go_ann = gaf_annotations.drop(index=valid_go_ann.index)
         valid_go_ann = valid_go_ann.drop(index=train_go_ann.index)
 
-        test_go_ann = test_go_ann[test_go_ann["Date"] <= pd.to_datetime(test_date)]
+        if test_date:
+            test_go_ann = test_go_ann[test_go_ann["Date"] <= pd.to_datetime(test_date)]
 
         outputs = []
         for go_anns in [train_go_ann, valid_go_ann, test_go_ann]:
