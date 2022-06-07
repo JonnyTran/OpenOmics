@@ -304,6 +304,7 @@ class GeneOntology(Ontology):
         self.node_list = np.array(list(terms))
 
     def annotation_train_val_test_split(self, train_date: str = "2017-06-15", valid_date: str = "2017-11-15",
+                                        test_date: str = "2021-12-31",
                                         include: List[str] = ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC'],
                                         groupby=["gene_name"]):
         gaf_annotations = self.gaf_annotations[self.gaf_annotations["Evidence"].isin(include)]
@@ -314,6 +315,8 @@ class GeneOntology(Ontology):
 
         test_go_ann = gaf_annotations.drop(index=valid_go_ann.index)
         valid_go_ann = valid_go_ann.drop(index=train_go_ann.index)
+
+        test_go_ann = test_go_ann[test_go_ann["Date"] <= pd.to_datetime(test_date)]
 
         outputs = []
         for go_anns in [train_go_ann, valid_go_ann, test_go_ann]:
