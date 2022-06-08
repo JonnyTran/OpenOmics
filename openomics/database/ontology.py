@@ -325,8 +325,8 @@ class GeneOntology(Ontology):
 
             # Positive and negative gene-GO annotations
             gene_go_anns: DataFrame = go_anns[~is_neg_ann].groupby(groupby).agg(go_id=("go_id", "unique"))
-            neg_anns = go_anns[is_neg_ann].groupby(groupby).agg(neg_go_id=("go_id", "unique"))
 
+            neg_anns = go_anns[is_neg_ann].groupby(groupby).agg(neg_go_id=("go_id", "unique"))
             gene_go_anns["neg_go_id"] = neg_anns["neg_go_id"]
             gene_go_anns.drop(index=[""], inplace=True, errors="ignore")
 
