@@ -1,0 +1,12 @@
+---
+cff-version: 1.2.0
+message: "Please cite our paper if you use this code in your own work."
+title: "OpenOmics: A bioinformatics API to integrate multi-omics datasets and interface with public databases.  [Computer software]"
+authors:
+- family-names: "Tran"
+  given-names: "Nhat C."
+- family-names: "Gao"
+  given-names: "Jean X."
+date-released: 2021-05-06
+license: cc-by-4.0
+url: "https://joss.theoj.org/papers/10.21105/joss.03249#"
