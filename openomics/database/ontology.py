@@ -139,7 +139,6 @@ class Ontology(Database):
               go_colors["HCL.color"].unique().shape)
         return go_id_colors
 
-
 Ontology.to_scipy_adjacency = Interactions.to_scipy_adjacency
 
 
