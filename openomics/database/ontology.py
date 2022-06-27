@@ -305,7 +305,7 @@ class GeneOntology(Ontology):
     def annotation_train_val_test_split(self, train_date: str = "2017-06-15", valid_date: str = "2017-11-15",
                                         test_date: str = "2021-12-31",
                                         include: List[str] = ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC'],
-                                        groupby=["gene_name"]) -> Tuple[DataFrame, DataFrame, DataFrame]:
+                                        groupby=["gene_name", "Qualifier"]) -> Tuple[DataFrame, DataFrame, DataFrame]:
         gaf_annotations = self.gaf_annotations[self.gaf_annotations["Evidence"].isin(include)]
 
         # Split train/valid/test annotations
@@ -321,10 +321,16 @@ class GeneOntology(Ontology):
         outputs = []
         for go_anns in [train_go_ann, valid_go_ann, test_go_ann]:
             is_neg_ann = go_anns["Qualifier"].map(lambda li: "NOT" in li)
+            # Convert `Qualifiers` entries of lists to strings
+            go_anns = go_anns.apply({"Qualifier": lambda li: "".join([i for i in li if i != "NOT"]),
+                                     "gene_name": lambda x: x,
+                                     "go_id": lambda x: x,
+                                     "Evidence": lambda x: x})
 
-            # Positive and negative gene-GO annotations
+            # Positive gene-GO annotations
             gene_go_anns: DataFrame = go_anns[~is_neg_ann].groupby(groupby).agg(go_id=("go_id", "unique"))
 
+            # Negative gene-GO annotations
             neg_anns = go_anns[is_neg_ann].groupby(groupby).agg(neg_go_id=("go_id", "unique"))
             gene_go_anns["neg_go_id"] = neg_anns["neg_go_id"]
             gene_go_anns.drop(index=[""], inplace=True, errors="ignore")
