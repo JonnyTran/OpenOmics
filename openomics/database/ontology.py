@@ -305,8 +305,11 @@ class GeneOntology(Ontology):
     def annotation_train_val_test_split(self, train_date: str = "2017-06-15", valid_date: str = "2017-11-15",
                                         test_date: str = "2021-12-31",
                                         include: List[str] = ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC'],
-                                        groupby=["gene_name", "Qualifier"]) -> Tuple[DataFrame, DataFrame, DataFrame]:
+                                        groupby=["gene_name", "Qualifier"], filter_go_id: List[str] = None) \
+        -> Tuple[DataFrame, DataFrame, DataFrame]:
         gaf_annotations = self.gaf_annotations[self.gaf_annotations["Evidence"].isin(include)]
+        if filter_go_id:
+            gaf_annotations = gaf_annotations[gaf_annotations["go_id"].isin(filter_go_id)]
 
         # Split train/valid/test annotations
         train_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(train_date)]
