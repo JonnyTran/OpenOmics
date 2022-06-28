@@ -308,7 +308,7 @@ class GeneOntology(Ontology):
                                         groupby=["gene_name", "Qualifier"], filter_go_id: List[str] = None) \
         -> Tuple[DataFrame, DataFrame, DataFrame]:
         gaf_annotations = self.gaf_annotations[self.gaf_annotations["Evidence"].isin(include)]
-        if filter_go_id:
+        if filter_go_id is not None:
             gaf_annotations = gaf_annotations[gaf_annotations["go_id"].isin(filter_go_id)]
 
         # Split train/valid/test annotations
