@@ -435,10 +435,15 @@ class BioMartManager:
         print("Querying {} from {} with attributes {}...".format(dataset, host, attributes))
         results = bm.query(xml_query)
 
-        if npartitions:
-            df = dd.read_csv(StringIO(results), header=None, names=attributes, sep="\t")
-        else:
-            df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True)
+        try:
+            if npartitions:
+                df = dd.read_csv(StringIO(results), header=None, names=attributes, sep="\t")
+            else:
+                df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True,
+                                 dtype={"entrezgene_id": "str"})
+        except Exception as e:
+            print(results)
+            raise e
 
         if cache:
             self.cache_dataset(dataset, df, save_filename)
