@@ -65,7 +65,9 @@ class Database(object):
 
         self.data = self.load_dataframe(file_resources,
                                         npartitions=npartitions)
-        self.data = self.data.reset_index()
+
+        if self.data.index.name != None:
+            self.data = self.data.reset_index()
         if col_rename is not None:
             self.data = self.data.rename(columns=col_rename)
 
@@ -75,7 +77,7 @@ class Database(object):
         logging.info("{}: {}".format(self.name(), self.data.columns.tolist()))
 
     def validate_file_resources(self,
-                                path,
+                                base_path,
                                 file_resources,
                                 npartitions=None,
                                 verbose=False) -> None:
@@ -84,7 +86,7 @@ class Database(object):
         the file is compressed.
 
         Args:
-            path (str): The folder or url path containing the data file
+            base_path (str): The folder or url path containing the data file
                 resources. If a url path, the files will be downloaded and
                 cached to the user's home folder (at ~/.astropy/).
             file_resources (dict): default None, Used to list required files for
@@ -96,9 +98,10 @@ class Database(object):
                 Dataframe. Default None.
             verbose:
         """
-        if validators.url(path):
+        if validators.url(base_path):
             for filename, filepath in copy.copy(file_resources).items():
-                data_file = get_pkg_data_filename(path, filepath)  # Download file and replace the file_resource path
+                data_file = get_pkg_data_filename(base_path,
+                                                  filepath)  # Download file and replace the file_resource path
 
                 filepath_ext = filetype.guess(data_file)
 
@@ -119,35 +122,31 @@ class Database(object):
                     zf = zipfile.ZipFile(data_file, "r")
 
                     for subfile in zf.infolist():
-                        if (os.path.splitext(subfile.filename)[-1] ==
-                                os.path.splitext(filename)[-1]
-                            ):  # If the file extension matches
-                            file_resources[filename] = zf.open(
-                                subfile.filename, mode="r")
+                        # If the file extension matches
+                        if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]:
+                            file_resources[filename] = zf.open(subfile.filename, mode="r")
 
                 elif filepath_ext.extension == "rar":
                     logging.debug("Decompressed rar file at {}".format(data_file))
                     rf = rarfile.RarFile(data_file, "r")
 
                     for subfile in rf.infolist():
-                        if (os.path.splitext(subfile.filename)[-1] ==
-                                os.path.splitext(filename)[-1]
-                            ):  # If the file extension matches
-                            file_resources[filename] = rf.open(
-                                subfile.filename, mode="r")
+                        # If the file extension matches
+                        if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]:
+                            file_resources[filename] = rf.open(subfile.filename, mode="r")
                 else:
                     file_resources[filename] = data_file
 
-        elif os.path.isdir(path) and os.path.exists(path):
+        elif os.path.isdir(base_path) and os.path.exists(base_path):
             for _, filepath in file_resources.items():
                 if not os.path.exists(filepath):
                     raise IOError(filepath)
         else:
-            raise IOError(path)
+            raise IOError(base_path)
 
-        self.data_path = path
+        self.data_path = base_path
         self.file_resources = file_resources
-        logging.info("{} file_resources: {}".format(self.name(), file_resources))
+        logging.info(f"{self.name()} file_resources: {file_resources}")
 
     def close(self):
         # Close opened file resources

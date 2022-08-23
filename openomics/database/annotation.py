@@ -6,7 +6,6 @@ from bioservices import BioMart
 
 from openomics.database.base import Database
 from openomics.utils.df import concat_uniques
-from openomics.utils.io import mkdirs
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
@@ -363,6 +362,66 @@ class NONCODE(Database):
                       index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
 
 
+class UniProt(Database):
+    COLUMNS_RENAME_DICT = {
+        "UniProtKB-ID": 'protein_name',
+        "Ensembl": "gene_id",
+        "Ensembl_TRS": "transcript_id",
+        "Ensembl_PRO": "protein_id",
+        "NCBI-taxon": "species_id",
+        "GeneID(EntrezGene)": "entrezgene_id",
+        "GO": "go_id",
+    }
+
+    def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
+                 species="HUMAN", species_id="9606",
+                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, verbose=False,
+                 npartitions=None):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            verbose:
+            npartitions:
+        """
+        self.species = species
+        self.species_id = species_id
+        if species:
+            sub_path = f"by_organism/"
+        else:
+            sub_path = ""
+
+        if file_resources is None:
+            file_resources = {}
+            file_resources["idmapping_selected.tab"] = os.path.join(path, "knowledgebase/idmapping/", sub_path,
+                                                                    f'{species}_{species_id}_idmapping_selected.tab.gz')
+
+        super().__init__(path, file_resources, col_rename, verbose=verbose, npartitions=npartitions)
+
+    def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
+
+        options = dict(
+            names=['UniProtKB-AC', 'UniProtKB-ID', 'GeneID (EntrezGene)', 'RefSeq', 'GI', 'PDB', 'GO', 'UniRef100',
+                   'UniRef90', 'UniRef50', 'UniParc', 'PIR', 'NCBI-taxon', 'MIM', 'UniGene', 'PubMed', 'EMBL',
+                   'EMBL-CDS', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO', 'Additional PubMed'],
+            usecols=['UniProtKB-AC', 'UniProtKB-ID', 'GeneID (EntrezGene)', 'RefSeq', 'GI', 'PDB', 'GO',
+                     'NCBI-taxon', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO'],
+            dtype={'GeneID (EntrezGene)': 'str'})
+
+        if npartitions:
+            idmapping = dd.read_table(file_resources["idmapping_selected.tab"], **options)
+        else:
+            idmapping = pd.read_table(file_resources["idmapping_selected.tab"], **options)
+
+        return idmapping
+
+
 class BioMartManager:
     """
     A base class with functions to query Ensembl Biomarts "https://www.ensembl.org/biomart".
@@ -406,7 +465,7 @@ class BioMartManager:
             save_filename:
         """
         if not os.path.exists(DEFAULT_CACHE_PATH):
-            mkdirs(DEFAULT_CACHE_PATH)
+            os.makedirs(DEFAULT_CACHE_PATH, exist_ok=True)
 
         if save_filename is None:
             save_filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(dataset))

@@ -287,6 +287,9 @@ class STRING(Interactions, SequenceDatabase):
         "protein.info.txt": f"protein.info.v11.0/{species_id}.protein.info.v11.0.txt.gz",
         "protein.sequences.fa": f"protein.sequences.v11.0/{species_id}.protein.sequences.v11.0.fa.gz"
     }
+
+    Edge attributes for protein.actions.txt include ["mode", 'action', 'is_directional', 'a_is_acting' "score"]
+    Edge attributes for protein.actions.txt include ["combined_score"]
     """
     COLUMNS_RENAME_DICT = {
         "protein_external_id": "protein_id",
@@ -295,9 +298,9 @@ class STRING(Interactions, SequenceDatabase):
 
     def __init__(self, path="https://stringdb-static.org/download/", file_resources=None,
                  species_id="9606",
-                 source_col_name="item_id_a", target_col_name="item_id_b", source_index="protein_name",
+                 source_col_name="protein1", target_col_name="protein2", source_index="protein_name",
                  target_index="protein_name",
-                 edge_attr=["score"], directed=False,
+                 edge_attr=['combined_score'], directed=False,
                  relabel_nodes=None, verbose=False):
         """
 
@@ -306,12 +309,10 @@ class STRING(Interactions, SequenceDatabase):
         """
         if file_resources is None:
             file_resources = {}
-            file_resources["protein.actions.txt"] = \
-                os.path.join(path, f"protein.actions.v11.0/{species_id}.protein.actions.v11.0.txt.gz")
-            file_resources["protein.links.txt"] = \
-                os.path.join(path, f"protein.links.v11.0/{species_id}.protein.links.v11.0.txt.gz")
             file_resources["protein.info.txt"] = \
                 os.path.join(path, f"protein.info.v11.0/{species_id}.protein.info.v11.0.txt.gz")
+            file_resources["protein.links.txt"] = \
+                os.path.join(path, f"protein.links.v11.0/{species_id}.protein.links.v11.0.txt.gz")
             file_resources["protein.sequences.fa"] = \
                 os.path.join(path, f"protein.sequences.v11.0/{species_id}.protein.sequences.v11.0.fa.gz")
 
@@ -321,19 +322,31 @@ class STRING(Interactions, SequenceDatabase):
                          directed=directed, relabel_nodes=relabel_nodes, verbose=verbose)
 
         self.file_resources["protein.info.txt"].seek(0)
-        self.data = pd.read_table(file_resources["protein.info.txt"])
-        self.data = self.data.reset_index()
+        self.data = pd.read_table(file_resources["protein.info.txt"], na_values=['annotation not available'])
+        if self.data.index.name != None:
+            self.data = self.data.reset_index()
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
-        # protein_interactions = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
-        protein_interactions = pd.read_table(file_resources["protein.actions.txt"], sep="\t", low_memory=True)
-        logging.info("{}: {}".format(self.name(), protein_interactions.columns.tolist()))
+        edges_df = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
+        # edges_df = pd.read_table(file_resources["protein.actions.txt"],
+        #                                      true_values=['t'], false_values=['f'],
+        #                                      sep="\t", low_memory=True)
+        logging.info("{}: {}".format(self.name(), edges_df.columns.tolist()))
+        file_resources["protein.info.txt"].seek(0)
         protein_info = pd.read_table(file_resources["protein.info.txt"])
 
         self.protein_id2name = protein_info.set_index("protein_external_id")["preferred_name"].to_dict()
-        network = nx.from_pandas_edgelist(protein_interactions, source=source_col_name, target=target_col_name,
-                                          edge_attr=edge_attr,
+
+        if isinstance(edge_attr, (list, tuple)):
+            edges_df = edges_df.filter(edges_df.columns.intersection(edge_attr + [source_col_name, target_col_name]),
+                                       axis="columns")
+            add_attrs = True
+        else:
+            add_attrs = False
+
+        network = nx.from_pandas_edgelist(edges_df, source=source_col_name, target=target_col_name,
+                                          edge_attr=add_attrs,
                                           create_using=nx.DiGraph() if directed else nx.Graph())
         network = nx.relabel_nodes(network, self.protein_id2name)
         return network

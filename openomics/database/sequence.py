@@ -78,7 +78,6 @@ class SequenceDatabase(Database):
             )
         return agg_func
 
-
 class GENCODE(SequenceDatabase):
     """Loads the GENCODE database from https://www.gencodegenes.org/ .
 
