@@ -1,4 +1,3 @@
-import errno
 import io
 import logging
 import os
@@ -8,7 +7,6 @@ import dask.dataframe as dd
 import requests
 import sqlalchemy as sa
 import validators
-import astropy
 from astropy.utils import data
 from requests.adapters import HTTPAdapter, Retry
 
@@ -40,8 +38,8 @@ def get_pkg_data_filename(dataurl, file):
             return data.get_pkg_data_filename(file, package="openomics.database", show_progress=True)
 
     except (URLError, ValueError) as e:
-        raise Exception("Unable to download file at {}. Please try manually downloading the files. \n{}".format(
-            os.path.join(dataurl, file), e))
+        raise Exception(f"Unable to download file at {os.path.join(dataurl, file)}. "
+                        f"Please try manually downloading the files. \n{e}")
 
 
 def read_db(path, table, index_col):
@@ -66,20 +64,6 @@ def read_db(path, table, index_col):
 
     daskDF = dd.read_sql_table(table, path, index_col=index_col, parse_dates={'datetime': '%Y-%m-%d %H:%M:%S'})
     return daskDF
-
-
-def mkdirs(outdir):
-    """Make a directory.
-
-    Args:
-        outdir: directory path
-    """
-    try:
-        os.makedirs(outdir)
-    except OSError as exc:
-        if exc.errno != errno.EEXIST:
-            raise exc
-        pass
 
 
 def retry(num=5):

@@ -1,6 +1,8 @@
-from io import TextIOWrapper
-from typing import Tuple, List, Dict
+import os
+from io import TextIOWrapper, StringIO
+from typing import Tuple, List, Dict, Iterable, Union
 
+import dask.dataframe as dd
 import networkx as nx
 import numpy as np
 import obonet
@@ -44,8 +46,9 @@ class Ontology(Database):
             verbose=verbose,
         )
 
+
     def load_network(self, file_resources) -> Tuple[nx.MultiDiGraph, List[str]]:
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def get_adjacency_matrix(self, node_list):
         if hasattr(self, "adjacency_matrix"):
@@ -188,16 +191,7 @@ class HumanPhenotypeOntology(Ontology):
         return network, node_list
 
 
-def gafiterator(handle):
-    inline = handle.readline()
-    if inline.strip().startswith("!gaf-version: 2"):
-        # sys.stderr.write("gaf 2.0\n")
-        return _gaf20iterator(handle)
-    elif inline.strip() == "!gaf-version: 1.0":
-        # sys.stderr.write("gaf 1.0\n")
-        return _gaf10iterator(handle)
-    else:
-        return _gaf20iterator(handle)
+
 
 
 class GeneOntology(Ontology):
@@ -258,6 +252,7 @@ class GeneOntology(Ontology):
         print("network {}".format(nx.info(self.network)))
 
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], npartitions=None):
+        # Annotations for each GO term
         go_annotations = pd.DataFrame.from_dict(dict(self.network.nodes(data=True)), orient='index')
         go_annotations["def"] = go_annotations["def"].apply(lambda x: x.split('"')[1] if isinstance(x, str) else None)
         go_annotations.index.name = "go_id"
@@ -272,12 +267,12 @@ class GeneOntology(Ontology):
                 gaf_annotation_dfs.append(pd.DataFrame(go_lines))
 
         if len(gaf_annotation_dfs):
-            self.gaf_annotations: pd.DataFrame = pd.concat(gaf_annotation_dfs).reset_index(drop=True)
-            self.gaf_annotations = self.gaf_annotations.rename(columns=self.COLUMNS_RENAME_DICT)
+            self.annotations: pd.DataFrame = pd.concat(gaf_annotation_dfs).reset_index(drop=True)
+            self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
 
-            self.gaf_annotations["Date"] = pd.to_datetime(self.gaf_annotations["Date"], )
+            self.annotations["Date"] = pd.to_datetime(self.annotations["Date"], )
 
-            print("gaf_annotations:", self.gaf_annotations.columns.tolist())
+            print("gaf_annotations:", self.annotations.columns.tolist())
 
         return go_annotations
 
@@ -305,56 +300,58 @@ class GeneOntology(Ontology):
     def annotation_train_val_test_split(self, train_date: str = "2017-06-15",
                                         valid_date: str = "2017-11-15",
                                         test_date: str = "2021-12-31",
-                                        include: List[str] = ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC'],
-                                        groupby=["gene_name", "Qualifier"],
+                                        filter_evidence: List = ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC'],
+                                        groupby: List[str] = ["gene_name", "Qualifier"],
                                         filter_go_id: List[str] = None,
-                                        valid_inclusive=False,
                                         ) -> Tuple[DataFrame, DataFrame, DataFrame]:
-        gaf_annotations = self.gaf_annotations[self.gaf_annotations["Evidence"].isin(include)]
+        annotations = self.annotations[self.annotations["Evidence"].isin(filter_evidence)]
         if filter_go_id is not None:
-            gaf_annotations = gaf_annotations[gaf_annotations["go_id"].isin(filter_go_id)]
+            annotations = annotations[annotations["go_id"].isin(filter_go_id)]
 
         # Split train/valid/test annotations
-        train_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(train_date)]
-        valid_go_ann = gaf_annotations[gaf_annotations["Date"] <= pd.to_datetime(valid_date)]
+        train_anns = annotations[annotations["Date"] <= pd.to_datetime(train_date)]
+        valid_anns = annotations[annotations["Date"] <= pd.to_datetime(valid_date)]
 
-        test_go_ann = gaf_annotations.drop(index=valid_go_ann.index if not valid_inclusive else train_go_ann.index)
-        valid_go_ann = valid_go_ann.drop(index=train_go_ann.index)
-
+        test_anns = annotations.drop(index=valid_anns.index)
+        valid_anns = valid_anns.drop(index=train_anns.index)
         if test_date:
-            test_go_ann = test_go_ann[test_go_ann["Date"] <= pd.to_datetime(test_date)]
+            test_anns = test_anns[test_anns["Date"] <= pd.to_datetime(test_date)]
+
+        # Set the source column (i.e. protein_id or gene_name), to be the first in groupby
+        src_node_col = groupby[0]
+        _exclude_single = lambda li: len(li) == 1 and "GO:0005515" in li
 
         outputs = []
-        for go_anns in [train_go_ann, valid_go_ann, test_go_ann]:
-            is_neg_ann = go_anns["Qualifier"].map(lambda li: "NOT" in li)
+        for anns in [train_anns, valid_anns, test_anns]:
+            is_neg_ann = anns["Qualifier"].map(lambda li: "NOT" in li)
             # Convert `Qualifiers` entries of lists to strings
-            go_anns = go_anns.apply({"Qualifier": lambda li: "".join([i for i in li if i != "NOT"]),
-                                     "gene_name": lambda x: x,
-                                     "go_id": lambda x: x,
-                                     "Evidence": lambda x: x})
+            anns = anns.apply({"Qualifier": lambda li: "".join([i for i in li if i != "NOT"]),
+                               src_node_col: lambda x: x,
+                               "go_id": lambda x: x,
+                               "Evidence": lambda x: x})
 
             # Positive gene-GO annotations
-            gene_go_anns: DataFrame = go_anns[~is_neg_ann].groupby(groupby).agg(go_id=("go_id", "unique"))
+            gene_anns: DataFrame = anns[~is_neg_ann].groupby(groupby).agg(go_id=("go_id", "unique"))
 
             # Negative gene-GO annotations
-            neg_anns = go_anns[is_neg_ann].groupby(groupby).agg(neg_go_id=("go_id", "unique"))
-            gene_go_anns["neg_go_id"] = neg_anns["neg_go_id"]
-            gene_go_anns.drop(index=[""], inplace=True, errors="ignore")
+            neg_anns = anns[is_neg_ann].groupby(groupby).agg(neg_go_id=("go_id", "unique"))
+            gene_anns["neg_go_id"] = neg_anns["neg_go_id"]
+            gene_anns.drop(index=[""], inplace=True, errors="ignore")
 
             # Remove "GO:0005515" (protein binding) annotations for a gene if it's the gene's only annotation
-            gene_go_anns.loc[gene_go_anns["go_id"].map(lambda li: len(li) == 1 and "GO:0005515" in li), "go_id"] = None
-            gene_go_anns.drop(index=gene_go_anns.index[gene_go_anns.isna().all(1)], inplace=True)
+            gene_anns.loc[gene_anns["go_id"].map(_exclude_single), "go_id"] = None
+            gene_anns.drop(index=gene_anns.index[gene_anns.isna().all(1)], inplace=True)
 
-            outputs.append(gene_go_anns)
+            outputs.append(gene_anns)
 
         return tuple(outputs)
 
-    def get_predecessor_terms(self, annotations: pd.Series, type="is_a"):
+    def get_predecessor_terms(self, annotations: pd.Series):
         go_terms_parents = annotations.map(
-            lambda annotations: list({
-                parent for term in annotations \
-                for parent in list(nx.ancestors(self.network, term))}) \
-                if isinstance(annotations, list) else [])  # flatten(self.traverse_predecessors(term, type))}) \
+            lambda annotations: \
+                list({parent for term in annotations \
+                      for parent in list(nx.ancestors(self.network, term))}) \
+                    if isinstance(annotations, list) else [])
         return go_terms_parents
 
     def add_predecessor_terms(self, annotation: pd.Series, return_str=False):
@@ -371,6 +368,182 @@ class GeneOntology(Ontology):
                 lambda x: "|".join(x) if isinstance(x, list) else None)
 
         return go_terms_parents
+
+
+class InterPro(GeneOntology):
+    def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/",
+                 file_resources=None, col_rename=None, verbose=False, npartitions=None):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            verbose:
+            npartitions:
+        """
+
+        if file_resources is None:
+            file_resources = {}
+            file_resources["entry.list"] = os.path.join(path, "entry.list")
+            file_resources["protein2ipr.dat"] = os.path.join(path, "protein2ipr.dat.gz")
+            file_resources["interpro2go"] = os.path.join(path, "interpro2go")
+            file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
+
+        super().__init__(path, file_resources, col_rename, verbose=verbose, npartitions=npartitions)
+
+    def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], npartitions=None):
+        ipr_entries = pd.read_table(file_resources["entry.list"])
+        ipr2go = self.parse_interpro2go(file_resources["interpro2go"])
+
+        ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
+
+        self.annotations: dd.DataFrame = dd.read_table(
+            file_resources["protein2ipr.dat"],
+            names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
+            usecols=['UniProtKB-AC', 'ENTRY_AC'],
+            dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category'})
+
+        self.annotations = nx.from_pandas_edgelist()
+
+        return ipr_entries
+
+    def load_network(self, file_resources):
+        for file in file_resources:
+            if 'ParentChildTreeFile' in file and isinstance(file_resources[file], str) \
+                and os.path.exists(file_resources[file]):
+                network: nx.DiGraph = self.parse_ipr_treefile(file_resources[file])
+                # network = network.reverse(copy=True)
+                node_list = np.array(network.nodes)
+
+                return network, node_list
+        return None, None
+
+    def parse_ipr_treefile(self, lines: Union[Iterable[str], StringIO]) -> nx.DiGraph:
+        """Parse the InterPro Tree from the given file.
+        Args:
+            lines: A readable file or file-like
+        """
+        if isinstance(lines, str):
+            lines = open(lines, 'r')
+
+        graph = nx.DiGraph()
+        previous_depth, previous_name = 0, None
+        stack = [previous_name]
+
+        def count_front(s: str) -> int:
+            """Count the number of leading dashes on a string."""
+            for position, element in enumerate(s):
+                if element != '-':
+                    return position
+
+        for line in lines:
+            depth = count_front(line)
+            interpro_id, name, *_ = line[depth:].split('::')
+
+            if depth == 0:
+                stack.clear()
+                stack.append(interpro_id)
+
+                graph.add_node(interpro_id, interpro_id=interpro_id, name=name)
+
+            else:
+                if depth > previous_depth:
+                    stack.append(previous_name)
+
+                elif depth < previous_depth:
+                    del stack[-1]
+
+                parent = stack[-1]
+
+                graph.add_node(interpro_id, interpro_id=interpro_id, parent=parent, name=name)
+                graph.add_edge(parent, interpro_id)
+
+            previous_depth, previous_name = depth, interpro_id
+
+        return graph
+
+    def parse_interpro2go(self, file: StringIO) -> DataFrame:
+        if isinstance(file, str):
+            file = open(file, 'r')
+
+        def _process_line(line: str) -> Tuple[str, str, str]:
+            pos = line.find('> GO')
+            interpro_terms, go_term = line[:pos], line[pos:]
+            interpro_id, interpro_name = interpro_terms.strip().split(' ', 1)
+            go_name, go_id = go_term.split(';')
+            go_desc = go_name.strip('> GO:')
+
+            return (interpro_id.strip().split(':')[1], go_id.strip(), go_desc)
+
+        tuples = [_process_line(line.strip()) for line in file if line[0] != '!']
+        return pd.DataFrame(tuples, columns=['ENTRY_AC', "go_id", "go_desc"])
+
+
+class UniProtGOA(GeneOntology):
+    """Loads the GeneOntology database from https://www.ebi.ac.uk/GOA/ .
+
+    Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
+    Default file_resources: {
+        "goa_uniprot_all.gpi": "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpi.gz",
+        "goa_uniprot_all.gaf": "goa_uniprot_all.gaf.gz",
+    }
+    """
+    COLUMNS_RENAME_DICT = {
+        "DB_Object_ID": "UniProtKB-AC",
+        "DB_Object_Symbol": "gene_name",
+        "GO_ID": "go_id",
+    }
+
+    def __init__(
+        self,
+        path="ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/",
+        species="HUMAN",
+        file_resources=None,
+        col_rename=COLUMNS_RENAME_DICT,
+        npartitions=0,
+        verbose=False,
+    ):
+        """
+        Loads the GeneOntology database from http://geneontology.org .
+
+            Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
+            Default file_resources: {
+                "goa_uniprot_all.gpi": "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpi.gz",
+                "goa_uniprot_all.gaf": "goa_uniprot_all.gaf.gz",
+            }
+
+        Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
+        functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
+        """
+        self.species = species
+
+        if file_resources is None:
+            file_resources = {
+                "go.obo": "http://current.geneontology.org/ontology/go.obo",
+                "goa_human.gpi": os.path.join(species, "goa_human.gpi.gz"),
+                "goa_human.gaf": os.path.join(species, "goa_human.gaf.gz"),
+                "goa_human_isoform.gaf": os.path.join(species, "goa_human_isoform.gaf.gz"),
+                "goa_human_complex.gaf": os.path.join(species, "goa_human_complex.gaf.gz"),
+            }
+        super().__init__(
+            path,
+            file_resources,
+            col_rename=col_rename,
+            npartitions=npartitions,
+            verbose=verbose,
+        )
+
+
+def gafiterator(handle):
+    inline = handle.readline()
+    if inline.strip().startswith("!gaf-version: 2"):
+        # sys.stderr.write("gaf 2.0\n")
+        return _gaf20iterator(handle)
+    elif inline.strip() == "!gaf-version: 1.0":
+        # sys.stderr.write("gaf 1.0\n")
+        return _gaf10iterator(handle)
+    else:
+        return _gaf20iterator(handle)
 
 
 def traverse_predecessors(network, seed_node, type=["is_a", "part_of"]):
