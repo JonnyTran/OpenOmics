@@ -39,7 +39,7 @@ def get_pkg_data_filename(dataurl, file):
 
     except (URLError, ValueError) as e:
         raise Exception(f"Unable to download file at {os.path.join(dataurl, file)}. "
-                        f"Please try manually downloading the files. \n{e}")
+                        f"Please try manually downloading the files and add path to `file_resources` arg. \n{e}")
 
 
 def read_db(path, table, index_col):

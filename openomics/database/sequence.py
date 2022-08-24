@@ -1,9 +1,13 @@
+import os
 from abc import abstractmethod
+from collections import defaultdict
 from typing import Union, List, Callable
 
-import dask.dataframe as dd
 import pandas as pd
+import tqdm
 from Bio import SeqIO
+from Bio.SeqFeature import ExactPosition
+from dask import dataframe as dd
 
 import openomics
 from openomics.utils.read_gtf import read_gtf
@@ -56,7 +60,7 @@ class SequenceDatabase(Database):
         raise NotImplementedError
 
     @staticmethod
-    def get_aggregator(agg: Union[str, Callable] = None) -> Callable:
+    def aggregator_fn(agg: Union[str, Callable] = None) -> Callable:
         """Returns a function used aggregate a list of sequences from a groupby
         on a given key.
 
@@ -70,6 +74,8 @@ class SequenceDatabase(Database):
             agg_func = lambda x: min(x, key=len) if isinstance(x, list) else x
         elif agg == "longest":
             agg_func = lambda x: max(x, key=len) if isinstance(x, list) else x
+        elif agg == 'first':
+            agg_func = lambda x: x[0] if isinstance(x, list) else x
         elif callable(agg):
             return agg
         else:
@@ -147,8 +153,8 @@ class GENCODE(SequenceDatabase):
             annotation_df = pd.concat(dfs)
 
         if self.remove_version_num:
-            annotation_df["gene_id"] = annotation_df["gene_id"].str.replace("[.].*", "", regex=True)
-            annotation_df["transcript_id"] = annotation_df["transcript_id"].str.replace("[.].*", "", regex=True)
+            annotation_df["gene_id"] = annotation_df["gene_id"].str.replace("[.]\d*", "", regex=True)
+            annotation_df["transcript_id"] = annotation_df["transcript_id"].str.replace("[.]\d*", "", regex=True)
 
         return annotation_df
 
@@ -184,8 +190,8 @@ class GENCODE(SequenceDatabase):
             seq_df["sequence"] = seq_df["sequence"].str.replace("U", "T")
 
         if self.remove_version_num:
-            seq_df["gene_id"] = seq_df["gene_id"].str.replace("[.].*", "", regex=True)
-            seq_df["transcript_id"] = seq_df["transcript_id"].str.replace("[.].*", "", regex=True)
+            seq_df["gene_id"] = seq_df["gene_id"].str.replace("[.]\d*", "", regex=True)
+            seq_df["transcript_id"] = seq_df["transcript_id"].str.replace("[.]\d*", "", regex=True)
 
         # Cache the seq_df
         if not hasattr(self, '_seq_df_dict'):
@@ -202,7 +208,7 @@ class GENCODE(SequenceDatabase):
             agg_sequences (str):
             biotypes (List[str]):
         """
-        agg_func = self.get_aggregator(agg_sequences)
+        agg_func = self.aggregator_fn(agg_sequences)
 
         # Parse lncRNA & mRNA fasta
         if omic == openomics.MessengerRNA.name():
@@ -234,6 +240,146 @@ class GENCODE(SequenceDatabase):
         ensembl_id_to_gene_name = pd.Series(
             self.data[to_index].values, index=self.data[from_index]).to_dict()
         return ensembl_id_to_gene_name
+
+
+class UniProt(SequenceDatabase):
+    COLUMNS_RENAME_DICT = {
+        "UniProtKB-ID": 'protein_name',
+        "Ensembl": "gene_id",
+        "Ensembl_TRS": "transcript_id",
+        "Ensembl_PRO": "protein_id",
+        "NCBI-taxon": "species_id",
+        "GeneID(EntrezGene)": "entrezgene_id",
+        "GO": "go_id",
+    }
+
+    def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
+                 species="HUMAN", species_id="9606",
+                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, verbose=False,
+                 npartitions=None):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            verbose:
+            npartitions:
+        """
+        self.species = species
+        self.species_id = species_id
+        if file_resources is None:
+            file_resources = {}
+            file_resources['uniprot_sprot.xml'] = os.path.join(path, "knowledgebase/uniprot_sprot.xml.gz")
+            file_resources["idmapping_selected.tab"] = os.path.join(path, "knowledgebase/idmapping/",
+                                                                    'idmapping_selected.tab.gz')
+
+        if species:
+            file_resources['uniprot_sprot.xml'] = os.path.join(path, "knowledgebase/taxonomic_divisions/",
+                                                               f'uniprot_sprot_{species.lower()}.xml.gz')
+            file_resources["idmapping_selected.tab"] = os.path.join(path, "knowledgebase/idmapping/by_organism/",
+                                                                    f'{species}_{species_id}_idmapping_selected.tab.gz')
+
+        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, verbose=verbose,
+                         npartitions=npartitions)
+
+    def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
+
+        options = dict(
+            names=['UniProtKB-AC', 'UniProtKB-ID', 'GeneID (EntrezGene)', 'RefSeq', 'GI', 'PDB', 'GO', 'UniRef100',
+                   'UniRef90', 'UniRef50', 'UniParc', 'PIR', 'NCBI-taxon', 'MIM', 'UniGene', 'PubMed', 'EMBL',
+                   'EMBL-CDS', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO', 'Additional PubMed'],
+            usecols=['UniProtKB-AC', 'UniProtKB-ID', 'GeneID (EntrezGene)', 'RefSeq', 'GI', 'PDB', 'GO',
+                     'NCBI-taxon', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO'],
+            dtype={'GeneID (EntrezGene)': 'str', 'NCBI-taxon': 'str'})
+
+        if npartitions:
+            idmapping = dd.read_table(file_resources["idmapping_selected.tab"], **options)
+        else:
+            idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], **options)
+
+        for col in ['Ensembl', 'Ensembl_TRS', 'Ensembl_PRO']:
+            idmapping[col] = idmapping[col].str.replace("[.]\d*", "",
+                                                        regex=True)  # Removing .# ENGS gene version number at the end
+
+            if col == 'Ensembl_PRO':
+                idmapping['protein_external_id'] = idmapping[col].str.split("; ")
+                idmapping['protein_external_id'] = idmapping[["NCBI-taxon", 'protein_external_id']].apply(
+                    lambda x: [".".join([x['NCBI-taxon'], protein_id]) for protein_id in x['protein_external_id']] \
+                        if isinstance(x['protein_external_id'], list) else None,
+                    axis=1)
+
+        return idmapping
+
+    def read_fasta(self, fasta_file: str, replace_U2T=False, npartitions=None) -> pd.DataFrame:
+        if hasattr(self, '_seq_df_dict') and fasta_file in self._seq_df_dict:
+            return self._seq_df_dict[fasta_file]
+
+        records = []
+        seqfeats = []
+        for record in tqdm.tqdm(SeqIO.parse(fasta_file, "uniprot-xml")):
+            # Sequence features
+            annotations = defaultdict(lambda: None, record.annotations)
+            record_dict = {
+                "UniProtKB-AC": record.id,
+                "protein_name": record.name,
+                "description": record.description,
+                'molecule_type': annotations['molecule_type'],
+                'gene_name': annotations["gene_name_primary"],
+                'created': annotations['created'],
+                'subcellular_location': annotations["comment_subcellularlocation_location"],
+                'taxonomy': annotations['taxonomy'],
+                'keywords': annotations['keywords'],
+                'sequence_mass': annotations['sequence_mass'],
+                "sequence": str(record.seq),
+            }
+            records.append(record_dict)
+
+            # Sequence interval features
+            _parse_interval = lambda sf: pd.Interval(left=sf.location.start, right=sf.location.end, )
+
+            feature_type_intervals = defaultdict(lambda: [])
+            for sf in record.features:
+                if isinstance(sf.location.start, ExactPosition) and isinstance(sf.location.end, ExactPosition):
+                    feature_type_intervals[sf.type].append(_parse_interval(sf))
+
+            features_dict = {type: pd.IntervalIndex(intervals, name=type) \
+                             for type, intervals in feature_type_intervals.items()}
+            seqfeats.append({"UniProtKB-AC": record.id,
+                             "protein_name": record.name,
+                             **features_dict})
+
+        records_df = pd.DataFrame(records) if not npartitions else dd.from_pandas(records)
+        seqfeats_df = pd.DataFrame(seqfeats) if not npartitions else dd.from_pandas(seqfeats)
+
+        # Join new metadata to self.data
+        if len(records_df.columns.intersection(self.data.columns)) <= 2:
+            exclude_cols = records_df.columns.intersection(self.data.columns)
+            self.data = self.data.join(
+                records_df.set_index('UniProtKB-AC').drop(columns=exclude_cols, errors="ignore"), on='UniProtKB-AC')
+            self.seq_feats = seqfeats_df.set_index(['UniProtKB-AC', 'protein_name'])
+
+        # Cache the seq_df
+        if not hasattr(self, '_seq_df_dict'):
+            self._seq_df_dict = {}
+        self._seq_df_dict[fasta_file] = records_df
+
+        return records_df
+
+    def get_sequences(self, index: str, omic: str = None, agg_sequences: str = "all", **kwargs):
+        agg_func = self.aggregator_fn(agg_sequences)
+
+        # Parse lncRNA & mRNA fasta
+        seq_df = self.read_fasta(self.file_resources["uniprot_sprot.xml"], npartitions=self.npartitions)
+
+        if "protein" in index:
+            return seq_df.groupby(index)["sequence"].agg(agg_func)
+        else:
+            return seq_df.groupby(index)["sequence"].first()
 
 
 class MirBase(SequenceDatabase):
@@ -399,6 +545,6 @@ class MirBase(SequenceDatabase):
         seq_df = self.read_fasta(file)
 
         self._seq_dict = seq_df.groupby(index)["sequence"].agg(
-            self.get_aggregator(agg_sequences))
+            self.aggregator_fn(agg_sequences))
 
         return self._seq_dict

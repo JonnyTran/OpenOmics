@@ -44,7 +44,7 @@ class TANRIC(Database):
             genes_index:
         """
         df = pd.read_table(self.file_resources["TCGA-LUAD-rnaexpr.tsv"])
-        df[genes_index] = df[genes_index].str.replace("[.].*", "")  # Removing .# ENGS gene version number at the end
+        df[genes_index] = df[genes_index].str.replace("[.]\d*", "")  # Removing .# ENGS gene version number at the end
         df = df[~df[genes_index].duplicated(keep='first')]  # Remove duplicate genes
 
         # Drop NA gene rows
@@ -266,7 +266,7 @@ class GTEx(Database):
         gene_exp_medians = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"],
             sep='\t', header=1, skiprows=1)
-        gene_exp_medians["Name"] = gene_exp_medians["Name"].str.replace("[.].*", "", regex=True)
+        gene_exp_medians["Name"] = gene_exp_medians["Name"].str.replace("[.]\d*", "", regex=True)
         gene_exp_medians = gene_exp_medians.rename(columns=self.COLUMNS_RENAME_DICT)  # Must be done here
         gene_exp_medians.set_index(["gene_id", "gene_name"], inplace=True)
 
@@ -281,8 +281,8 @@ class GTEx(Database):
         #     self.file_resources["GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct"],
         #     sep='\t', header=1, skiprows=1)
         # print("transcript_exp", transcript_exp.columns)
-        # transcript_exp["gene_id"] = transcript_exp["gene_id"].str.replace("[.].*", "")
-        # transcript_exp["transcript_id"] = transcript_exp["transcript_id"].str.replace("[.].*", "")
+        # transcript_exp["gene_id"] = transcript_exp["gene_id"].str.replace("[.]\d*", "")
+        # transcript_exp["transcript_id"] = transcript_exp["transcript_id"].str.replace("[.]\d*", "")
         # transcript_exp.set_index(["gene_id", "transcript_id"], inplace=True)
         #
         # # Join by sample with tissue type, group expressions by tissue type, and compute medians for each
@@ -360,66 +360,6 @@ class NONCODE(Database):
         self.noncode_func_df["Gene Name"] = self.noncode_func_df["NONCODE Transcript ID"].map(
             pd.Series(source_gene_names_df['Gene ID'].values,
                       index=source_gene_names_df['NONCODE Transcript ID']).to_dict())
-
-
-class UniProt(Database):
-    COLUMNS_RENAME_DICT = {
-        "UniProtKB-ID": 'protein_name',
-        "Ensembl": "gene_id",
-        "Ensembl_TRS": "transcript_id",
-        "Ensembl_PRO": "protein_id",
-        "NCBI-taxon": "species_id",
-        "GeneID(EntrezGene)": "entrezgene_id",
-        "GO": "go_id",
-    }
-
-    def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
-                 species="HUMAN", species_id="9606",
-                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, verbose=False,
-                 npartitions=None):
-        """
-        Args:
-            path:
-            file_resources:
-            col_rename:
-            verbose:
-            npartitions:
-        """
-        self.species = species
-        self.species_id = species_id
-        if species:
-            sub_path = f"by_organism/"
-        else:
-            sub_path = ""
-
-        if file_resources is None:
-            file_resources = {}
-            file_resources["idmapping_selected.tab"] = os.path.join(path, "knowledgebase/idmapping/", sub_path,
-                                                                    f'{species}_{species_id}_idmapping_selected.tab.gz')
-
-        super().__init__(path, file_resources, col_rename, verbose=verbose, npartitions=npartitions)
-
-    def load_dataframe(self, file_resources, npartitions=None):
-        """
-        Args:
-            file_resources:
-            npartitions:
-        """
-
-        options = dict(
-            names=['UniProtKB-AC', 'UniProtKB-ID', 'GeneID (EntrezGene)', 'RefSeq', 'GI', 'PDB', 'GO', 'UniRef100',
-                   'UniRef90', 'UniRef50', 'UniParc', 'PIR', 'NCBI-taxon', 'MIM', 'UniGene', 'PubMed', 'EMBL',
-                   'EMBL-CDS', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO', 'Additional PubMed'],
-            usecols=['UniProtKB-AC', 'UniProtKB-ID', 'GeneID (EntrezGene)', 'RefSeq', 'GI', 'PDB', 'GO',
-                     'NCBI-taxon', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO'],
-            dtype={'GeneID (EntrezGene)': 'str'})
-
-        if npartitions:
-            idmapping = dd.read_table(file_resources["idmapping_selected.tab"], **options)
-        else:
-            idmapping = pd.read_table(file_resources["idmapping_selected.tab"], **options)
-
-        return idmapping
 
 
 class BioMartManager:
