@@ -10,9 +10,9 @@ import pandas as pd
 import scipy.sparse as ssp
 import tqdm
 from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
-from openomics.utils.adj import slice_adj
 from pandas import DataFrame
 
+from openomics.utils.adj import slice_adj
 from .base import Database
 
 
@@ -487,7 +487,7 @@ class UniProtGOA(GeneOntology):
     }
     """
     COLUMNS_RENAME_DICT = {
-        "DB_Object_ID": "UniProtKB-AC",
+        "DB_Object_ID": "protein_id",
         "DB_Object_Symbol": "gene_name",
         "GO_ID": "go_id",
     }
@@ -542,7 +542,6 @@ def gafiterator(handle):
         return _gaf10iterator(handle)
     else:
         return _gaf20iterator(handle)
-
 
 def traverse_predecessors(network, seed_node, type=["is_a", "part_of"]):
     """
