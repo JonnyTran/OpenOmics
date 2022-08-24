@@ -7,18 +7,16 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
+import scipy.sparse as ssp
 import tqdm
 from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
 from pandas import DataFrame
 
 from .base import Database
-from .interaction import Interactions
 from ..utils.df import slice_adj
 
 
 class Ontology(Database):
-    DELIM = "|"
-
     def __init__(self,
                  path,
                  file_resources=None,
@@ -46,29 +44,33 @@ class Ontology(Database):
             verbose=verbose,
         )
 
-
     def load_network(self, file_resources) -> Tuple[nx.MultiDiGraph, List[str]]:
         raise NotImplementedError()
 
-    def get_adjacency_matrix(self, node_list):
-        if hasattr(self, "adjacency_matrix"):
-            adjacency_matrix = self.adjacency_matrix
-        else:
-            adjacency_matrix = nx.adj_matrix(self.network, nodelist=node_list)
-            self.adjacency_matrix = adjacency_matrix
+    def filter_network(self, namespace) -> None:
+        """
+        Filter the subgraph node_list to only `namespace` terms.
+        Args:
+            namespace: one of {"biological_process", "cellular_component", "molecular_function"}
+        """
+        terms = self.data[self.data["namespace"] == namespace]["go_id"].unique()
+        print("{} terms: {}".format(namespace,
+                                    len(terms))) if self.verbose else None
+        self.network = self.network.subgraph(nodes=list(terms))
+        self.node_list = np.array(list(terms))
+
+    def adj(self, node_list):
+        adj_mtx = nx.adj_matrix(self.network, nodelist=node_list)
 
         if node_list is None or list(node_list) == list(self.node_list):
-            return adjacency_matrix
+            return adj_mtx
         elif set(node_list) < set(self.node_list):
-            return slice_adj(adjacency_matrix, list(self.node_list), node_list,
+            return slice_adj(adj_mtx, list(self.node_list), node_list,
                              None)
         elif not (set(node_list) < set(self.node_list)):
             raise Exception("A node in node_list is not in self.node_list.")
 
-        return adjacency_matrix
-
-    def filter_network(self, namespace):
-        raise NotImplementedError
+        return adj_mtx
 
     def filter_annotation(self, annotation: pd.Series):
         go_terms = set(self.node_list)
@@ -78,12 +80,12 @@ class Ontology(Database):
         return filtered_annotation
 
     def get_child_nodes(self):
-        adj = self.get_adjacency_matrix(self.node_list)
+        adj = self.adj(self.node_list)
         leaf_terms = self.node_list[np.nonzero(adj.sum(axis=0) == 0)[1]]
         return leaf_terms
 
     def get_root_nodes(self):
-        adj = self.get_adjacency_matrix(self.node_list)
+        adj = self.adj(self.node_list)
         parent_terms = self.node_list[np.nonzero(adj.sum(axis=1) == 0)[0]]
         return parent_terms
 
@@ -99,7 +101,7 @@ class Ontology(Database):
         if not isinstance(root_nodes, list):
             root_nodes = list(root_nodes)
 
-        paths = list(dfs_path(self.network.reverse(copy=True), root_nodes))
+        paths = list(dfs_path(self.network, root_nodes))
         paths = list(flatten_list(paths))
         paths_df = pd.DataFrame(paths)
 
@@ -109,14 +111,41 @@ class Ontology(Database):
 
         return paths_df
 
-    def remove_predecessor_terms(self, annotation: pd.Series):
+    def remove_predecessor_terms(self, annotation: pd.Series, sep="\||;"):
         leaf_terms = self.get_child_nodes()
-        if not annotation.map(lambda x: isinstance(x, list)).any():
-            annotation = annotation.str.split(self.DELIM)
+        if not annotation.map(lambda x: isinstance(x, list)).any() and sep:
+            annotation = annotation.str.split(sep)
 
         go_terms_parents = annotation.map(lambda x: list(
             set(x) & set(leaf_terms)) if isinstance(x, list) else None)
         return go_terms_parents
+
+    def get_predecessor_terms(self, annotations: pd.Series, edge_type='is_a'):
+        if isinstance(self.network, (nx.MultiGraph, nx.MultiDiGraph)):
+            ontology_g = self.network.edge_subgraph([(u, v, k) for u, v, k in self.network.edges if k == edge_type])
+        else:
+            ontology_g = self.network
+
+        go_terms_parents = annotations.map(
+            lambda annotations: \
+                list({parent for term in annotations \
+                      for parent in list(nx.ancestors(ontology_g, term))}) \
+                    if isinstance(annotations, list) else [])
+        return go_terms_parents
+
+    def add_predecessor_terms(self, annotation: pd.Series, edge_type='is_a', sep="\||;", return_str=False):
+        if sep and annotation.dtype == np.object and annotation.str.contains(sep, regex=True).any():
+            ann_lists = annotation.str.split(sep)
+        else:
+            ann_lists = annotation
+
+        ann_with_parents = ann_lists + self.get_predecessor_terms(ann_lists, edge_type)
+
+        if return_str:
+            ann_with_parents = ann_with_parents.map(
+                lambda x: "|".join(x) if isinstance(x, list) else None)
+
+        return ann_with_parents
 
     @staticmethod
     def get_node_color(
@@ -142,7 +171,6 @@ class Ontology(Database):
               go_colors["HCL.color"].unique().shape)
         return go_id_colors
 
-Ontology.to_scipy_adjacency = Interactions.to_scipy_adjacency
 
 
 class HumanPhenotypeOntology(Ontology):
@@ -186,12 +214,9 @@ class HumanPhenotypeOntology(Ontology):
         for file in file_resources:
             if ".obo" in file:
                 network = obonet.read_obo(file_resources[file])
-                # network = network.reverse(copy=True)
+                network = network.reverse(copy=True)
                 node_list = np.array(network.nodes)
         return network, node_list
-
-
-
 
 
 class GeneOntology(Ontology):
@@ -280,22 +305,10 @@ class GeneOntology(Ontology):
         for file in file_resources:
             if ".obo" in file:
                 network: nx.MultiDiGraph = obonet.read_obo(file_resources[file])
-                # network = network.reverse(copy=True)
+                network = network.reverse(copy=True)
                 node_list = np.array(network.nodes)
 
         return network, node_list
-
-    def filter_network(self, namespace) -> Tuple[DataFrame]:
-        """
-        Filter the subgraph node_list to only `namespace` terms.
-        Args:
-            namespace: one of {"biological_process", "cellular_component", "molecular_function"}
-        """
-        terms = self.data[self.data["namespace"] == namespace]["go_id"].unique()
-        print("{} terms: {}".format(namespace,
-                                    len(terms))) if self.verbose else None
-        self.network = self.network.subgraph(nodes=list(terms))
-        self.node_list = np.array(list(terms))
 
     def annotation_train_val_test_split(self, train_date: str = "2017-06-15",
                                         valid_date: str = "2017-11-15",
@@ -346,29 +359,6 @@ class GeneOntology(Ontology):
 
         return tuple(outputs)
 
-    def get_predecessor_terms(self, annotations: pd.Series):
-        go_terms_parents = annotations.map(
-            lambda annotations: \
-                list({parent for term in annotations \
-                      for parent in list(nx.ancestors(self.network, term))}) \
-                    if isinstance(annotations, list) else [])
-        return go_terms_parents
-
-    def add_predecessor_terms(self, annotation: pd.Series, return_str=False):
-        if (annotation.dtypes == np.object
-            and annotation.str.contains("\||;", regex=True).any()):
-            go_terms_annotations = annotation.str.split("|")
-        else:
-            go_terms_annotations = annotation
-
-        go_terms_parents = go_terms_annotations + self.get_predecessor_terms(annotation)
-
-        if return_str:
-            go_terms_parents = go_terms_parents.map(
-                lambda x: "|".join(x) if isinstance(x, list) else None)
-
-        return go_terms_parents
-
 
 class InterPro(GeneOntology):
     def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/",
@@ -397,13 +387,21 @@ class InterPro(GeneOntology):
 
         ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
 
-        self.annotations: dd.DataFrame = dd.read_table(
-            file_resources["protein2ipr.dat"],
-            names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
-            usecols=['UniProtKB-AC', 'ENTRY_AC'],
-            dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category'})
+        if "ppi_mat.npz" in file_resources:
+            def get_pid_list(pid_list_file):
+                with open(pid_list_file) as fp:
+                    return [line.split()[0] for line in fp]
 
-        self.annotations = nx.from_pandas_edgelist()
+            net_pid_list = get_pid_list(file_resources["ppi_pid_list.txt"])
+            node_feats = ssp.load_npz(file_resources["ppi_mat.npz"])
+            df_feats = pd.DataFrame.sparse.from_spmatrix(node_feats, index=net_pid_list)
+            self.annotations = df_feats
+        else:
+            self.annotations: dd.DataFrame = dd.read_table(
+                file_resources["protein2ipr.dat"],
+                names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
+                usecols=['UniProtKB-AC', 'ENTRY_AC'],
+                dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category'})
 
         return ipr_entries
 
@@ -411,14 +409,13 @@ class InterPro(GeneOntology):
         for file in file_resources:
             if 'ParentChildTreeFile' in file and isinstance(file_resources[file], str) \
                 and os.path.exists(file_resources[file]):
-                network: nx.DiGraph = self.parse_ipr_treefile(file_resources[file])
-                # network = network.reverse(copy=True)
+                network: nx.MultiDiGraph = self.parse_ipr_treefile(file_resources[file])
                 node_list = np.array(network.nodes)
 
                 return network, node_list
         return None, None
 
-    def parse_ipr_treefile(self, lines: Union[Iterable[str], StringIO]) -> nx.DiGraph:
+    def parse_ipr_treefile(self, lines: Union[Iterable[str], StringIO]) -> nx.MultiDiGraph:
         """Parse the InterPro Tree from the given file.
         Args:
             lines: A readable file or file-like
@@ -426,7 +423,7 @@ class InterPro(GeneOntology):
         if isinstance(lines, str):
             lines = open(lines, 'r')
 
-        graph = nx.DiGraph()
+        graph = nx.MultiDiGraph()
         previous_depth, previous_name = 0, None
         stack = [previous_name]
 
@@ -456,7 +453,7 @@ class InterPro(GeneOntology):
                 parent = stack[-1]
 
                 graph.add_node(interpro_id, interpro_id=interpro_id, parent=parent, name=name)
-                graph.add_edge(parent, interpro_id)
+                graph.add_edge(parent, interpro_id, key="is_a")
 
             previous_depth, previous_name = depth, interpro_id
 
@@ -523,7 +520,7 @@ class UniProtGOA(GeneOntology):
                 "goa_human.gpi": os.path.join(species, "goa_human.gpi.gz"),
                 "goa_human.gaf": os.path.join(species, "goa_human.gaf.gz"),
                 "goa_human_isoform.gaf": os.path.join(species, "goa_human_isoform.gaf.gz"),
-                "goa_human_complex.gaf": os.path.join(species, "goa_human_complex.gaf.gz"),
+                # "goa_human_complex.gaf": os.path.join(species, "goa_human_complex.gaf.gz"),
             }
         super().__init__(
             path,
