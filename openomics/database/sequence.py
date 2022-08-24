@@ -3,14 +3,14 @@ from abc import abstractmethod
 from collections import defaultdict
 from typing import Union, List, Callable
 
-import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
-from openomics.utils.read_gtf import read_gtf
 
+import openomics
+from openomics.utils.read_gtf import read_gtf
 from .base import Database
 
 
@@ -244,10 +244,11 @@ class GENCODE(SequenceDatabase):
 
 class UniProt(SequenceDatabase):
     COLUMNS_RENAME_DICT = {
+        "UniProtKB-AC": 'protein_id',
         "UniProtKB-ID": 'protein_name',
         "Ensembl": "gene_id",
         "Ensembl_TRS": "transcript_id",
-        "Ensembl_PRO": "protein_id",
+        "Ensembl_PRO": "protein_embl_id",
         "NCBI-taxon": "species_id",
         "GeneID (EntrezGene)": "entrezgene_id",
         "GO": "go_id",
@@ -327,7 +328,7 @@ class UniProt(SequenceDatabase):
             # Sequence features
             annotations = defaultdict(lambda: None, record.annotations)
             record_dict = {
-                'UniProtKB-AC': record.id,
+                'protein_id': record.id,
                 "protein_name": record.name,
                 'description': record.description,
                 'molecule_type': annotations['molecule_type'],
@@ -351,7 +352,7 @@ class UniProt(SequenceDatabase):
 
             features_dict = {type: pd.IntervalIndex(intervals, name=type) \
                              for type, intervals in feature_type_intervals.items()}
-            seqfeats.append({"UniProtKB-AC": record.id,
+            seqfeats.append({"protein_id": record.id,
                              "protein_name": record.name,
                              **features_dict})
 
@@ -362,8 +363,8 @@ class UniProt(SequenceDatabase):
         if len(records_df.columns.intersection(self.data.columns)) <= 2:
             exclude_cols = records_df.columns.intersection(self.data.columns)
             self.data = self.data.join(
-                records_df.set_index('UniProtKB-AC').drop(columns=exclude_cols, errors="ignore"), on='UniProtKB-AC')
-            self.seq_feats = seqfeats_df.set_index(['UniProtKB-AC', 'protein_name'])
+                records_df.set_index('protein_id').drop(columns=exclude_cols, errors="ignore"), on='protein_id')
+            self.seq_feats = seqfeats_df.set_index(['protein_id', 'protein_name'])
 
         # Cache the seq_df
         if not hasattr(self, '_seq_df_dict'):
