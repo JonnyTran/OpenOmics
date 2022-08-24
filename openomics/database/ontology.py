@@ -10,10 +10,10 @@ import pandas as pd
 import scipy.sparse as ssp
 import tqdm
 from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
+from openomics.utils.adj import slice_adj
 from pandas import DataFrame
 
 from .base import Database
-from ..utils.df import slice_adj
 
 
 class Ontology(Database):
@@ -387,15 +387,16 @@ class InterPro(GeneOntology):
 
         ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
 
-        if "ppi_mat.npz" in file_resources:
+        if "ppi_interpro.npz" in file_resources and "ppi_pid_list.txt" in file_resources:
             def get_pid_list(pid_list_file):
                 with open(pid_list_file) as fp:
                     return [line.split()[0] for line in fp]
 
             net_pid_list = get_pid_list(file_resources["ppi_pid_list.txt"])
-            node_feats = ssp.load_npz(file_resources["ppi_mat.npz"])
-            df_feats = pd.DataFrame.sparse.from_spmatrix(node_feats, index=net_pid_list)
-            self.annotations = df_feats
+            node_feats: ssp.csr_matrix = ssp.load_npz(file_resources["ppi_interpro.npz"])
+            print("node_feats", node_feats.shape)
+            self.annotations = pd.DataFrame.sparse.from_spmatrix(node_feats, index=net_pid_list)
+            print("self.annotations", self.annotations.shape)
         else:
             self.annotations: dd.DataFrame = dd.read_table(
                 file_resources["protein2ipr.dat"],

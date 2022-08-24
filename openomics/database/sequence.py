@@ -3,14 +3,14 @@ from abc import abstractmethod
 from collections import defaultdict
 from typing import Union, List, Callable
 
+import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
-
-import openomics
 from openomics.utils.read_gtf import read_gtf
+
 from .base import Database
 
 
@@ -249,7 +249,7 @@ class UniProt(SequenceDatabase):
         "Ensembl_TRS": "transcript_id",
         "Ensembl_PRO": "protein_id",
         "NCBI-taxon": "species_id",
-        "GeneID(EntrezGene)": "entrezgene_id",
+        "GeneID (EntrezGene)": "entrezgene_id",
         "GO": "go_id",
     }
 
@@ -303,11 +303,13 @@ class UniProt(SequenceDatabase):
             idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], **options)
 
         for col in ['Ensembl', 'Ensembl_TRS', 'Ensembl_PRO']:
-            idmapping[col] = idmapping[col].str.replace("[.]\d*", "",
-                                                        regex=True)  # Removing .# ENGS gene version number at the end
+            # Removing .# ENGS gene version number at the end
+            idmapping[col] = idmapping[col].str.replace("[.]\d*", "", regex=True)
+            idmapping[col] = idmapping[col].str.split("; ")
 
             if col == 'Ensembl_PRO':
-                idmapping['protein_external_id'] = idmapping[col].str.split("; ")
+                # Prepend species_id to ensembl protein ids to match with STRING PPI
+                idmapping['protein_external_id'] = idmapping[col]
                 idmapping['protein_external_id'] = idmapping[["NCBI-taxon", 'protein_external_id']].apply(
                     lambda x: [".".join([x['NCBI-taxon'], protein_id]) for protein_id in x['protein_external_id']] \
                         if isinstance(x['protein_external_id'], list) else None,
@@ -325,13 +327,13 @@ class UniProt(SequenceDatabase):
             # Sequence features
             annotations = defaultdict(lambda: None, record.annotations)
             record_dict = {
-                "UniProtKB-AC": record.id,
+                'UniProtKB-AC': record.id,
                 "protein_name": record.name,
-                "description": record.description,
+                'description': record.description,
                 'molecule_type': annotations['molecule_type'],
-                'gene_name': annotations["gene_name_primary"],
+                'gene_name': annotations['gene_name_primary'],
                 'created': annotations['created'],
-                'subcellular_location': annotations["comment_subcellularlocation_location"],
+                'subcellular_location': annotations['comment_subcellularlocation_location'],
                 'taxonomy': annotations['taxonomy'],
                 'keywords': annotations['keywords'],
                 'sequence_mass': annotations['sequence_mass'],

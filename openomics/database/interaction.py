@@ -1,10 +1,8 @@
-import logging
 from abc import abstractmethod
-from typing import List, Dict, Iterable, Tuple, Union
+from typing import List, Dict
 
 import networkx as nx
 from Bio import SeqIO
-
 from openomics.database.annotation import *
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
@@ -86,7 +84,7 @@ class Interactions(Database):
         """
         raise NotImplementedError
 
-    def get_interactions(self, nodelist=None, data=False, inclusive=True):
+    def get_interactions(self, nodelist=None, data=False, inclusive=True, relabel_nodes: Dict[str, str] = None):
         """
 
         Args:
@@ -105,66 +103,17 @@ class Interactions(Database):
                 "{} does not have network interaction data yet. Must run load_network() and assign self.network field first.".format(
                     self.name()))
 
+        g = self.network
+        if relabel_nodes:
+            g = nx.relabel_nodes(g, relabel_nodes)
+
         if nodelist is None:
-            return self.network.edges(data=data)
+            return g.edges(data=data)
 
         if inclusive:
-            return self.network.subgraph(nodelist).edges(data=data)
+            return g.subgraph(nodelist).edges(data=data)
         else:
-            return self.network.edges(nbunch=nodelist, data=data)
-
-    def to_scipy_adjacency(self, nodes: Union[List[str], Dict[str, List[str]]],
-                           edge_types: Union[List[str], Tuple[str, str, str]] = None,
-                           reverse=False,
-                           format="coo", d_ntype="_N"):
-        g: nx.DiGraph = self.network
-        if reverse:
-            g = g.reverse(copy=True)
-
-        if not isinstance(g, nx.MultiGraph):
-            raise NotImplementedError
-
-        if not isinstance(edge_types, Iterable):
-            edge_types = ["_E"]
-
-        edge_index_dict = {}
-        for etype in edge_types:
-            if isinstance(g, nx.MultiGraph) and isinstance(etype, str):
-                edge_subgraph = g.edge_subgraph([(u, v, e) for u, v, e in g.edges if e == etype])
-                nodes_A = nodes
-                nodes_B = nodes
-                metapath = (d_ntype, etype, d_ntype)
-
-            elif isinstance(g, nx.MultiGraph) and isinstance(etype, tuple) and isinstance(nodes, dict):
-                metapath: Tuple[str, str, str] = etype
-                head, etype, tail = metapath
-                edge_subgraph = g.edge_subgraph([(u, v, e) for u, v, e in g.edges if e == etype])
-
-                nodes_A = nodes[head]
-                nodes_B = nodes[tail]
-
-            elif etype == "_E":
-                edge_subgraph = g.edges
-                nodes_A = nodes
-                nodes_B = nodes
-                metapath = (d_ntype, etype, d_ntype)
-            else:
-                raise Exception(f"Edge types `{edge_types}` is ill formed.")
-
-            biadj = nx.bipartite.biadjacency_matrix(edge_subgraph, row_order=nodes_A, column_order=nodes_B,
-                                                    format="coo")
-
-            if format == "coo":
-                edge_index_dict[metapath] = (biadj.row, biadj.col)
-            elif format == "pyg":
-                import torch
-                edge_index_dict[metapath] = torch.stack(
-                    [torch.tensor(biadj.row, dtype=torch.long),
-                     torch.tensor(biadj.col, dtype=torch.long)])
-            else:
-                edge_index_dict[metapath] = biadj
-
-        return edge_index_dict
+            return g.edges(nbunch=nodelist, data=data)
 
     def filter_values(self, df: pd.DataFrame, filters: Dict[str, List], case: bool = False):
         if filters is None:
@@ -172,7 +121,7 @@ class Interactions(Database):
 
         for col, values in filters.items():
             if col not in df.columns:
-                logging.info("Filter key `", col, "` must be in one of ", df.columns)
+                print("Filter key `", col, "` must be in one of ", df.columns)
                 continue
             n_rows = df.shape[0]
 
@@ -186,7 +135,7 @@ class Interactions(Database):
             else:
                 df = df[df[col] == values]
 
-            logging.info("INFO: Removed ", n_rows - df.shape[0], " rows with `", col, "` != ", values)
+            print("INFO: Removed ", n_rows - df.shape[0], " rows with `", col, "` != ", values)
 
         assert df.shape[0] > 0, f"ERROR: Dataframe is empty ({df.shape}) because of filter: {filters}"
         return df
@@ -268,7 +217,7 @@ class BioGRID(Interactions):
                            #          'Modification', 'Phenotypes'],
                            low_memory=True)
 
-        logging.info("{}: {}".format(self.name(), df.columns.tolist()))
+        print("{}: {}".format(self.name(), df.columns.tolist()))
 
         df = self.filter_values(df, filters)
         network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
@@ -325,7 +274,7 @@ class STRING(Interactions, SequenceDatabase):
                          directed=directed, relabel_nodes=relabel_nodes, verbose=verbose)
 
         self.data = pd.read_table(file_resources["protein.info.txt"], na_values=['annotation not available'])
-        if self.data.index.name != None:
+        if self.data.index.name != None or self.data.index.names[0] != None:
             self.data = self.data.reset_index()
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
@@ -372,7 +321,7 @@ class STRING(Interactions, SequenceDatabase):
 
             self.seq_dict[key] = sequence_str
 
-        logging.info("Seq {} collisions: {}".format(index, collisions))
+        print("Seq {} collisions: {}".format(index, collisions))
         return self.seq_dict
 
 
@@ -416,7 +365,7 @@ class LncBase(Interactions, Database):
         if edge_attr is None:
             edge_attr = ["tissue", "positive_negative"]
         df = pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
-        logging.info(self.name(), df.columns.tolist())
+        print(self.name(), df.columns.tolist())
         df.replace({"species": {"Homo Sapiens": "Homo sapiens", "Mus Musculus": "Mus musculus"}}, inplace=True)
 
         df = self.filter_values(df, filters)
@@ -458,7 +407,7 @@ class LncReg(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         df = pd.read_excel(self.file_resources["data.xlsx"])
-        logging.info(self.name(), df.columns.tolist())
+        print(self.name(), df.columns.tolist())
 
         df = df[df["species"] == "Homo sapiens"]
         df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
@@ -504,7 +453,7 @@ class lncRInter(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         lncRInter_df = pd.read_table(file_resources["human_interactions.txt"])
-        logging.info(self.name(), lncRInter_df.columns.tolist())
+        print(self.name(), lncRInter_df.columns.tolist())
 
         lncRInter_df = self.filter_values(lncRInter_df, filters)
         # Data cleaning
@@ -584,7 +533,7 @@ class LncRNA2Target(Interactions):
                                      edge_attr=None, directed=True, filters=None):
         table = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"], sep="\t")
         table = self.filter_values(table, filters)
-        logging.info(self.name(), table.columns.tolist())
+        print(self.name(), table.columns.tolist())
 
         table["lncrna_symbol"] = table["lncrna_symbol"].str.upper()
         table["lncrna_symbol"] = table["lncrna_symbol"].str.replace("LINC", "")
@@ -601,7 +550,7 @@ class LncRNA2Target(Interactions):
                                     edge_attr=None, directed=True, filters=None):
         table = pd.read_excel(file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"])
         table = self.filter_values(table, filters)
-        logging.info(self.name(), table.columns.tolist())
+        print(self.name(), table.columns.tolist())
 
         table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-",
                                                                                       regex=True)
@@ -643,7 +592,7 @@ class lncRNome(Interactions, Database):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         df = pd.read_table(self.file_resources["miRNA_binding_sites.txt"], header=0)
-        logging.info(self.name(), df.columns.tolist())
+        print(self.name(), df.columns.tolist())
 
         df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
         df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "", regex=True)
@@ -687,7 +636,7 @@ class NPInter(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         df = pd.read_table(file_resources["interaction_NPInterv4.expr.txt"], header=0, na_values=["-"])
-        logging.info(self.name(), df.columns.tolist())
+        print(self.name(), df.columns.tolist())
         df["ncName"] = df["ncName"].str.upper()
         df["ncName"] = df["ncName"].str.strip("LNCRNA-")
         df["ncName"] = df["ncName"].str.replace("MALAT-1", "MALAT1")
@@ -779,7 +728,7 @@ class MiRTarBase(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
-        logging.info(self.name(), df.columns.tolist())
+        print(self.name(), df.columns.tolist())
 
         df = self.filter_values(df, filters)
 
@@ -829,7 +778,7 @@ class TargetScan(Interactions, Database):
                      edge_attr, directed, filters):
         self.df = self.process_miR_family_info_table(file_resources, self.species)
         interactions_df = self.process_interactions_table(file_resources, self.df, self.species)
-        logging.info(self.name(), interactions_df.columns.tolist())
+        print(self.name(), interactions_df.columns.tolist())
 
         mir_target_network = nx.from_pandas_edgelist(interactions_df,
                                                      source=source_col_name, target=target_col_name,

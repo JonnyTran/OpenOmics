@@ -1,52 +1,46 @@
+from typing import Union, List
+
 import numpy as np
 import pandas as pd
 
 
-def concat_uniques(series: pd.Series):
+def concat_uniques(series: pd.Series) -> Union[str, List, np.ndarray]:
     """ An aggregation custom function to be applied to each column of a groupby
     Args:
         series (pd.Series):
     """
-    series_str = series.dropna().astype(str)
-    if not series_str.empty:
-        return "|".join(series_str.unique())
-    else:
+    if series.empty:
         return None
+    series = series.dropna()
 
-def concat(series: pd.Series):
+    if series.map(lambda x: isinstance(x, (list, tuple))).any():
+        return np.unique(np.hstack(series))
+    else:
+        return "|".join(series.astype(str).unique())
+
+
+def concat(series: pd.Series) -> Union[str, List, np.ndarray]:
     """
     Args:
         series (pd.Series):
     """
-    series = series.dropna().astype(str)
-    if not series.empty:
-        return "|".join(series)
-    else:
+    if series.empty:
         return None
+    series = series.dropna()
+
+    if series.map(lambda x: isinstance(x, (list, tuple))).any():
+        return np.hstack(series)
+    else:
+        return "|".join(series.astype(str))
 
 
-def drop_duplicate_columns(df):
+def drop_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
     Args:
         df:
     """
-    _, i = np.unique(df.columns, return_index=True)
-    df = df.iloc[:, i]
+    if df.columns.duplicated().any():
+        _, i = np.unique(df.columns, return_index=True)
+        df = df.iloc[:, i]
+
     return df
-
-
-def slice_adj(adj, node_list: list, nodes_A, nodes_B=None):
-    """
-    Args:
-        adj:
-        node_list (list):
-        nodes_A:
-        nodes_B:
-    """
-    if nodes_B is None:
-        idx = [node_list.index(node) for node in nodes_A]
-        return adj[idx, :][:, idx]
-    else:
-        idx_A = [node_list.index(node) for node in nodes_A]
-        idx_B = [node_list.index(node) for node in nodes_B]
-        return adj[idx_A, :][:, idx_B]

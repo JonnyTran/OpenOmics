@@ -14,8 +14,7 @@ import filetype
 import pandas as pd
 import rarfile
 import validators
-
-from openomics.utils.df import concat_uniques
+from openomics.utils.df import concat_uniques, concat
 from openomics.utils.io import get_pkg_data_filename
 
 
@@ -66,7 +65,7 @@ class Database(object):
         self.data = self.load_dataframe(file_resources,
                                         npartitions=npartitions)
 
-        if self.data.index.name != None:
+        if self.data.index.name != None or self.data.index.names[0] != None:
             self.data = self.data.reset_index()
         if col_rename is not None:
             self.data = self.data.rename(columns=col_rename)
@@ -176,8 +175,8 @@ class Database(object):
 
     def get_annotations(self, index: Union[str, List[str]],
                         columns: List[str],
-                        agg: str = "concat",
-                        subset: pd.Series = None):
+                        agg: str = "concat_unique",
+                        subset: pd.Index = None):
         """Returns the Database's DataFrame such that it's indexed by :param
         index:, which then applies a groupby operation and aggregates all other
         columns by concatenating all unique values.
@@ -188,7 +187,7 @@ class Database(object):
             agg (str): Function to aggregate when there is more than one values
                 for each index instance. E.g. ['first', 'last', 'sum', 'mean',
                 'size', 'concat'], default 'concat'.
-            subset (pd.Series): The values on the `index` column to
+            subset (pd.Index): The values on the `index` column to
                 filter before performing the groupby-agg operations.
 
         Returns:
@@ -214,9 +213,9 @@ class Database(object):
         groupby = df.groupby(index)
 
         #  Aggregate by all columns by concatenating unique values
-        if agg == "concat":
+        if agg == "concat_unique":
             if isinstance(df, pd.DataFrame):
-                aggregated = groupby.agg({col: concat_uniques for col in columns})
+                grouby_agg = groupby.agg({col: concat_uniques for col in columns})
 
             elif isinstance(df, dd.DataFrame):
                 collect_concat = dd.Aggregation(
@@ -227,16 +226,20 @@ class Database(object):
                         set(itertools.chain.from_iterable(chunks)))),
                     finalize=lambda s3: s3.apply(lambda xx: '|'.join(xx))
                 )
-                aggregated = groupby.agg({col: collect_concat for col in columns})
+                grouby_agg = groupby.agg({col: collect_concat for col in columns})
 
             else:
                 raise Exception("Unsupported dataframe: {}".format(df))
 
+        # Concatenate values
+        elif agg == "concat":
+            grouby_agg = groupby.agg({col: concat for col in columns})
+
         # Any other aggregation functions
         else:
-            aggregated = groupby.agg({col: agg for col in columns})
+            grouby_agg = groupby.agg({col: agg for col in columns})
 
-        return aggregated
+        return grouby_agg
 
     def get_expressions(self, index):
         """
