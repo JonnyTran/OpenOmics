@@ -299,9 +299,13 @@ class UniProt(SequenceDatabase):
             dtype={'GeneID (EntrezGene)': 'str', 'NCBI-taxon': 'str'})
 
         if npartitions:
-            idmapping = dd.read_table(file_resources["idmapping_selected.tab"], **options)
+            idmapping: dd.DataFrame = dd.read_table(file_resources["idmapping_selected.tab"], **options)
         else:
             idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], **options)
+
+        for col in ['PDB', 'GI', 'GO', 'RefSeq']:
+            # Split string to list
+            idmapping[col] = idmapping[col].str.split("; ")
 
         for col in ['Ensembl', 'Ensembl_TRS', 'Ensembl_PRO']:
             # Removing .# ENGS gene version number at the end
@@ -317,6 +321,17 @@ class UniProt(SequenceDatabase):
                     axis=1)
 
         return idmapping
+
+    def get_sequences(self, index: str, omic: str = None, agg: str = "all", **kwargs):
+        agg_func = self.aggregator_fn(agg)
+
+        # Parse lncRNA & mRNA fasta
+        seq_df = self.read_fasta(self.file_resources["uniprot_sprot.xml"], npartitions=self.npartitions)
+
+        if "protein" in index:
+            return seq_df.groupby(index)["sequence"].agg(agg_func)
+        else:
+            return seq_df.groupby(index)["sequence"].first()
 
     def read_fasta(self, fasta_file: str, replace_U2T=False, npartitions=None) -> pd.DataFrame:
         if hasattr(self, '_seq_df_dict') and fasta_file in self._seq_df_dict:
@@ -334,6 +349,7 @@ class UniProt(SequenceDatabase):
                 'molecule_type': annotations['molecule_type'],
                 'gene_name': annotations['gene_name_primary'],
                 'created': annotations['created'],
+                'ec_id': annotations['type'],
                 'subcellular_location': annotations['comment_subcellularlocation_location'],
                 'taxonomy': annotations['taxonomy'],
                 'keywords': annotations['keywords'],
@@ -372,17 +388,6 @@ class UniProt(SequenceDatabase):
         self._seq_df_dict[fasta_file] = records_df
 
         return records_df
-
-    def get_sequences(self, index: str, omic: str = None, agg_sequences: str = "all", **kwargs):
-        agg_func = self.aggregator_fn(agg_sequences)
-
-        # Parse lncRNA & mRNA fasta
-        seq_df = self.read_fasta(self.file_resources["uniprot_sprot.xml"], npartitions=self.npartitions)
-
-        if "protein" in index:
-            return seq_df.groupby(index)["sequence"].agg(agg_func)
-        else:
-            return seq_df.groupby(index)["sequence"].first()
 
 
 class MirBase(SequenceDatabase):
