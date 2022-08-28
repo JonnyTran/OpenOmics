@@ -182,15 +182,15 @@ class RNAcentral(Database):
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True, n=2)[0]
 
         gene_ids = []
-        for file in file_resources:
-            if "database_mappings" in file:
+        for filename in file_resources:
+            if "database_mappings" in filename:
                 args = dict(low_memory=True, header=None,
                             names=["RNAcentral id", "database", "external id", "species_id", "RNA type", "gene symbol"],
                             dtype={"species_id": 'str'})
                 if npartitions:
-                    id_mapping = dd.read_table(file_resources[file], **args)
+                    id_mapping = dd.read_table(file_resources[filename], **args)
                 else:
-                    id_mapping = pd.read_table(file_resources[file], **args)
+                    id_mapping = pd.read_table(file_resources[filename], **args)
 
                 # id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d", "", regex=True)
 
@@ -201,7 +201,6 @@ class RNAcentral(Database):
         else:
             gene_ids = pd.concat(gene_ids, axis=0)
 
-        gene_ids["species_id"] = gene_ids["species_id"].astype("O")
         if self.species_id:
             gene_ids = gene_ids[gene_ids["species_id"] == self.species_id]
 
