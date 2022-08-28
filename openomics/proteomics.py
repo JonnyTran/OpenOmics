@@ -1,7 +1,7 @@
 import networkx as nx
 import pandas as pd
 
-from .database import Annotatable
+from .database.base import Annotatable
 from .transcriptomics import Expression
 
 

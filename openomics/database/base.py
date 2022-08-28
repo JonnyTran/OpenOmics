@@ -12,7 +12,6 @@ import filetype
 import pandas as pd
 import validators
 
-from openomics.database.sequence import SequenceDatabase
 from openomics.utils.df import concat_uniques, concat
 from openomics.utils.io import get_pkg_data_filename, decompress_file
 
@@ -145,8 +144,8 @@ class Database(object):
 
     def get_annotations(self, on: Union[str, List[str]],
                         columns: List[str],
-                        agg: str = "concat_unique",
-                        subset: pd.Index = None):
+                        agg: str = "concat_uniques",
+                        keys: pd.Index = None):
         """Returns the Database's DataFrame such that it's indexed by :param
         index:, which then applies a groupby operation and aggregates all other
         columns by concatenating all unique values.
@@ -157,7 +156,7 @@ class Database(object):
             agg (str): Function to aggregate when there is more than one values
                 for each index instance. E.g. ['first', 'last', 'sum', 'mean',
                 'size', 'concat'], default 'concat'.
-            subset (pd.Index): The values on the `index` column to
+            keys (pd.Index): The values on the `index` column to
                 filter before performing the groupby-agg operations.
 
         Returns:
@@ -176,11 +175,11 @@ class Database(object):
         select_col = columns + ([on] if not isinstance(on, list) else on)
         df = self.data.filter(select_col, axis="columns")
 
-        if subset is not None:
+        if keys is not None:
             if on == df.index.name:
-                df = df.loc[subset]
+                df = df.loc[keys]
             else:
-                df = df[df[on].isin(subset)]
+                df = df[df[on].isin(keys)]
 
         # Groupby index
         if on != df.index.name and df.index.name in columns:
@@ -189,7 +188,7 @@ class Database(object):
             groupby = df.groupby(on)
 
         #  Aggregate by all columns by concatenating unique values
-        if agg == "concat_unique":
+        if agg == "concat_uniques":
             if isinstance(df, pd.DataFrame):
                 grouby_agg = groupby.agg({col: concat_uniques for col in columns})
 
@@ -207,7 +206,7 @@ class Database(object):
             else:
                 raise Exception("Unsupported dataframe: {}".format(df))
 
-        # Concatenate values
+        # Concatenate values into list
         elif agg == "concat":
             grouby_agg = groupby.agg({col: concat for col in columns})
 
@@ -264,8 +263,8 @@ class Annotatable(ABC):
         self.annotations: pd.DataFrame = pd.DataFrame(index=gene_list)
         self.annotations.index.name = index
 
-    def annotate_attributes(self, database: Database, on: Union[str, List[str]],
-                            columns: List[str], agg: str = "concat",
+    def annotate_attributes(self, database: Union[Database, pd.DataFrame], on: Union[str, List[str]],
+                            columns: List[str], agg: str = "concat_uniques",
                             fuzzy_match: bool = False):
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present
@@ -302,7 +301,7 @@ class Annotatable(ABC):
         if isinstance(database, pd.DataFrame):
             database_df = database.groupby(on).agg({col: concat_uniques for col in columns})
         else:
-            database_df = database.get_annotations(on, columns=columns, agg=agg, subset=keys)
+            database_df = database.get_annotations(on, columns=columns, agg=agg, keys=keys)
 
         if len(database_df) == 0:
             logging.warning("Database annotations is empty and has nothing to annotate.")
@@ -338,7 +337,7 @@ class Annotatable(ABC):
         self.annotations = new_annotations
 
     def annotate_sequences(self,
-                           database: SequenceDatabase,
+                           database: Database,
                            on: Union[str, List[str]],
                            agg="longest",
                            omic=None,
@@ -359,10 +358,7 @@ class Annotatable(ABC):
         if omic is None:
             omic = self.name()
 
-        sequences = database.get_sequences(index=on,
-                                           omic=omic,
-                                           agg=agg,
-                                           **kwargs)
+        sequences = database.get_sequences(index=on, omic=omic, agg=agg, **kwargs)
 
         # Map sequences to the keys of `on` columns.
         if type(self.annotations.index) == pd.MultiIndex and self.annotations.index.names in on:

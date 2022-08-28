@@ -1,4 +1,4 @@
-from openomics.database import Annotatable
+from openomics.database.base import Annotatable
 from openomics.transcriptomics import Expression
 
 

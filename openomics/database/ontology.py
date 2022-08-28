@@ -398,7 +398,7 @@ class UniProtGOA(GeneOntology):
         functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
         """
         if species is None:
-            self.species = 'UNIPROT'
+            self.species = species = 'UNIPROT'
             substr = 'uniprot_all'
         else:
             self.species = species.upper()

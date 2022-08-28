@@ -12,7 +12,7 @@ import validators
 # from Bio.UniProt import GOA
 from dask import delayed
 
-from .database import Annotatable
+from .database.base import Annotatable
 from .utils import get_pkg_data_filename
 from .utils.df import drop_duplicate_columns
 
@@ -31,6 +31,7 @@ class Expression(object):
         indices.
 
     """
+    expressions: pd.DataFrame
     def __init__(self, data, transpose, gene_index=None, usecols=None, gene_level=None, sample_level="sample_index",
                  transform_fn=None, dropna=False, npartitions=None, **kwargs):
         """This constructor will create a DataFrame
@@ -108,7 +109,7 @@ class Expression(object):
                        transpose: bool,
                        usecols: str,
                        gene_index: str,
-                       dropna: bool, **kwargs):
+                       dropna: bool, **kwargs) -> pd.DataFrame:
         """Reading table data inputs to create a DataFrame.
 
         Args:

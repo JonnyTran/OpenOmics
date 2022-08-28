@@ -406,10 +406,14 @@ class UniProt(SequenceDatabase):
         else:
             self.data.update(records_df, overwrite=False)
 
-        if not seqfeats_df.columns.isin(self.data.columns).all():
-            self.data = self.data.join(seqfeats_df, on='protein_id', how="left")
-        else:
-            self.data.update(seqfeats_df, overwrite=False)
+        # Add new seq features
+        if len(seqfeats_df.columns.difference(self.data.columns)):
+            self.data = self.data.join(seqfeats_df.drop(columns=seqfeats_df.columns.intersection(self.data.columns)),
+                                       on='protein_id', how="left")
+        # Fillna seq features
+        if len(seqfeats_df.columns.intersection(self.data.columns)):
+            self.data.update(seqfeats_df.filter(seqfeats_df.columns.intersection(self.data.columns), axis='columns'),
+                             overwrite=False)
 
         # Cache the seq_df
         if not hasattr(self, '_seq_df_dict'):
@@ -437,7 +441,7 @@ class MirBase(SequenceDatabase):
         file_resources=None,
         sequence: str = "mature",
         species: str = "Homo sapiens",
-        species_id: str = 9606,
+        species_id: str = '9606',
         col_rename=None,
         npartitions=0,
         replace_U2T=False,
@@ -462,8 +466,8 @@ class MirBase(SequenceDatabase):
                 "rnacentral.mirbase.tsv"] = "ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/id_mapping/database_mappings/mirbase.tsv"
 
         self.sequence = sequence
-        self.species_id = species_id
         self.species = species
+        self.species_id = str(species_id)
         super().__init__(
             path=path,
             file_resources=file_resources,
@@ -478,49 +482,28 @@ class MirBase(SequenceDatabase):
             file_resources:
             npartitions:
         """
-        rnacentral_mirbase = pd.read_table(
-            file_resources["rnacentral.mirbase.tsv"],
-            low_memory=True,
-            header=None,
-            names=[
-                "RNAcentral id",
-                "database",
-                "mirbase id",
-                "species",
-                "RNA type",
-                "NA",
-            ],
-        )
+        rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
+                                           names=["RNAcentral id", "database", "mirbase id", "species_id", "RNA type",
+                                                  "NA", ],
+                                           dtype={"species_id": "str"})
 
         rnacentral_mirbase = rnacentral_mirbase.set_index("mirbase id")
-        rnacentral_mirbase["species"] = rnacentral_mirbase["species"].astype(
-            "O")
         if self.species_id is not None:
-            rnacentral_mirbase = rnacentral_mirbase[
-                rnacentral_mirbase["species"] == self.species_id]
+            rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species_id"] == self.species_id]
 
-        mirbase_aliases = pd.read_table(
-            file_resources["aliases.txt"],
-            low_memory=True,
-            header=None,
-            names=["mirbase id", "gene_name"],
-            dtype="O",
-        ).set_index("mirbase id")
+        mirbase_aliases = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
+                                        names=["mirbase id", "gene_name"], dtype="O", ).set_index("mirbase id")
         mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, how="inner")
 
         # Expanding miRNA names in each MirBase Ascension ID
-        mirna_names = (mirbase_aliases.apply(
-            lambda x: pd.Series(x["gene_name"].split(";")[:-1]),
-            axis=1).stack().reset_index(level=1, drop=True))
-
+        mirna_names = mirbase_aliases.apply(lambda x: pd.Series(x["gene_name"].split(";")[:-1]), axis=1) \
+            .stack().reset_index(level=1, drop=True)
         mirna_names.name = "gene_name"
 
         if npartitions:
-            mirbase_aliases = dd.from_pandas(mirbase_aliases,
-                                             npartitions=npartitions)
+            mirbase_aliases = dd.from_pandas(mirbase_aliases, npartitions=npartitions)
 
-        mirbase_aliases = mirbase_aliases.drop("gene_name",
-                                               axis=1).join(mirna_names)
+        mirbase_aliases = mirbase_aliases.drop("gene_name", axis=1).join(mirna_names)
 
         # mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.lower()
         # mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.replace("-3p.*|-5p.*", "")
