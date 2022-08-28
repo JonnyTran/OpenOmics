@@ -3,6 +3,7 @@ from typing import List, Dict
 
 import networkx as nx
 from Bio import SeqIO
+
 from openomics.database.annotation import *
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
@@ -37,7 +38,7 @@ class Interactions(Database):
                 A dictionary to rename nodes in the network, where the nodes with name <dict[key]> will be renamed to <dict[value]>
         """
         # This class should NOT call super's __init__()
-        self.validate_file_resources(path, file_resources, verbose=verbose)
+        self.load_file_resources(path, file_resources, verbose=verbose)
 
         self.data_path = path
         self.file_resources = file_resources
@@ -274,8 +275,6 @@ class STRING(Interactions, SequenceDatabase):
                          directed=directed, relabel_nodes=relabel_nodes, verbose=verbose)
 
         self.data = pd.read_table(file_resources["protein.info.txt"], na_values=['annotation not available'])
-        if self.data.index.name != None or self.data.index.names[0] != None:
-            self.data = self.data.reset_index()
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters):
@@ -300,7 +299,7 @@ class STRING(Interactions, SequenceDatabase):
         # network = nx.relabel_nodes(network, self.protein_id2name)
         return network
 
-    def get_sequences(self, index="protein_id", omic=None, agg_sequences=None):
+    def get_sequences(self, index="protein_id", omic=None, agg=None):
         if hasattr(self, "seq_dict"):
             return self.seq_dict
 

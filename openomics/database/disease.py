@@ -35,7 +35,10 @@ class MalaCards(DiseaseAssociation):
         "MalaCards.csv": "download.action.php?filename=DataDownload/MalaCards.csv",
     }
     """
-    COLUMNS_RENAME_DICT = {"geneSymbol": "gene_name", "maladyMainName": "disease_associations"}
+    COLUMNS_RENAME_DICT = {
+        "geneSymbol": "gene_name",
+        "maladyMainName": "disease_associations"
+    }
 
     def __init__(self, path="http://zdzlab.einstein.yu.edu/1/hedd/", file_resources=None,
                  col_rename=COLUMNS_RENAME_DICT, **kwargs):
@@ -120,8 +123,10 @@ class HMDD(DiseaseAssociation):
         "alldata.txt": "alldata.txt",
     }
     """
-    COLUMNS_RENAME_DICT = {"mir": "gene_name",
-                           "disease": "disease_associations"}
+    COLUMNS_RENAME_DICT = {
+        "mir": "gene_name",
+        "disease": "disease_associations"
+    }
 
     def __init__(self, path="http://www.cuilab.cn/static/hmdd3/data/",
                  file_resources=None, col_rename=COLUMNS_RENAME_DICT,
@@ -151,8 +156,10 @@ class HMDD(DiseaseAssociation):
 
 
 class LncRNADisease(DiseaseAssociation):
-    COLUMNS_RENAME_DICT = {"LncRNA name": "gene_name",
-                           "Disease name": "disease_associations"}
+    COLUMNS_RENAME_DICT = {
+        "LncRNA name": "gene_name",
+        "Disease name": "disease_associations"
+    }
 
     def __init__(self, path="http://www.cuilab.cn/files/images/ldd/",
                  file_resources=None, species="Human", col_rename=COLUMNS_RENAME_DICT,

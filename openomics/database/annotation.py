@@ -149,18 +149,18 @@ class RNAcentral(Database):
                            'GO terms': 'go_id'}
 
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, species: int = 9606, npartitions=None, verbose=False):
+                 col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606', npartitions=None, verbose=False):
         """
         Args:
             path:
             file_resources:
             col_rename:
-            species:
+            species_id:
             npartitions:
             verbose:
         """
-        self.species = species
-        assert isinstance(self.species, int)
+        self.species_id = species_id
+        assert isinstance(self.species_id, str)
 
         if file_resources is None:
             file_resources = {}
@@ -184,15 +184,13 @@ class RNAcentral(Database):
         gene_ids = []
         for file in file_resources:
             if "database_mappings" in file:
+                args = dict(low_memory=True, header=None,
+                            names=["RNAcentral id", "database", "external id", "species_id", "RNA type", "gene symbol"],
+                            dtype={"species_id": 'str'})
                 if npartitions:
-                    id_mapping = dd.read_table(file_resources[file], header=None,
-                                               names=["RNAcentral id", "database", "external id", "species", "RNA type",
-                                                      "gene symbol"])
+                    id_mapping = dd.read_table(file_resources[file], **args)
                 else:
-                    id_mapping = pd.read_table(file_resources[file],
-                                               low_memory=True, header=None,
-                                               names=["RNAcentral id", "database", "external id", "species", "RNA type",
-                                                      "gene symbol"])
+                    id_mapping = pd.read_table(file_resources[file], **args)
 
                 # id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d", "", regex=True)
 
@@ -203,9 +201,9 @@ class RNAcentral(Database):
         else:
             gene_ids = pd.concat(gene_ids, axis=0)
 
-        gene_ids["species"] = gene_ids["species"].astype("O")
-        if self.species:
-            gene_ids = gene_ids[gene_ids["species"] == self.species]
+        gene_ids["species_id"] = gene_ids["species_id"].astype("O")
+        if self.species_id:
+            gene_ids = gene_ids[gene_ids["species_id"] == self.species_id]
 
         id2go_terms = go_terms[go_terms["RNAcentral id"].isin(gene_ids["RNAcentral id"])] \
             .groupby("RNAcentral id")["GO terms"] \

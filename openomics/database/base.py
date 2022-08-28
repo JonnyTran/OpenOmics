@@ -1,10 +1,8 @@
 import copy
 import difflib
-import gzip
 import itertools
 import logging
 import os
-import zipfile
 from abc import ABC, abstractmethod
 from typing import Dict, Union
 from typing import List
@@ -12,10 +10,11 @@ from typing import List
 import dask.dataframe as dd
 import filetype
 import pandas as pd
-import rarfile
 import validators
+
+from openomics.database.sequence import SequenceDatabase
 from openomics.utils.df import concat_uniques, concat
-from openomics.utils.io import get_pkg_data_filename
+from openomics.utils.io import get_pkg_data_filename, decompress_file
 
 
 class Database(object):
@@ -27,7 +26,7 @@ class Database(object):
     tables, e.g. `ExpressionData` , to annotate various annotations,
     expressions, sequences, and disease associations.
     """
-
+    data: pd.DataFrame
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
 
     def __init__(
@@ -57,29 +56,21 @@ class Database(object):
         self.npartitions = npartitions
         self.verbose = verbose
 
-        self.validate_file_resources(path,
-                                     file_resources,
-                                     npartitions=npartitions,
-                                     verbose=verbose)
-
-        self.data = self.load_dataframe(file_resources,
-                                        npartitions=npartitions)
-
-        if self.data.index.name != None or self.data.index.names[0] != None:
-            self.data = self.data.reset_index()
+        self.load_file_resources(path, file_resources=file_resources, npartitions=npartitions, verbose=verbose)
+        self.data = self.load_dataframe(file_resources, npartitions=npartitions)
         if col_rename is not None:
             self.data = self.data.rename(columns=col_rename)
+            if self.data.index.name in col_rename:
+                self.data.index.name = col_rename[self.data.index.name]
 
-        self.info() if verbose else None
+    def __repr__(self):
+        return "{}: {}".format(self.name(), self.data.columns.tolist())
 
-    def info(self):
-        logging.info("{}: {}".format(self.name(), self.data.columns.tolist()))
-
-    def validate_file_resources(self,
-                                base_path,
-                                file_resources,
-                                npartitions=None,
-                                verbose=False) -> None:
+    def load_file_resources(self,
+                            base_path,
+                            file_resources,
+                            npartitions=None,
+                            verbose=False) -> None:
         """For each file in file_resources, download the file if path+file is a
         URL or load from disk if a local path. Additionally unzip or unrar if
         the file is compressed.
@@ -97,45 +88,23 @@ class Database(object):
                 Dataframe. Default None.
             verbose:
         """
+        # Remote database file path
         if validators.url(base_path):
             for filename, filepath in copy.copy(file_resources).items():
-                data_file = get_pkg_data_filename(base_path,
-                                                  filepath)  # Download file and replace the file_resource path
-
-                filepath_ext = filetype.guess(data_file)
-
-                # This null if-clause is needed incase when filetype_ext is None, causing the next clauses to fail
-                if filepath_ext is None:
-                    file_resources[filename] = data_file
+                # Download file (if not already cached) and replace the file_resource path
+                if isinstance(filepath, str):
+                    filepath = get_pkg_data_filename(base_path, filepath)
+                    filepath_ext = filetype.guess(filepath)
+                else:
+                    filepath_ext = None
 
                 # Dask will automatically handle uncompression at dd.read_table(compression=filepath_ext)
-                elif ".gtf" in filename and npartitions:
-                    file_resources[filename] = data_file
-
-                elif filepath_ext.extension == "gz":
-                    logging.debug("Decompressed gzip file at {}".format(data_file))
-                    file_resources[filename] = gzip.open(data_file, "rt")
-
-                elif filepath_ext.extension == "zip":
-                    logging.debug("Decompressed zip file at {}".format(data_file))
-                    zf = zipfile.ZipFile(data_file, "r")
-
-                    for subfile in zf.infolist():
-                        # If the file extension matches
-                        if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]:
-                            file_resources[filename] = zf.open(subfile.filename, mode="r")
-
-                elif filepath_ext.extension == "rar":
-                    logging.debug("Decompressed rar file at {}".format(data_file))
-                    rf = rarfile.RarFile(data_file, "r")
-
-                    for subfile in rf.infolist():
-                        # If the file extension matches
-                        if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]:
-                            file_resources[filename] = rf.open(subfile.filename, mode="r")
+                if npartitions:
+                    file_resources[filename] = filepath
                 else:
-                    file_resources[filename] = data_file
+                    file_resources[filename] = decompress_file(filepath, filename, filepath_ext)
 
+        # Local database path
         elif os.path.isdir(base_path) and os.path.exists(base_path):
             for _, filepath in file_resources.items():
                 if not os.path.exists(filepath):
@@ -147,6 +116,7 @@ class Database(object):
         self.file_resources = file_resources
         logging.info(f"{self.name()} file_resources: {file_resources}")
 
+
     def close(self):
         # Close opened file resources
         for filename, filepath in self.file_resources.items():
@@ -154,7 +124,7 @@ class Database(object):
                 self.file_resources[filename].close()
 
     @abstractmethod
-    def load_dataframe(self, file_resources:Dict[str, str], npartitions:int=None):
+    def load_dataframe(self, file_resources: Dict[str, str], npartitions: int = None) -> pd.DataFrame:
         """Handles data preprocessing given the file_resources input, and
         returns a DataFrame.
 
@@ -173,7 +143,7 @@ class Database(object):
     def list_databases():
         return DEFAULT_LIBRARIES
 
-    def get_annotations(self, index: Union[str, List[str]],
+    def get_annotations(self, on: Union[str, List[str]],
                         columns: List[str],
                         agg: str = "concat_unique",
                         subset: pd.Index = None):
@@ -182,7 +152,7 @@ class Database(object):
         columns by concatenating all unique values.
 
         Args:
-            index (str): The column name of the DataFrame to join by.
+            on (str): The column name of the DataFrame to join by.
             columns (list): a list of column names.
             agg (str): Function to aggregate when there is more than one values
                 for each index instance. E.g. ['first', 'last', 'sum', 'mean',
@@ -199,18 +169,24 @@ class Database(object):
                 f"These columns doesn't exist in database: {list(set(columns) - set(self.data.columns.tolist()))}"
             )
 
-        # Select df columns including df. However the `columns` list shouldn't contain the index column
-        if index in columns:
-            columns.pop(columns.index(index))
+        # Select df columns including df. However, the `columns` list shouldn't contain the index column
+        if on in columns:
+            columns.pop(columns.index(on))
 
-        select_col = columns + ([index] if not isinstance(index, list) else index)
-        df = self.data[select_col]
+        select_col = columns + ([on] if not isinstance(on, list) else on)
+        df = self.data.filter(select_col, axis="columns")
 
         if subset is not None:
-            df = df[df[index].isin(list(subset))]
+            if on == df.index.name:
+                df = df.loc[subset]
+            else:
+                df = df[df[on].isin(subset)]
 
         # Groupby index
-        groupby = df.groupby(index)
+        if on != df.index.name and df.index.name in columns:
+            groupby = df.reset_index().groupby(on)
+        else:
+            groupby = df.groupby(on)
 
         #  Aggregate by all columns by concatenating unique values
         if agg == "concat_unique":
@@ -362,7 +338,7 @@ class Annotatable(ABC):
         self.annotations = new_annotations
 
     def annotate_sequences(self,
-                           database: Database,
+                           database: SequenceDatabase,
                            on: Union[str, List[str]],
                            agg="longest",
                            omic=None,
@@ -385,7 +361,7 @@ class Annotatable(ABC):
 
         sequences = database.get_sequences(index=on,
                                            omic=omic,
-                                           agg_sequences=agg,
+                                           agg=agg,
                                            **kwargs)
 
         # Map sequences to the keys of `on` columns.

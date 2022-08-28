@@ -234,11 +234,13 @@ class GeneOntology(Ontology):
         "DB_Object_Symbol": "gene_name",
         "DB_Object_ID": "gene_id",
         "GO_ID": "go_id",
+        "Taxon_ID": 'species_id',
     }
 
     def __init__(
         self,
         path="http://geneontology.org/gene-associations/",
+        species="HUMAN",
         file_resources=None,
         col_rename=COLUMNS_RENAME_DICT,
         npartitions=0,
@@ -258,20 +260,18 @@ class GeneOntology(Ontology):
         Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
         functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
         """
+
+        self.species = species.lower()
+
         if file_resources is None:
             file_resources = {
                 "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
-                "goa_human.gaf": "goa_human.gaf.gz",
-                "goa_human_rna.gaf": "goa_human_rna.gaf.gz",
-                "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz",
+                f"goa_{species.lower()}.gaf": f"goa_{species.lower()}.gaf.gz",
+                f"goa_{species.lower()}_rna.gaf": f"goa_{species.lower()}_rna.gaf.gz",
+                f"goa_{species.lower()}_isoform.gaf": f"goa_{species.lower()}_isoform.gaf.gz",
             }
-        super().__init__(
-            path,
-            file_resources,
-            col_rename=col_rename,
-            npartitions=npartitions,
-            verbose=verbose,
-        )
+
+        super().__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions, verbose=verbose, )
 
     def info(self):
         print("network {}".format(nx.info(self.network)))
@@ -294,10 +294,10 @@ class GeneOntology(Ontology):
         if len(gaf_annotation_dfs):
             self.annotations: pd.DataFrame = pd.concat(gaf_annotation_dfs).reset_index(drop=True)
             self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
-
             self.annotations["Date"] = pd.to_datetime(self.annotations["Date"], )
 
-            print("gaf_annotations:", self.annotations.columns.tolist())
+            self.annotations['species_id'] = self.annotations['species_id'].apply(
+                lambda li: [s.strip("taxon:") for s in li])
 
         return go_annotations
 
@@ -360,7 +360,63 @@ class GeneOntology(Ontology):
         return tuple(outputs)
 
 
-class InterPro(GeneOntology):
+class UniProtGOA(GeneOntology):
+    """Loads the GeneOntology database from https://www.ebi.ac.uk/GOA/ .
+
+    Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
+    Default file_resources: {
+        "goa_uniprot_all.gpi": "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpi.gz",
+        "goa_uniprot_all.gaf": "goa_uniprot_all.gaf.gz",
+    }
+    """
+    COLUMNS_RENAME_DICT = {
+        "DB_Object_ID": "protein_id",
+        "DB_Object_Symbol": "gene_name",
+        "GO_ID": "go_id",
+        "Taxon_ID": 'species_id',
+    }
+
+    def __init__(
+        self,
+        path="ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/",
+        species="HUMAN",
+        file_resources=None,
+        col_rename=COLUMNS_RENAME_DICT,
+        npartitions=0,
+        verbose=False,
+    ):
+        """
+        Loads the GeneOntology database from http://geneontology.org .
+
+            Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
+            Default file_resources: {
+                "goa_uniprot_all.gpi": "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpi.gz",
+                "goa_uniprot_all.gaf": "goa_uniprot_all.gaf.gz",
+            }
+
+        Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
+        functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
+        """
+        if species is None:
+            self.species = 'UNIPROT'
+            substr = 'uniprot_all'
+        else:
+            self.species = species.upper()
+            substr = species.lower()
+
+        if file_resources is None:
+            file_resources = {
+                "go.obo": "http://current.geneontology.org/ontology/go.obo",
+                f"goa_{self.species.lower()}.gaf": os.path.join(species, f"goa_{substr}.gaf.gz"),
+                # f"goa_{self.species.lower()}_isoform.gaf": os.path.join(species, f"goa_{substr}_isoform.gaf.gz"),
+                # f"goa_{self.species.lower()}_complex.gaf": os.path.join(species, f"goa_{substr}_complex.gaf.gz"),
+                # f"goa_{self.species.lower()}.gpi": os.path.join(species, f"goa_{substr}.gpi.gz"),
+            }
+        super().__init__(path=path, species=species, file_resources=file_resources, col_rename=col_rename,
+                         npartitions=npartitions, verbose=verbose)
+
+
+class InterPro(Ontology):
     def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/",
                  file_resources=None, col_rename=None, verbose=False, npartitions=None):
         """
@@ -379,7 +435,8 @@ class InterPro(GeneOntology):
             file_resources["interpro2go"] = os.path.join(path, "interpro2go")
             file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
 
-        super().__init__(path, file_resources, col_rename, verbose=verbose, npartitions=npartitions)
+        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, verbose=verbose,
+                         npartitions=npartitions)
 
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], npartitions=None):
         ipr_entries = pd.read_table(file_resources["entry.list"])
@@ -401,7 +458,7 @@ class InterPro(GeneOntology):
             self.annotations: dd.DataFrame = dd.read_table(
                 file_resources["protein2ipr.dat"],
                 names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
-                usecols=['UniProtKB-AC', 'ENTRY_AC'],
+                usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
                 dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category'})
 
         return ipr_entries
@@ -475,61 +532,6 @@ class InterPro(GeneOntology):
 
         tuples = [_process_line(line.strip()) for line in file if line[0] != '!']
         return pd.DataFrame(tuples, columns=['ENTRY_AC', "go_id", "go_desc"])
-
-
-class UniProtGOA(GeneOntology):
-    """Loads the GeneOntology database from https://www.ebi.ac.uk/GOA/ .
-
-    Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
-    Default file_resources: {
-        "goa_uniprot_all.gpi": "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpi.gz",
-        "goa_uniprot_all.gaf": "goa_uniprot_all.gaf.gz",
-    }
-    """
-    COLUMNS_RENAME_DICT = {
-        "DB_Object_ID": "protein_id",
-        "DB_Object_Symbol": "gene_name",
-        "GO_ID": "go_id",
-    }
-
-    def __init__(
-        self,
-        path="ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/",
-        species="HUMAN",
-        file_resources=None,
-        col_rename=COLUMNS_RENAME_DICT,
-        npartitions=0,
-        verbose=False,
-    ):
-        """
-        Loads the GeneOntology database from http://geneontology.org .
-
-            Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
-            Default file_resources: {
-                "goa_uniprot_all.gpi": "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpi.gz",
-                "goa_uniprot_all.gaf": "goa_uniprot_all.gaf.gz",
-            }
-
-        Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
-        functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
-        """
-        self.species = species
-
-        if file_resources is None:
-            file_resources = {
-                "go.obo": "http://current.geneontology.org/ontology/go.obo",
-                "goa_human.gpi": os.path.join(species, "goa_human.gpi.gz"),
-                "goa_human.gaf": os.path.join(species, "goa_human.gaf.gz"),
-                "goa_human_isoform.gaf": os.path.join(species, "goa_human_isoform.gaf.gz"),
-                # "goa_human_complex.gaf": os.path.join(species, "goa_human_complex.gaf.gz"),
-            }
-        super().__init__(
-            path,
-            file_resources,
-            col_rename=col_rename,
-            npartitions=npartitions,
-            verbose=verbose,
-        )
 
 
 def gafiterator(handle):

@@ -37,6 +37,13 @@ class MultiOmics:
             for omics in omics_data:
                 self.add_omic(omics)
 
+    def __repr__(self):
+        return f"Cohort: {self._cohort_name}" \
+               "\nExpression: {}" \
+               "\nAnnotations: {}".format(
+            {ntype: df.shape for ntype, df in self.data.items()},
+            {ntype: omic.annotations.shape for ntype, omic in self.__dict__.items() if hasattr(omic, 'annotations')})
+
     def add_omic(self,
                  omic_data: Expression,
                  initialize_annotations: bool = True):

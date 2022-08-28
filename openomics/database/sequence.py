@@ -13,6 +13,8 @@ import openomics
 from openomics.utils.read_gtf import read_gtf
 from .base import Database
 
+SEQUENCE_COL = 'sequence'
+
 
 # from gtfparse import read_gtf
 
@@ -21,6 +23,7 @@ class SequenceDatabase(Database):
     """Provides a series of methods to extract sequence data from
     SequenceDataset.
     """
+
     def __init__(self, replace_U2T=False, **kwargs):
         """
         Args:
@@ -32,20 +35,19 @@ class SequenceDatabase(Database):
         super().__init__(**kwargs)
 
     @abstractmethod
-    def read_fasta(self, fasta_file:str, replace_U2T:bool, npartitions=None):
+    def read_fasta(self, fasta_file: str, npartitions=None, **kwargs):
         """Returns a pandas DataFrame containing the fasta sequence entries.
         With a column named 'sequence'.
 
         Args:
             fasta_file (str): path to the fasta file, usually as
                 self.file_resources[<file_name>]
-            replace_U2T (bool):
             npartitions:
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, index:str, omic:str, agg_sequences:str, **kwargs):
+    def get_sequences(self, index: str, omic: str, agg: str, **kwargs):
         """Returns a dictionary where keys are 'index' and values are
         sequence(s).
 
@@ -53,7 +55,7 @@ class SequenceDatabase(Database):
             index (str): {"gene_id", "gene_name", "transcript_id",
                 "transcript_name"}
             omic (str): {"lncRNA", "microRNA", "messengerRNA"}
-            agg_sequences (str): {"all", "shortest", "longest"}
+            agg (str): {"all", "shortest", "longest"}
             **kwargs: any additional argument to pass to
                 SequenceDataset.get_sequences()
         """
@@ -177,7 +179,7 @@ class GENCODE(SequenceDatabase):
                 "transcript_name": record.id.split("|")[4],
                 "transcript_length": record.id.split("|")[6],
                 "transcript_biotype": record.id.split("|")[7],
-                "sequence": str(record.seq),
+                SEQUENCE_COL: str(record.seq),
             }
 
             entries.append(record_dict)
@@ -187,7 +189,7 @@ class GENCODE(SequenceDatabase):
             seq_df = dd.from_pandas(seq_df)
 
         if self.replace_U2T:
-            seq_df["sequence"] = seq_df["sequence"].str.replace("U", "T")
+            seq_df[SEQUENCE_COL] = seq_df[SEQUENCE_COL].str.replace("U", "T")
 
         if self.remove_version_num:
             seq_df["gene_id"] = seq_df["gene_id"].str.replace("[.]\d*", "", regex=True)
@@ -200,15 +202,15 @@ class GENCODE(SequenceDatabase):
 
         return seq_df
 
-    def get_sequences(self, index: Union[str, List[str]], omic: str, agg_sequences: str, biotypes: List[str] = None):
+    def get_sequences(self, index: Union[str, List[str]], omic: str, agg: str, biotypes: List[str] = None):
         """
         Args:
             index (str):
             omic (str):
-            agg_sequences (str):
+            agg (str):
             biotypes (List[str]):
         """
-        agg_func = self.aggregator_fn(agg_sequences)
+        agg_func = self.aggregator_fn(agg)
 
         # Parse lncRNA & mRNA fasta
         if omic == openomics.MessengerRNA.name():
@@ -226,10 +228,10 @@ class GENCODE(SequenceDatabase):
             else:
                 print("INFO: You can pass in a list of transcript biotypes to filter using the argument 'biotypes'.")
 
-            return seq_df.groupby(index)["sequence"].agg(agg_func)
+            return seq_df.groupby(index)[SEQUENCE_COL].agg(agg_func)
 
         else:
-            return seq_df.groupby(index)["sequence"].first()
+            return seq_df.groupby(index)[SEQUENCE_COL].first()
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
         """
@@ -270,13 +272,19 @@ class UniProt(SequenceDatabase):
         self.species_id = species_id
         if file_resources is None:
             file_resources = {}
+            file_resources[
+                "proteomes.tsv"] = "https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
+
             file_resources['uniprot_sprot.xml'] = os.path.join(path, "knowledgebase/uniprot_sprot.xml.gz")
+            file_resources['uniprot_trembl.xml'] = os.path.join(path, "knowledgebase/uniprot_trembl.xml.gz")
             file_resources["idmapping_selected.tab"] = os.path.join(path, "knowledgebase/idmapping/",
                                                                     'idmapping_selected.tab.gz')
 
         if species:
             file_resources['uniprot_sprot.xml'] = os.path.join(path, "knowledgebase/taxonomic_divisions/",
                                                                f'uniprot_sprot_{species.lower()}.xml.gz')
+            file_resources['uniprot_trembl.xml'] = os.path.join(path, "knowledgebase/taxonomic_divisions/",
+                                                                f'uniprot_trembl_{species.lower()}.xml.gz')
             file_resources["idmapping_selected.tab"] = os.path.join(path, "knowledgebase/idmapping/by_organism/",
                                                                     f'{species}_{species_id}_idmapping_selected.tab.gz')
 
@@ -289,19 +297,21 @@ class UniProt(SequenceDatabase):
             file_resources:
             npartitions:
         """
-
+        # Load idmapping_selected
         options = dict(
             names=['UniProtKB-AC', 'UniProtKB-ID', 'GeneID (EntrezGene)', 'RefSeq', 'GI', 'PDB', 'GO', 'UniRef100',
                    'UniRef90', 'UniRef50', 'UniParc', 'PIR', 'NCBI-taxon', 'MIM', 'UniGene', 'PubMed', 'EMBL',
                    'EMBL-CDS', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO', 'Additional PubMed'],
             usecols=['UniProtKB-AC', 'UniProtKB-ID', 'GeneID (EntrezGene)', 'RefSeq', 'GI', 'PDB', 'GO',
                      'NCBI-taxon', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO'],
+            index_col='UniProtKB-AC',
             dtype={'GeneID (EntrezGene)': 'str', 'NCBI-taxon': 'str'})
 
         if npartitions:
             idmapping: dd.DataFrame = dd.read_table(file_resources["idmapping_selected.tab"], **options)
         else:
             idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], **options)
+
 
         for col in ['PDB', 'GI', 'GO', 'RefSeq']:
             # Split string to list
@@ -320,6 +330,13 @@ class UniProt(SequenceDatabase):
                         if isinstance(x['protein_external_id'], list) else None,
                     axis=1)
 
+        # Load proteome
+        proteomes = pd.read_table(file_resources["proteomes.tsv"], usecols=['Organism Id', 'Proteome Id'],
+                                  dtype={'Organism Id': 'str', 'Proteome Id': 'str'}) \
+            .rename(columns={'Organism Id': 'NCBI-taxon', 'Proteome Id': 'proteome_id'}) \
+            .dropna()
+        idmapping = idmapping.join(proteomes.set_index('NCBI-taxon'), on='NCBI-taxon')
+
         return idmapping
 
     def get_sequences(self, index: str, omic: str = None, agg: str = "all", **kwargs):
@@ -328,39 +345,42 @@ class UniProt(SequenceDatabase):
         # Parse lncRNA & mRNA fasta
         seq_df = self.read_fasta(self.file_resources["uniprot_sprot.xml"], npartitions=self.npartitions)
 
-        if "protein" in index:
-            return seq_df.groupby(index)["sequence"].agg(agg_func)
-        else:
-            return seq_df.groupby(index)["sequence"].first()
+        if "uniprot_trembl.xml" in "uniprot_trembl.xml":
+            trembl_seq_df = self.read_fasta(self.file_resources["uniprot_trembl.xml"], npartitions=self.npartitions)
+            seq_df.update(trembl_seq_df)
 
-    def read_fasta(self, fasta_file: str, replace_U2T=False, npartitions=None) -> pd.DataFrame:
-        if hasattr(self, '_seq_df_dict') and fasta_file in self._seq_df_dict:
-            return self._seq_df_dict[fasta_file]
+        if "gene" in index:
+            return seq_df.groupby(index)[SEQUENCE_COL].agg(agg_func)
+        else:
+            return seq_df.groupby(index)[SEQUENCE_COL].first()
+
+    def read_fasta(self, fasta_xml_file: str, npartitions=None) -> pd.DataFrame:
+        if hasattr(self, '_seq_df_dict') and fasta_xml_file in self._seq_df_dict:
+            return self._seq_df_dict[fasta_xml_file]
 
         records = []
         seqfeats = []
-        for record in tqdm.tqdm(SeqIO.parse(fasta_file, "uniprot-xml")):
+        for record in tqdm.tqdm(SeqIO.parse(fasta_xml_file, "uniprot-xml")):
             # Sequence features
             annotations = defaultdict(lambda: None, record.annotations)
             record_dict = {
                 'protein_id': record.id,
                 "protein_name": record.name,
+                'gene_name': annotations['gene_name_primary'],
                 'description': record.description,
                 'molecule_type': annotations['molecule_type'],
-                'gene_name': annotations['gene_name_primary'],
                 'created': annotations['created'],
                 'ec_id': annotations['type'],
                 'subcellular_location': annotations['comment_subcellularlocation_location'],
                 'taxonomy': annotations['taxonomy'],
                 'keywords': annotations['keywords'],
                 'sequence_mass': annotations['sequence_mass'],
-                "sequence": str(record.seq),
+                SEQUENCE_COL: str(record.seq),
             }
             records.append(record_dict)
 
             # Sequence interval features
             _parse_interval = lambda sf: pd.Interval(left=sf.location.start, right=sf.location.end, )
-
             feature_type_intervals = defaultdict(lambda: [])
             for sf in record.features:
                 if isinstance(sf.location.start, ExactPosition) and isinstance(sf.location.end, ExactPosition):
@@ -369,23 +389,32 @@ class UniProt(SequenceDatabase):
             features_dict = {type: pd.IntervalIndex(intervals, name=type) \
                              for type, intervals in feature_type_intervals.items()}
             seqfeats.append({"protein_id": record.id,
-                             "protein_name": record.name,
                              **features_dict})
 
         records_df = pd.DataFrame(records) if not npartitions else dd.from_pandas(records)
+        records_df = records_df.set_index(['protein_id'])
+
         seqfeats_df = pd.DataFrame(seqfeats) if not npartitions else dd.from_pandas(seqfeats)
+        seqfeats_df = seqfeats_df.set_index(['protein_id'])
+        seqfeats_df.columns = [f"seq/{col}" for col in seqfeats_df.columns]
 
         # Join new metadata to self.data
-        if len(records_df.columns.intersection(self.data.columns)) <= 2:
+        if SEQUENCE_COL not in self.data.columns:
             exclude_cols = records_df.columns.intersection(self.data.columns)
-            self.data = self.data.join(
-                records_df.set_index('protein_id').drop(columns=exclude_cols, errors="ignore"), on='protein_id')
-            self.seq_feats = seqfeats_df.set_index(['protein_id', 'protein_name'])
+            self.data = self.data.join(records_df.drop(columns=exclude_cols, errors="ignore"),
+                                       on='protein_id', how="left")
+        else:
+            self.data.update(records_df, overwrite=False)
+
+        if not seqfeats_df.columns.isin(self.data.columns).all():
+            self.data = self.data.join(seqfeats_df, on='protein_id', how="left")
+        else:
+            self.data.update(seqfeats_df, overwrite=False)
 
         # Cache the seq_df
         if not hasattr(self, '_seq_df_dict'):
             self._seq_df_dict = {}
-        self._seq_df_dict[fasta_file] = records_df
+        self._seq_df_dict[fasta_xml_file] = records_df
 
         return records_df
 
@@ -513,7 +542,7 @@ class MirBase(SequenceDatabase):
                 "mirbase_id": record.description.split(" ")[1],
                 # "mir_name": record.description.split(" ")[5],
                 "species": " ".join(record.description.split(" ")[2:4]),
-                "sequence": str(record.seq),
+                SEQUENCE_COL: str(record.seq),
             }
 
             entries.append(record_dict)
@@ -523,20 +552,20 @@ class MirBase(SequenceDatabase):
             entries_df = dd.from_pandas(entries_df)
 
         if self.replace_U2T:
-            entries_df["sequence"] = entries_df["sequence"].str.replace("U", "T")
+            entries_df[SEQUENCE_COL] = entries_df[SEQUENCE_COL].str.replace("U", "T")
 
         return entries_df
 
     def get_sequences(self,
                       index="gene_name",
                       omic=None,
-                      agg_sequences="all",
+                      agg="all",
                       **kwargs):
         """
         Args:
             index:
             omic:
-            agg_sequences:
+            agg:
             **kwargs:
         """
         if hasattr(self, "_seq_dict"):
@@ -552,7 +581,7 @@ class MirBase(SequenceDatabase):
 
         seq_df = self.read_fasta(file)
 
-        self._seq_dict = seq_df.groupby(index)["sequence"].agg(
-            self.aggregator_fn(agg_sequences))
+        self._seq_dict = seq_df.groupby(index)[SEQUENCE_COL].agg(
+            self.aggregator_fn(agg))
 
         return self._seq_dict
