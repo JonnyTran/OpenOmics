@@ -23,7 +23,7 @@ def concat_uniques(series: pd.Series, sep="|") -> Union[str, List, np.ndarray, N
 
     elif is_str_idx.any():
         concat_str = sep.join(series.astype(str).unique())
-        if len(concat_str):
+        if len(concat_str):  # Avoid empty string
             return concat_str
 
     else:
@@ -48,7 +48,7 @@ def concat(series: pd.Series, sep="|") -> Union[str, List, np.ndarray, None]:
 
     elif is_str_idx.any():
         concat_str = sep.join(series.astype(str))
-        if len(concat_str):
+        if len(concat_str):  # Avoid empty string
             return concat_str
 
     else:
