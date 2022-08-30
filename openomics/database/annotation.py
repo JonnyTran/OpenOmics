@@ -3,7 +3,6 @@ from io import StringIO
 from os.path import expanduser
 
 from bioservices import BioMart
-
 from openomics.database.base import Database
 from openomics.utils.df import concat_uniques
 
@@ -12,62 +11,6 @@ DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
 import pandas as pd
 import dask.dataframe as dd
-
-class TANRIC(Database):
-    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
-        """
-        Args:
-            path:
-            file_resources:
-            col_rename:
-            npartitions:
-            verbose:
-        """
-        super().__init__(path, file_resources, col_rename, npartitions, verbose)
-
-    def load_dataframe(self, file_resources, npartitions=None):
-        """
-        Args:
-            file_resources:
-            npartitions:
-        """
-        pass
-
-    def get_expressions(self, genes_index):
-        """Preprocess LNCRNA expression file obtained from TANRIC MDAnderson,
-        and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function
-        overwrites the GenomicData.process_expression_table() function which
-        processes TCGA-Assembler data. TANRIC LNCRNA expression values are log2
-        transformed
-
-        Args:
-            genes_index:
-        """
-        df = pd.read_table(self.file_resources["TCGA-LUAD-rnaexpr.tsv"])
-        df[genes_index] = df[genes_index].str.replace("[.]\d*", "")  # Removing .# ENGS gene version number at the end
-        df = df[~df[genes_index].duplicated(keep='first')]  # Remove duplicate genes
-
-        # Drop NA gene rows
-        df.dropna(axis=0, inplace=True)
-
-        # Transpose matrix to patients rows and genes columns
-        df.index = df[genes_index]
-        df = df.T.iloc[1:, :]
-
-        # Change index string to bcr_sample_barcode standard
-        def change_patient_barcode(s):
-            if "Normal" in s:
-                return s[s.find('TCGA'):] + "-11A"
-            elif "Tumor" in s:
-                return s[s.find('TCGA'):] + "-01A"
-            else:
-                return s
-
-        df.index = df.index.map(change_patient_barcode)
-        df.index.name = "gene_id"
-
-        return df
-
 
 class ProteinAtlas(Database):
     """Loads the  database from  .
@@ -96,7 +39,7 @@ class ProteinAtlas(Database):
         """
         if file_resources is None:
             file_resources = {}
-            file_resources["proteinatlas.tsv"] = "proteinatlas.tsv.zip"
+            file_resources["proteinatlas.tsv.zip"] = "proteinatlas.tsv.zip"
 
         super().__init__(path, file_resources, col_rename, npartitions, verbose)
 
@@ -143,10 +86,12 @@ class RNAcentral(Database):
             "database_mappings/mirbase.tsv": "id_mapping/database_mappings/mirbase.tsv",
         }
     """
-    COLUMNS_RENAME_DICT = {'ensembl_gene_id': 'gene_id',
-                           'gene symbol': 'gene_name',
-                           'external id': 'transcript_id',
-                           'GO terms': 'go_id'}
+    COLUMNS_RENAME_DICT = {
+        'ensembl_gene_id': 'gene_id',
+        'gene symbol': 'gene_name',
+        'external id': 'transcript_id',
+        'GO terms': 'go_id'
+    }
 
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
                  col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606', npartitions=None, verbose=False):
@@ -160,11 +105,10 @@ class RNAcentral(Database):
             verbose:
         """
         self.species_id = species_id
-        assert isinstance(self.species_id, str)
 
         if file_resources is None:
             file_resources = {}
-            file_resources["rnacentral_rfam_annotations.tsv"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
+            file_resources["rnacentral_rfam_annotations.tsv.gz"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
             file_resources["database_mappings/gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
             file_resources["database_mappings/mirbase.tsv"] = "id_mapping/database_mappings/mirbase.tsv"
 
@@ -177,11 +121,15 @@ class RNAcentral(Database):
             file_resources:
             npartitions:
         """
-        go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
-                                 low_memory=True, header=None, names=["RNAcentral id", "GO terms", "Rfams"])
-        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.split("_", expand=True, n=2)[0]
+        args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"], dtype=str)
+        if npartitions:
+            go_terms = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip",
+                                     blocksize=None, **args)
+        else:
+            go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
+        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.replace("_(.*)", '', regex=True)
 
-        gene_ids = []
+        transcripts_df = []
         for filename in file_resources:
             if "database_mappings" in filename:
                 args = dict(low_memory=True, header=None,
@@ -192,29 +140,28 @@ class RNAcentral(Database):
                 else:
                     id_mapping = pd.read_table(file_resources[filename], **args)
 
-                # id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d", "", regex=True)
-
-                gene_ids.append(id_mapping)
+                # id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
+                transcripts_df.append(id_mapping)
 
         if npartitions:
-            gene_ids = dd.concat(gene_ids, axis=0)
+            transcripts_df = dd.concat(transcripts_df, axis=0)
         else:
-            gene_ids = pd.concat(gene_ids, axis=0)
+            transcripts_df = pd.concat(transcripts_df, axis=0)
 
         if self.species_id:
-            gene_ids = gene_ids[gene_ids["species_id"] == self.species_id]
+            transcripts_df = transcripts_df[transcripts_df["species_id"] == self.species_id]
 
-        id2go_terms = go_terms[go_terms["RNAcentral id"].isin(gene_ids["RNAcentral id"])] \
-            .groupby("RNAcentral id")["GO terms"] \
-            .apply(lambda x: "|".join(x.unique()))
-        id2rfams = go_terms[go_terms["RNAcentral id"].isin(gene_ids["RNAcentral id"])] \
-            .groupby("RNAcentral id")["Rfams"] \
-            .apply(lambda x: "|".join(x.unique()))
+        rnacentral_ids = transcripts_df["RNAcentral id"].compute() if npartitions else transcripts_df["RNAcentral id"]
 
-        gene_ids["GO terms"] = gene_ids["RNAcentral id"].map(id2go_terms)
-        gene_ids["Rfams"] = gene_ids["RNAcentral id"].map(id2rfams)
+        id2go_terms = go_terms[go_terms["RNAcentral id"].isin(rnacentral_ids)] \
+            .groupby("RNAcentral id")["GO terms"].unique()
+        id2rfams = go_terms[go_terms["RNAcentral id"].isin(rnacentral_ids)] \
+            .groupby("RNAcentral id")["Rfams"].unique()
 
-        return gene_ids
+        transcripts_df["GO terms"] = transcripts_df["RNAcentral id"].map(id2go_terms)
+        transcripts_df["Rfams"] = transcripts_df["RNAcentral id"].map(id2rfams)
+
+        return transcripts_df
 
 
 class GTEx(Database):
@@ -246,11 +193,11 @@ class GTEx(Database):
             file_resources = {}
 
             file_resources[
-                "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"] = "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
+                "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"] = "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
             file_resources[
                 "GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt"] = "https://storage.googleapis.com/gtex_analysis_v8/annotations/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt"
             file_resources[
-                "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct"] = "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"
+                "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"] = "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"
 
         super().__init__(path, file_resources, col_rename=None, npartitions=npartitions, verbose=verbose)
 
@@ -528,6 +475,7 @@ class EnsemblGeneSequences(EnsemblGenes):
                                  filename=self.filename, npartitions=npartitions)
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
+
 class EnsemblTranscriptSequences(EnsemblGenes):
     def __init__(self, biomart="hsapiens_gene_ensembl",
                  attributes=None, host="www.ensembl.org", npartitions=None):
@@ -547,7 +495,6 @@ class EnsemblTranscriptSequences(EnsemblGenes):
         self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
                                  filename=self.filename, npartitions=npartitions)
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
-
 
 class EnsemblSNP(EnsemblGenes):
     def __init__(self, biomart="hsapiens_snp",
@@ -588,3 +535,59 @@ class EnsemblSomaticVariation(EnsemblGenes):
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
         self.host = host
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
+
+
+class TANRIC(Database):
+    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
+        """
+        Args:
+            path:
+            file_resources:
+            col_rename:
+            npartitions:
+            verbose:
+        """
+        super().__init__(path, file_resources, col_rename, npartitions, verbose)
+
+    def load_dataframe(self, file_resources, npartitions=None):
+        """
+        Args:
+            file_resources:
+            npartitions:
+        """
+        pass
+
+    def get_expressions(self, genes_index):
+        """Preprocess LNCRNA expression file obtained from TANRIC MDAnderson,
+        and replace ENSEMBL gene ID to HUGO gene names (HGNC). This function
+        overwrites the GenomicData.process_expression_table() function which
+        processes TCGA-Assembler data. TANRIC LNCRNA expression values are log2
+        transformed
+
+        Args:
+            genes_index:
+        """
+        df = pd.read_table(self.file_resources["TCGA-LUAD-rnaexpr.tsv"])
+        df[genes_index] = df[genes_index].str.replace("[.]\d*", "")  # Removing .# ENGS gene version number at the end
+        df = df[~df[genes_index].duplicated(keep='first')]  # Remove duplicate genes
+
+        # Drop NA gene rows
+        df.dropna(axis=0, inplace=True)
+
+        # Transpose matrix to patients rows and genes columns
+        df.index = df[genes_index]
+        df = df.T.iloc[1:, :]
+
+        # Change index string to bcr_sample_barcode standard
+        def change_patient_barcode(s):
+            if "Normal" in s:
+                return s[s.find('TCGA'):] + "-11A"
+            elif "Tumor" in s:
+                return s[s.find('TCGA'):] + "-01A"
+            else:
+                return s
+
+        df.index = df.index.map(change_patient_barcode)
+        df.index.name = "gene_id"
+
+        return df

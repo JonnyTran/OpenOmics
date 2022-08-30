@@ -3,7 +3,6 @@ from typing import List, Dict
 
 import networkx as nx
 from Bio import SeqIO
-
 from openomics.database.annotation import *
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
@@ -262,11 +261,11 @@ class STRING(Interactions, SequenceDatabase):
 
         if file_resources is None:
             file_resources = {}
-            file_resources["protein.info.txt"] = \
+            file_resources["protein.info.txt.gz"] = \
                 os.path.join(path, f"protein.info.{version}/{species_id}.protein.info.{version}.txt.gz")
-            file_resources["protein.links.txt"] = \
+            file_resources["protein.links.txt.gz"] = \
                 os.path.join(path, f"protein.links.{version}/{species_id}.protein.links.{version}.txt.gz")
-            file_resources["protein.sequences.fa"] = \
+            file_resources["protein.sequences.fa.gz"] = \
                 os.path.join(path, f"protein.sequences.{version}/{species_id}.protein.sequences.{version}.fa.gz")
 
         super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
@@ -364,7 +363,6 @@ class LncBase(Interactions, Database):
         if edge_attr is None:
             edge_attr = ["tissue", "positive_negative"]
         df = pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
-        print(self.name(), df.columns.tolist())
         df.replace({"species": {"Homo Sapiens": "Homo sapiens", "Mus Musculus": "Mus musculus"}}, inplace=True)
 
         df = self.filter_values(df, filters)
@@ -499,8 +497,8 @@ class LncRNA2Target(Interactions):
         self.version = version
         if file_resources is None:
             file_resources = {}
-            file_resources["lncRNA_target_from_high_throughput_experiments.txt"] = os.path.join(path,
-                                                                                                "lncrna_target.rar")
+            file_resources["lncRNA_target_from_high_throughput_experiments.txt.rar"] = os.path.join(path,
+                                                                                                    "lncrna_target.rar")
             file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"] = os.path.join(path,
                                                                                                 "lncRNA_target_from_low_throughput_experiments.xlsx")
 
@@ -624,7 +622,7 @@ class NPInter(Interactions):
                  directed=True, relabel_nodes=None, verbose=False):
         if file_resources is None:
             file_resources = {}
-            file_resources["interaction_NPInterv4.expr.txt"] = \
+            file_resources["interaction_NPInterv4.expr.txt.gz"] = \
                 os.path.join(path, "file/interaction_NPInterv4.expr.txt.gz")
 
         super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
@@ -763,7 +761,7 @@ class TargetScan(Interactions, Database):
         self.species = species
         if file_resources is None:
             file_resources = {}
-            file_resources["miR_Family_Info.txt"] = os.path.join(path, "miR_Family_Info.txt.zip")
+            file_resources["miR_Family_Info.txt.zip"] = os.path.join(path, "miR_Family_Info.txt.zip")
             file_resources["Predicted_Targets_Info.default_predictions.txt"] = os.path.join(path,
                                                                                             "Predicted_Targets_Info.default_predictions.txt")
 

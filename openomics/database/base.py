@@ -4,14 +4,13 @@ import itertools
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, Union
+from typing import Dict, Union, Any
 from typing import List
 
 import dask.dataframe as dd
 import filetype
 import pandas as pd
 import validators
-
 from openomics.utils.df import concat_uniques, concat
 from openomics.utils.io import get_pkg_data_filename, decompress_file
 
@@ -54,9 +53,11 @@ class Database(object):
         """
         self.npartitions = npartitions
         self.verbose = verbose
+        self.data_path = path
 
-        self.load_file_resources(path, file_resources=file_resources, npartitions=npartitions, verbose=verbose)
-        self.data = self.load_dataframe(file_resources, npartitions=npartitions)
+        self.file_resources = self.load_file_resources(path, file_resources=file_resources, npartitions=npartitions,
+                                                       verbose=verbose)
+        self.data = self.load_dataframe(self.file_resources, npartitions=npartitions)
         if col_rename is not None:
             self.data = self.data.rename(columns=col_rename)
             if self.data.index.name in col_rename:
@@ -69,7 +70,7 @@ class Database(object):
                             base_path,
                             file_resources,
                             npartitions=None,
-                            verbose=False) -> None:
+                            verbose=False) -> Dict[str, Any]:
         """For each file in file_resources, download the file if path+file is a
         URL or load from disk if a local path. Additionally unzip or unrar if
         the file is compressed.
@@ -87,9 +88,11 @@ class Database(object):
                 Dataframe. Default None.
             verbose:
         """
-        # Remote database file path
+        file_resources_new = copy.copy(file_resources)
+
+        # Remote database file URL
         if validators.url(base_path):
-            for filename, filepath in copy.copy(file_resources).items():
+            for filename, filepath in file_resources.items():
                 # Download file (if not already cached) and replace the file_resource path
                 if isinstance(filepath, str):
                     filepath = get_pkg_data_filename(base_path, filepath)
@@ -99,21 +102,21 @@ class Database(object):
 
                 # Dask will automatically handle uncompression at dd.read_table(compression=filepath_ext)
                 if npartitions:
-                    file_resources[filename] = filepath
+                    file_resources_new[filename] = filepath
                 else:
-                    file_resources[filename] = decompress_file(filepath, filename, filepath_ext)
+                    uncomp_filename, file = decompress_file(filepath, filename, filepath_ext)
+                    file_resources_new[uncomp_filename] = file
 
         # Local database path
         elif os.path.isdir(base_path) and os.path.exists(base_path):
-            for _, filepath in file_resources.items():
+            for _, filepath in file_resources_new.items():
                 if not os.path.exists(filepath):
                     raise IOError(filepath)
         else:
             raise IOError(base_path)
 
-        self.data_path = base_path
-        self.file_resources = file_resources
-        logging.info(f"{self.name()} file_resources: {file_resources}")
+        logging.info(f"{self.name()} file_resources: {file_resources_new}")
+        return file_resources_new
 
 
     def close(self):

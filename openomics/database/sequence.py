@@ -3,14 +3,14 @@ from abc import abstractmethod
 from collections import defaultdict
 from typing import Union, List, Callable
 
+import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
-
-import openomics
 from openomics.utils.read_gtf import read_gtf
+
 from .base import Database
 
 SEQUENCE_COL = 'sequence'
@@ -119,10 +119,10 @@ class GENCODE(SequenceDatabase):
         """
         if file_resources is None:
             file_resources = {
-                "basic.annotation.gtf": "gencode.v32.basic.annotation.gtf.gz",
-                "long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
-                "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz",
-                "transcripts.fa": "gencode.v32.transcripts.fa.gz",
+                "basic.annotation.gtf.gz": "gencode.v32.basic.annotation.gtf.gz",
+                "long_noncoding_RNAs.gtf.gz": "gencode.v32.long_noncoding_RNAs.gtf.gz",
+                "lncRNA_transcripts.fa.gz": "gencode.v32.lncRNA_transcripts.fa.gz",
+                "transcripts.fa.gz": "gencode.v32.transcripts.fa.gz",
             }
 
         self.remove_version_num = remove_version_num
@@ -142,9 +142,9 @@ class GENCODE(SequenceDatabase):
             npartitions:
         """
         dfs = []
-        for filename, content in file_resources.items():
+        for filename in tqdm.tqdm(file_resources):
             if ".gtf" in filename:
-                df = read_gtf(content,
+                df = read_gtf(file_resources[filename],
                               npartitions=npartitions,
                               compression="gzip")
                 dfs.append(df)
@@ -186,7 +186,7 @@ class GENCODE(SequenceDatabase):
 
         seq_df = pd.DataFrame(entries)
         if npartitions:
-            seq_df = dd.from_pandas(seq_df)
+            seq_df = dd.from_pandas(seq_df, npartitions=npartitions)
 
         if self.replace_U2T:
             seq_df[SEQUENCE_COL] = seq_df[SEQUENCE_COL].str.replace("U", "T")
@@ -275,18 +275,18 @@ class UniProt(SequenceDatabase):
             file_resources[
                 "proteomes.tsv"] = "https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
 
-            file_resources['uniprot_sprot.xml'] = os.path.join(path, "knowledgebase/uniprot_sprot.xml.gz")
-            file_resources['uniprot_trembl.xml'] = os.path.join(path, "knowledgebase/uniprot_trembl.xml.gz")
-            file_resources["idmapping_selected.tab"] = os.path.join(path, "knowledgebase/idmapping/",
-                                                                    'idmapping_selected.tab.gz')
+            file_resources['uniprot_sprot.xml.gz'] = os.path.join(path, "knowledgebase/uniprot_sprot.xml.gz")
+            file_resources['uniprot_trembl.xml.gz'] = os.path.join(path, "knowledgebase/uniprot_trembl.xml.gz")
+            file_resources["idmapping_selected.tab.gz"] = os.path.join(path, "knowledgebase/idmapping/",
+                                                                       'idmapping_selected.tab.gz')
 
         if species:
-            file_resources['uniprot_sprot.xml'] = os.path.join(path, "knowledgebase/taxonomic_divisions/",
-                                                               f'uniprot_sprot_{species.lower()}.xml.gz')
-            file_resources['uniprot_trembl.xml'] = os.path.join(path, "knowledgebase/taxonomic_divisions/",
-                                                                f'uniprot_trembl_{species.lower()}.xml.gz')
-            file_resources["idmapping_selected.tab"] = os.path.join(path, "knowledgebase/idmapping/by_organism/",
-                                                                    f'{species}_{species_id}_idmapping_selected.tab.gz')
+            file_resources['uniprot_sprot.xml.gz'] = os.path.join(path, "knowledgebase/taxonomic_divisions/",
+                                                                  f'uniprot_sprot_{species.lower()}.xml.gz')
+            file_resources['uniprot_trembl.xml.gz'] = os.path.join(path, "knowledgebase/taxonomic_divisions/",
+                                                                   f'uniprot_trembl_{species.lower()}.xml.gz')
+            file_resources["idmapping_selected.tab.gz"] = os.path.join(path, "knowledgebase/idmapping/by_organism/",
+                                                                       f'{species}_{species_id}_idmapping_selected.tab.gz')
 
         super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, verbose=verbose,
                          npartitions=npartitions)
@@ -459,11 +459,11 @@ class MirBase(SequenceDatabase):
         """
         if file_resources is None:
             file_resources = {}
-            file_resources["aliases.txt"] = "aliases.txt.gz"
-            file_resources["mature.fa"] = "mature.fa.gz"
-            file_resources["hairpin.fa"] = "hairpin.fa.gz"
-            file_resources[
-                "rnacentral.mirbase.tsv"] = "ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/id_mapping/database_mappings/mirbase.tsv"
+            file_resources["aliases.txt.gz"] = "aliases.txt.gz"
+            file_resources["mature.fa.gz"] = "mature.fa.gz"
+            file_resources["hairpin.fa.gz"] = "hairpin.fa.gz"
+            file_resources["rnacentral.mirbase.tsv"] = "ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/" \
+                                                       "id_mapping/database_mappings/mirbase.tsv"
 
         self.sequence = sequence
         self.species = species
