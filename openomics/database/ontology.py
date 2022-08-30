@@ -10,9 +10,9 @@ import pandas as pd
 import scipy.sparse as ssp
 import tqdm
 from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
+from openomics.utils.adj import slice_adj
 from pandas import DataFrame
 
-from openomics.utils.adj import slice_adj
 from .base import Database
 
 
@@ -266,9 +266,9 @@ class GeneOntology(Ontology):
         if file_resources is None:
             file_resources = {
                 "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
-                f"goa_{species.lower()}.gaf": f"goa_{species.lower()}.gaf.gz",
-                f"goa_{species.lower()}_rna.gaf": f"goa_{species.lower()}_rna.gaf.gz",
-                f"goa_{species.lower()}_isoform.gaf": f"goa_{species.lower()}_isoform.gaf.gz",
+                f"goa_{species.lower()}.gaf.gz": f"goa_{species.lower()}.gaf.gz",
+                f"goa_{species.lower()}_rna.gaf.gz": f"goa_{species.lower()}_rna.gaf.gz",
+                f"goa_{species.lower()}_isoform.gaf.gz": f"goa_{species.lower()}_isoform.gaf.gz",
             }
 
         super().__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions, verbose=verbose, )
@@ -407,7 +407,7 @@ class UniProtGOA(GeneOntology):
         if file_resources is None:
             file_resources = {
                 "go.obo": "http://current.geneontology.org/ontology/go.obo",
-                f"goa_{self.species.lower()}.gaf": os.path.join(species, f"goa_{substr}.gaf.gz"),
+                f"goa_{self.species.lower()}.gaf.gz": os.path.join(species, f"goa_{substr}.gaf.gz"),
                 # f"goa_{self.species.lower()}_isoform.gaf": os.path.join(species, f"goa_{substr}_isoform.gaf.gz"),
                 # f"goa_{self.species.lower()}_complex.gaf": os.path.join(species, f"goa_{substr}_complex.gaf.gz"),
                 # f"goa_{self.species.lower()}.gpi": os.path.join(species, f"goa_{substr}.gpi.gz"),
@@ -431,7 +431,7 @@ class InterPro(Ontology):
         if file_resources is None:
             file_resources = {}
             file_resources["entry.list"] = os.path.join(path, "entry.list")
-            file_resources["protein2ipr.dat"] = os.path.join(path, "protein2ipr.dat.gz")
+            file_resources["protein2ipr.dat.gz"] = os.path.join(path, "protein2ipr.dat.gz")
             file_resources["interpro2go"] = os.path.join(path, "interpro2go")
             file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
 

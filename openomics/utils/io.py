@@ -4,9 +4,11 @@ import logging
 import os
 import zipfile
 from pathlib import Path
+from typing import Tuple, Union, TextIO
 from urllib.error import URLError
 
 import dask.dataframe as dd
+import openomics
 import rarfile
 import requests
 import sqlalchemy as sa
@@ -14,8 +16,6 @@ import validators
 from astropy.utils import data
 from filetype import Type
 from requests.adapters import HTTPAdapter, Retry
-
-import openomics
 
 
 # @astropy.config.set_temp_cache(openomics.config["cache_dir"])
@@ -47,7 +47,8 @@ def get_pkg_data_filename(baseurl, filepath):
                         f"Please try manually downloading the files and add path to `file_resources` arg. \n{e}")
 
 
-def decompress_file(data_file: Path, filename: str, file_ext: Type):
+def decompress_file(data_file: Path, filename: str, file_ext: Type) -> Tuple[str, Union[gzip.GzipFile, TextIO]]:
+    output = data_file
     # This null if-clause is needed when filetype_ext is None, causing the next clauses to fail
     if file_ext is None:
         output = data_file
@@ -55,10 +56,12 @@ def decompress_file(data_file: Path, filename: str, file_ext: Type):
     elif file_ext.extension == "gz":
         logging.debug("Decompressed gzip file at {}".format(data_file))
         output = gzip.open(data_file, "rt")
+        filename = filename.strip(".gz")
 
     elif file_ext.extension == "zip":
         logging.debug("Decompressed zip file at {}".format(data_file))
         zf = zipfile.ZipFile(data_file, "r")
+        filename = filename.strip(".zip")
 
         for subfile in zf.infolist():
             # If the file extension matches
@@ -68,6 +71,7 @@ def decompress_file(data_file: Path, filename: str, file_ext: Type):
     elif file_ext.extension == "rar":
         logging.debug("Decompressed rar file at {}".format(data_file))
         rf = rarfile.RarFile(data_file, "r")
+        filename = filename.strip(".rar")
 
         for subfile in rf.infolist():
             # If the file extension matches
@@ -77,7 +81,7 @@ def decompress_file(data_file: Path, filename: str, file_ext: Type):
         print(f"WARNING: filepath_ext.extension {file_ext.extension} not supported.")
         output = data_file
 
-    return output
+    return filename, output
 
 def read_db(path, table, index_col):
     """
