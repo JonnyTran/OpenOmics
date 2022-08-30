@@ -101,11 +101,8 @@ class Database(object):
                     filepath_ext = None
 
                 # Dask will automatically handle uncompression at dd.read_table(compression=filepath_ext)
-                if npartitions:
-                    file_resources_new[filename] = filepath
-                else:
-                    uncomp_filename, file = decompress_file(filepath, filename, filepath_ext)
-                    file_resources_new[uncomp_filename] = file
+                uncomp_filename, file = decompress_file(filepath, filename, filepath_ext)
+                file_resources_new[uncomp_filename] = file
 
         # Local database path
         elif os.path.isdir(base_path) and os.path.exists(base_path):

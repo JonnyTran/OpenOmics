@@ -7,7 +7,6 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
-import scipy.sparse as ssp
 import tqdm
 from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
 from openomics.utils.adj import slice_adj
@@ -17,6 +16,7 @@ from .base import Database
 
 
 class Ontology(Database):
+    annotations: pd.DataFrame
     def __init__(self,
                  path,
                  file_resources=None,
@@ -283,16 +283,18 @@ class GeneOntology(Ontology):
         go_annotations.index.name = "go_id"
 
         # Handle .gaf annotation files
-        gaf_annotation_dfs = []
+        dfs = []
+        dropcols = {'DB:Reference', 'With', 'Annotation_Extension', 'Gene_Product_Form_ID'}
         for file in file_resources:
-            if ".gaf" in file:
-                go_lines = []
-                for line in tqdm.tqdm(gafiterator(file_resources[file]), desc=file):
-                    go_lines.append(line)
-                gaf_annotation_dfs.append(pd.DataFrame(go_lines))
+            if file.endswith(".gaf"):
+                records = []
+                for record in tqdm.tqdm(gafiterator(file_resources[file]), desc=file):
+                    records.append({k: v for k, v in record.items() if k not in dropcols})
 
-        if len(gaf_annotation_dfs):
-            self.annotations: pd.DataFrame = pd.concat(gaf_annotation_dfs).reset_index(drop=True)
+                dfs.append(pd.DataFrame(records))
+
+        if len(dfs):
+            self.annotations = pd.concat(dfs)
             self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
             self.annotations["Date"] = pd.to_datetime(self.annotations["Date"], )
 
@@ -303,7 +305,7 @@ class GeneOntology(Ontology):
 
     def load_network(self, file_resources):
         for file in file_resources:
-            if ".obo" in file:
+            if file.endswith(".obo"):
                 network: nx.MultiDiGraph = obonet.read_obo(file_resources[file])
                 network = network.reverse(copy=True)
                 node_list = np.array(network.nodes)
@@ -444,22 +446,13 @@ class InterPro(Ontology):
 
         ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
 
-        if "ppi_interpro.npz" in file_resources and "ppi_pid_list.txt" in file_resources:
-            def get_pid_list(pid_list_file):
-                with open(pid_list_file) as fp:
-                    return [line.split()[0] for line in fp]
-
-            net_pid_list = get_pid_list(file_resources["ppi_pid_list.txt"])
-            node_feats: ssp.csr_matrix = ssp.load_npz(file_resources["ppi_interpro.npz"])
-            print("node_feats", node_feats.shape)
-            self.annotations = pd.DataFrame.sparse.from_spmatrix(node_feats, index=net_pid_list)
-            print("self.annotations", self.annotations.shape)
-        else:
-            self.annotations: dd.DataFrame = dd.read_table(
-                file_resources["protein2ipr.dat"],
-                names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
-                usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
-                dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category'})
+        self.annotations: dd.DataFrame = dd.read_table(
+            file_resources["protein2ipr.dat"],
+            names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
+            usecols=['UniProtKB-AC', 'ENTRY_AC',
+                     # 'start', 'stop'
+                     ],
+            dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category'})
 
         return ipr_entries
 
