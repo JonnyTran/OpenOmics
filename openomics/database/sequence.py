@@ -307,11 +307,15 @@ class UniProt(SequenceDatabase):
                    'EMBL-CDS', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO', 'Additional PubMed'],
             usecols=['UniProtKB-AC', 'UniProtKB-ID', 'GeneID (EntrezGene)', 'RefSeq', 'GI', 'PDB', 'GO',
                      'NCBI-taxon', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO'],
-            dtype={'GeneID (EntrezGene)': 'str', 'NCBI-taxon': 'str'})
+            dtype='str')
 
         if npartitions:
-            idmapping: dd.DataFrame = dd.read_table(file_resources["idmapping_selected.tab.gz"], compression="gzip",
-                                                    **options).set_index('UniProtKB-AC')
+            if "idmapping_selected.tab.gz" not in file_resources:
+                idmapping = dd.read_table(file_resources["idmapping_selected.tab"],
+                                          **options).set_index('UniProtKB-AC')
+            else:
+                idmapping: dd.DataFrame = dd.read_table(file_resources["idmapping_selected.tab.gz"], compression="gzip",
+                                                        **options).set_index('UniProtKB-AC')
         else:
             idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], index_col='UniProtKB-AC',
                                                     **options)
