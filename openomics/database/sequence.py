@@ -3,20 +3,17 @@ from abc import abstractmethod
 from collections import defaultdict
 from typing import Union, List, Callable
 
-import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
-from openomics.utils.read_gtf import read_gtf
 
+import openomics
+from openomics.utils.read_gtf import read_gtf
 from .base import Database
 
 SEQUENCE_COL = 'sequence'
-
-
-# from gtfparse import read_gtf
 
 
 class SequenceDatabase(Database):
@@ -24,14 +21,11 @@ class SequenceDatabase(Database):
     SequenceDataset.
     """
 
-    def __init__(self, replace_U2T=False, **kwargs):
+    def __init__(self, **kwargs):
         """
         Args:
-            replace_U2T:
             **kwargs:
         """
-        self.replace_U2T = replace_U2T
-
         super().__init__(**kwargs)
 
     @abstractmethod
@@ -127,13 +121,7 @@ class GENCODE(SequenceDatabase):
 
         self.remove_version_num = remove_version_num
 
-        super().__init__(
-            path=path,
-            file_resources=file_resources,
-            col_rename=col_rename,
-            replace_U2T=replace_U2T,
-            npartitions=npartitions,
-        )
+        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, npartitions=npartitions)
 
     def load_dataframe(self, file_resources, npartitions=None):
         """
@@ -256,8 +244,20 @@ class UniProt(SequenceDatabase):
         "GO": "go_id",
     }
 
+    SPECIES_ID_NAME = {
+        '10090': 'MOUSE', '10116': 'RAT', '226900': 'BACCR', '243273': 'MYCGE', '284812': 'SCHPO', '287': 'PSEAI',
+        '3702': 'ARATH', '99287': 'SALTY', '44689': 'DICDI', '4577': 'MAIZE', '559292': 'YEAST', '6239': 'CAEEL',
+        '7227': 'DROME', '7955': 'DANRE', '83333': 'ECOLI', '9606': 'HUMAN', '9823': 'PIG', }
+
+    SPECIES_ID_TAXONOMIC = {
+        'HUMAN': 'human', 'MOUSE': 'rodents', 'RAT': 'rodents', 'BACCR': 'bacteria', 'MYCGE': 'bacteria',
+        'SCHPO': 'fungi', 'PSEAI': 'bacteria', 'ARATH': 'plants', 'SALTY': 'bacteria', 'DICDI': 'bacteria',
+        'MAIZE': 'plants', 'YEAST': 'fungi', 'CAEEL': 'vertebrates', 'DROME': 'invertebrates', 'DANRE': 'vertebrates',
+        'ECOLI': 'bacteria', 'PIG': 'mammals',
+    }
+
     def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
-                 species="HUMAN", species_id="9606",
+                 species_id="9606",
                  file_resources=None, col_rename=COLUMNS_RENAME_DICT, verbose=False,
                  npartitions=None):
         """
@@ -268,25 +268,28 @@ class UniProt(SequenceDatabase):
             verbose:
             npartitions:
         """
-        self.species = species
         self.species_id = species_id
+        self.species = UniProt.SPECIES_ID_NAME[species_id] if isinstance(species_id, str) else None
+        self.taxonomic_id = UniProt.SPECIES_ID_TAXONOMIC[self.species] if isinstance(self.species, str) else None
+
         if file_resources is None:
             file_resources = {}
-            file_resources[
-                "proteomes.tsv"] = "https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
+            file_resources["proteomes.tsv"] = \
+                "https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
 
-            file_resources['uniprot_sprot.xml.gz'] = os.path.join(path, "knowledgebase/uniprot_sprot.xml.gz")
-            file_resources['uniprot_trembl.xml.gz'] = os.path.join(path, "knowledgebase/uniprot_trembl.xml.gz")
+            file_resources['uniprot_sprot.xml.gz'] = os.path.join(path, "knowledgebase/complete/uniprot_sprot.xml.gz")
+            file_resources['uniprot_trembl.xml.gz'] = os.path.join(path, "knowledgebase/complete/uniprot_trembl.xml.gz")
             file_resources["idmapping_selected.tab.gz"] = os.path.join(path, "knowledgebase/idmapping/",
                                                                        'idmapping_selected.tab.gz')
 
-        if species:
-            file_resources['uniprot_sprot.xml.gz'] = os.path.join(path, "knowledgebase/taxonomic_divisions/",
-                                                                  f'uniprot_sprot_{species.lower()}.xml.gz')
-            file_resources['uniprot_trembl.xml.gz'] = os.path.join(path, "knowledgebase/taxonomic_divisions/",
-                                                                   f'uniprot_trembl_{species.lower()}.xml.gz')
-            file_resources["idmapping_selected.tab.gz"] = os.path.join(path, "knowledgebase/idmapping/by_organism/",
-                                                                       f'{species}_{species_id}_idmapping_selected.tab.gz')
+            if self.species:
+                file_resources['uniprot_sprot.xml.gz'] = os.path.join(
+                    path, "knowledgebase/taxonomic_divisions/", f'uniprot_sprot_{self.taxonomic_id}.xml.gz')
+                file_resources['uniprot_trembl.xml.gz'] = os.path.join(
+                    path, "knowledgebase/taxonomic_divisions/", f'uniprot_trembl_{self.taxonomic_id}.xml.gz')
+                file_resources["idmapping_selected.tab.gz"] = os.path.join(
+                    path, "knowledgebase/idmapping/by_organism/",
+                    f'{self.species}_{self.species_id}_idmapping_selected.tab.gz')
 
         super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, verbose=verbose,
                          npartitions=npartitions)
@@ -304,13 +307,14 @@ class UniProt(SequenceDatabase):
                    'EMBL-CDS', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO', 'Additional PubMed'],
             usecols=['UniProtKB-AC', 'UniProtKB-ID', 'GeneID (EntrezGene)', 'RefSeq', 'GI', 'PDB', 'GO',
                      'NCBI-taxon', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO'],
-            index_col='UniProtKB-AC',
             dtype={'GeneID (EntrezGene)': 'str', 'NCBI-taxon': 'str'})
 
         if npartitions:
-            idmapping: dd.DataFrame = dd.read_table(file_resources["idmapping_selected.tab"], **options)
+            idmapping: dd.DataFrame = dd.read_table(file_resources["idmapping_selected.tab.gz"], compression="gzip",
+                                                    **options).set_index('UniProtKB-AC')
         else:
-            idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], **options)
+            idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], index_col='UniProtKB-AC',
+                                                    **options)
 
 
         for col in ['PDB', 'GI', 'GO', 'RefSeq']:
@@ -331,7 +335,8 @@ class UniProt(SequenceDatabase):
                     axis=1)
 
         # Load proteome
-        proteomes = pd.read_table(file_resources["proteomes.tsv"], usecols=['Organism Id', 'Proteome Id'],
+        proteomes = pd.read_table(file_resources["proteomes.tsv"],
+                                  usecols=['Organism Id', 'Proteome Id'],
                                   dtype={'Organism Id': 'str', 'Proteome Id': 'str'}) \
             .rename(columns={'Organism Id': 'NCBI-taxon', 'Proteome Id': 'proteome_id'}) \
             .dropna()
@@ -439,23 +444,19 @@ class MirBase(SequenceDatabase):
         self,
         path="ftp://mirbase.org/pub/mirbase/CURRENT/",
         file_resources=None,
-        sequence: str = "mature",
-        species: str = "Homo sapiens",
         species_id: str = '9606',
+        sequence: str = "mature",
         col_rename=None,
-        npartitions=0,
-        replace_U2T=False,
+        npartitions=None,
     ):
         """
         Args:
             path:
             file_resources:
             sequence (str):
-            species (str): Species code, e.g., 9606 for human
-            species_id (str):
+            species_id (str): Species code, e.g., 9606 for human
             col_rename:
             npartitions:
-            replace_U2T:
         """
         if file_resources is None:
             file_resources = {}
@@ -466,15 +467,8 @@ class MirBase(SequenceDatabase):
                                                        "id_mapping/database_mappings/mirbase.tsv"
 
         self.sequence = sequence
-        self.species = species
-        self.species_id = str(species_id)
-        super().__init__(
-            path=path,
-            file_resources=file_resources,
-            col_rename=col_rename,
-            npartitions=npartitions,
-            replace_U2T=replace_U2T,
-        )
+        self.species_id = species_id
+        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, npartitions=npartitions)
 
     def load_dataframe(self, file_resources, npartitions=None):
         """
@@ -496,8 +490,10 @@ class MirBase(SequenceDatabase):
         mirbase_aliases = mirbase_aliases.join(rnacentral_mirbase, how="inner")
 
         # Expanding miRNA names in each MirBase Ascension ID
-        mirna_names = mirbase_aliases.apply(lambda x: pd.Series(x["gene_name"].split(";")[:-1]), axis=1) \
-            .stack().reset_index(level=1, drop=True)
+        mirna_names = mirbase_aliases \
+            .apply(lambda x: pd.Series(x["gene_name"].split(";")[:-1]), axis=1) \
+            .stack() \
+            .reset_index(level=1, drop=True)
         mirna_names.name = "gene_name"
 
         if npartitions:
@@ -533,9 +529,6 @@ class MirBase(SequenceDatabase):
         entries_df = pd.DataFrame(entries)
         if npartitions:
             entries_df = dd.from_pandas(entries_df)
-
-        if self.replace_U2T:
-            entries_df[SEQUENCE_COL] = entries_df[SEQUENCE_COL].str.replace("U", "T")
 
         return entries_df
 

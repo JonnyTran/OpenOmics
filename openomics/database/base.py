@@ -11,6 +11,7 @@ import dask.dataframe as dd
 import filetype
 import pandas as pd
 import validators
+
 from openomics.utils.df import concat_uniques, concat
 from openomics.utils.io import get_pkg_data_filename, decompress_file
 
@@ -251,17 +252,16 @@ class Annotatable(ABC):
             raise Exception("{} must run annotate_expressions() first.".format(
                 self.name()))
 
-    def initialize_annotations(self, index, gene_list=None):
+    def initialize_annotations(self, index=None):
         """
         Args:
             index:
             gene_list:
         """
-        if gene_list is None:
-            gene_list = self.get_genes_list()
+        if index is None:
+            index = self.get_genes_list()
 
-        self.annotations: pd.DataFrame = pd.DataFrame(index=gene_list)
-        self.annotations.index.name = index
+        self.annotations: pd.DataFrame = pd.DataFrame(index=index)
 
     def annotate_attributes(self, database: Union[Database, pd.DataFrame], on: Union[str, List[str]],
                             columns: List[str], agg: str = "concat_uniques",

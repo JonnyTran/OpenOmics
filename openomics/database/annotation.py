@@ -3,6 +3,7 @@ from io import StringIO
 from os.path import expanduser
 
 from bioservices import BioMart
+
 from openomics.database.base import Database
 from openomics.utils.df import concat_uniques
 
@@ -192,12 +193,13 @@ class GTEx(Database):
         if file_resources is None:
             file_resources = {}
 
-            file_resources[
-                "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"] = "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
-            file_resources[
-                "GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt"] = "https://storage.googleapis.com/gtex_analysis_v8/annotations/GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt"
-            file_resources[
-                "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"] = "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"
+            file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"] = \
+                "GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct.gz"
+            file_resources["GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt"] = \
+                "https://storage.googleapis.com/gtex_analysis_v8/annotations/" \
+                "GTEx_Analysis_v8_Annotations_SampleAttributesDS.txt"
+            file_resources["GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"] = \
+                "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"
 
         super().__init__(path, file_resources, col_rename=None, npartitions=npartitions, verbose=verbose)
 
@@ -432,7 +434,8 @@ class EnsemblGenes(BioMartManager, Database):
             filename:
             npartitions:
         """
-        return self.retrieve_dataset(host, dataset, attributes, filename, npartitions=npartitions)
+        df = self.retrieve_dataset(host, dataset, attributes, filename, npartitions=npartitions)
+        return df
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
         """
