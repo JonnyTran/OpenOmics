@@ -86,8 +86,7 @@ class Expression(object):
 
         # TODO load DD from file directly
         if npartitions and isinstance(self.expressions, pd.DataFrame):
-            self.expressions = dd.from_pandas(self.expressions,
-                                              npartitions=npartitions)
+            self.expressions = dd.from_pandas(self.expressions, npartitions=npartitions)
 
         if gene_level is not None:
             self.expressions.columns.name = gene_level
@@ -189,8 +188,7 @@ class Expression(object):
             if isinstance(df, pd.DataFrame):
                 df = df.filter(regex=usecols)
             elif isinstance(df, dd.DataFrame):
-                r = re.compile(usecols)
-                columns = list(filter(r.match, df.columns))
+                columns = list(filter(re.compile(usecols).match, df.columns))
                 df = df[columns]
 
         elif usecols is not None and isinstance(usecols, list):
