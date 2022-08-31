@@ -1,6 +1,6 @@
 import os
 from io import TextIOWrapper, StringIO
-from typing import Tuple, List, Dict, Iterable, Union
+from typing import Tuple, List, Dict, Iterable, Union, Callable
 
 import dask.dataframe as dd
 import networkx as nx
@@ -9,9 +9,9 @@ import obonet
 import pandas as pd
 import tqdm
 from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
-from openomics.utils.adj import slice_adj
 from pandas import DataFrame
 
+from openomics.utils.adj import slice_adj
 from .base import Database
 
 
@@ -112,40 +112,35 @@ class Ontology(Database):
         return paths_df
 
     def remove_predecessor_terms(self, annotation: pd.Series, sep="\||;"):
-        leaf_terms = self.get_child_nodes()
-        if not annotation.map(lambda x: isinstance(x, list)).any() and sep:
-            annotation = annotation.str.split(sep)
+        # leaf_terms = self.get_child_nodes()
+        # if not annotation.map(lambda x: isinstance(x, (list, np.ndarray))).any() and sep:
+        #     annotation = annotation.str.split(sep)
+        #
+        # parent_terms = annotation.map(lambda x: list(
+        #     set(x) & set(leaf_terms)) if isinstance(x, (list, np.ndarray)) else None)
+        # return parent_terms
+        raise NotImplementedError
 
-        go_terms_parents = annotation.map(lambda x: list(
-            set(x) & set(leaf_terms)) if isinstance(x, list) else None)
-        return go_terms_parents
+    def get_subgraph(self, edge_types: Union[str, List[str]]) -> Union[nx.MultiDiGraph, nx.DiGraph]:
+        if not hasattr(self, "_subgraphs"):
+            self._subgraphs = {}
+        elif edge_types in self._subgraphs:
+            return self._subgraphs[edge_types]
 
-    def get_predecessor_terms(self, annotations: pd.Series, edge_type='is_a'):
-        if isinstance(self.network, (nx.MultiGraph, nx.MultiDiGraph)):
-            ontology_g = self.network.edge_subgraph([(u, v, k) for u, v, k in self.network.edges if k == edge_type])
+        if edge_types and isinstance(self.network, (nx.MultiGraph, nx.MultiDiGraph)):
+            g = self.network.edge_subgraph([(u, v, k) for u, v, k in self.network.edges if k in edge_types])
         else:
-            ontology_g = self.network
+            g = self.network
 
-        go_terms_parents = annotations.map(
-            lambda annotations: \
-                list({parent for term in annotations \
-                      for parent in list(nx.ancestors(ontology_g, term))}) \
-                    if isinstance(annotations, list) else [])
-        return go_terms_parents
+        self._subgraphs[edge_types] = g
 
-    def add_predecessor_terms(self, annotation: pd.Series, edge_type='is_a', sep="\||;", return_str=False):
-        if sep and annotation.dtype == np.object and annotation.str.contains(sep, regex=True).any():
-            ann_lists = annotation.str.split(sep)
-        else:
-            ann_lists = annotation
+        return g
 
-        ann_with_parents = ann_lists + self.get_predecessor_terms(ann_lists, edge_type)
+    def add_predecessor_terms(self, anns: pd.Series, edge_type: Union[str, List[str]] = 'is_a', sep="\||;"):
+        anns_w_parents = anns.map(lambda x: [] if not isinstance(x, (list, np.ndarray)) else x) + \
+                         get_predecessor_terms(self.get_subgraph(edge_type), anns)
 
-        if return_str:
-            ann_with_parents = ann_with_parents.map(
-                lambda x: "|".join(x) if isinstance(x, list) else None)
-
-        return ann_with_parents
+        return anns_w_parents
 
     @staticmethod
     def get_node_color(
@@ -291,15 +286,17 @@ class GeneOntology(Ontology):
                 for record in tqdm.tqdm(gafiterator(file_resources[file]), desc=file):
                     records.append({k: v for k, v in record.items() if k not in dropcols})
 
-                dfs.append(pd.DataFrame(records))
+                df = pd.DataFrame(records)
+                df["Date"] = pd.to_datetime(df["Date"], )
+                df['Taxon_ID'] = df['Taxon_ID'].apply(lambda li: [s.strip("taxon:") for s in li])
+
+                dfs.append(dd.from_pandas(df, npartitions=npartitions) if npartitions else df)
 
         if len(dfs):
-            self.annotations = pd.concat(dfs)
+            self.annotations = dd.concat(dfs) if npartitions else pd.concat(dfs)
             self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
-            self.annotations["Date"] = pd.to_datetime(self.annotations["Date"], )
-
-            self.annotations['species_id'] = self.annotations['species_id'].apply(
-                lambda li: [s.strip("taxon:") for s in li])
+            # self.annotations["Date"] = pd.to_datetime(self.annotations["Date"], )
+            # self.annotations['species_id'] = self.annotations['species_id'].apply(lambda li: [s.strip("taxon:") for s in li])
 
         return go_annotations
 
@@ -312,52 +309,92 @@ class GeneOntology(Ontology):
 
         return network, node_list
 
-    def annotation_train_val_test_split(self, train_date: str = "2017-06-15",
-                                        valid_date: str = "2017-11-15",
-                                        test_date: str = "2021-12-31",
-                                        filter_evidence: List = ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC'],
-                                        groupby: List[str] = ["gene_name", "Qualifier"],
-                                        filter_go_id: List[str] = None,
-                                        ) -> Tuple[DataFrame, DataFrame, DataFrame]:
-        annotations = self.annotations[self.annotations["Evidence"].isin(filter_evidence)]
+    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", train_date: str = "2017-06-15",
+                          valid_date: str = "2017-11-15", test_date: str = "2021-12-31",
+                          filter_evidence: List = ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC'],
+                          groupby: List[str] = ["Qualifier"],
+                          filter_go_id: Union[List, pd.Index] = None,
+                          agg: Union[Callable, str] = "unique") -> Tuple[DataFrame, DataFrame, DataFrame]:
+        assert isinstance(groupby, list)
+        if src_node_col not in groupby:
+            groupby = [src_node_col] + groupby
+        if "Qualifier" not in groupby:
+            groupby.append("Qualifier")
+
+        if agg == "add_parent":
+            if isinstance(self.annotations, dd.DataFrame):
+                agg = dd.Aggregation(name='_unique_add_parent',
+                                     chunk=lambda s: s.apply(lambda x: list(set(x))),
+                                     agg=lambda s0: s0.obj + get_predecessor_terms(self.get_subgraph(edge_types="is_a"),
+                                                                                   s0.obj))
+            else:
+                def _unique_add_parent(s: pd.Series) -> List:
+                    if s.empty: return
+                    s = s.unique()
+                    return s.tolist() + get_predecessor_terms(self.get_subgraph(edge_types="is_a"), s).iloc[0]
+
+                agg = _unique_add_parent
+        else:
+            assert agg in ['unique', 'add_parent']
+
+        # Set the source column (i.e. protein_id or gene_name), to be the first in groupby
+        def _remove_dup_neg_go_id(s: pd.Series) -> pd.Series:
+            if s.isna().any():
+                pass
+            elif isinstance(s[neg_dst_col], (list, np.ndarray)) and isinstance(s[dst_node_col], (list, np.ndarray)):
+                rm_dups_go_id = [go_id for go_id in s[neg_dst_col] if go_id not in s[dst_node_col]]
+                if len(rm_dups_go_id) == 0:
+                    rm_dups_go_id = None
+                s[neg_dst_col] = rm_dups_go_id
+            return s
+
+        neg_dst_col = f"neg_{dst_node_col}"
+
+        # Filter annotations
+        annotations = self.annotations[self.annotations["Evidence"].isin(filter_evidence)].head(1000)
         if filter_go_id is not None:
-            annotations = annotations[annotations["go_id"].isin(filter_go_id)]
+            annotations = annotations[annotations[dst_node_col].isin(filter_go_id)]
 
         # Split train/valid/test annotations
         train_anns = annotations[annotations["Date"] <= pd.to_datetime(train_date)]
-        valid_anns = annotations[annotations["Date"] <= pd.to_datetime(valid_date)]
-
-        test_anns = annotations.drop(index=valid_anns.index)
-        valid_anns = valid_anns.drop(index=train_anns.index)
+        valid_anns = annotations[(annotations["Date"] <= pd.to_datetime(valid_date)) & \
+                                 (annotations["Date"] > pd.to_datetime(train_date))]
         if test_date:
-            test_anns = test_anns[test_anns["Date"] <= pd.to_datetime(test_date)]
-
-        # Set the source column (i.e. protein_id or gene_name), to be the first in groupby
-        src_node_col = groupby[0]
-        _exclude_single = lambda li: len(li) == 1 and "GO:0005515" in li
+            test_anns = annotations[(annotations["Date"] <= pd.to_datetime(test_date)) & \
+                                    (annotations["Date"] > pd.to_datetime(valid_date))]
+        else:
+            test_anns = valid_anns
 
         outputs = []
         for anns in [train_anns, valid_anns, test_anns]:
             is_neg_ann = anns["Qualifier"].map(lambda li: "NOT" in li)
-            # Convert `Qualifiers` entries of lists to strings
-            anns = anns.apply({"Qualifier": lambda li: "".join([i for i in li if i != "NOT"]),
-                               src_node_col: lambda x: x,
-                               "go_id": lambda x: x,
-                               "Evidence": lambda x: x})
+
+            # Convert `Qualifiers` entries of list of strings to string
+            anns['Qualifier'] = anns['Qualifier'].apply(lambda li: "".join([i for i in li if i != "NOT"]))
 
             # Positive gene-GO annotations
-            gene_anns: DataFrame = anns[~is_neg_ann].groupby(groupby).agg(go_id=("go_id", "unique"))
+            if isinstance(anns, pd.DataFrame):
+                pos_anns = anns[~is_neg_ann].groupby(groupby).agg(**{dst_node_col: (dst_node_col, agg)})
+                neg_anns = anns[is_neg_ann].groupby(groupby).agg(**{neg_dst_col: (dst_node_col, agg)})
+
+            elif isinstance(anns, dd.DataFrame):
+                pos_anns = anns[~is_neg_ann].groupby(groupby).agg({dst_node_col: agg})
+                neg_anns = anns[is_neg_ann].groupby(groupby).agg({neg_dst_col: agg})
 
             # Negative gene-GO annotations
-            neg_anns = anns[is_neg_ann].groupby(groupby).agg(neg_go_id=("go_id", "unique"))
-            gene_anns["neg_go_id"] = neg_anns["neg_go_id"]
-            gene_anns.drop(index=[""], inplace=True, errors="ignore")
+            pos_neg_anns = pd.concat([pos_anns, neg_anns], axis=1)
+            pos_neg_anns.drop(index=[""], inplace=True, errors="ignore")
 
             # Remove "GO:0005515" (protein binding) annotations for a gene if it's the gene's only annotation
-            gene_anns.loc[gene_anns["go_id"].map(_exclude_single), "go_id"] = None
-            gene_anns.drop(index=gene_anns.index[gene_anns.isna().all(1)], inplace=True)
+            _exclude_single_fn = lambda li: \
+                (len(li) == 1 and "GO:0005515" in li) if isinstance(li, (list, np.ndarray)) else False
+            pos_neg_anns.loc[pos_neg_anns[dst_node_col].map(_exclude_single_fn), dst_node_col] = None
+            # Drop rows with allna values
+            pos_neg_anns.drop(index=pos_neg_anns.index[pos_neg_anns.isna().all(1)], inplace=True)
+            # Ensure no negative terms duplicates positive annotations
+            pos_neg_anns = pos_neg_anns.apply(_remove_dup_neg_go_id, axis=1)
 
-            outputs.append(gene_anns)
+            outputs.append(pos_neg_anns)
 
         return tuple(outputs)
 
@@ -441,7 +478,7 @@ class InterPro(Ontology):
                          npartitions=npartitions)
 
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], npartitions=None):
-        ipr_entries = pd.read_table(file_resources["entry.list"])
+        ipr_entries = pd.read_table(file_resources["entry.list"], index_col="ENTRY_AC")
         ipr2go = self.parse_interpro2go(file_resources["interpro2go"])
 
         ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
@@ -449,9 +486,7 @@ class InterPro(Ontology):
         self.annotations: dd.DataFrame = dd.read_table(
             file_resources["protein2ipr.dat"],
             names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
-            usecols=['UniProtKB-AC', 'ENTRY_AC',
-                     # 'start', 'stop'
-                     ],
+            usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
             dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category'})
 
         return ipr_entries
@@ -465,6 +500,24 @@ class InterPro(Ontology):
 
                 return network, node_list
         return None, None
+
+    def get_annotations_adj(self, protein_ids: pd.Index):
+        g = nx.MultiDiGraph()
+        g.add_nodes_from(protein_ids.tolist())
+
+        def add_edgelist(edgelist_df: DataFrame) -> None:
+            edge_mask = edgelist_df["UniProtKB-AC"].isin(protein_ids)
+            if edge_mask.sum():
+                edgelist = [(row[0], row[1], row[2:].to_dict()) for i, row in edgelist_df.iterrows()]
+                g.add_edges_from(edgelist, weight=1)
+
+        self.annotations.map_partitions(add_edgelist).compute()
+
+        adj = nx.bipartite.biadjacency_matrix(g, row_order=protein_ids, column_order=self.data["ENTRY_AC"],
+                                              weight='weight',
+                                              format='csc')
+        adj = pd.DataFrame(adj, index=protein_ids, columns=self.data["ENTRY_AC"])
+        return adj
 
     def parse_ipr_treefile(self, lines: Union[Iterable[str], StringIO]) -> nx.MultiDiGraph:
         """Parse the InterPro Tree from the given file.
@@ -537,6 +590,27 @@ def gafiterator(handle):
         return _gaf10iterator(handle)
     else:
         return _gaf20iterator(handle)
+
+
+def get_predecessor_terms(g: nx.MultiDiGraph, anns: pd.Series) -> pd.Series:
+    if isinstance(anns, np.ndarray):
+        anns = pd.Series([anns.tolist()])
+    elif isinstance(anns, list):
+        anns = pd.Series([anns])
+    elif isinstance(anns, pd.Series) and (~anns.map(type).isin({list, np.ndarray})).any():
+        anns = anns.map(list)
+
+    try:
+        parent_terms = anns.map(
+            lambda li: list({parent for term in li for parent in nx.ancestors(g, term)}) \
+                if isinstance(li, (list, np.ndarray)) else [])
+
+    except Exception as e:
+        print(e)
+        return anns
+
+    return parent_terms
+
 
 def traverse_predecessors(network, seed_node, type=["is_a", "part_of"]):
     """
