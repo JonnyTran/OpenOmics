@@ -9,14 +9,15 @@ import obonet
 import pandas as pd
 import tqdm
 from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
+from openomics.utils.adj import slice_adj
 from pandas import DataFrame
 
-from openomics.utils.adj import slice_adj
 from .base import Database
 
 
 class Ontology(Database):
     annotations: pd.DataFrame
+
     def __init__(self,
                  path,
                  file_resources=None,
@@ -313,13 +314,14 @@ class GeneOntology(Ontology):
                           valid_date: str = "2017-11-15", test_date: str = "2021-12-31",
                           filter_evidence: List = ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC'],
                           groupby: List[str] = ["Qualifier"],
-                          filter_go_id: Union[List, pd.Index] = None,
+                          filter_dst_nodes: Union[List, pd.Index] = None,
                           agg: Union[Callable, str] = "unique") -> Tuple[DataFrame, DataFrame, DataFrame]:
         assert isinstance(groupby, list)
         if src_node_col not in groupby:
             groupby = [src_node_col] + groupby
         if "Qualifier" not in groupby:
             groupby.append("Qualifier")
+        print(groupby)
 
         if agg == "add_parent":
             if isinstance(self.annotations, dd.DataFrame):
@@ -351,9 +353,9 @@ class GeneOntology(Ontology):
         neg_dst_col = f"neg_{dst_node_col}"
 
         # Filter annotations
-        annotations = self.annotations[self.annotations["Evidence"].isin(filter_evidence)].head(1000)
-        if filter_go_id is not None:
-            annotations = annotations[annotations[dst_node_col].isin(filter_go_id)]
+        annotations = self.annotations[self.annotations["Evidence"].isin(filter_evidence)]
+        if filter_dst_nodes is not None:
+            annotations = annotations[annotations[dst_node_col].isin(filter_dst_nodes)]
 
         # Split train/valid/test annotations
         train_anns = annotations[annotations["Date"] <= pd.to_datetime(train_date)]
