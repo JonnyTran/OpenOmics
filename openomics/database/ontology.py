@@ -9,9 +9,9 @@ import obonet
 import pandas as pd
 import tqdm
 from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
-from openomics.utils.adj import slice_adj
 from pandas import DataFrame
 
+from openomics.utils.adj import slice_adj
 from .base import Database
 
 
@@ -321,7 +321,6 @@ class GeneOntology(Ontology):
             groupby = [src_node_col] + groupby
         if "Qualifier" not in groupby:
             groupby.append("Qualifier")
-        print(groupby)
 
         if agg == "add_parent":
             if isinstance(self.annotations, dd.DataFrame):
