@@ -92,7 +92,7 @@ class Database(object):
         file_resources_new = copy.copy(file_resources)
 
         # Remote database file URL
-        if validators.url(base_path):
+        if validators.url(base_path) or any(validators.url(filepath) for filepath in file_resources.values()):
             for filename, filepath in file_resources.items():
                 # Download file (if not already cached) and replace the file_resource path
                 if isinstance(filepath, str):
@@ -107,11 +107,23 @@ class Database(object):
 
         # Local database path
         elif os.path.isdir(base_path) and os.path.exists(base_path):
-            for _, filepath in file_resources_new.items():
+            for filename, filepath in file_resources.items():
                 if not os.path.exists(filepath):
-                    raise IOError(filepath)
+                    print(f"`base_path` is a local file directory, so all file_resources must be local. "
+                          f"`filepath` = {filepath}")
+                    continue
+
+                if isinstance(filepath, str):
+                    filepath_ext = filetype.guess(filepath)
+                else:
+                    filepath_ext = None
+
+                # Dask will automatically handle uncompression at dd.read_table(compression=filepath_ext)
+                uncomp_filename, file = decompress_file(filepath, filename, filepath_ext)
+                file_resources_new[uncomp_filename] = file
         else:
-            raise IOError(base_path)
+            raise IOError(
+                f"`base_path` {base_path} not supported. Must be either a remote URL point or a local directory path.")
 
         logging.info(f"{self.name()} file_resources: {file_resources_new}")
         return file_resources_new

@@ -430,6 +430,7 @@ class UniProtGOA(GeneOntology):
 
             Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
             Default file_resources: {
+                "go.obo": "http://current.geneontology.org/ontology/go.obo",
                 "goa_uniprot_all.gpi": "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpi.gz",
                 "goa_uniprot_all.gaf": "goa_uniprot_all.gaf.gz",
             }

@@ -1,7 +1,7 @@
 import os
 from abc import abstractmethod
 from collections import defaultdict
-from typing import Union, List, Callable
+from typing import Union, List, Callable, Dict
 
 import pandas as pd
 import tqdm
@@ -257,10 +257,19 @@ class UniProt(SequenceDatabase):
     }
 
     def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
-                 species_id="9606",
-                 file_resources=None, col_rename=COLUMNS_RENAME_DICT, verbose=False,
+                 species_id: str = "9606",
+                 file_resources: Dict[str, str] = None, col_rename=COLUMNS_RENAME_DICT, verbose=False,
                  npartitions=None):
         """
+        Loads the UniProt database from https://uniprot.org/ .
+
+        Default path: 'https://ftp.uniprot.org/pub/databases/uniprot/current_release/'
+        Default file_resources: {
+            file_resources['uniprot_sprot.xml.gz'] = "knowledgebase/complete/uniprot_sprot.xml.gz
+            file_resources['uniprot_trembl.xml.gz'] = "knowledgebase/complete/uniprot_trembl.xml.gz
+            file_resources["idmapping_selected.tab.gz"] = "knowledgebase/idmapping/idmapping_selected.tab.gz'
+        }
+
         Args:
             path:
             file_resources:
@@ -274,8 +283,6 @@ class UniProt(SequenceDatabase):
 
         if file_resources is None:
             file_resources = {}
-            file_resources["proteomes.tsv"] = \
-                "https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
 
             file_resources['uniprot_sprot.xml.gz'] = os.path.join(path, "knowledgebase/complete/uniprot_sprot.xml.gz")
             file_resources['uniprot_trembl.xml.gz'] = os.path.join(path, "knowledgebase/complete/uniprot_trembl.xml.gz")
@@ -290,6 +297,10 @@ class UniProt(SequenceDatabase):
                 file_resources["idmapping_selected.tab.gz"] = os.path.join(
                     path, "knowledgebase/idmapping/by_organism/",
                     f'{self.species}_{self.species_id}_idmapping_selected.tab.gz')
+
+        if 'proteomes.tsv' not in file_resources:
+            file_resources["proteomes.tsv"] = \
+                "https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
 
         super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, verbose=verbose,
                          npartitions=npartitions)
@@ -311,11 +322,10 @@ class UniProt(SequenceDatabase):
 
         if npartitions:
             if "idmapping_selected.tab.gz" not in file_resources:
-                idmapping = dd.read_table(file_resources["idmapping_selected.tab"],
-                                          **options).set_index('UniProtKB-AC')
+                idmapping = dd.read_table(file_resources["idmapping_selected.tab"], **options)
             else:
                 idmapping: dd.DataFrame = dd.read_table(file_resources["idmapping_selected.tab.gz"], compression="gzip",
-                                                        **options).set_index('UniProtKB-AC')
+                                                        **options)
         else:
             idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], index_col='UniProtKB-AC',
                                                     **options)
@@ -334,8 +344,10 @@ class UniProt(SequenceDatabase):
                 # Prepend species_id to ensembl protein ids to match with STRING PPI
                 idmapping['protein_external_id'] = idmapping[col]
                 idmapping['protein_external_id'] = idmapping[["NCBI-taxon", 'protein_external_id']].apply(
-                    lambda x: [".".join([x['NCBI-taxon'], protein_id]) for protein_id in x['protein_external_id']] \
+                    lambda x: [".".join([x['NCBI-taxon'], protein_id]) \
+                               for protein_id in x['protein_external_id']] \
                         if isinstance(x['protein_external_id'], list) else None,
+                    meta=pd.Series([['', '']]),
                     axis=1)
 
         # Load proteome
@@ -354,7 +366,7 @@ class UniProt(SequenceDatabase):
         # Parse lncRNA & mRNA fasta
         seq_df = self.read_fasta(self.file_resources["uniprot_sprot.xml"], npartitions=self.npartitions)
 
-        if "uniprot_trembl.xml" in "uniprot_trembl.xml":
+        if "uniprot_trembl.xml" in self.file_resources:
             trembl_seq_df = self.read_fasta(self.file_resources["uniprot_trembl.xml"], npartitions=self.npartitions)
             seq_df.update(trembl_seq_df)
 
