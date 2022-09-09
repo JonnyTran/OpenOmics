@@ -7,12 +7,11 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
-import tqdm
-from Bio.UniProt.GOA import _gaf20iterator, _gaf10iterator
 from pandas import DataFrame
 
 from openomics.utils.adj import slice_adj
 from .base import Database
+from ..utils.read_gaf import read_gaf
 
 
 class Ontology(Database):
@@ -233,6 +232,8 @@ class GeneOntology(Ontology):
         "Taxon_ID": 'species_id',
     }
 
+    DROP_COLS = {'DB:Reference', 'With', 'Annotation_Extension', 'Gene_Product_Form_ID'}
+
     def __init__(
         self,
         path="http://geneontology.org/gene-associations/",
@@ -261,47 +262,48 @@ class GeneOntology(Ontology):
 
         if file_resources is None:
             file_resources = {
-                "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
                 f"goa_{species.lower()}.gaf.gz": f"goa_{species.lower()}.gaf.gz",
                 f"goa_{species.lower()}_rna.gaf.gz": f"goa_{species.lower()}_rna.gaf.gz",
                 f"goa_{species.lower()}_isoform.gaf.gz": f"goa_{species.lower()}_isoform.gaf.gz",
             }
+        if not any('.obo' in file for file in file_resources):
+            file_resources["go-basic.obo"] = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 
         super().__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions, verbose=verbose, )
 
     def info(self):
         print("network {}".format(nx.info(self.network)))
 
-    def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], npartitions=None):
-        # Annotations for each GO term
-        go_annotations = pd.DataFrame.from_dict(dict(self.network.nodes(data=True)), orient='index')
-        go_annotations["def"] = go_annotations["def"].apply(lambda x: x.split('"')[1] if isinstance(x, str) else None)
-        go_annotations.index.name = "go_id"
+    def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], npartitions=None) -> DataFrame:
+        if self.network:
+            # Annotations for each GO term
+            go_annotations = pd.DataFrame.from_dict(dict(self.network.nodes(data=True)), orient='index')
+            go_annotations["def"] = go_annotations["def"].apply(
+                lambda x: x.split('"')[1] if isinstance(x, str) else None)
+            go_annotations.index.name = "go_id"
+        else:
+            go_annotations = None
 
         # Handle .gaf annotation files
-        dfs = []
-        dropcols = {'DB:Reference', 'With', 'Annotation_Extension', 'Gene_Product_Form_ID'}
-        for file in file_resources:
-            if file.endswith(".gaf"):
-                records = []
-                for record in tqdm.tqdm(gafiterator(file_resources[file]), desc=file):
-                    records.append({k: v for k, v in record.items() if k not in dropcols})
-
-                df = pd.DataFrame(records)
-                df["Date"] = pd.to_datetime(df["Date"], )
-                df['Taxon_ID'] = df['Taxon_ID'].apply(lambda li: [s.strip("taxon:") for s in li])
-
-                dfs.append(dd.from_pandas(df, npartitions=npartitions) if npartitions else df)
+        dfs = {}
+        for filename in file_resources:
+            gaf_name = filename.split(".")[0]
+            if npartitions:
+                if filename.endswith(".gaf.gz") and gaf_name not in dfs:
+                    dfs[gaf_name] = read_gaf(file_resources[filename], npartitions=npartitions, compression='gzip')
+                elif filename.endswith(".gaf") and gaf_name not in dfs:
+                    dfs[gaf_name] = read_gaf(file_resources[filename], npartitions=npartitions)
+            else:
+                if filename.endswith(".gaf"):
+                    dfs[gaf_name] = read_gaf(file_resources[filename], )
 
         if len(dfs):
-            self.annotations = dd.concat(dfs) if npartitions else pd.concat(dfs)
+            self.annotations = dd.concat(list(dfs.values())) if npartitions else pd.concat(dfs.values())
             self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
-            # self.annotations["Date"] = pd.to_datetime(self.annotations["Date"], )
-            # self.annotations['species_id'] = self.annotations['species_id'].apply(lambda li: [s.strip("taxon:") for s in li])
 
         return go_annotations
 
-    def load_network(self, file_resources):
+    def load_network(self, file_resources) -> Tuple[nx.Graph, np.ndarray]:
         for file in file_resources:
             if file.endswith(".obo"):
                 network: nx.MultiDiGraph = obonet.read_obo(file_resources[file])
@@ -405,7 +407,7 @@ class UniProtGOA(GeneOntology):
 
     Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
     Default file_resources: {
-        "goa_uniprot_all.gpi": "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpi.gz",
+        "goa_uniprot_all.gpi": "goa_uniprot_all.gpi.gz",
         "goa_uniprot_all.gaf": "goa_uniprot_all.gaf.gz",
     }
     """
@@ -431,8 +433,8 @@ class UniProtGOA(GeneOntology):
             Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
             Default file_resources: {
                 "go.obo": "http://current.geneontology.org/ontology/go.obo",
-                "goa_uniprot_all.gpi": "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/goa_uniprot_all.gpi.gz",
-                "goa_uniprot_all.gaf": "goa_uniprot_all.gaf.gz",
+                "goa_uniprot.gpi": "goa_uniprot.gpi.gz",
+                "goa_uniprot.gaf": "goa_uniprot.gaf.gz",
             }
 
         Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
@@ -516,8 +518,7 @@ class InterPro(Ontology):
         self.annotations.map_partitions(add_edgelist).compute()
 
         adj = nx.bipartite.biadjacency_matrix(g, row_order=protein_ids, column_order=self.data["ENTRY_AC"],
-                                              weight='weight',
-                                              format='csc')
+                                              weight='weight', format='csc')
         adj = pd.DataFrame(adj, index=protein_ids, columns=self.data["ENTRY_AC"])
         return adj
 
@@ -580,18 +581,6 @@ class InterPro(Ontology):
 
         tuples = [_process_line(line.strip()) for line in file if line[0] != '!']
         return pd.DataFrame(tuples, columns=['ENTRY_AC', "go_id", "go_desc"])
-
-
-def gafiterator(handle):
-    inline = handle.readline()
-    if inline.strip().startswith("!gaf-version: 2"):
-        # sys.stderr.write("gaf 2.0\n")
-        return _gaf20iterator(handle)
-    elif inline.strip() == "!gaf-version: 1.0":
-        # sys.stderr.write("gaf 1.0\n")
-        return _gaf10iterator(handle)
-    else:
-        return _gaf20iterator(handle)
 
 
 def get_predecessor_terms(g: nx.MultiDiGraph, anns: pd.Series) -> pd.Series:

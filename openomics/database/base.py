@@ -3,7 +3,9 @@ import difflib
 import itertools
 import logging
 import os
+import warnings
 from abc import ABC, abstractmethod
+from os.path import exists
 from typing import Dict, Union, Any
 from typing import List
 
@@ -91,39 +93,65 @@ class Database(object):
         """
         file_resources_new = copy.copy(file_resources)
 
-        # Remote database file URL
-        if validators.url(base_path) or any(validators.url(filepath) for filepath in file_resources.values()):
-            for filename, filepath in file_resources.items():
-                # Download file (if not already cached) and replace the file_resource path
-                if isinstance(filepath, str):
-                    filepath = get_pkg_data_filename(base_path, filepath)
-                    filepath_ext = filetype.guess(filepath)
-                else:
-                    filepath_ext = None
+        for filename, filepath in file_resources.items():
+            # Remote database file URL
+            if validators.url(base_path) or (isinstance(filepath, str) and validators.url(filepath)):
+                filepath = get_pkg_data_filename(base_path, filepath)
+                filepath_ext = filetype.guess(filepath)
 
-                # Dask will automatically handle uncompression at dd.read_table(compression=filepath_ext)
-                uncomp_filename, file = decompress_file(filepath, filename, filepath_ext)
-                file_resources_new[uncomp_filename] = file
+            # Local database path
+            elif exists(base_path) or (isinstance(filepath, str) and exists(filepath)):
+                if isinstance(filepath, str) and not exists(filepath):
+                    if exists(os.path.join(base_path, filepath)):
+                        filepath = os.path.join(base_path, filepath)
+                    else:
+                        warnings.warn(f"`base_path` is a local file directory, so all file_resources must be local. "
+                                      f"Cannot use `filepath` = {filepath}")
+                        continue
 
-        # Local database path
-        elif os.path.isdir(base_path) and os.path.exists(base_path):
-            for filename, filepath in file_resources.items():
-                if not os.path.exists(filepath):
-                    print(f"`base_path` is a local file directory, so all file_resources must be local. "
-                          f"`filepath` = {filepath}")
-                    continue
+                filepath_ext = filetype.guess(filepath)
 
-                if isinstance(filepath, str):
-                    filepath_ext = filetype.guess(filepath)
-                else:
-                    filepath_ext = None
+            else:
+                # file_path is an external file outside of `base_path`
+                filepath_ext = None
 
-                # Dask will automatically handle uncompression at dd.read_table(compression=filepath_ext)
-                uncomp_filename, file = decompress_file(filepath, filename, filepath_ext)
-                file_resources_new[uncomp_filename] = file
-        else:
-            raise IOError(
-                f"`base_path` {base_path} not supported. Must be either a remote URL point or a local directory path.")
+            # Update filepath on uncompressed file
+            file_resources_new[filename] = filepath
+
+            if filepath_ext:
+                file, new_filename = decompress_file(filepath, filename, file_ext=filepath_ext)
+                file_resources_new[new_filename] = file
+
+        # if validators.url(base_path) or any(validators.url(filepath) for filepath in file_resources.values()):
+        #     for filename, filepath in file_resources.items():
+        #         # Download file (if not already cached) and replace the file_resource path
+        #         if isinstance(filepath, str):
+        #             filepath = get_pkg_data_filename(base_path, filepath)
+        #             filepath_ext = filetype.guess(filepath)
+        #         else:
+        #             filepath_ext = None
+        #
+        #         uncomp_filename, file = decompress_file(filepath, filename, filepath_ext)
+        #         file_resources_new[uncomp_filename] = file
+        #
+        # # Local database path
+        # elif os.path.isdir(base_path) and exists(base_path):
+        #     for filename, filepath in file_resources.items():
+        #         if not exists(filepath):
+        #             warnings.warn(f"`base_path` is a local file directory, so all file_resources must be local. "
+        #                   f"`filepath` = {filepath}")
+        #             continue
+        #
+        #         if isinstance(filepath, str):
+        #             filepath_ext = filetype.guess(filepath)
+        #         else:
+        #             filepath_ext = None
+        #
+        #         uncomp_filename, file = decompress_file(filepath, filename, filepath_ext)
+        #         file_resources_new[uncomp_filename] = file
+        # else:
+        #     raise IOError(
+        #         f"`base_path` {base_path} not supported. Must be either a remote URL point or a local directory path.")
 
         logging.info(f"{self.name()} file_resources: {file_resources_new}")
         return file_resources_new
@@ -132,7 +160,7 @@ class Database(object):
     def close(self):
         # Close opened file resources
         for filename, filepath in self.file_resources.items():
-            if type(self.file_resources[filename]) != str:
+            if hasattr(self.file_resources[filename], 'close'):
                 self.file_resources[filename].close()
 
     @abstractmethod
