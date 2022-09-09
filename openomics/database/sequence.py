@@ -132,9 +132,7 @@ class GENCODE(SequenceDatabase):
         dfs = []
         for filename in tqdm.tqdm(file_resources):
             if ".gtf" in filename:
-                df = read_gtf(file_resources[filename],
-                              npartitions=npartitions,
-                              compression="gzip")
+                df = read_gtf(file_resources[filename], npartitions=npartitions, compression="gzip")
                 dfs.append(df)
 
         if npartitions:
