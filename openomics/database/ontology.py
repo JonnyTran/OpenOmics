@@ -1,4 +1,5 @@
 import os
+import warnings
 from io import TextIOWrapper, StringIO
 from typing import Tuple, List, Dict, Iterable, Union, Callable
 
@@ -7,9 +8,9 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
+from openomics.utils.adj import slice_adj
 from pandas import DataFrame
 
-from openomics.utils.adj import slice_adj
 from .base import Database
 from ..utils.read_gaf import read_gaf
 
@@ -254,6 +255,8 @@ class GeneOntology(Ontology):
                 "goa_human_isoform.gaf": "goa_human_isoform.gaf.gz",
             }
 
+        Data for GO term annotations in .gpi files are already included in .obo file, so this module doesn't maker use of .gpi files.
+
         Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
         functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
         """
@@ -267,6 +270,8 @@ class GeneOntology(Ontology):
                 f"goa_{species.lower()}_isoform.gaf.gz": f"goa_{species.lower()}_isoform.gaf.gz",
             }
         if not any('.obo' in file for file in file_resources):
+            warnings.warn(
+                f'No .obo file provided in `file_resources`, so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
             file_resources["go-basic.obo"] = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 
         super().__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions, verbose=verbose, )

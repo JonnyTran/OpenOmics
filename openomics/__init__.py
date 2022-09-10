@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+from os.path import join
 
 import astropy
 import dask.dataframe as dd
@@ -27,12 +28,13 @@ this.config["backend"] = pd
 this.config["cache_dir"] = astropy.config.get_cache_dir(this.__name__)
 logging.info("Cache directory is", this.config["cache_dir"])
 
-user_conf_path = "~/.openomics/conf.json"
+home_dir = os.path.expanduser('~')
+user_conf_path = join(home_dir, ".openomics/conf.json")
 
 # Initialize user configuration file at ~/.openomics/conf.json
 if not os.path.exists(user_conf_path):
-    if not os.path.exists("~/.openomics"):
-        os.makedirs("~/.openomics")
+    if not os.path.exists(join(home_dir, ".openomics")):
+        os.makedirs(join(home_dir, ".openomics"))
 
     if not os.path.isfile(user_conf_path):
         base_conf = {}
