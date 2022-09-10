@@ -25,3 +25,5 @@ rarfile
 filetype
 goatools
 obonet
+pyfaidx
+logzero
