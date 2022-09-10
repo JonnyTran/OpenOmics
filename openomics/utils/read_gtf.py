@@ -41,7 +41,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def read_gtf(filepath_or_buffer, npartitions=None, compression=None, expand_attribute_column=True,
+def read_gtf(filepath_or_buffer, blocksize=None, compression=None, expand_attribute_column=True,
              infer_biotype_column=False, column_converters={}, usecols=None, features=None, chunksize=1024 * 1024):
     """Parse a GTF into a dictionary mapping column names to sequences of
     values.
@@ -49,7 +49,7 @@ def read_gtf(filepath_or_buffer, npartitions=None, compression=None, expand_attr
     Args:
         filepath_or_buffer (str or buffer object): Path to GTF file (may be gzip
             compressed) or buffer object such as StringIO
-        npartitions (int): Number of partitions for the dask dataframe. Default None.
+        blocksize (int): Number of blocksize for the dask dataframe. Default None to use pandas.DataFrame instead.
         compression (str): Compression type to be passed into dask.dataframe.read_table(). Default None.
         expand_attribute_column (bool): Replace strings of semi-colon separated
             key-value values in the 'attribute' column with one column per
@@ -72,13 +72,13 @@ def read_gtf(filepath_or_buffer, npartitions=None, compression=None, expand_attr
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
 
     if expand_attribute_column:
-        result_df = parse_gtf_and_expand_attributes(filepath_or_buffer, npartitions=npartitions,
+        result_df = parse_gtf_and_expand_attributes(filepath_or_buffer, blocksize=blocksize,
                                                     compression=compression,
                                                     chunksize=chunksize,
                                                     restrict_attribute_columns=usecols)
     else:
-        if npartitions:
-            result_df = parse_gtf_dask(filepath_or_buffer, npartitions=npartitions, features=features,
+        if blocksize:
+            result_df = parse_gtf_dask(filepath_or_buffer, blocksize=blocksize, features=features,
                                        compression=compression)
         else:
             result_df = parse_gtf(filepath_or_buffer, features=features)
@@ -201,11 +201,12 @@ def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024, features=None,
 
     return df
 
-def parse_gtf_dask(filepath_or_buffer, npartitions=None, compression=None, features=None):
+
+def parse_gtf_dask(filepath_or_buffer, blocksize=None, compression=None, features=None):
     """
     Args:
         filepath_or_buffer (str or buffer object):
-        npartitions (int): Number of partitions for the dask dataframe. Default None.
+        blocksize (int): Number of chunksize for the dask dataframe. Default None.
         compression (str): Compression type to be passed into dask.dataframe.read_table(). Default None.
         features (set or None): Drop entries which aren't one of these features
     """
@@ -240,7 +241,7 @@ def parse_gtf_dask(filepath_or_buffer, npartitions=None, compression=None, featu
         filepath_or_buffer,
         sep="\t",
         compression=compression,
-        blocksize=None,
+        blocksize=blocksize,
         comment="#",
         names=COLUMN_NAMES,
         skipinitialspace=True,
@@ -259,7 +260,7 @@ def parse_gtf_dask(filepath_or_buffer, npartitions=None, compression=None, featu
     return dataframe
 
 
-def parse_gtf_and_expand_attributes(filepath_or_buffer, npartitions=None, compression=None, chunksize=1024 * 1024,
+def parse_gtf_and_expand_attributes(filepath_or_buffer, blocksize=None, compression=None, chunksize=1024 * 1024,
                                     restrict_attribute_columns=None, features=None):
     """Parse lines into column->values dictionary and then expand the
     'attribute' column into multiple columns. This expansion happens by
@@ -270,13 +271,13 @@ def parse_gtf_and_expand_attributes(filepath_or_buffer, npartitions=None, compre
     Args:
         compression:
         filepath_or_buffer (str or buffer object):
-        npartitions:
+        blocksize:
         chunksize (int):
         restrict_attribute_columns (list/set of str or None): If given, then only uses attribute columns.
         features (set or None): Ignore entries which don't correspond to one of the supplied features
     """
-    if npartitions:
-        df = parse_gtf_dask(filepath_or_buffer, npartitions=npartitions, compression=compression, features=features)
+    if blocksize:
+        df = parse_gtf_dask(filepath_or_buffer, blocksize=blocksize, compression=compression, features=features)
         df = df.reset_index(drop=False)
         df = df.set_index("index")
 

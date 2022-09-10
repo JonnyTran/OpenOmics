@@ -1,13 +1,16 @@
 import os
+import re
 from abc import abstractmethod
 from collections import defaultdict
-from typing import Union, List, Callable, Dict
+from typing import Union, List, Callable, Dict, Tuple
 
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
+from pyfaidx import Fasta
+from six.moves import intern
 
 import openomics
 from openomics.utils.read_gtf import read_gtf
@@ -29,24 +32,25 @@ class SequenceDatabase(Database):
         super().__init__(**kwargs)
 
     @abstractmethod
-    def read_fasta(self, fasta_file: str, npartitions=None, **kwargs):
+    def load_sequences(self, fasta_file: str, keys: Union[pd.Index, List[str]] = None, blocksize=None, **kwargs):
         """Returns a pandas DataFrame containing the fasta sequence entries.
         With a column named 'sequence'.
 
         Args:
             fasta_file (str): path to the fasta file, usually as
                 self.file_resources[<file_name>]
-            npartitions:
+            keys (pd.Index): list of keys to
+            blocksize:
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, index: str, omic: str, agg: str, **kwargs):
+    def get_sequences(self, index_name: str, omic: str, agg: str, **kwargs):
         """Returns a dictionary where keys are 'index' and values are
         sequence(s).
 
         Args:
-            index (str): {"gene_id", "gene_name", "transcript_id",
+            index_name (str): {"gene_id", "gene_name", "transcript_id",
                 "transcript_name"}
             omic (str): {"lncRNA", "microRNA", "messengerRNA"}
             agg (str): {"all", "shortest", "longest"}
@@ -61,7 +65,7 @@ class SequenceDatabase(Database):
         on a given key.
 
         Args:
-            agg: One of ("all", "shortest", "longest"), default "all". If "all",
+            agg: One of ("all", "shortest", "longest", "first"), default "all". If "all",
                 then return a list of sequences.
         """
         if agg == "all":
@@ -96,7 +100,7 @@ class GENCODE(SequenceDatabase):
         path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
         file_resources=None,
         col_rename=None,
-        npartitions=0,
+        blocksize=0,
         replace_U2T=False,
         remove_version_num=False,
     ):
@@ -105,7 +109,7 @@ class GENCODE(SequenceDatabase):
             path:
             file_resources:
             col_rename:
-            npartitions:
+            blocksize:
             replace_U2T (bool): Whether to replace nucleotides from U to T on
                 the RNA primary sequences.
             remove_version_num (bool): Whether to drop the version number on the
@@ -121,23 +125,27 @@ class GENCODE(SequenceDatabase):
 
         self.remove_version_num = remove_version_num
 
-        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, npartitions=npartitions)
+        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, blocksize=blocksize)
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources, blocksize=None):
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
         dfs = []
-        for filename in tqdm.tqdm(file_resources):
-            if ".gtf" in filename:
-                df = read_gtf(file_resources[filename], npartitions=npartitions, compression="gzip")
-                dfs.append(df)
-
-        if npartitions:
+        if blocksize:
+            for filename in file_resources:
+                if filename.endswith(".gtf.gz"):
+                    df = read_gtf(file_resources[filename], blocksize=blocksize, compression="gzip")
+                    dfs.append(df)
             annotation_df = dd.concat(dfs)
         else:
+            for filename in file_resources:
+                if filename.endswith(".gtf"):
+                    df = read_gtf(file_resources[filename])
+                    dfs.append(df)
+
             annotation_df = pd.concat(dfs)
 
         if self.remove_version_num:
@@ -146,36 +154,45 @@ class GENCODE(SequenceDatabase):
 
         return annotation_df
 
-    def read_fasta(self, fasta_file, npartitions=None):
+    def load_sequences(self, fasta_file: str, keys: pd.Index = None, blocksize=None, **kwargs):
         """
         Args:
+            keys ():
             fasta_file:
             replace_U2T:
-            npartitions:
+            blocksize:
         """
         if hasattr(self, '_seq_df_dict') and fasta_file in self._seq_df_dict:
             return self._seq_df_dict[fasta_file]
 
+        def get_transcript_id(x):
+            key = x.split('|')[0]  # transcript_id
+            if self.remove_version_num:
+                return re.sub("[.]\d*", "", key)
+            else:
+                return key
+
+        fa = Fasta(fasta_file, key_function=get_transcript_id, as_raw=True)
+
         entries = []
-        for record in SeqIO.parse(fasta_file, "fasta"):
+        for key, record in fa.items():
+            if isinstance(keys, (set, list, pd.Index, pd.Series)) and key not in keys: continue
+
             record_dict = {
-                "gene_id": record.id.split("|")[1],
-                "gene_name": record.id.split("|")[5],
-                "transcript_id": record.id.split("|")[0],
-                "transcript_name": record.id.split("|")[4],
-                "transcript_length": record.id.split("|")[6],
-                "transcript_biotype": record.id.split("|")[7],
-                SEQUENCE_COL: str(record.seq),
+                "transcript_id": record.long_name.split("|")[0],
+                "gene_id": record.long_name.split("|")[1],
+                "gene_name": record.long_name.split("|")[5],
+                "transcript_name": record.long_name.split("|")[4],
+                "transcript_length": record.long_name.split("|")[6],
+                "transcript_biotype": intern(record.long_name.split("|")[7]),
+                SEQUENCE_COL: str(record),
             }
 
             entries.append(record_dict)
 
         seq_df = pd.DataFrame(entries)
-        if npartitions:
-            seq_df = dd.from_pandas(seq_df, npartitions=npartitions)
-
-        if self.replace_U2T:
-            seq_df[SEQUENCE_COL] = seq_df[SEQUENCE_COL].str.replace("U", "T")
+        if blocksize:
+            seq_df = dd.from_pandas(seq_df, chunksize=blocksize)
 
         if self.remove_version_num:
             seq_df["gene_id"] = seq_df["gene_id"].str.replace("[.]\d*", "", regex=True)
@@ -188,7 +205,7 @@ class GENCODE(SequenceDatabase):
 
         return seq_df
 
-    def get_sequences(self, index: Union[str, List[str]], omic: str, agg: str, biotypes: List[str] = None):
+    def get_sequences(self, index: Union[str, Tuple[str]], omic: str, agg: str = 'all', biotypes: List[str] = None):
         """
         Args:
             index (str):
@@ -205,8 +222,10 @@ class GENCODE(SequenceDatabase):
             fasta_file = self.file_resources["lncRNA_transcripts.fa"]
         else:
             raise Exception("omic argument must be one of {'MessengerRNA', 'LncRNA'}")
+        assert isinstance(fasta_file,
+                          str), f"Fasta file provided in `file_resources` must be a non-compressed .fa file. Given {fasta_file}"
 
-        seq_df = self.read_fasta(fasta_file)
+        seq_df = self.load_sequences(fasta_file)
 
         if "gene" in index:
             if biotypes:
@@ -257,7 +276,7 @@ class UniProt(SequenceDatabase):
     def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
                  species_id: str = "9606",
                  file_resources: Dict[str, str] = None, col_rename=COLUMNS_RENAME_DICT, verbose=False,
-                 npartitions=None):
+                 blocksize=None):
         """
         Loads the UniProt database from https://uniprot.org/ .
 
@@ -273,7 +292,7 @@ class UniProt(SequenceDatabase):
             file_resources:
             col_rename:
             verbose:
-            npartitions:
+            blocksize:
         """
         self.species_id = species_id
         self.species = UniProt.SPECIES_ID_NAME[species_id] if isinstance(species_id, str) else None
@@ -301,13 +320,13 @@ class UniProt(SequenceDatabase):
                 "https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
 
         super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, verbose=verbose,
-                         npartitions=npartitions)
+                         blocksize=blocksize)
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources, blocksize=None):
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
         # Load idmapping_selected
         options = dict(
@@ -318,7 +337,7 @@ class UniProt(SequenceDatabase):
                      'NCBI-taxon', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO'],
             dtype='str')
 
-        if npartitions:
+        if blocksize:
             if "idmapping_selected.tab.gz" not in file_resources:
                 idmapping = dd.read_table(file_resources["idmapping_selected.tab"], **options)
             else:
@@ -358,22 +377,22 @@ class UniProt(SequenceDatabase):
 
         return idmapping
 
-    def get_sequences(self, index: str, omic: str = None, agg: str = "all", **kwargs):
+    def get_sequences(self, index_name: str, omic: str = None, agg: str = "all", **kwargs):
         agg_func = self.aggregator_fn(agg)
 
         # Parse lncRNA & mRNA fasta
-        seq_df = self.read_fasta(self.file_resources["uniprot_sprot.xml"], npartitions=self.npartitions)
+        seq_df = self.load_sequences(self.file_resources["uniprot_sprot.xml"], blocksize=self.blocksize)
 
         if "uniprot_trembl.xml" in self.file_resources:
-            trembl_seq_df = self.read_fasta(self.file_resources["uniprot_trembl.xml"], npartitions=self.npartitions)
+            trembl_seq_df = self.load_sequences(self.file_resources["uniprot_trembl.xml"], blocksize=self.blocksize)
             seq_df.update(trembl_seq_df)
 
-        if "gene" in index:
-            return seq_df.groupby(index)[SEQUENCE_COL].agg(agg_func)
+        if "gene" in index_name:
+            return seq_df.groupby(index_name)[SEQUENCE_COL].agg(agg_func)
         else:
-            return seq_df.groupby(index)[SEQUENCE_COL].first()
+            return seq_df.groupby(index_name)[SEQUENCE_COL].first()
 
-    def read_fasta(self, fasta_xml_file: str, npartitions=None) -> pd.DataFrame:
+    def load_sequences(self, fasta_xml_file: str, keys=None, blocksize=None) -> pd.DataFrame:
         if hasattr(self, '_seq_df_dict') and fasta_xml_file in self._seq_df_dict:
             return self._seq_df_dict[fasta_xml_file]
 
@@ -410,10 +429,10 @@ class UniProt(SequenceDatabase):
             seqfeats.append({"protein_id": record.id,
                              **features_dict})
 
-        records_df = pd.DataFrame(records) if not npartitions else dd.from_pandas(records)
+        records_df = pd.DataFrame(records) if not blocksize else dd.from_pandas(records, chunksize=blocksize)
         records_df = records_df.set_index(['protein_id'])
 
-        seqfeats_df = pd.DataFrame(seqfeats) if not npartitions else dd.from_pandas(seqfeats)
+        seqfeats_df = pd.DataFrame(seqfeats) if not blocksize else dd.from_pandas(seqfeats, chunksize=blocksize)
         seqfeats_df = seqfeats_df.set_index(['protein_id'])
         seqfeats_df.columns = [f"seq/{col}" for col in seqfeats_df.columns]
 
@@ -461,7 +480,7 @@ class MirBase(SequenceDatabase):
         species_id: str = '9606',
         sequence: str = "mature",
         col_rename=None,
-        npartitions=None,
+        blocksize=None,
     ):
         """
         Args:
@@ -470,7 +489,7 @@ class MirBase(SequenceDatabase):
             sequence (str):
             species_id (str): Species code, e.g., 9606 for human
             col_rename:
-            npartitions:
+            blocksize:
         """
         if file_resources is None:
             file_resources = {}
@@ -482,13 +501,13 @@ class MirBase(SequenceDatabase):
 
         self.sequence = sequence
         self.species_id = species_id
-        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, npartitions=npartitions)
+        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, blocksize=blocksize)
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources, blocksize=None):
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
         rnacentral_mirbase = pd.read_table(file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
                                            names=["RNAcentral id", "database", "mirbase id", "species_id", "RNA type",
@@ -510,8 +529,8 @@ class MirBase(SequenceDatabase):
             .reset_index(level=1, drop=True)
         mirna_names.name = "gene_name"
 
-        if npartitions:
-            mirbase_aliases = dd.from_pandas(mirbase_aliases, npartitions=npartitions)
+        if blocksize:
+            mirbase_aliases = dd.from_pandas(mirbase_aliases, chunksize=blocksize)
 
         mirbase_aliases = mirbase_aliases.drop("gene_name", axis=1).join(mirna_names)
 
@@ -520,11 +539,12 @@ class MirBase(SequenceDatabase):
 
         return mirbase_aliases
 
-    def read_fasta(self, fasta_file, npartitions=None):
+    def load_sequences(self, fasta_file, keys=None, blocksize=None):
         """
         Args:
+            keys ():
             fasta_file:
-            npartitions:
+            blocksize:
         """
         entries = []
         for i, record in enumerate(SeqIO.parse(fasta_file, "fasta")):
@@ -541,19 +561,19 @@ class MirBase(SequenceDatabase):
             entries.append(record_dict)
 
         entries_df = pd.DataFrame(entries)
-        if npartitions:
-            entries_df = dd.from_pandas(entries_df)
+        if blocksize:
+            entries_df = dd.from_pandas(entries_df, chunksize=blocksize)
 
         return entries_df
 
     def get_sequences(self,
-                      index="gene_name",
+                      index_name="gene_name",
                       omic=None,
                       agg="all",
                       **kwargs):
         """
         Args:
-            index:
+            index_name:
             omic:
             agg:
             **kwargs:
@@ -569,9 +589,9 @@ class MirBase(SequenceDatabase):
         else:
             raise Exception("sequence must be either 'hairpin' or 'mature'")
 
-        seq_df = self.read_fasta(file)
+        seq_df = self.load_sequences(file)
 
-        self._seq_dict = seq_df.groupby(index)[SEQUENCE_COL].agg(
+        self._seq_dict = seq_df.groupby(index_name)[SEQUENCE_COL].agg(
             self.aggregator_fn(agg))
 
         return self._seq_dict

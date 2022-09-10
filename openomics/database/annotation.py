@@ -29,29 +29,29 @@ class ProteinAtlas(Database):
     }
 
     def __init__(self, path="https://www.proteinatlas.org/download/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, npartitions=0, verbose=False):
+                 col_rename=COLUMNS_RENAME_DICT, blocksize=0, verbose=False):
         """
         Args:
             path:
             file_resources:
             col_rename:
-            npartitions:
+            blocksize:
             verbose:
         """
         if file_resources is None:
             file_resources = {}
             file_resources["proteinatlas.tsv.zip"] = "proteinatlas.tsv.zip"
 
-        super().__init__(path, file_resources, col_rename, npartitions, verbose)
+        super().__init__(path, file_resources, col_rename, blocksize, verbose)
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources, blocksize=None):
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
-        if npartitions:
-            df = dd.read_table(file_resources["proteinatlas.tsv"])
+        if blocksize:
+            df = dd.read_table(file_resources["proteinatlas.tsv"], blocksize=blocksize)
         else:
             df = pd.read_table(file_resources["proteinatlas.tsv"])
 
@@ -95,14 +95,14 @@ class RNAcentral(Database):
     }
 
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606', npartitions=None, verbose=False):
+                 col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606', blocksize=None, verbose=False):
         """
         Args:
             path:
             file_resources:
             col_rename:
             species_id:
-            npartitions:
+            blocksize:
             verbose:
         """
         self.species_id = species_id
@@ -113,19 +113,19 @@ class RNAcentral(Database):
             file_resources["database_mappings/gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
             file_resources["database_mappings/mirbase.tsv"] = "id_mapping/database_mappings/mirbase.tsv"
 
-        super().__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions,
+        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize,
                          verbose=verbose)
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources, blocksize=None):
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
         args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"], dtype=str)
-        if npartitions:
+        if blocksize:
             go_terms = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip",
-                                     blocksize=None, **args)
+                                     blocksize=blocksize, **args)
         else:
             go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.replace("_(.*)", '', regex=True)
@@ -136,15 +136,15 @@ class RNAcentral(Database):
                 args = dict(low_memory=True, header=None,
                             names=["RNAcentral id", "database", "external id", "species_id", "RNA type", "gene symbol"],
                             dtype={"species_id": 'str'})
-                if npartitions:
-                    id_mapping = dd.read_table(file_resources[filename], **args)
+                if blocksize:
+                    id_mapping = dd.read_table(file_resources[filename], blocksize=blocksize, **args)
                 else:
                     id_mapping = pd.read_table(file_resources[filename], **args)
 
                 # id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
                 transcripts_df.append(id_mapping)
 
-        if npartitions:
+        if blocksize:
             transcripts_df = dd.concat(transcripts_df, axis=0)
         else:
             transcripts_df = pd.concat(transcripts_df, axis=0)
@@ -152,7 +152,7 @@ class RNAcentral(Database):
         if self.species_id:
             transcripts_df = transcripts_df[transcripts_df["species_id"] == self.species_id]
 
-        rnacentral_ids = transcripts_df["RNAcentral id"].compute() if npartitions else transcripts_df["RNAcentral id"]
+        rnacentral_ids = transcripts_df["RNAcentral id"].compute() if blocksize else transcripts_df["RNAcentral id"]
 
         id2go_terms = go_terms[go_terms["RNAcentral id"].isin(rnacentral_ids)] \
             .groupby("RNAcentral id")["GO terms"].unique()
@@ -181,13 +181,13 @@ class GTEx(Database):
     }
 
     def __init__(self, path="https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/",
-                 file_resources=None, col_rename=None, npartitions=0, verbose=False):
+                 file_resources=None, col_rename=None, blocksize=0, verbose=False):
         """
         Args:
             path:
             file_resources:
             col_rename:
-            npartitions:
+            blocksize:
             verbose:
         """
         if file_resources is None:
@@ -201,13 +201,13 @@ class GTEx(Database):
             file_resources["GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"] = \
                 "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"
 
-        super().__init__(path, file_resources, col_rename=None, npartitions=npartitions, verbose=verbose)
+        super().__init__(path, file_resources, col_rename=None, blocksize=blocksize, verbose=verbose)
 
-    def load_dataframe(self, file_resources, npartitions=None):  # type: (dict) -> pd.DataFrame
+    def load_dataframe(self, file_resources, blocksize=None):  # type: (dict) -> pd.DataFrame
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
         gene_exp_medians = pd.read_csv(
             self.file_resources["GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct"],
@@ -259,14 +259,14 @@ class NONCODE(Database):
     """
 
     def __init__(self, path="http://www.noncode.org/datadownload", file_resources=None, col_rename=None, verbose=False,
-                 npartitions=None):
+                 blocksize=None):
         """
         Args:
             path:
             file_resources:
             col_rename:
             verbose:
-            npartitions:
+            blocksize:
         """
         if file_resources is None:
             file_resources = {}
@@ -274,13 +274,13 @@ class NONCODE(Database):
             file_resources["NONCODEv5_Transcript2Gene"] = os.path.join(path, "NONCODEv5_Transcript2Gene")
             file_resources["NONCODEv5_human.func"] = os.path.join(path, "NONCODEv5_human.func")
 
-        super().__init__(path, file_resources, col_rename, verbose=verbose, npartitions=npartitions)
+        super().__init__(path, file_resources, col_rename, verbose=verbose, blocksize=blocksize)
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources, blocksize=None):
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
         source_df = pd.read_table(file_resources["NONCODEv5_source"], header=None)
         source_df.columns = ["NONCODE Transcript ID", "name type", "Gene ID"]
@@ -288,8 +288,9 @@ class NONCODE(Database):
         transcript2gene_df = pd.read_table(file_resources["NONCODEv5_Transcript2Gene"], header=None)
         transcript2gene_df.columns = ["NONCODE Transcript ID", "NONCODE Gene ID"]
 
-        if npartitions:
-            self.noncode_func_df = dd.read_table(file_resources["NONCODEv5_human.func"], header=None)
+        if blocksize:
+            self.noncode_func_df = dd.read_table(file_resources["NONCODEv5_human.func"], header=None,
+                                                 blocksize=blocksize)
         else:
             self.noncode_func_df = pd.read_table(file_resources["NONCODEv5_human.func"], header=None)
         self.noncode_func_df.columns = ["NONCODE Gene ID", "GO terms"]
@@ -323,19 +324,19 @@ class BioMartManager:
         """
         pass  # Does not instantiate
 
-    def retrieve_dataset(self, host, dataset, attributes, filename, npartitions=None):
+    def retrieve_dataset(self, host, dataset, attributes, filename, blocksize=None):
         """
         Args:
             host:
             dataset:
             attributes:
             filename:
-            npartitions:
+            blocksize:
         """
         filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(filename))
         if os.path.exists(filename):
-            if npartitions:
-                df = dd.read_csv(filename, sep="\t")
+            if blocksize:
+                df = dd.read_csv(filename, sep="\t", blocksize=blocksize)
             else:
                 df = pd.read_csv(filename, sep="\t", low_memory=True)
         else:
@@ -360,7 +361,7 @@ class BioMartManager:
         return save_filename
 
     def query_biomart(self, dataset, attributes, host="www.ensembl.org", cache=True, save_filename=None,
-                      npartitions=None):
+                      blocksize=None):
         """
         Args:
             dataset:
@@ -368,7 +369,7 @@ class BioMartManager:
             host:
             cache:
             save_filename:
-            npartitions:
+            blocksize:
         """
         bm = BioMart(host=host)
         bm.new_query()
@@ -381,8 +382,8 @@ class BioMartManager:
         results = bm.query(xml_query)
 
         try:
-            if npartitions:
-                df = dd.read_csv(StringIO(results), header=None, names=attributes, sep="\t")
+            if blocksize:
+                df = dd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", blocksize=blocksize)
             else:
                 df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True,
                                  dtype={"entrezgene_id": "str"})
@@ -403,14 +404,14 @@ class EnsemblGenes(BioMartManager, Database):
                            'rfam': 'Rfams'}
 
     def __init__(self, biomart="hsapiens_gene_ensembl",
-                 attributes=None, host="www.ensembl.org", npartitions=None):
+                 attributes=None, host="www.ensembl.org", blocksize=None):
         # Do not call super().__init__()
         """
         Args:
             biomart:
             attributes:
             host:
-            npartitions:
+            blocksize:
         """
         if attributes is None:
             attributes = ['ensembl_gene_id', 'external_gene_name', 'ensembl_transcript_id',
@@ -420,21 +421,21 @@ class EnsemblGenes(BioMartManager, Database):
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
         self.host = host
         self.data = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
-                                   filename=self.filename, npartitions=npartitions)
+                                   filename=self.filename, blocksize=blocksize)
 
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
         print(self.name(), self.data.columns.tolist())
 
-    def load_data(self, dataset, attributes, host, filename=None, npartitions=None):
+    def load_data(self, dataset, attributes, host, filename=None, blocksize=None):
         """
         Args:
             dataset:
             attributes:
             host:
             filename:
-            npartitions:
+            blocksize:
         """
-        df = self.retrieve_dataset(host, dataset, attributes, filename, npartitions=npartitions)
+        df = self.retrieve_dataset(host, dataset, attributes, filename, blocksize=blocksize)
         return df
 
     def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
@@ -461,13 +462,13 @@ class EnsemblGenes(BioMartManager, Database):
 
 class EnsemblGeneSequences(EnsemblGenes):
     def __init__(self, biomart="hsapiens_gene_ensembl",
-                 attributes=None, host="www.ensembl.org", npartitions=None):
+                 attributes=None, host="www.ensembl.org", blocksize=None):
         """
         Args:
             biomart:
             attributes:
             host:
-            npartitions:
+            blocksize:
         """
         if attributes is None:
             attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon',
@@ -475,19 +476,19 @@ class EnsemblGeneSequences(EnsemblGenes):
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
         self.host = host
         self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
-                                 filename=self.filename, npartitions=npartitions)
+                                 filename=self.filename, blocksize=blocksize)
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
 
 class EnsemblTranscriptSequences(EnsemblGenes):
     def __init__(self, biomart="hsapiens_gene_ensembl",
-                 attributes=None, host="www.ensembl.org", npartitions=None):
+                 attributes=None, host="www.ensembl.org", blocksize=None):
         """
         Args:
             biomart:
             attributes:
             host:
-            npartitions:
+            blocksize:
         """
         if attributes is None:
             attributes = ['ensembl_transcript_id', 'transcript_exon_intron', 'transcript_flank',
@@ -496,18 +497,18 @@ class EnsemblTranscriptSequences(EnsemblGenes):
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
         self.host = host
         self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
-                                 filename=self.filename, npartitions=npartitions)
+                                 filename=self.filename, blocksize=blocksize)
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
 class EnsemblSNP(EnsemblGenes):
     def __init__(self, biomart="hsapiens_snp",
-                 attributes=None, host="www.ensembl.org", npartitions=None):
+                 attributes=None, host="www.ensembl.org", blocksize=None):
         """
         Args:
             biomart:
             attributes:
             host:
-            npartitions:
+            blocksize:
         """
         if attributes is None:
             attributes = ['synonym_name', 'variation_names', 'minor_allele',
@@ -522,13 +523,13 @@ class EnsemblSNP(EnsemblGenes):
 
 class EnsemblSomaticVariation(EnsemblGenes):
     def __init__(self, biomart="hsapiens_snp_som",
-                 attributes=None, host="www.ensembl.org", npartitions=None):
+                 attributes=None, host="www.ensembl.org", blocksize=None):
         """
         Args:
             biomart:
             attributes:
             host:
-            npartitions:
+            blocksize:
         """
         if attributes is None:
             attributes = ['somatic_variation_name', 'somatic_source_name', 'somatic_allele', 'somatic_minor_allele',
@@ -541,22 +542,22 @@ class EnsemblSomaticVariation(EnsemblGenes):
 
 
 class TANRIC(Database):
-    def __init__(self, path, file_resources=None, col_rename=None, npartitions=0, verbose=False):
+    def __init__(self, path, file_resources=None, col_rename=None, blocksize=0, verbose=False):
         """
         Args:
             path:
             file_resources:
             col_rename:
-            npartitions:
+            blocksize:
             verbose:
         """
-        super().__init__(path, file_resources, col_rename, npartitions, verbose)
+        super().__init__(path, file_resources, col_rename, blocksize, verbose)
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources, blocksize=None):
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
         pass
 
