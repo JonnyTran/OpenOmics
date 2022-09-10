@@ -11,8 +11,8 @@ from six import string_types
 from six.moves import intern
 
 
-def read_gaf(filepath_or_buffer, npartitions=None, compression: Optional[str] = None,
-             column_converters: Dict[str, Callable] = None, usecols: List[str] = None, blocksize=1024 * 1024) -> Union[
+def read_gaf(filepath_or_buffer, blocksize=None, compression: Optional[str] = None,
+             column_converters: Dict[str, Callable] = None, usecols: List[str] = None, chunksize=1024 * 1024) -> Union[
     pd.DataFrame, dd.DataFrame]:
     """Parse a GTF into a dictionary mapping column names to sequences of
     values.
@@ -20,7 +20,7 @@ def read_gaf(filepath_or_buffer, npartitions=None, compression: Optional[str] = 
     Args:
         filepath_or_buffer (str or buffer object): Path to GTF file (may be gzip
             compressed) or buffer object such as StringIO
-        npartitions (int): Number of partitions for the dask dataframe. Default None.
+        blocksize (int): Number of blocksize for the dask dataframe. Default None to use pandas.DataFrame instead.
         compression (str): Compression type to be passed into dask.dataframe.read_table(). Default None.
         column_converters (dict, optional): Dictionary mapping column names to
             conversion functions. Will replace empty strings with None and
@@ -33,12 +33,12 @@ def read_gaf(filepath_or_buffer, npartitions=None, compression: Optional[str] = 
 
     COLUMN_NAMES = infer_gaf_columns(filepath_or_buffer)
 
-    if npartitions:
+    if blocksize:
         assert isinstance(filepath_or_buffer, str), f'dd.read_table() must have `filepath_or_buffer` as a path, and ' \
                                                     f'if compressed, use the `compression` arg. ' \
                                                     f'`filepath_or_buffer`={filepath_or_buffer}'
         result_df = parse_gaf(filepath_or_buffer, column_names=COLUMN_NAMES,
-                              npartitions=npartitions, compression=compression, chunksize=blocksize)
+                              blocksize=blocksize, compression=compression, chunksize=chunksize)
     else:
         result_df = parse_gaf(filepath_or_buffer, column_names=COLUMN_NAMES)
 
@@ -58,7 +58,7 @@ def read_gaf(filepath_or_buffer, npartitions=None, compression: Optional[str] = 
 def parse_gaf(filepath_or_buffer, column_names=None, usecols=None,
               intern_columns=['DB', 'Evidence', 'Aspect', 'DB_Object_Type', 'Assigned_By'],
               list_dtype_columns=['Qualifier', 'DB:Reference', 'With', 'Synonym'],
-              npartitions=None, compression=None, chunksize=1024 * 1024) \
+              blocksize=None, compression=None, chunksize=1024 * 1024) \
     -> Union[pd.DataFrame, dd.DataFrame]:
     """
 
@@ -68,7 +68,7 @@ def parse_gaf(filepath_or_buffer, column_names=None, usecols=None,
         usecols ():
         intern_columns ():
         list_dtype_columns ():
-        npartitions ():
+        blocksize ():
         compression ():
         chunksize ():
 
@@ -104,8 +104,8 @@ def parse_gaf(filepath_or_buffer, column_names=None, usecols=None,
         },
     )
 
-    if npartitions:
-        df = dd.read_table(filepath_or_buffer, compression=compression, blocksize=chunksize, **args)
+    if blocksize:
+        df = dd.read_table(filepath_or_buffer, compression=compression, blocksize=blocksize, **args)
         df['Date'] = dd.to_datetime(df['Date'])
 
     else:

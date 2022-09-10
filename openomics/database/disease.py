@@ -55,12 +55,12 @@ class MalaCards(DiseaseAssociation):
 
         super().__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources, blocksize=None):
         # type: (dict, int) -> pd.DataFrame
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
         df = pd.read_csv(file_resources["MalaCards.csv"])
         return df
@@ -98,11 +98,11 @@ class DisGeNet(DiseaseAssociation):
         self.curated = curated
         super().__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources, blocksize=None):
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
         if self.curated:
             df = pd.read_table(file_resources["curated_gene_disease_associations.tsv"],
@@ -144,11 +144,11 @@ class HMDD(DiseaseAssociation):
 
         super().__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources, blocksize=None):
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
         df = pd.read_csv(file_resources["alldata.txt"], sep="\t", encoding="unicode_escape")
         df["disease"] = df["disease"].str.lower()
@@ -179,11 +179,11 @@ class LncRNADisease(DiseaseAssociation):
         self.species = species
         super().__init__(path, file_resources, col_rename=col_rename, **kwargs)
 
-    def load_dataframe(self, file_resources, npartitions=None):
+    def load_dataframe(self, file_resources, blocksize=None):
         """
         Args:
             file_resources:
-            npartitions:
+            blocksize:
         """
         df = pd.read_csv(self.file_resources["data_v2017.txt"], header=None, sep="\t", encoding="unicode_escape")
         df.columns = ["LncRNA name", "Disease name", "Dysfunction type", "Description", "Chr",

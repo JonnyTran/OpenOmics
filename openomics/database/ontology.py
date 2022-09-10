@@ -8,9 +8,9 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
-from openomics.utils.adj import slice_adj
 from pandas import DataFrame
 
+from openomics.utils.adj import slice_adj
 from .base import Database
 from ..utils.read_gaf import read_gaf
 
@@ -22,7 +22,7 @@ class Ontology(Database):
                  path,
                  file_resources=None,
                  col_rename=None,
-                 npartitions=0,
+                 blocksize=0,
                  verbose=False):
         """
         Manages dataset input processing from tables and construct an ontology network from .obo file. There ontology
@@ -32,7 +32,7 @@ class Ontology(Database):
             path:
             file_resources:
             col_rename:
-            npartitions:
+            blocksize:
             verbose:
         """
         self.network, self.node_list = self.load_network(file_resources)
@@ -41,7 +41,7 @@ class Ontology(Database):
             path=path,
             file_resources=file_resources,
             col_rename=col_rename,
-            npartitions=npartitions,
+            blocksize=blocksize,
             verbose=verbose,
         )
 
@@ -184,7 +184,7 @@ class HumanPhenotypeOntology(Ontology):
         path="https://hpo.jax.org/",
         file_resources=None,
         col_rename=COLUMNS_RENAME_DICT,
-        npartitions=0,
+        blocksize=0,
         verbose=False,
     ):
         """
@@ -199,7 +199,7 @@ class HumanPhenotypeOntology(Ontology):
             path,
             file_resources,
             col_rename=col_rename,
-            npartitions=npartitions,
+            blocksize=blocksize,
             verbose=verbose,
         )
 
@@ -241,7 +241,7 @@ class GeneOntology(Ontology):
         species="HUMAN",
         file_resources=None,
         col_rename=COLUMNS_RENAME_DICT,
-        npartitions=0,
+        blocksize=0,
         verbose=False,
     ):
         """
@@ -274,12 +274,12 @@ class GeneOntology(Ontology):
                 f'No .obo file provided in `file_resources`, so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
             file_resources["go-basic.obo"] = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 
-        super().__init__(path, file_resources, col_rename=col_rename, npartitions=npartitions, verbose=verbose, )
+        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize, verbose=verbose, )
 
     def info(self):
         print("network {}".format(nx.info(self.network)))
 
-    def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], npartitions=None) -> DataFrame:
+    def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None) -> DataFrame:
         if self.network:
             # Annotations for each GO term
             go_annotations = pd.DataFrame.from_dict(dict(self.network.nodes(data=True)), orient='index')
@@ -293,17 +293,17 @@ class GeneOntology(Ontology):
         dfs = {}
         for filename in file_resources:
             gaf_name = filename.split(".")[0]
-            if npartitions:
+            if blocksize:
                 if filename.endswith(".gaf.gz") and gaf_name not in dfs:
-                    dfs[gaf_name] = read_gaf(file_resources[filename], npartitions=npartitions, compression='gzip')
+                    dfs[gaf_name] = read_gaf(file_resources[filename], blocksize=blocksize, compression='gzip')
                 elif filename.endswith(".gaf") and gaf_name not in dfs:
-                    dfs[gaf_name] = read_gaf(file_resources[filename], npartitions=npartitions)
+                    dfs[gaf_name] = read_gaf(file_resources[filename], blocksize=blocksize)
             else:
                 if filename.endswith(".gaf"):
                     dfs[gaf_name] = read_gaf(file_resources[filename], )
 
         if len(dfs):
-            self.annotations = dd.concat(list(dfs.values())) if npartitions else pd.concat(dfs.values())
+            self.annotations = dd.concat(list(dfs.values())) if blocksize else pd.concat(dfs.values())
             self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
 
         return go_annotations
@@ -429,7 +429,7 @@ class UniProtGOA(GeneOntology):
         species="HUMAN",
         file_resources=None,
         col_rename=COLUMNS_RENAME_DICT,
-        npartitions=0,
+        blocksize=0,
         verbose=False,
     ):
         """
@@ -461,19 +461,19 @@ class UniProtGOA(GeneOntology):
                 # f"goa_{self.species.lower()}.gpi": os.path.join(species, f"goa_{substr}.gpi.gz"),
             }
         super().__init__(path=path, species=species, file_resources=file_resources, col_rename=col_rename,
-                         npartitions=npartitions, verbose=verbose)
+                         blocksize=blocksize, verbose=verbose)
 
 
 class InterPro(Ontology):
     def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/",
-                 file_resources=None, col_rename=None, verbose=False, npartitions=None):
+                 file_resources=None, col_rename=None, verbose=False, blocksize=None):
         """
         Args:
             path:
             file_resources:
             col_rename:
             verbose:
-            npartitions:
+            blocksize:
         """
 
         if file_resources is None:
@@ -484,9 +484,9 @@ class InterPro(Ontology):
             file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
 
         super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, verbose=verbose,
-                         npartitions=npartitions)
+                         blocksize=blocksize)
 
-    def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], npartitions=None):
+    def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None):
         ipr_entries = pd.read_table(file_resources["entry.list"], index_col="ENTRY_AC")
         ipr2go = self.parse_interpro2go(file_resources["interpro2go"])
 
@@ -496,7 +496,8 @@ class InterPro(Ontology):
             file_resources["protein2ipr.dat"],
             names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
             usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
-            dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category'})
+            dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category'},
+            blocksize=blocksize)
 
         return ipr_entries
 

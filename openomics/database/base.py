@@ -5,7 +5,7 @@ import logging
 import os
 import warnings
 from abc import ABC, abstractmethod
-from os.path import exists
+from os.path import exists, join
 from typing import Dict, Union, Any
 from typing import List
 
@@ -35,7 +35,7 @@ class Database(object):
         path,
         file_resources=None,
         col_rename=None,
-        npartitions=None,
+        blocksize=None,
         verbose=False,
     ):
         """
@@ -49,18 +49,17 @@ class Database(object):
                 automatically build the required file resources dict.
             col_rename (dict): default None, A dictionary to rename columns in
                 the data table. If None, then automatically load defaults.
-            npartitions (int): [0-n], default 0 If 0, then uses a Pandas
+            blocksize (int): [0-n], default 0 If 0, then uses a Pandas
                 DataFrame, if >1, then creates an off-memory Dask DataFrame with
                 n partitions
             verbose (bool): Default False.
         """
-        self.npartitions = npartitions
+        self.blocksize = blocksize
         self.verbose = verbose
         self.data_path = path
 
-        self.file_resources = self.load_file_resources(path, file_resources=file_resources, npartitions=npartitions,
-                                                       verbose=verbose)
-        self.data = self.load_dataframe(self.file_resources, npartitions=npartitions)
+        self.file_resources = self.load_file_resources(path, file_resources=file_resources, verbose=verbose)
+        self.data = self.load_dataframe(self.file_resources, blocksize=blocksize)
         if col_rename is not None:
             self.data = self.data.rename(columns=col_rename)
             if self.data.index.name in col_rename:
@@ -69,11 +68,7 @@ class Database(object):
     def __repr__(self):
         return "{}: {}".format(self.name(), self.data.columns.tolist())
 
-    def load_file_resources(self,
-                            base_path,
-                            file_resources,
-                            npartitions=None,
-                            verbose=False) -> Dict[str, Any]:
+    def load_file_resources(self, base_path, file_resources, verbose=False) -> Dict[str, Any]:
         """For each file in file_resources, download the file if path+file is a
         URL or load from disk if a local path. Additionally unzip or unrar if
         the file is compressed.
@@ -87,15 +82,13 @@ class Database(object):
                 required filenames and value are file paths. If None, then the
                 class constructor should automatically build the required file
                 resources dict.
-            npartitions (int): >0 if the files will be used to create a Dask
-                Dataframe. Default None.
             verbose:
         """
         file_resources_new = copy.copy(file_resources)
 
         for filename, filepath in file_resources.items():
             # Remote database file URL
-            if validators.url(base_path) or (isinstance(filepath, str) and validators.url(filepath)):
+            if validators.url(base_path) and (validators.url(join(base_path, filepath)) or validators.url(filepath)):
                 filepath = get_pkg_data_filename(base_path, filepath)
                 filepath_ext = filetype.guess(filepath)
 
@@ -164,14 +157,14 @@ class Database(object):
                 self.file_resources[filename].close()
 
     @abstractmethod
-    def load_dataframe(self, file_resources: Dict[str, str], npartitions: int = None) -> pd.DataFrame:
+    def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
         """Handles data preprocessing given the file_resources input, and
         returns a DataFrame.
 
         Args:
             file_resources (dict): A dict with keys as filenames and values as
                 full file path.
-            npartitions (int):
+            blocksize (int):
         """
         raise NotImplementedError
 
