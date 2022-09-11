@@ -88,18 +88,18 @@ class Database(object):
 
         for filename, filepath in file_resources.items():
             # Remote database file URL
-            if validators.url(base_path) and (validators.url(join(base_path, filepath)) or validators.url(filepath)):
+            if validators.url(filepath) or validators.url(join(base_path, filepath)):
                 filepath = get_pkg_data_filename(base_path, filepath)
                 filepath_ext = filetype.guess(filepath)
 
             # Local database path
-            elif exists(base_path) or (isinstance(filepath, str) and exists(filepath)):
+            elif exists(base_path) and (exists(filepath) or exists(join(base_path, filepath))):
                 if isinstance(filepath, str) and not exists(filepath):
                     if exists(os.path.join(base_path, filepath)):
                         filepath = os.path.join(base_path, filepath)
                     else:
                         warnings.warn(f"`base_path` is a local file directory, so all file_resources must be local. "
-                                      f"Cannot use `filepath` = {filepath}")
+                                      f"Cannot use `filepath` = {filepath} with `base_path` = {base_path}")
                         continue
 
                 filepath_ext = filetype.guess(filepath)
@@ -267,7 +267,7 @@ class Annotatable(ABC):
     attributes information to the genes's annotations, or interactions between
     the genes.
     """
-    SEQUENCE_COL_NAME = "sequence"
+    SEQUENCE_COL = "sequence"
     DISEASE_ASSOCIATIONS_COL = "disease_associations"
 
     def get_annotations(self):
@@ -370,7 +370,7 @@ class Annotatable(ABC):
         self.annotations = new_annotations
 
     def annotate_sequences(self,
-                           database: Database,
+                           database,
                            on: Union[str, List[str]],
                            agg="longest",
                            omic=None,
@@ -380,7 +380,7 @@ class Annotatable(ABC):
         some aggregation.
 
         Args:
-            database (Database): The database
+            database (SequenceDatabase): The database
             on (str): The gene index column name.
             agg (str): The aggregation method, one of ["longest", "shortest", or
                 "all"]. Default longest.
@@ -404,7 +404,7 @@ class Annotatable(ABC):
         else:
             seqs = pd.Index(self.annotations.reset_index()[on]).map(sequences)
 
-        self.annotations[Annotatable.SEQUENCE_COL_NAME] = seqs
+        self.annotations[Annotatable.SEQUENCE_COL] = seqs
 
     def annotate_expressions(self, database, index, fuzzy_match=False):
         """Annotate :param database: :param index: :param fuzzy_match:

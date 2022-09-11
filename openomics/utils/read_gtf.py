@@ -15,7 +15,7 @@ from __future__ import print_function, division, absolute_import
 import logging
 from collections import OrderedDict
 from os.path import exists
-from typing import List, Any, Dict
+from typing import List, Dict
 
 import dask.dataframe as dd
 import numpy as np
@@ -276,6 +276,57 @@ def parse_gtf_and_expand_attributes(filepath_or_buffer, blocksize=None, compress
         restrict_attribute_columns (list/set of str or None): If given, then only uses attribute columns.
         features (set or None): Ignore entries which don't correspond to one of the supplied features
     """
+    column_interned_strings = {}
+    value_interned_strings = {}
+
+    def expand_attr_strings(attribute_string: str, quote_char='\"', nan_value=None, usecols=None) -> Dict[str, str]:
+        """The last column of GTF has a variable number of key value pairs of the
+            format: "key1 value1; key2 value2;" Parse these into a dictionary mapping
+            each key onto a list of values, where the value is None for any row where
+            the key was missing.
+
+            Args:
+                attribute_strings (list of str):
+                quote_char (str): Quote character to remove from values
+                nan_value (any): If an attribute is missing from a row, give it this
+                    value.
+                usecols (list of str or None): If not None, then only expand columns
+                    included in this set, otherwise use all columns.
+            """
+        output = {}
+
+        for kv in attribute_string.split(";"):
+            # We're slicing the first two elements out of split() because
+            # Ensembl release 79 added values like:
+            #   transcript_support_level "1 (assigned to previous version 5)";
+            # ...which gets mangled by splitting on spaces.
+            parts = kv.strip().split(" ", 2)[:2]
+
+            if len(parts) != 2:
+                continue
+
+            column_name, value = parts
+
+            try:
+                column_name = column_interned_strings[column_name]
+            except KeyError:
+                column_name = intern(str(column_name))
+                column_interned_strings[column_name] = column_name
+
+            if usecols is not None and column_name not in usecols:
+                continue
+
+            value = value.replace(quote_char, "") if value.startswith(quote_char) else value
+
+            try:
+                value = value_interned_strings[value]
+            except KeyError:
+                value = intern(str(value))
+                value_interned_strings[value] = value
+            output[column_name] = value
+
+        return output
+
     if blocksize:
         df = parse_gtf_dask(filepath_or_buffer, blocksize=blocksize, compression=compression, features=features)
 
@@ -283,9 +334,9 @@ def parse_gtf_and_expand_attributes(filepath_or_buffer, blocksize=None, compress
 
         # Sample
         attr_vals = attribute_values.head(500, )
-        expected_columns = attr_vals.map(expand_attr_map_func).apply(pd.Series).columns
+        expected_columns = attr_vals.map(expand_attr_strings).apply(pd.Series).columns
 
-        df = dd.concat([df, attribute_values.map(expand_attr_map_func).apply(pd.Series, meta=pd.DataFrame(
+        df = dd.concat([df, attribute_values.map(expand_attr_strings).apply(pd.Series, meta=pd.DataFrame(
             columns=expected_columns))], axis=1)
     else:
         df = parse_gtf(filepath_or_buffer, chunksize=chunksize, features=features)
@@ -297,7 +348,6 @@ def parse_gtf_and_expand_attributes(filepath_or_buffer, blocksize=None, compress
             df[column_name] = values
 
     return df
-
 
 def expand_attribute_strings(attribute_strings: List[str], quote_char='\"', nan_value=None,
                              usecols=None) -> OrderedDict:
@@ -384,39 +434,4 @@ def expand_attribute_strings(attribute_strings: List[str], quote_char='\"', nan_
         for column_name in column_order)
 
 
-def expand_attr_map_func(attribute_string: str, quote_char='\"', nan_value=None, usecols=None) -> Dict[str, Any]:
-    output = {}
 
-    column_interned_strings = {}
-    value_interned_strings = {}
-    for kv in attribute_string.split(";"):
-        # We're slicing the first two elements out of split() because
-        # Ensembl release 79 added values like:
-        #   transcript_support_level "1 (assigned to previous version 5)";
-        # ...which gets mangled by splitting on spaces.
-        parts = kv.strip().split(" ", 2)[:2]
-
-        if len(parts) != 2:
-            continue
-
-        column_name, value = parts
-
-        try:
-            column_name = column_interned_strings[column_name]
-        except KeyError:
-            column_name = intern(str(column_name))
-            column_interned_strings[column_name] = column_name
-
-        if usecols is not None and column_name not in usecols:
-            continue
-
-        value = value.replace(quote_char, "") if value.startswith(quote_char) else value
-
-        try:
-            value = value_interned_strings[value]
-        except KeyError:
-            value = intern(str(value))
-            value_interned_strings[value] = value
-        output[column_name] = value
-
-    return output
