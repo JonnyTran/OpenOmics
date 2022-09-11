@@ -136,7 +136,10 @@ class GENCODE(SequenceDatabase):
         dfs = []
         if blocksize:
             for filename in file_resources:
-                if filename.endswith(".gtf.gz"):
+                if filename.endswith(".gtf") and isinstance(file_resources[filename], str):
+                    df = read_gtf(file_resources[filename], blocksize=blocksize)
+                    dfs.append(df)
+                elif filename.endswith(".gtf.gz") and isinstance(file_resources[filename], str):
                     df = read_gtf(file_resources[filename], blocksize=blocksize, compression="gzip")
                     dfs.append(df)
             annotation_df = dd.concat(dfs)
@@ -175,7 +178,7 @@ class GENCODE(SequenceDatabase):
         fa = Fasta(fasta_file, key_function=get_transcript_id, as_raw=True)
 
         entries = []
-        for key, record in fa.items():
+        for key, record in tqdm.tqdm(fa.items(), desc=str(fasta_file)):
             if isinstance(keys, (set, list, pd.Index, pd.Series)) and key not in keys: continue
 
             record_dict = {

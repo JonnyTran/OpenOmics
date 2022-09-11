@@ -15,7 +15,7 @@ from __future__ import print_function, division, absolute_import
 import logging
 from collections import OrderedDict
 from os.path import exists
-from typing import List
+from typing import List, Any, Dict
 
 import dask.dataframe as dd
 import numpy as np
@@ -66,7 +66,7 @@ def read_gtf(filepath_or_buffer, blocksize=None, compression=None, expand_attrib
             give set. If None, then load all columns.
         features (set of str or None): Drop rows which aren't one of the
             features in the supplied set
-        chunksize (int):
+        chunksize (int): The chunksize for pandas.read_csv(), ignored if blocksize is not None.
     """
     if isinstance(filepath_or_buffer, string_types) and not exists(filepath_or_buffer):
         raise ValueError("GTF file does not exist: %s" % filepath_or_buffer)
@@ -278,15 +278,15 @@ def parse_gtf_and_expand_attributes(filepath_or_buffer, blocksize=None, compress
     """
     if blocksize:
         df = parse_gtf_dask(filepath_or_buffer, blocksize=blocksize, compression=compression, features=features)
-        df = df.reset_index(drop=False)
-        df = df.set_index("index")
 
         attribute_values = df.pop("attribute")
 
-        for column_name, values in expand_attribute_strings(attribute_values,
-                                                            usecols=restrict_attribute_columns).items():
-            series = dd.from_array(np.array(values, dtype=str))
-            df[column_name] = series
+        # Sample
+        attr_vals = attribute_values.head(500, )
+        expected_columns = attr_vals.map(expand_attr_map_func).apply(pd.Series).columns
+
+        df = dd.concat([df, attribute_values.map(expand_attr_map_func).apply(pd.Series, meta=pd.DataFrame(
+            columns=expected_columns))], axis=1)
     else:
         df = parse_gtf(filepath_or_buffer, chunksize=chunksize, features=features)
 
@@ -382,3 +382,41 @@ def expand_attribute_strings(attribute_strings: List[str], quote_char='\"', nan_
     return OrderedDict(
         (column_name, extra_columns[column_name])
         for column_name in column_order)
+
+
+def expand_attr_map_func(attribute_string: str, quote_char='\"', nan_value=None, usecols=None) -> Dict[str, Any]:
+    output = {}
+
+    column_interned_strings = {}
+    value_interned_strings = {}
+    for kv in attribute_string.split(";"):
+        # We're slicing the first two elements out of split() because
+        # Ensembl release 79 added values like:
+        #   transcript_support_level "1 (assigned to previous version 5)";
+        # ...which gets mangled by splitting on spaces.
+        parts = kv.strip().split(" ", 2)[:2]
+
+        if len(parts) != 2:
+            continue
+
+        column_name, value = parts
+
+        try:
+            column_name = column_interned_strings[column_name]
+        except KeyError:
+            column_name = intern(str(column_name))
+            column_interned_strings[column_name] = column_name
+
+        if usecols is not None and column_name not in usecols:
+            continue
+
+        value = value.replace(quote_char, "") if value.startswith(quote_char) else value
+
+        try:
+            value = value_interned_strings[value]
+        except KeyError:
+            value = intern(str(value))
+            value_interned_strings[value] = value
+        output[column_name] = value
+
+    return output
