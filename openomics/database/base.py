@@ -51,9 +51,13 @@ class Database(object):
                 the data table. If None, then automatically load defaults.
             blocksize (int): [0-n], default 0 If 0, then uses a Pandas
                 DataFrame, if >1, then creates an off-memory Dask DataFrame with
-                n partitions
+                partitions where each partion contains `blocksize` rows.
             verbose (bool): Default False.
         """
+        if blocksize:
+            assert not isinstance(blocksize, (bool, float)) and blocksize > 10, \
+                f"blocksize ({blocksize}) is too small and will cause a huge overhead in Dask dataframes."
+
         self.blocksize = blocksize
         self.verbose = verbose
         self.data_path = path
