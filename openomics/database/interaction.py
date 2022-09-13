@@ -4,10 +4,10 @@ from typing import List, Dict, Optional
 
 import networkx as nx
 from Bio import SeqIO
-
 from openomics.database.annotation import *
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
+from pandas import DataFrame
 
 
 class Interactions(Database):
@@ -266,13 +266,15 @@ class STRING(Interactions, SequenceDatabase):
 
         if file_resources is None:
             file_resources = {}
-            if isinstance(species_id, str) and len(species_id):
-                file_resources["protein.info.txt.gz"] = \
-                    os.path.join(path, f"protein.info.{version}/{species_id}.protein.info.{version}.txt.gz")
-                file_resources["protein.links.txt.gz"] = \
-                    os.path.join(path, f"protein.links.{version}/{species_id}.protein.links.{version}.txt.gz")
-                file_resources["protein.sequences.fa.gz"] = \
-                    os.path.join(path, f"protein.sequences.{version}/{species_id}.protein.sequences.{version}.fa.gz")
+            if isinstance(species_id, (list, str)) and len(species_id):
+                species_list = species_id if isinstance(species_id, list) else [species_id]
+                for id in species_list:
+                    file_resources[f"{id}.protein.info.txt.gz"] = \
+                        os.path.join(path, f"protein.info.{version}/{id}.protein.info.{version}.txt.gz")
+                    file_resources[f"{id}.protein.links.txt.gz"] = \
+                        os.path.join(path, f"protein.links.{version}/{id}.protein.links.{version}.txt.gz")
+                    file_resources[f"{id}.protein.sequences.fa.gz"] = \
+                        os.path.join(path, f"protein.sequences.{version}/{id}.protein.sequences.{version}.fa.gz")
             else:
                 file_resources["protein.info.txt.gz"] = os.path.join(path, f"protein.info.{version}.txt.gz")
                 file_resources["protein.links.txt.gz"] = os.path.join(path, f"protein.links.{version}.txt.gz")
@@ -285,23 +287,42 @@ class STRING(Interactions, SequenceDatabase):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
                      blocksize=None):
+        edges_dfs = []
         if blocksize:
-            edges_df = dd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True, blocksize=blocksize)
+            for filename in file_resources:
+                if "links.txt" in filename and isinstance(file_resources[filename], str):
+                    df = dd.read_table(file_resources[filename], sep=" ", low_memory=True,
+                                       compression='gzip' if filename.endswith(".gz") else None, blocksize=blocksize)
+                    edges_dfs.append(df)
         else:
-            edges_df = pd.read_table(file_resources["protein.links.txt"], sep=" ", low_memory=True)
+            for filename in file_resources:
+                if filename.endswith("links.txt"):
+                    df = pd.read_table(file_resources[filename], sep=" ", low_memory=True)
+                    edges_dfs.append(df)
+
+        edges_df = dd.concat(edges_dfs, axis=0) if blocksize else pd.concat(edges_dfs, axis=0)
         edges_df = edges_df.rename(columns=self.COLUMNS_RENAME_DICT)
+        print(f"{self.name()}-{self.species_id}: {edges_df.columns.tolist()}, {edges_df.shape}")
 
-        print(f"{self.name()}: {edges_df.columns.tolist()}")
-
+        data_dfs = []
         if blocksize:
-            self.data = dd.read_table(file_resources["protein.info.txt"], na_values=['annotation not available'],
-                                      blocksize=blocksize)
+            for filename in file_resources:
+                if 'info.txt' in filename and isinstance(file_resources[filename], str):  # ensure no decompressed files
+                    df = dd.read_table(file_resources[filename], na_values=['annotation not available'],
+                                       low_memory=True,
+                                       compression='gzip' if filename.endswith(".gz") else None, blocksize=blocksize)
+                    data_dfs.append(df)
         else:
-            self.data = pd.read_table(file_resources["protein.info.txt"], na_values=['annotation not available'])
+            for filename in file_resources:
+                if filename.endswith("protein.info.txt"):
+                    df = pd.read_table(file_resources[filename], na_values=['annotation not available'],
+                                       low_memory=True)
+                    data_dfs.append(df)
+
+        self.data = dd.concat(data_dfs, axis=0) if blocksize else pd.concat(data_dfs, axis=0)
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
-        self.protein_id2name = self.data.set_index("protein_id")["protein_name"].to_dict()
-
+        # Determine which edge attr to add
         if isinstance(edge_attr, (list, tuple)):
             cols = edges_df.columns.intersection(edge_attr + [source_col_name, target_col_name])
 
@@ -313,10 +334,23 @@ class STRING(Interactions, SequenceDatabase):
         else:
             use_attrs = False
 
-        network = nx.from_pandas_edgelist(edges_df, source=source_col_name, target=target_col_name,
-                                          edge_attr=use_attrs, create_using=nx.DiGraph() if directed else nx.Graph())
+        if blocksize:
+            G = nx.DiGraph() if directed else nx.Graph()
+
+            def add_edgelist(edgelist_df: DataFrame) -> None:
+                edgelist = [(row[0], row[1], row[2:].to_dict()) for i, row in edgelist_df.iterrows()]
+                G.add_edges_from(edgelist)
+
+            # Add edges to Networkx Graph
+            edges_df.map_partitions(add_edgelist).compute()
+
+        else:
+            G = nx.from_pandas_edgelist(edges_df, source=source_col_name, target=target_col_name,
+                                        edge_attr=use_attrs, create_using=nx.DiGraph() if directed else nx.Graph())
+
+        # self.protein_id2name = self.data.set_index("protein_id")["protein_name"].to_dict()
         # network = nx.relabel_nodes(network, self.protein_id2name)
-        return network
+        return G
 
     def get_sequences(self, index_name="protein_id", omic=None, agg=None):
         if hasattr(self, "seq_dict"):

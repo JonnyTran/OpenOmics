@@ -4,16 +4,16 @@ from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple
 
+import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
+from openomics.utils.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
-import openomics
-from openomics.utils.read_gtf import read_gtf
 from .base import Database
 
 SEQUENCE_COL = 'sequence'
@@ -138,11 +138,9 @@ class GENCODE(SequenceDatabase):
         dfs = []
         if blocksize:
             for filename in file_resources:
-                if filename.endswith(".gtf") and isinstance(file_resources[filename], str):
-                    df = read_gtf(file_resources[filename], blocksize=blocksize)
-                    dfs.append(df)
-                elif filename.endswith(".gtf.gz") and isinstance(file_resources[filename], str):
-                    df = read_gtf(file_resources[filename], blocksize=blocksize, compression="gzip")
+                if '.gtf' in filename and isinstance(file_resources[filename], str):
+                    df = read_gtf(file_resources[filename], blocksize=blocksize,
+                                  compression="gzip" if filename.endswith(".gz") else None)
                     dfs.append(df)
             annotation_df = dd.concat(dfs)
         else:
@@ -268,8 +266,9 @@ class UniProt(SequenceDatabase):
         "NCBI-taxon": "species_id",
         "GeneID (EntrezGene)": "entrezgene_id",
         "GO": "go_id",
-        "OS": 'species', "OX": 'species_id', 'GN': 'gene_name', 'PE': 'ProteinExistence', 'SV': "version",
+
         # FASTA headers
+        "OS": 'species', "OX": 'species_id', 'GN': 'gene_name', 'PE': 'ProteinExistence', 'SV': "version",
     }
 
     SPECIES_ID_NAME = {
@@ -325,6 +324,9 @@ class UniProt(SequenceDatabase):
                 file_resources["idmapping_selected.tab.gz"] = os.path.join(
                     path, "knowledgebase/idmapping/by_organism/",
                     f'{self.species}_{self.species_id}_idmapping_selected.tab.gz')
+
+        if 'speclist.txt' not in file_resources:
+            file_resources['speclist.txt'] = 'knowledgebase/complete/docs/speclist'
 
         if 'proteomes.tsv' not in file_resources:
             file_resources["proteomes.tsv"] = \

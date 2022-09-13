@@ -3,7 +3,6 @@ from io import StringIO
 from os.path import expanduser
 
 from bioservices import BioMart
-
 from openomics.database.base import Database
 from openomics.utils.df import concat_uniques
 
@@ -383,12 +382,13 @@ class BioMartManager:
 
         try:
             if blocksize:
-                df = dd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", blocksize=blocksize)
+                df = dd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True,
+                                 dtype={"entrezgene_id": "str"}, blocksize=blocksize)
             else:
                 df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True,
                                  dtype={"entrezgene_id": "str"})
         except Exception as e:
-            print(results)
+            print('BioMart Query Result:', results)
             raise e
 
         if cache:
@@ -419,12 +419,17 @@ class EnsemblGenes(BioMartManager, Database):
                           'chromosome_name', 'transcript_start', 'transcript_end', 'transcript_length',
                           'gene_biotype', 'transcript_biotype', ]
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
+
+        self.biomart = biomart
         self.host = host
         self.data = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
                                    filename=self.filename, blocksize=blocksize)
 
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
         print(self.name(), self.data.columns.tolist())
+
+    def name(self):
+        return super().name() + self.biomart
 
     def load_data(self, dataset, attributes, host, filename=None, blocksize=None):
         """
@@ -474,6 +479,8 @@ class EnsemblGeneSequences(EnsemblGenes):
             attributes = ['ensembl_gene_id', 'gene_exon_intron', 'gene_flank', 'coding_gene_flank', 'gene_exon',
                           'coding']
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
+
+        self.biomart = biomart
         self.host = host
         self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
                                  filename=self.filename, blocksize=blocksize)
@@ -495,6 +502,8 @@ class EnsemblTranscriptSequences(EnsemblGenes):
                           'coding_transcript_flank',
                           '5utr', '3utr']
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
+
+        self.biomart = biomart
         self.host = host
         self.df = self.load_data(dataset=biomart, attributes=attributes, host=self.host,
                                  filename=self.filename, blocksize=blocksize)
@@ -517,6 +526,8 @@ class EnsemblSNP(EnsemblGenes):
                           'phenotype_name',
                           'chr_name', 'chrom_start', 'chrom_end']
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
+
+        self.biomart = biomart
         self.host = host
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
@@ -537,6 +548,8 @@ class EnsemblSomaticVariation(EnsemblGenes):
                           'somatic_mapweight',
                           'somatic_chromosome_start', 'somatic_chromosome_end']
         self.filename = "{}.{}".format(biomart, self.__class__.__name__)
+
+        self.biomart = biomart
         self.host = host
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
 
