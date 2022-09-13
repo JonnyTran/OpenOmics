@@ -10,9 +10,9 @@ import numpy as np
 import obonet
 import pandas as pd
 from networkx import NetworkXError
-from openomics.utils.adj import slice_adj
 from pandas import DataFrame
 
+from openomics.utils.adj import slice_adj
 from .base import Database
 from ..utils.read_gaf import read_gaf
 
@@ -269,9 +269,10 @@ class GeneOntology(Ontology):
             gaf_name = filename.split(".")[0]
             if blocksize:
                 if filename.endswith(".gaf.gz") and gaf_name not in dfs:
-                    dfs[gaf_name] = read_gaf(file_resources[filename], blocksize=blocksize, compression='gzip')
+                    dfs[gaf_name] = read_gaf(file_resources[filename], blocksize=blocksize if blocksize > 10 else None,
+                                             compression='gzip')
                 elif filename.endswith(".gaf") and gaf_name not in dfs:
-                    dfs[gaf_name] = read_gaf(file_resources[filename], blocksize=blocksize)
+                    dfs[gaf_name] = read_gaf(file_resources[filename], blocksize=blocksize if blocksize > 10 else None)
             else:
                 if filename.endswith(".gaf"):
                     dfs[gaf_name] = read_gaf(file_resources[filename], )
@@ -558,7 +559,7 @@ class InterPro(Ontology):
             names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
             usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
             dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category'},
-            blocksize=blocksize)
+            blocksize=blocksize if blocksize > 10 else None)
 
         return ipr_entries
 

@@ -13,6 +13,7 @@ import dask.dataframe as dd
 import filetype
 import pandas as pd
 import validators
+
 from openomics.utils.df import concat_uniques, concat
 from openomics.utils.io import get_pkg_data_filename, decompress_file
 
@@ -54,7 +55,7 @@ class Database(object):
             verbose (bool): Default False.
         """
         if blocksize:
-            assert not isinstance(blocksize, (bool, float)) and blocksize > 10, \
+            assert isinstance(blocksize, bool) or (isinstance(blocksize, int) and blocksize > 10), \
                 f"blocksize ({blocksize}) is too small and will cause a huge overhead in Dask dataframes."
 
         self.blocksize = blocksize

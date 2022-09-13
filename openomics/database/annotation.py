@@ -3,6 +3,7 @@ from io import StringIO
 from os.path import expanduser
 
 from bioservices import BioMart
+
 from openomics.database.base import Database
 from openomics.utils.df import concat_uniques
 
@@ -50,7 +51,7 @@ class ProteinAtlas(Database):
             blocksize:
         """
         if blocksize:
-            df = dd.read_table(file_resources["proteinatlas.tsv"], blocksize=blocksize)
+            df = dd.read_table(file_resources["proteinatlas.tsv"], blocksize=blocksize if blocksize > 10 else None)
         else:
             df = pd.read_table(file_resources["proteinatlas.tsv"])
 
@@ -124,7 +125,7 @@ class RNAcentral(Database):
         args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"], dtype=str)
         if blocksize:
             go_terms = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip",
-                                     blocksize=blocksize, **args)
+                                     blocksize=blocksize if blocksize > 10 else None, **args)
         else:
             go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
         go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.replace("_(.*)", '', regex=True)
@@ -136,7 +137,8 @@ class RNAcentral(Database):
                             names=["RNAcentral id", "database", "external id", "species_id", "RNA type", "gene symbol"],
                             dtype={"species_id": 'str'})
                 if blocksize:
-                    id_mapping = dd.read_table(file_resources[filename], blocksize=blocksize, **args)
+                    id_mapping = dd.read_table(file_resources[filename],
+                                               blocksize=blocksize if blocksize > 10 else None, **args)
                 else:
                     id_mapping = pd.read_table(file_resources[filename], **args)
 
@@ -289,7 +291,7 @@ class NONCODE(Database):
 
         if blocksize:
             self.noncode_func_df = dd.read_table(file_resources["NONCODEv5_human.func"], header=None,
-                                                 blocksize=blocksize)
+                                                 blocksize=blocksize if blocksize > 10 else None)
         else:
             self.noncode_func_df = pd.read_table(file_resources["NONCODEv5_human.func"], header=None)
         self.noncode_func_df.columns = ["NONCODE Gene ID", "GO terms"]
@@ -383,7 +385,7 @@ class BioMartManager:
         try:
             if blocksize:
                 df = dd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True,
-                                 dtype={"entrezgene_id": "str"}, blocksize=blocksize)
+                                 dtype={"entrezgene_id": "str"}, blocksize=blocksize if blocksize > 10 else None)
             else:
                 df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True,
                                  dtype={"entrezgene_id": "str"})
