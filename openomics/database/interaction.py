@@ -4,10 +4,11 @@ from typing import List, Dict, Optional
 
 import networkx as nx
 from Bio import SeqIO
+from pandas import DataFrame
+
 from openomics.database.annotation import *
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
-from pandas import DataFrame
 
 
 class Interactions(Database):
@@ -292,7 +293,8 @@ class STRING(Interactions, SequenceDatabase):
             for filename in file_resources:
                 if "links.txt" in filename and isinstance(file_resources[filename], str):
                     df = dd.read_table(file_resources[filename], sep=" ", low_memory=True,
-                                       compression='gzip' if filename.endswith(".gz") else None, blocksize=blocksize)
+                                       compression='gzip' if filename.endswith(".gz") else None,
+                                       blocksize=blocksize if blocksize > 10 else None)
                     edges_dfs.append(df)
         else:
             for filename in file_resources:
@@ -310,7 +312,8 @@ class STRING(Interactions, SequenceDatabase):
                 if 'info.txt' in filename and isinstance(file_resources[filename], str):  # ensure no decompressed files
                     df = dd.read_table(file_resources[filename], na_values=['annotation not available'],
                                        low_memory=True,
-                                       compression='gzip' if filename.endswith(".gz") else None, blocksize=blocksize)
+                                       compression='gzip' if filename.endswith(".gz") else None,
+                                       blocksize=blocksize if blocksize > 10 else None)
                     data_dfs.append(df)
         else:
             for filename in file_resources:

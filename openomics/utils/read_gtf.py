@@ -49,7 +49,7 @@ def read_gtf(filepath_or_buffer, blocksize=None, compression=None, expand_attrib
     Args:
         filepath_or_buffer (str or buffer object): Path to GTF file (may be gzip
             compressed) or buffer object such as StringIO
-        blocksize (int): Number of blocksize for the dask dataframe. Default None to use pandas.DataFrame instead.
+        blocksize (int): Number of blocksize for the dask dataframe, if an integer > 10. Default None to use pandas.DataFrame instead.
         compression (str): Compression type to be passed into dask.dataframe.read_table(). Default None.
         expand_attribute_column (bool): Replace strings of semi-colon separated
             key-value values in the 'attribute' column with one column per
@@ -241,7 +241,7 @@ def parse_gtf_dask(filepath_or_buffer, blocksize=None, compression=None, feature
         filepath_or_buffer,
         sep="\t",
         compression=compression,
-        blocksize=blocksize,
+        blocksize=blocksize if blocksize > 10 else None,
         comment="#",
         names=COLUMN_NAMES,
         skipinitialspace=True,
