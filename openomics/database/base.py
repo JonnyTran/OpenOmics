@@ -13,7 +13,6 @@ import dask.dataframe as dd
 import filetype
 import pandas as pd
 import validators
-
 from openomics.utils.df import concat_uniques, concat
 from openomics.utils.io import get_pkg_data_filename, decompress_file
 
@@ -97,7 +96,7 @@ class Database(object):
                 filepath_ext = filetype.guess(filepath)
 
             # Local database path
-            elif exists(base_path) and (exists(filepath) or exists(join(base_path, filepath))):
+            elif exists(filepath) or exists(join(base_path, filepath)):
                 if isinstance(filepath, str) and not exists(filepath):
                     if exists(os.path.join(base_path, filepath)):
                         filepath = os.path.join(base_path, filepath)

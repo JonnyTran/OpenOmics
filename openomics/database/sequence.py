@@ -295,6 +295,7 @@ class UniProt(SequenceDatabase):
             file_resources['uniprot_sprot.xml.gz'] = "knowledgebase/complete/uniprot_sprot.xml.gz
             file_resources['uniprot_trembl.xml.gz'] = "knowledgebase/complete/uniprot_trembl.xml.gz
             file_resources["idmapping_selected.tab.gz"] = "knowledgebase/idmapping/idmapping_selected.tab.gz'
+            file_resources['speclist.txt'] = 'https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/docs/speclist'
         }
 
         Args:
@@ -324,9 +325,6 @@ class UniProt(SequenceDatabase):
                 file_resources["idmapping_selected.tab.gz"] = os.path.join(
                     path, "knowledgebase/idmapping/by_organism/",
                     f'{self.species}_{self.species_id}_idmapping_selected.tab.gz')
-
-        if 'speclist.txt' not in file_resources:
-            file_resources['speclist.txt'] = 'knowledgebase/complete/docs/speclist'
 
         if 'proteomes.tsv' not in file_resources:
             file_resources["proteomes.tsv"] = \
@@ -380,13 +378,32 @@ class UniProt(SequenceDatabase):
                     meta=pd.Series([['', '']]),
                     axis=1)
 
-        # Load proteome
+        # Load proteome.tsv
         proteomes = pd.read_table(file_resources["proteomes.tsv"],
                                   usecols=['Organism Id', 'Proteome Id'],
                                   dtype={'Organism Id': 'str', 'Proteome Id': 'str'}) \
             .rename(columns={'Organism Id': 'NCBI-taxon', 'Proteome Id': 'proteome_id'}) \
             .dropna()
         idmapping = idmapping.join(proteomes.set_index('NCBI-taxon'), on='NCBI-taxon')
+
+        # Load species info from speclist.txt
+        if 'speclist.txt' in file_resources:
+            df = pd.read_fwf(file_resources['speclist.txt'], names=['species_code', 'Taxon', 'species_id', 'attr'],
+                             comment="==", skipinitialspace=True, skiprows=59, skipfooter=4)
+            df = df.drop(index=df.index[~df['attr'].str.contains("=")])
+            df['species_id'] = df['species_id'].str.rstrip(":")
+            df = df.fillna(method='ffill')
+            df = df.groupby(df.columns[:3].tolist())['attr'] \
+                .apply('|'.join) \
+                .apply(lambda s: dict(map(str.strip, sub.split('=', 1)) for sub in s.split("|") if '=' in sub)) \
+                .apply(pd.Series)
+            df = df.rename(columns={'N': 'Official (scientific) name', 'C': 'Common name', 'S': 'Synonym'}) \
+                .reset_index() \
+                .set_index('species_id')
+            df['Taxon'] = df['Taxon'].replace(
+                {'A': 'archaea', 'B': 'bacteria', 'E': 'eukaryota', 'V': 'viruses', 'O': 'others'})
+            df.index.name = 'NCBI-taxon'
+            idmapping = idmapping.join(df, on='NCBI-taxon')
 
         return idmapping
 
