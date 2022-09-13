@@ -1,6 +1,5 @@
 import os
 import warnings
-from abc import ABCMeta, abstractmethod
 from collections.abc import Iterable
 from io import TextIOWrapper, StringIO
 from typing import Tuple, List, Dict, Union, Callable, Optional
@@ -18,7 +17,7 @@ from .base import Database
 from ..utils.read_gaf import read_gaf
 
 
-class Ontology(Database, metaclass=ABCMeta):
+class Ontology(Database):
     annotations: pd.DataFrame
 
     def __init__(self,
@@ -168,24 +167,23 @@ class Ontology(Database, metaclass=ABCMeta):
         print(go_id_colors.unique().shape, go_colors["HCL.color"].unique().shape)
         return go_id_colors
 
-    @abstractmethod
     def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", train_date="2017-06-15",
                           valid_date="2017-11-15", test_date="2021-12-31", groupby: List[str] = ["Qualifier"],
                           query: Optional[str] = "Evidence in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
                           filter_src_nodes: pd.Index = None, filter_dst_nodes: pd.Index = None,
-                          agg: Union[Callable, str] = "unique"):
+                          agg: Union[Callable, str] = "unique") -> Tuple[DataFrame, DataFrame, DataFrame]:
         """
 
         Args:
-            src_node_col (str): Name of column containg the the src node types
-            dst_node_col (str): Name of column containg the the dst node types
-            train_date (str): A date before which the annotations belongs in the training set
-            valid_date (str): A date before which the annotations belongs in the validation set
-            test_date (str): A date before which the annotations belongs in the testing set
-            groupby (str): A list of strings to groupby annotations on, default [`src_node_col`, "Qualifier"]
-            query (str, optional):
-            filter_src_nodes (pd.Index): A subset annotations by these values on `src_node_col`
-            filter_dst_nodes (pd.Index): A subset annotations by these values on `dst_node_col`
+            src_node_col (str): Name of column containg the the src node types.
+            dst_node_col (str): Name of column containg the the dst node types.
+            train_date (str): A date before which the annotations belongs in the training set.
+            valid_date (str): A date before which the annotations belongs in the validation set.
+            test_date (str): A date before which the annotations belongs in the testing set.
+            groupby (str): A list of strings to groupby annotations on, default [`src_node_col`, "Qualifier"].
+            query (str, optional): A pandas query string to filter annotations. Default, only select ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC'] annotations.
+            filter_src_nodes (pd.Index): A subset annotations by these values on `src_node_col`.
+            filter_dst_nodes (pd.Index): A subset annotations by these values on `dst_node_col`.
             agg (str): Either "unique" or "add_parent", or a callable function, or a dd.Aggregation() for aggregating on the `dst_node_col` column after groupby on `groupby`.
         """
         raise NotImplementedError
@@ -584,6 +582,7 @@ class InterPro(Ontology):
                 edgelist = [(row[0], row[1], row[2:].to_dict()) for i, row in edgelist_df.iterrows()]
                 g.add_edges_from(edgelist, weight=1)
 
+        # Add edges to Networkx Graph
         self.annotations.map_partitions(add_edgelist).compute()
 
         adj = nx.bipartite.biadjacency_matrix(g, row_order=protein_ids, column_order=self.data["ENTRY_AC"],
