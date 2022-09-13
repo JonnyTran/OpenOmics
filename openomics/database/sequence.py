@@ -388,22 +388,25 @@ class UniProt(SequenceDatabase):
 
         # Load species info from speclist.txt
         if 'speclist.txt' in file_resources:
-            df = pd.read_fwf(file_resources['speclist.txt'], names=['species_code', 'Taxon', 'species_id', 'attr'],
-                             comment="==", skipinitialspace=True, skiprows=59, skipfooter=4)
-            df = df.drop(index=df.index[~df['attr'].str.contains("=")])
-            df['species_id'] = df['species_id'].str.rstrip(":")
-            df = df.fillna(method='ffill')
-            df = df.groupby(df.columns[:3].tolist())['attr'] \
+            speclist = pd.read_fwf(file_resources['speclist.txt'],
+                                   names=['species_code', 'Taxon', 'species_id', 'attr'],
+                                   comment="==", skipinitialspace=True, skiprows=59, skipfooter=4)
+            speclist = speclist.drop(index=speclist.index[~speclist['attr'].str.contains("=")])
+            speclist['species_id'] = speclist['species_id'].str.rstrip(":")
+
+            speclist = speclist.fillna(method='ffill')
+            speclist = speclist.groupby(speclist.columns[:3].tolist())['attr'] \
                 .apply('|'.join) \
                 .apply(lambda s: dict(map(str.strip, sub.split('=', 1)) for sub in s.split("|") if '=' in sub)) \
                 .apply(pd.Series)
-            df = df.rename(columns={'N': 'Official (scientific) name', 'C': 'Common name', 'S': 'Synonym'}) \
+
+            speclist = speclist.rename(columns={'N': 'Official (scientific) name', 'C': 'Common name', 'S': 'Synonym'}) \
                 .reset_index() \
                 .set_index('species_id')
-            df['Taxon'] = df['Taxon'].replace(
+            speclist['Taxon'] = speclist['Taxon'].replace(
                 {'A': 'archaea', 'B': 'bacteria', 'E': 'eukaryota', 'V': 'viruses', 'O': 'others'})
-            df.index.name = 'NCBI-taxon'
-            idmapping = idmapping.join(df, on='NCBI-taxon')
+            speclist.index.name = 'NCBI-taxon'
+            idmapping = idmapping.join(speclist, on='NCBI-taxon')
 
         return idmapping
 
