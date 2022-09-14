@@ -1,11 +1,11 @@
 import os
+import re
 from io import StringIO
 from os.path import expanduser
 
 from bioservices import BioMart
 
 from openomics.database.base import Database
-from openomics.utils.df import concat_uniques
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
@@ -89,13 +89,14 @@ class RNAcentral(Database):
     """
     COLUMNS_RENAME_DICT = {
         'ensembl_gene_id': 'gene_id',
-        'gene symbol': 'gene_name',
         'external id': 'transcript_id',
-        'GO terms': 'go_id'
+        'GO terms': 'go_id',
+        'gene symbol': 'gene_id',
     }
 
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606', blocksize=None, verbose=False):
+                 col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606', blocksize=None, verbose=False,
+                 remove_version_num=True):
         """
         Args:
             path:
@@ -106,13 +107,13 @@ class RNAcentral(Database):
             verbose:
         """
         self.species_id = species_id
+        self.remove_version_num = remove_version_num
 
         if file_resources is None:
             file_resources = {}
             file_resources["rnacentral_rfam_annotations.tsv.gz"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
             file_resources["database_mappings/gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
             file_resources["database_mappings/mirbase.tsv"] = "id_mapping/database_mappings/mirbase.tsv"
-
         super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize,
                          verbose=verbose)
 
@@ -122,45 +123,44 @@ class RNAcentral(Database):
             file_resources:
             blocksize:
         """
-        args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"], dtype=str)
-        if blocksize:
-            go_terms = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip",
-                                     blocksize=blocksize if blocksize > 10 else None, **args)
-        else:
-            go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
-        go_terms["RNAcentral id"] = go_terms["RNAcentral id"].str.replace("_(.*)", '', regex=True)
-
         transcripts_df = []
         for filename in file_resources:
             if "database_mappings" in filename:
                 args = dict(low_memory=True, header=None,
                             names=["RNAcentral id", "database", "external id", "species_id", "RNA type", "gene symbol"],
-                            dtype={"species_id": 'str'})
+                            dtype={'gene symbol': 'str',
+                                   'database': 'category', 'species_id': 'str', 'RNA type': 'category', })
                 if blocksize:
                     id_mapping = dd.read_table(file_resources[filename],
                                                blocksize=blocksize if blocksize > 10 else None, **args)
                 else:
                     id_mapping = pd.read_table(file_resources[filename], **args)
-
-                # id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
+                if self.remove_version_num and 'gene symbol' in id_mapping.columns:
+                    id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
                 transcripts_df.append(id_mapping)
 
         if blocksize:
-            transcripts_df = dd.concat(transcripts_df, axis=0)
+            transcripts_df = dd.concat(transcripts_df, axis=0, join='outer')
         else:
-            transcripts_df = pd.concat(transcripts_df, axis=0)
+            transcripts_df = pd.concat(transcripts_df, axis=0, join='outer')
 
         if self.species_id:
-            transcripts_df = transcripts_df[transcripts_df["species_id"] == self.species_id]
+            transcripts_df = transcripts_df.where(transcripts_df["species_id"] == self.species_id)
 
-        rnacentral_ids = transcripts_df["RNAcentral id"].compute() if blocksize else transcripts_df["RNAcentral id"]
+        args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"], dtype={'RNAcentral id': 'category'})
+        if self.remove_version_num:
+            args['converters'] = {"RNAcentral id": lambda s: re.sub("_(.*)", '', s)}
+        if blocksize:  # No need to use dask for a relative small file
+            go_terms = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip",
+                                     blocksize=10000, **args).set_index("RNAcentral id")
+        else:
+            go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
+                                     index_col="RNAcentral id", **args)
 
-        id2go_terms = go_terms[go_terms["RNAcentral id"].isin(rnacentral_ids)] \
-            .groupby("RNAcentral id")["GO terms"].unique()
-        id2rfams = go_terms[go_terms["RNAcentral id"].isin(rnacentral_ids)] \
-            .groupby("RNAcentral id")["Rfams"].unique()
+        id2go_id = go_terms.groupby("RNAcentral id")["GO terms"].unique()
+        id2rfams = go_terms.groupby("RNAcentral id")["Rfams"].unique()
 
-        transcripts_df["GO terms"] = transcripts_df["RNAcentral id"].map(id2go_terms)
+        transcripts_df["GO terms"] = transcripts_df["RNAcentral id"].map(id2go_id)
         transcripts_df["Rfams"] = transcripts_df["RNAcentral id"].map(id2rfams)
 
         return transcripts_df
@@ -335,11 +335,18 @@ class BioMartManager:
             blocksize:
         """
         filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(filename))
+        args = dict(
+            sep="\t",
+            low_memory=True,
+            dtype={'entrezgene_id': 'str', 'chromosome_name': 'str',
+                   'transcript_start': 'str', 'transcript_end': 'str', 'transcript_length': 'str'},
+        )
+
         if os.path.exists(filename):
             if blocksize:
-                df = dd.read_csv(filename, sep="\t", blocksize=blocksize)
+                df = dd.read_csv(filename, blocksize=blocksize if blocksize > 10 else None, **args)
             else:
-                df = pd.read_csv(filename, sep="\t", low_memory=True)
+                df = pd.read_csv(filename, **args)
         else:
             df = self.query_biomart(host=host, dataset=dataset, attributes=attributes,
                                     cache=True, save_filename=filename)
@@ -431,7 +438,7 @@ class EnsemblGenes(BioMartManager, Database):
         print(self.name(), self.data.columns.tolist())
 
     def name(self):
-        return super().name() + self.biomart
+        return f"{super().name()} {self.biomart}"
 
     def load_data(self, dataset, attributes, host, filename=None, blocksize=None):
         """
@@ -444,28 +451,6 @@ class EnsemblGenes(BioMartManager, Database):
         """
         df = self.retrieve_dataset(host, dataset, attributes, filename, blocksize=blocksize)
         return df
-
-    def get_rename_dict(self, from_index="gene_id", to_index="gene_name"):
-        """
-        Args:
-            from_index:
-            to_index:
-        """
-        geneid_to_genename = self.data[self.data[to_index].notnull()] \
-            .groupby(from_index)[to_index] \
-            .apply(concat_uniques).to_dict()
-        return geneid_to_genename
-
-    def get_functional_annotations(self, index):
-        """
-        Args:
-            index:
-        """
-        geneid_to_go = self.data[self.data["go_id"].notnull()] \
-            .groupby(index)["go_id"] \
-            .apply(lambda x: "|".join(x.unique())).to_dict()
-        return geneid_to_go
-
 
 class EnsemblGeneSequences(EnsemblGenes):
     def __init__(self, biomart="hsapiens_gene_ensembl",

@@ -1,6 +1,5 @@
 import copy
 import difflib
-import itertools
 import logging
 import os
 import warnings
@@ -182,7 +181,7 @@ class Database(object):
 
     def get_annotations(self, on: Union[str, List[str]],
                         columns: List[str],
-                        agg: str = "concat_uniques",
+                        agg: str = "unique",
                         keys: pd.Index = None):
         """Returns the Database's DataFrame such that it's indexed by :param
         index:, which then applies a groupby operation and aggregates all other
@@ -211,7 +210,10 @@ class Database(object):
             columns.pop(columns.index(on))
 
         select_col = columns + ([on] if not isinstance(on, list) else on)
-        df = self.data.filter(select_col, axis="columns")
+        if isinstance(self.data, pd.DataFrame):
+            df = self.data.filter(select_col, axis="columns")
+        elif isinstance(self.data, dd.DataFrame):
+            df = self.data[select_col]
 
         if keys is not None:
             if on == df.index.name:
@@ -226,20 +228,17 @@ class Database(object):
             groupby = df.groupby(on)
 
         #  Aggregate by all columns by concatenating unique values
-        if agg == "concat_uniques":
+        if agg == "unique":
             if isinstance(df, pd.DataFrame):
                 grouby_agg = groupby.agg({col: concat_uniques for col in columns})
 
             elif isinstance(df, dd.DataFrame):
-                collect_concat = dd.Aggregation(
-                    name='collect_concat',
-                    chunk=lambda s1: s1.apply(list),
-                    agg=lambda s2: s2.apply(lambda chunks: filter(
-                        lambda x: False if x == "None" or x is None else True,
-                        set(itertools.chain.from_iterable(chunks)))),
-                    finalize=lambda s3: s3.apply(lambda xx: '|'.join(xx))
+                agg_func = dd.Aggregation(
+                    name=agg,
+                    chunk=lambda s1: s1.apply(concat_uniques),
+                    agg=lambda s2: s2.obj,
                 )
-                grouby_agg = groupby.agg({col: collect_concat for col in columns})
+                grouby_agg = groupby.agg({col: agg_func for col in columns})
 
             else:
                 raise Exception("Unsupported dataframe: {}".format(df))
@@ -301,7 +300,7 @@ class Annotatable(ABC):
         self.annotations: pd.DataFrame = pd.DataFrame(index=index)
 
     def annotate_attributes(self, database: Union[Database, pd.DataFrame], on: Union[str, List[str]],
-                            columns: List[str], agg: str = "concat_uniques",
+                            columns: List[str], agg: str = "unique",
                             fuzzy_match: bool = False):
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present

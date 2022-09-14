@@ -369,7 +369,7 @@ class GeneOntology(Ontology):
 
             elif isinstance(anns, dd.DataFrame) and len(anns.index) and dst_node_col in anns.columns:
                 pos_anns = anns[~is_neg_ann].groupby(groupby).agg({dst_node_col: agg})
-                if len(is_neg_ann.index):
+                if False and len(is_neg_ann.index):
                     neg_anns = anns[is_neg_ann].groupby(groupby).agg({dst_node_col: agg})
                     neg_anns.columns = [neg_dst_col]
                     pos_neg_anns = dd.concat([pos_anns, neg_anns], axis=1)
@@ -554,16 +554,33 @@ class InterPro(Ontology):
 
         ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
 
-        self.annotations: dd.DataFrame = dd.read_table(
+        self.annotations = dd.read_table(
             file_resources["protein2ipr.dat"],
             names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
             usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
-            dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category'},
+            dtype={'UniProtKB-AC': 'str', 'ENTRY_AC': 'str', 'start': 'int8', 'stop': 'int8'},
+            low_memory=True,
             blocksize=blocksize if blocksize > 10 else None)
 
         return ipr_entries
 
-    def load_network(self, file_resources):
+    def parse_interpro2go(self, file: StringIO) -> DataFrame:
+        if isinstance(file, str):
+            file = open(file, 'r')
+
+        def _process_line(line: str) -> Tuple[str, str, str]:
+            pos = line.find('> GO')
+            interpro_terms, go_term = line[:pos], line[pos:]
+            interpro_id, interpro_name = interpro_terms.strip().split(' ', 1)
+            go_name, go_id = go_term.split(';')
+            go_desc = go_name.strip('> GO:')
+
+            return (interpro_id.strip().split(':')[1], go_id.strip(), go_desc)
+
+        tuples = [_process_line(line.strip()) for line in file if line[0] != '!']
+        return pd.DataFrame(tuples, columns=['ENTRY_AC', "go_id", "go_desc"])
+
+    def load_network(self, file_resources) -> Tuple[nx.Graph, np.ndarray]:
         for file in file_resources:
             if 'ParentChildTreeFile' in file and isinstance(file_resources[file], str) \
                 and os.path.exists(file_resources[file]):
@@ -590,7 +607,6 @@ class InterPro(Ontology):
                                               weight='weight', format='csc')
         adj = pd.DataFrame(adj, index=protein_ids, columns=self.data["ENTRY_AC"])
         return adj
-
     def parse_ipr_treefile(self, lines: Union[Iterable[str], StringIO]) -> nx.MultiDiGraph:
         """Parse the InterPro Tree from the given file.
         Args:
@@ -634,21 +650,6 @@ class InterPro(Ontology):
             previous_depth, previous_name = depth, interpro_id
 
         return graph
-    def parse_interpro2go(self, file: StringIO) -> DataFrame:
-        if isinstance(file, str):
-            file = open(file, 'r')
-
-        def _process_line(line: str) -> Tuple[str, str, str]:
-            pos = line.find('> GO')
-            interpro_terms, go_term = line[:pos], line[pos:]
-            interpro_id, interpro_name = interpro_terms.strip().split(' ', 1)
-            go_name, go_id = go_term.split(';')
-            go_desc = go_name.strip('> GO:')
-
-            return (interpro_id.strip().split(':')[1], go_id.strip(), go_desc)
-
-        tuples = [_process_line(line.strip()) for line in file if line[0] != '!']
-        return pd.DataFrame(tuples, columns=['ENTRY_AC', "go_id", "go_desc"])
 
 
 class HumanPhenotypeOntology(Ontology):
