@@ -1,10 +1,11 @@
+from collections.abc import Iterable
 from typing import Union, List
 
 import numpy as np
 import pandas as pd
 
 
-def concat_uniques(series: pd.Series, sep="|") -> Union[str, List, np.ndarray, None]:
+def concat_uniques(series: pd.Series) -> Union[str, List, np.ndarray, None]:
     """ An aggregation custom function to be applied to each column of a groupby
     Args:
         series (pd.Series):
@@ -15,14 +16,14 @@ def concat_uniques(series: pd.Series, sep="|") -> Union[str, List, np.ndarray, N
 
     is_str_idx = series.map(type) == str
 
-    if series.map(lambda x: isinstance(x, (list, tuple))).any():
+    if series.map(lambda x: isinstance(x, Iterable)).any():
         if (is_str_idx).any():
             # Convert mixed dtypes to lists
             series.loc[is_str_idx] = series.loc[is_str_idx].map(lambda s: [s] if len(s) else None)
         return np.unique(np.hstack(series))
 
     elif is_str_idx.any():
-        concat_str = sep.join(series.astype(str).unique())
+        concat_str = series.astype(str).unique()
         if len(concat_str):  # Avoid empty string
             return concat_str
 
@@ -30,7 +31,7 @@ def concat_uniques(series: pd.Series, sep="|") -> Union[str, List, np.ndarray, N
         return series.tolist()
 
 
-def concat(series: pd.Series, sep="|") -> Union[str, List, np.ndarray, None]:
+def concat(series: pd.Series) -> Union[str, List, np.ndarray, None]:
     """
     Args:
         series (pd.Series):
@@ -40,14 +41,14 @@ def concat(series: pd.Series, sep="|") -> Union[str, List, np.ndarray, None]:
         return
 
     is_str_idx = series.map(type) == str
-    if series.map(lambda x: isinstance(x, (list, tuple))).any():
+    if series.map(lambda x: isinstance(x, Iterable)).any():
         if (is_str_idx).any():
             # Convert mixed dtypes to lists
             series.loc[is_str_idx] = series.loc[is_str_idx].map(lambda s: [s] if len(s) else None)
         return np.hstack(series)
 
     elif is_str_idx.any():
-        concat_str = sep.join(series.astype(str))
+        concat_str = series.astype(str).tolist()
         if len(concat_str):  # Avoid empty string
             return concat_str
 

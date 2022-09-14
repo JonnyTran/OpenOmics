@@ -11,6 +11,7 @@ from .clinical import (
     TUMOR_NORMAL_COL,
     PREDICTED_SUBTYPE_COL,
 )
+from .database.base import Annotatable
 from .genomics import SomaticMutation, CopyNumberVariation, DNAMethylation
 from .imageomics import WholeSlideImage
 from .proteomics import Protein
@@ -45,7 +46,7 @@ class MultiOmics:
             {ntype: omic.annotations.shape for ntype, omic in self.__dict__.items() if hasattr(omic, 'annotations')})
 
     def add_omic(self,
-                 omic_data: Expression,
+                 omic_data: Union[Expression, Annotatable],
                  initialize_annotations: bool = True):
         """Adds an omic object to the Multiomics such that the samples in omic
         matches the samples existing in the other omics.
@@ -58,7 +59,7 @@ class MultiOmics:
         """
         self.__dict__[omic_data.name()] = omic_data
 
-        if omic_data.name not in self._omics:
+        if omic_data.name() not in self._omics:
             self._omics.append(omic_data.name())
 
         # dictionary as data accessor to the expression data
@@ -66,8 +67,7 @@ class MultiOmics:
 
         # Initialize annotation
         if initialize_annotations:
-            omic_data.initialize_annotations(index=omic_data.gene_index,
-                                             gene_list=None)
+            omic_data.initialize_annotations(index=omic_data.get_genes_list())
 
         logging.info(
             "{} {} , indexed by: {}".format(omic_data.name(),
