@@ -123,20 +123,24 @@ class RNAcentral(Database):
             file_resources:
             blocksize:
         """
+        # Build transcripts ids by combining `database_mappings/` files
         transcripts_df = []
         for filename in file_resources:
             if "database_mappings" in filename:
                 args = dict(low_memory=True, header=None,
                             names=["RNAcentral id", "database", "external id", "species_id", "RNA type", "gene symbol"],
                             dtype={'gene symbol': 'str',
-                                   'database': 'category', 'species_id': 'str', 'RNA type': 'category', })
+                                   'database': 'category', 'species_id': 'category', 'RNA type': 'category', })
                 if blocksize:
                     id_mapping = dd.read_table(file_resources[filename],
                                                blocksize=blocksize if blocksize > 10 else None, **args)
+                    id_mapping = id_mapping.set_index("RNAcentral id", sorted=True)
                 else:
-                    id_mapping = pd.read_table(file_resources[filename], **args)
+                    id_mapping = pd.read_table(file_resources[filename], index_col="RNAcentral id", **args)
+
                 if self.remove_version_num and 'gene symbol' in id_mapping.columns:
                     id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
+
                 transcripts_df.append(id_mapping)
 
         if blocksize:
@@ -147,21 +151,37 @@ class RNAcentral(Database):
         if self.species_id:
             transcripts_df = transcripts_df.where(transcripts_df["species_id"] == self.species_id)
 
-        args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"], dtype={'RNAcentral id': 'category'})
+        # Join go_id and Rfams annotations to each "RNAcentral id" from 'rnacentral_rfam_annotations.tsv'
+        args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"])
         if self.remove_version_num:
             args['converters'] = {"RNAcentral id": lambda s: re.sub("_(.*)", '', s)}
-        if blocksize:  # No need to use dask for a relative small file
-            go_terms = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip",
-                                     blocksize=10000, **args).set_index("RNAcentral id")
+        if blocksize:
+            if 'rnacentral_rfam_annotations.tsv' in file_resources and isinstance(
+                file_resources['rnacentral_rfam_annotations.tsv'], str):
+                anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
+            else:
+                anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip", **args)
+            anns = anns.set_index("RNAcentral id", sorted=True, npartitions=10)
+
+            # Filter annotations by "RNAcentral id" in `transcripts_df`
+            idx = transcripts_df.index.drop_duplicates().compute()
+            anns = anns.loc[anns.index.isin(idx)]
+
+            agg_func = dd.Aggregation(name='_unique',
+                                      chunk=lambda s: s.unique(),
+                                      agg=lambda s0: s0.obj)
+
+            anns_groupby: dd.DataFrame = anns \
+                .groupby("RNAcentral id") \
+                .agg({col: agg_func for col in ["GO terms", 'Rfams']}) \
+                .persist()
         else:
-            go_terms = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"],
-                                     index_col="RNAcentral id", **args)
+            anns = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], index_col='RNAcentral id', **args)
+            idx = transcripts_df.index.drop_duplicates()
+            anns = anns.loc[anns.index.isin(idx)]
+            anns_groupby = anns.groupby("RNAcentral id").agg({col: 'unique' for col in ["GO terms", 'Rfams']})
 
-        id2go_id = go_terms.groupby("RNAcentral id")["GO terms"].unique()
-        id2rfams = go_terms.groupby("RNAcentral id")["Rfams"].unique()
-
-        transcripts_df["GO terms"] = transcripts_df["RNAcentral id"].map(id2go_id)
-        transcripts_df["Rfams"] = transcripts_df["RNAcentral id"].map(id2rfams)
+        transcripts_df = transcripts_df.merge(anns_groupby, how='left', left_index=True, right_index=True)
 
         return transcripts_df
 
@@ -435,7 +455,6 @@ class EnsemblGenes(BioMartManager, Database):
                                    filename=self.filename, blocksize=blocksize)
 
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
-        print(self.name(), self.data.columns.tolist())
 
     def name(self):
         return f"{super().name()} {self.biomart}"

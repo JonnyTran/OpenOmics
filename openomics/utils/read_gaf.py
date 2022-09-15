@@ -37,8 +37,8 @@ def read_gaf(filepath_or_buffer, blocksize=None, compression: Optional[str] = No
         assert isinstance(filepath_or_buffer, str), f'dd.read_table() must have `filepath_or_buffer` as a path, and ' \
                                                     f'if compressed, use the `compression` arg. ' \
                                                     f'`filepath_or_buffer`={filepath_or_buffer}'
-        result_df = parse_gaf(filepath_or_buffer, column_names=COLUMN_NAMES,
-                              blocksize=blocksize, compression=compression, chunksize=chunksize)
+        result_df = parse_gaf(filepath_or_buffer, column_names=COLUMN_NAMES, blocksize=blocksize,
+                              compression=compression, chunksize=chunksize)
     else:
         result_df = parse_gaf(filepath_or_buffer, column_names=COLUMN_NAMES)
 
@@ -55,10 +55,10 @@ def read_gaf(filepath_or_buffer, blocksize=None, compression: Optional[str] = No
     return result_df
 
 
-def parse_gaf(filepath_or_buffer, column_names=None, usecols=None,
+def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=None,
               intern_columns=['DB', 'Evidence', 'Aspect', 'DB_Object_Type', 'Assigned_By'],
-              list_dtype_columns=['Qualifier', 'DB:Reference', 'With', 'Synonym'],
-              blocksize=None, compression=None, chunksize=1024 * 1024) \
+              list_dtype_columns=['Qualifier', 'DB:Reference', 'With', 'Synonym'], blocksize=None, compression=None,
+              chunksize=1024 * 1024) \
     -> Union[pd.DataFrame, dd.DataFrame]:
     """
 
@@ -106,10 +106,13 @@ def parse_gaf(filepath_or_buffer, column_names=None, usecols=None,
 
     if blocksize:
         df = dd.read_table(filepath_or_buffer, compression=compression, blocksize=blocksize, **args)
+        if index_col:
+            df = df.set_index(index_col, sorted=True)
         df['Date'] = dd.to_datetime(df['Date'])
 
     else:
-        chunk_iterator = pd.read_table(filepath_or_buffer, chunksize=chunksize, parse_dates=['Date'], **args)
+        chunk_iterator = pd.read_table(filepath_or_buffer, chunksize=chunksize, index_col=index_col,
+                                       parse_dates=['Date'], **args)
         dataframes = []
         try:
             for df in chunk_iterator:
