@@ -7,17 +7,18 @@ import numpy as np
 import pandas as pd
 
 
-def get_aggregator(keyword: str, use_dask=False) -> Union[str, Callable, dd.Aggregation]:
+def get_agg_func(keyword: str, use_dask=False) -> Union[str, Callable, dd.Aggregation]:
     """
 
     Args:
-        keyword ():
-        use_dask ():
+        keyword (str):
+        use_dask (bool): Whether to create a dd.Aggregation
 
     Returns:
-
+        func (callable): a callable function, pandas aggregator func name, or a Dask Aggregation.
     """
     if keyword == "unique":
+        # get unique values (in a list) from each groupby key
         if use_dask:
             func = dd.Aggregation(
                 name=keyword,
@@ -52,8 +53,8 @@ def get_multi_aggregators(agg: str, agg_for: Dict[str, Union[str, Callable, dd.A
     if agg_for is None:
         agg_for = {}
 
-    agg_for = {col: get_aggregator(keyword, use_dask=use_dask) for col, keyword in agg_for.items()}
-    col_aggregators = defaultdict(get_aggregator(agg, use_dask=use_dask), agg_for)
+    col2func = {col: get_agg_func(keyword, use_dask=use_dask) for col, keyword in agg_for.items()}
+    col_aggregators = defaultdict(lambda: get_agg_func(agg, use_dask=use_dask), col2func)
 
     return col_aggregators
 
