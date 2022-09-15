@@ -12,8 +12,9 @@ import dask.dataframe as dd
 import filetype
 import pandas as pd
 import validators
+from logzero import logger
 
-from openomics.utils.df import concat_uniques, get_multi_aggregators
+from openomics.utils.df import get_multi_aggregators
 from openomics.utils.io import get_pkg_data_filename, decompress_file
 
 
@@ -203,7 +204,7 @@ class Database(object):
         Returns:
             DataFrame: A dataframe to be used for annotation
         """
-        if not set(columns).issubset(set(self.data.columns)):
+        if not set(columns).issubset(set(self.data.columns).union([self.data.index.name])):
             raise Exception(
                 f"The columns argument must be a list such that it's subset of the following columns in the dataframe. "
                 f"These columns doesn't exist in database: {list(set(columns) - set(self.data.columns.tolist()))}"
@@ -213,18 +214,27 @@ class Database(object):
         if on in columns:
             columns.pop(columns.index(on))
 
+        # Select a subset of columns
         select_col = columns + ([on] if not isinstance(on, list) else on)
+        if self.data.index.name in select_col:
+            index_col = select_col.pop(select_col.index(self.data.index.name))
+        else:
+            index_col = None
+
         if isinstance(self.data, pd.DataFrame):
             df = self.data.filter(select_col, axis="columns")
         elif isinstance(self.data, dd.DataFrame):
             df = self.data[select_col]
         else:
             raise Exception(f"{self} must have self.data as a pd.DataFrame or dd.DataFrame")
+        if index_col and df.index.name != index_col:
+            df[index_col] = self.data.index
 
         # Filter rows in the database if provided `keys` in the `on` column.
         if keys is not None:
-            if isinstance(df, dd.DataFrame) and isinstance(keys, (dd.Series, dd.Index)):
+            if isinstance(keys, (dd.Series, dd.Index)):
                 keys = keys.compute()
+
             if on == df.index.name:
                 df = df.loc[keys]
             else:
@@ -290,8 +300,8 @@ class Annotatable(ABC):
         self.annotations: pd.DataFrame = pd.DataFrame(index=index)
 
     def annotate_attributes(self, database: Union[Database, pd.DataFrame], on: Union[str, List[str]],
-                            columns: List[str], agg: str = "unique",
-                            fuzzy_match: bool = False):
+                            columns: List[str], agg: str = "unique", agg_for: Dict[str, Any] = None,
+                            fuzzy_match: bool = False, ):
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present
         in both DataFrames. If there exists overlapping columns from the join,
@@ -306,14 +316,13 @@ class Annotatable(ABC):
             agg (str): Function to aggregate when there is more than one values
                 for each index instance. E.g. ['first', 'last', 'sum', 'mean',
                 'unique', 'concat'], default 'unique'.
-            fuzzy_match (bool): default False. Whether to join the annotation by applying a fuzzy match on the index
-                with difflib.get_close_matches(). It can be slow and thus should only be used sparingly.
+            fuzzy_match (bool): default False. Whether to join the annotation
+                by applying a fuzzy match on the index with
+                difflib.get_close_matches(). It can be slow and thus should
+                only be used sparingly.
         """
         if not hasattr(self, "annotations"):
             raise Exception("Must run .initialize_annotations() on, ", self.__class__.__name__, " first.")
-
-        if_pandas_df = isinstance(self.annotations, pd.DataFrame)
-        old_index = self.annotations.index.name
 
         if isinstance(on, str) and on in self.annotations.columns:
             keys = self.annotations[on]
@@ -324,40 +333,40 @@ class Annotatable(ABC):
         else:
             keys = None
 
-        if isinstance(database, pd.DataFrame):
-            database_df = database.groupby(on).agg({col: concat_uniques for col in columns})
+        if isinstance(database, (pd.DataFrame, dd.DataFrame)):
+            df = database
+            agg_funcs = get_multi_aggregators(agg=agg, agg_for=agg_for, use_dask=isinstance(df, dd.DataFrame))
+            agg_df = df.groupby(on).agg({col: agg_funcs[col] for col in columns})
         else:
-            database_df = database.get_annotations(on, columns=columns, agg=agg, keys=keys)
+            agg_df = database.get_annotations(on, columns=columns, agg=agg, agg_for=agg_for, keys=keys)
 
-        if len(database_df) == 0:
-            logging.warning("Database annotations is empty and has nothing to annotate.")
+        if len(agg_df.index) == 0:
+            logger.warning("Database annotations is empty and has nothing to annotate.")
             return
 
         if fuzzy_match:
-            database_df.index = database_df.index.map(
+            agg_df.index = agg_df.index.map(
                 lambda x: difflib.get_close_matches(x, self.annotations.index, n=1)[0])
 
         # performing join on the index column
-        if isinstance(database_df, pd.DataFrame):
-            new_annotations = self.annotations.join(database_df, on=on, rsuffix="_")
+        if isinstance(agg_df, pd.DataFrame):
+            new_annotations = self.annotations.join(agg_df, on=on, how="left", rsuffix="_")
+
         # performing join on a different column
-        elif isinstance(database_df, dd.DataFrame):
-            new_annotations = dd.merge(self.annotations, database_df, how="left", on=on, suffixes=("_", ""))
+        elif isinstance(agg_df, dd.DataFrame):
+            new_annotations = dd.merge(self.annotations, agg_df, on=on, how="left", suffixes=("_", ""))
             # Revert back to Pandas df if not previously a dask df
-            if if_pandas_df and isinstance(new_annotations, dd.DataFrame):
+            if isinstance(self.annotations, pd.DataFrame) and isinstance(new_annotations, dd.DataFrame):
                 new_annotations = new_annotations.compute()
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
-        duplicate_cols = [col for col in new_annotations.columns if col[-1] == "_"]
+        duplicate_cols = [col for col in new_annotations.columns if col.endswith("_")]
 
         # Fill in null values then drop duplicate columns
         for new_col in duplicate_cols:
             old_col = new_col.strip("_")
             new_annotations[old_col] = new_annotations[old_col].fillna(new_annotations[new_col], axis=0)
             new_annotations = new_annotations.drop(columns=new_col)
-
-        if old_index != self.annotations.index.name and old_index != self.annotations.index.names:
-            self.annotations = self.annotations.set_index(old_index)
 
         # Assign the new results
         self.annotations = new_annotations

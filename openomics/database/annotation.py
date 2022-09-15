@@ -334,6 +334,15 @@ class BioMartManager:
     """
     A base class with functions to query Ensembl Biomarts "https://www.ensembl.org/biomart".
     """
+    DTYPES = {
+        'entrezgene_id': 'str',
+        'gene_biotype': 'category',
+        'transcript_biotype': 'category',
+        'chromosome_name': 'category',
+        'transcript_start': 'int',
+        'transcript_end': 'int',
+        'transcript_length': 'int',
+        'mirbase_id': 'str'}
 
     def __init__(self, dataset, attributes, host, filename):
         """
@@ -354,12 +363,12 @@ class BioMartManager:
             filename:
             blocksize:
         """
-        filename = os.path.join(DEFAULT_CACHE_PATH, "{}.tsv".format(filename))
+        filename = os.path.join(DEFAULT_CACHE_PATH, f"{filename}.tsv")
+
         args = dict(
             sep="\t",
             low_memory=True,
-            dtype={'entrezgene_id': 'str', 'chromosome_name': 'str',
-                   'transcript_start': 'str', 'transcript_end': 'str', 'transcript_length': 'str'},
+            dtype=self.DTYPES,
         )
 
         if os.path.exists(filename):
@@ -412,10 +421,10 @@ class BioMartManager:
         try:
             if blocksize:
                 df = dd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True,
-                                 dtype={"entrezgene_id": "str"}, blocksize=blocksize if blocksize > 10 else None)
+                                 dtype=self.DTYPES, blocksize=blocksize if blocksize > 10 else None)
             else:
                 df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True,
-                                 dtype={"entrezgene_id": "str"})
+                                 dtype=self.DTYPES)
         except Exception as e:
             print('BioMart Query Result:', results)
             raise e
