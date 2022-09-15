@@ -5,7 +5,7 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from os.path import exists, join
-from typing import Dict, Union, Any
+from typing import Dict, Union, Any, Callable
 from typing import List
 
 import dask.dataframe as dd
@@ -13,7 +13,7 @@ import filetype
 import pandas as pd
 import validators
 
-from openomics.utils.df import concat_uniques, concat
+from openomics.utils.df import concat_uniques, get_multi_aggregators
 from openomics.utils.io import get_pkg_data_filename, decompress_file
 
 
@@ -182,6 +182,7 @@ class Database(object):
     def get_annotations(self, on: Union[str, List[str]],
                         columns: List[str],
                         agg: str = "unique",
+                        agg_for: Dict[str, Union[str, Callable, dd.Aggregation]] = None,
                         keys: pd.Index = None):
         """Returns the Database's DataFrame such that it's indexed by :param
         index:, which then applies a groupby operation and aggregates all other
@@ -191,8 +192,11 @@ class Database(object):
             on (str): The column name of the DataFrame to join by.
             columns (list): a list of column names.
             agg (str): Function to aggregate when there is more than one values
-                for each index instance. E.g. ['first', 'last', 'sum', 'mean',
+                for each index key value. E.g. ['first', 'last', 'sum', 'mean',
                 'size', 'concat'], default 'concat'.
+            agg_for (Dict[str, Any]): Bypass the `agg` function for certain
+                columns with functions specified in this dict of column names
+                and the `agg` function to aggregate for that column.
             keys (pd.Index): The values on the `index` column to
                 filter before performing the groupby-agg operations.
 
@@ -214,8 +218,13 @@ class Database(object):
             df = self.data.filter(select_col, axis="columns")
         elif isinstance(self.data, dd.DataFrame):
             df = self.data[select_col]
+        else:
+            raise Exception(f"{self} must have self.data as a pd.DataFrame or dd.DataFrame")
 
+        # Filter rows in the database if provided `keys` in the `on` column.
         if keys is not None:
+            if isinstance(df, dd.DataFrame) and isinstance(keys, (dd.Series, dd.Index)):
+                keys = keys.compute()
             if on == df.index.name:
                 df = df.loc[keys]
             else:
@@ -228,28 +237,9 @@ class Database(object):
             groupby = df.groupby(on)
 
         #  Aggregate by all columns by concatenating unique values
-        if agg == "unique":
-            if isinstance(df, pd.DataFrame):
-                grouby_agg = groupby.agg({col: concat_uniques for col in columns})
+        agg_funcs = get_multi_aggregators(agg, agg_for=agg_for, use_dask=isinstance(df, dd.DataFrame))
 
-            elif isinstance(df, dd.DataFrame):
-                agg_func = dd.Aggregation(
-                    name=agg,
-                    chunk=lambda s1: s1.apply(concat_uniques),
-                    agg=lambda s2: s2.obj,
-                )
-                grouby_agg = groupby.agg({col: agg_func for col in columns})
-
-            else:
-                raise Exception("Unsupported dataframe: {}".format(df))
-
-        # Concatenate values into list
-        elif agg == "concat":
-            grouby_agg = groupby.agg({col: concat for col in columns})
-
-        # Any other aggregation functions
-        else:
-            grouby_agg = groupby.agg({col: agg for col in columns})
+        grouby_agg = groupby.agg({col: agg_funcs[col] for col in columns})
 
         return grouby_agg
 
@@ -315,7 +305,7 @@ class Annotatable(ABC):
             columns ([str]): a list of column name to join to the annotation.
             agg (str): Function to aggregate when there is more than one values
                 for each index instance. E.g. ['first', 'last', 'sum', 'mean',
-                'concat'], default 'concat'.
+                'unique', 'concat'], default 'unique'.
             fuzzy_match (bool): default False. Whether to join the annotation by applying a fuzzy match on the index
                 with difflib.get_close_matches(). It can be slow and thus should only be used sparingly.
         """

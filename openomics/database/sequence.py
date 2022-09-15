@@ -4,16 +4,16 @@ from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple
 
-import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
-from openomics.utils.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
+import openomics
+from openomics.utils.read_gtf import read_gtf
 from .base import Database
 
 SEQUENCE_COL = 'sequence'
@@ -103,7 +103,6 @@ class GENCODE(SequenceDatabase):
         file_resources=None,
         col_rename=None,
         blocksize=0,
-        replace_U2T=False,
         remove_version_num=False,
     ):
         """
@@ -112,8 +111,6 @@ class GENCODE(SequenceDatabase):
             file_resources:
             col_rename:
             blocksize:
-            replace_U2T (bool): Whether to replace nucleotides from U to T on
-                the RNA primary sequences.
             remove_version_num (bool): Whether to drop the version number on the
                 ensembl ID.
         """
@@ -163,7 +160,6 @@ class GENCODE(SequenceDatabase):
             index ():
             keys ():
             fasta_file:
-            replace_U2T:
             blocksize:
         """
         if hasattr(self, '_seq_df_dict') and fasta_file in self._seq_df_dict:
