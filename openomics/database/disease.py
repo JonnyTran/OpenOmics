@@ -1,7 +1,7 @@
 from abc import abstractmethod
 
 from openomics.database.annotation import *
-from openomics.database.base import Database
+from openomics.database.base import Database, Annotatable
 
 
 class DiseaseAssociation(Database):
@@ -20,7 +20,7 @@ class DiseaseAssociation(Database):
         Args:
             index:
         """
-        return self.data.groupby(index)["disease_associations"].apply(list)
+        return self.data.groupby(index)[Annotatable.DISEASE_ASSOCIATIONS_COL].unique()
 
 
 class OMIM(DiseaseAssociation):
@@ -37,7 +37,7 @@ class MalaCards(DiseaseAssociation):
     """
     COLUMNS_RENAME_DICT = {
         "geneSymbol": "gene_name",
-        "maladyMainName": "disease_associations"
+        "maladyMainName": Annotatable.DISEASE_ASSOCIATIONS_COL
     }
 
     def __init__(self, path="http://zdzlab.einstein.yu.edu/1/hedd/", file_resources=None,
@@ -77,7 +77,7 @@ class DisGeNet(DiseaseAssociation):
     }
     """
     COLUMNS_RENAME_DICT = {"geneSymbol": "gene_name",
-                           "diseaseName": "disease_associations"}
+                           "diseaseName": Annotatable.DISEASE_ASSOCIATIONS_COL}
 
     def __init__(self, path="https://www.disgenet.org/static/disgenet_ap1/files/downloads/",
                  file_resources=None, curated=True, col_rename=COLUMNS_RENAME_DICT,
@@ -125,7 +125,7 @@ class HMDD(DiseaseAssociation):
     """
     COLUMNS_RENAME_DICT = {
         "mir": "gene_name",
-        "disease": "disease_associations"
+        "disease": Annotatable.DISEASE_ASSOCIATIONS_COL
     }
 
     def __init__(self, path="http://www.cuilab.cn/static/hmdd3/data/",
@@ -158,7 +158,7 @@ class HMDD(DiseaseAssociation):
 class LncRNADisease(DiseaseAssociation):
     COLUMNS_RENAME_DICT = {
         "LncRNA name": "gene_name",
-        "Disease name": "disease_associations"
+        "Disease name": Annotatable.DISEASE_ASSOCIATIONS_COL
     }
 
     def __init__(self, path="http://www.cuilab.cn/files/images/ldd/",

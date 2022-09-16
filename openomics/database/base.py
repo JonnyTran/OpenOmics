@@ -12,8 +12,6 @@ import dask.dataframe as dd
 import filetype
 import pandas as pd
 import validators
-from logzero import logger
-
 from openomics.utils.df import get_multi_aggregators
 from openomics.utils.io import get_pkg_data_filename, decompress_file
 
@@ -227,6 +225,7 @@ class Database(object):
             df = self.data[select_col]
         else:
             raise Exception(f"{self} must have self.data as a pd.DataFrame or dd.DataFrame")
+
         if index_col and df.index.name != index_col:
             df[index_col] = self.data.index
 
@@ -235,23 +234,24 @@ class Database(object):
             if isinstance(keys, (dd.Series, dd.Index)):
                 keys = keys.compute()
 
-            if on == df.index.name:
-                df = df.loc[keys]
-            else:
+            if set(on).issubset(df.columns):
                 df = df[df[on].isin(keys)]
+            elif on == df.index.name:
+                df = df[df.index.isin(keys)]
 
-        # Groupby index
         if on != df.index.name and df.index.name in columns:
+            # Groupby on
             groupby = df.reset_index().groupby(on)
         else:
+            # Groupby on index
             groupby = df.groupby(on)
 
         #  Aggregate by all columns by concatenating unique values
         agg_funcs = get_multi_aggregators(agg, agg_for=agg_for, use_dask=isinstance(df, dd.DataFrame))
 
-        grouby_agg = groupby.agg({col: agg_funcs[col] for col in columns})
+        values = groupby.agg({col: agg_funcs[col] for col in columns})
 
-        return grouby_agg
+        return values
 
     def get_expressions(self, index):
         """
@@ -316,6 +316,9 @@ class Annotatable(ABC):
             agg (str): Function to aggregate when there is more than one values
                 for each index instance. E.g. ['first', 'last', 'sum', 'mean',
                 'unique', 'concat'], default 'unique'.
+            agg_for (Dict[str, Any]): Bypass the `agg` function for certain
+                columns with functions specified in this dict of column names
+                and the `agg` function to aggregate for that column.
             fuzzy_match (bool): default False. Whether to join the annotation
                 by applying a fuzzy match on the index with
                 difflib.get_close_matches(). It can be slow and thus should
@@ -333,40 +336,42 @@ class Annotatable(ABC):
         else:
             keys = None
 
+        # Get grouped values from `database`
         if isinstance(database, (pd.DataFrame, dd.DataFrame)):
             df = database
+            if on == df.index.name and on in df.columns:
+                # Avoid ambiguous groupby if `on` is both in index name and columns
+                df.pop(on)
             agg_funcs = get_multi_aggregators(agg=agg, agg_for=agg_for, use_dask=isinstance(df, dd.DataFrame))
-            agg_df = df.groupby(on).agg({col: agg_funcs[col] for col in columns})
+            values = df.groupby(on).agg({col: agg_funcs[col] for col in columns})
         else:
-            agg_df = database.get_annotations(on, columns=columns, agg=agg, agg_for=agg_for, keys=keys)
-
-        if len(agg_df.index) == 0:
-            logger.warning("Database annotations is empty and has nothing to annotate.")
-            return
+            values = database.get_annotations(on, columns=columns, agg=agg, agg_for=agg_for, keys=keys)
 
         if fuzzy_match:
-            agg_df.index = agg_df.index.map(
+            values.index = values.index.map(
                 lambda x: difflib.get_close_matches(x, self.annotations.index, n=1)[0])
 
-        # performing join on the index column
-        if isinstance(agg_df, pd.DataFrame):
-            new_annotations = self.annotations.join(agg_df, on=on, how="left", rsuffix="_")
-
-        # performing join on a different column
-        elif isinstance(agg_df, dd.DataFrame):
-            new_annotations = dd.merge(self.annotations, agg_df, on=on, how="left", suffixes=("_", ""))
-            # Revert back to Pandas df if not previously a dask df
-            if isinstance(self.annotations, pd.DataFrame) and isinstance(new_annotations, dd.DataFrame):
-                new_annotations = new_annotations.compute()
+        # Performing join if `on` is already self's index
+        if on == self.annotations.index.name or (
+            hasattr(self.annotations.index, 'names') and on == self.annotations.index.names):
+            new_annotations = self.annotations.join(values, on=on, how="left", rsuffix="_")
+        # Perfrom merge if `on` another column
+        else:
+            new_annotations = self.annotations.merge(values, left_on=on, right_index=True, how="left",
+                                                     suffixes=("_", ""))
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
         duplicate_cols = [col for col in new_annotations.columns if col.endswith("_")]
 
         # Fill in null values then drop duplicate columns
         for new_col in duplicate_cols:
-            old_col = new_col.strip("_")
+            old_col = new_col.rstrip("_")
             new_annotations[old_col] = new_annotations[old_col].fillna(new_annotations[new_col], axis=0)
             new_annotations = new_annotations.drop(columns=new_col)
+
+        # Revert back to Pandas df if not previously a dask df
+        if isinstance(self.annotations, pd.DataFrame) and isinstance(new_annotations, dd.DataFrame):
+            new_annotations = new_annotations.compute()
 
         # Assign the new results
         self.annotations = new_annotations
@@ -430,20 +435,34 @@ class Annotatable(ABC):
             database (Interactions):
             index (str):
         """
-        raise NotImplementedError
+        raise NotImplementedError("Use HeteroNetwork from `moge` package instead")
 
-    def annotate_diseases(self, database, on):
+    def annotate_diseases(self, database, on: Union[str, List[str]]):
         """
         Args:
             database (DiseaseAssociation):
             on (str):
         """
-        keys = self.annotations.index if on == self.annotations.index.name or on == self.annotations.index.names else \
-        self.annotations[on]
-        keys = pd.MultiIndex.from_frame(keys) if isinstance(keys, pd.DataFrame) else pd.Index(keys)
-        disease_assocs = keys.map(database.get_disease_assocs(index=on, ))
+        if on == self.annotations.index.name or (
+            hasattr(self.annotations.index, 'names') and on == self.annotations.index.names):
+            keys = self.annotations.index
+        else:
+            keys = self.annotations[on]
 
-        self.annotations[Annotatable.DISEASE_ASSOCIATIONS_COL] = disease_assocs
+        groupby_agg = database.get_disease_assocs(index=on, )
+
+        if isinstance(keys, (pd.DataFrame, pd.Series, pd.Index)):
+            if isinstance(keys, pd.DataFrame):
+                keys = pd.MultiIndex.from_frame(keys)
+
+            values = keys.map(groupby_agg)
+
+        elif isinstance(keys, dd.DataFrame):
+            values = keys.apply(lambda x: groupby_agg.loc[x], axis=1, meta=pd.Series([['']])).head()
+        elif isinstance(keys, dd.Series):
+            values = keys.map(groupby_agg)
+
+        self.annotations[Annotatable.DISEASE_ASSOCIATIONS_COL] = values
 
     def set_index(self, new_index):
         """Resets :param new_index: :type new_index: str

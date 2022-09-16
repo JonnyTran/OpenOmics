@@ -32,15 +32,15 @@ def read_gaf(filepath_or_buffer, blocksize=None, compression: Optional[str] = No
         raise ValueError(f"GAF file does not exist: {filepath_or_buffer}")
 
     COLUMN_NAMES = infer_gaf_columns(filepath_or_buffer)
-
+    index_col = COLUMN_NAMES[1]
     if blocksize:
         assert isinstance(filepath_or_buffer, str), f'dd.read_table() must have `filepath_or_buffer` as a path, and ' \
                                                     f'if compressed, use the `compression` arg. ' \
                                                     f'`filepath_or_buffer`={filepath_or_buffer}'
-        result_df = parse_gaf(filepath_or_buffer, column_names=COLUMN_NAMES, blocksize=blocksize,
+        result_df = parse_gaf(filepath_or_buffer, column_names=COLUMN_NAMES, index_col=index_col, blocksize=blocksize,
                               compression=compression, chunksize=chunksize)
     else:
-        result_df = parse_gaf(filepath_or_buffer, column_names=COLUMN_NAMES)
+        result_df = parse_gaf(filepath_or_buffer, column_names=COLUMN_NAMES, index_col=index_col)
 
     if column_converters:
         for column_name, column_type in column_converters.items():
@@ -57,7 +57,8 @@ def read_gaf(filepath_or_buffer, blocksize=None, compression: Optional[str] = No
 
 def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=None,
               intern_columns=['DB', 'Evidence', 'Aspect', 'DB_Object_Type', 'Assigned_By'],
-              list_dtype_columns=['Qualifier', 'DB:Reference', 'With', 'Synonym'], blocksize=None, compression=None,
+              list_dtype_columns=['DB:Reference', 'With', 'Synonym'],
+              blocksize=None, compression=None,
               chunksize=1024 * 1024) \
     -> Union[pd.DataFrame, dd.DataFrame]:
     """
@@ -66,7 +67,7 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
         filepath_or_buffer ():
         column_names ():
         usecols ():
-        intern_columns ():
+        intern_columns (): Only used when blocksize == None, i.e. when using Pandas DataFrames
         list_dtype_columns ():
         blocksize ():
         compression ():
@@ -79,9 +80,8 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
     def split_str(input: str, sep='|') -> List[str]:
         return input.split(sep)
 
-    def parse_taxon(input: str) -> List[str]:
-        taxons = input.split("|")
-        return [s.strip("taxon:") for s in taxons]
+    def parse_taxon(input: str, sep='|'):
+        return sep.join([s.replace("taxon:", '').strip() for s in input.split(sep)])
 
     args = dict(
         sep="\t",
@@ -91,13 +91,11 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
         skipinitialspace=True,
         skip_blank_lines=True,
         on_bad_lines='error',
-        engine="c",
         dtype={
             "Date": 'str',
             "Annotation_Extension": "str",
             "Gene_Product_Form_ID": "str",
         },
-        date_parser=pd.to_datetime,
         converters={
             'Taxon_ID': parse_taxon,
             **{col: split_str for col in (list_dtype_columns if list_dtype_columns else [])}
@@ -105,14 +103,19 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
     )
 
     if blocksize:
-        df = dd.read_table(filepath_or_buffer, compression=compression, blocksize=blocksize, **args)
-        if index_col:
-            df = df.set_index(index_col, sorted=True)
+        if filepath_or_buffer.endswith('.parquet'):
+            df: dd.DataFrame = dd.read_parquet(filepath_or_buffer,
+                                               blocksize=blocksize if blocksize > 10 else None)
+        else:
+            df: dd.DataFrame = dd.read_table(filepath_or_buffer, compression=compression,
+                                             blocksize=blocksize if blocksize > 10 else None, **args)
+        # if index_col is not None:
+        #     df = df.set_index(index_col, sorted=True)
         df['Date'] = dd.to_datetime(df['Date'])
 
     else:
         chunk_iterator = pd.read_table(filepath_or_buffer, chunksize=chunksize, index_col=index_col,
-                                       parse_dates=['Date'], **args)
+                                       parse_dates=['Date'], date_parser=pd.to_datetime, **args)
         dataframes = []
         try:
             for df in chunk_iterator:

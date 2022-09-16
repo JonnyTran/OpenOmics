@@ -9,10 +9,11 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
+from logzero import logger
 from networkx import NetworkXError
+from openomics.utils.adj import slice_adj
 from pandas import DataFrame
 
-from openomics.utils.adj import slice_adj
 from .base import Database
 from ..utils.read_gaf import read_gaf
 
@@ -256,32 +257,35 @@ class GeneOntology(Ontology):
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None) -> DataFrame:
         if self.network:
             # Annotations for each GO term
-            go_annotations = pd.DataFrame.from_dict(dict(self.network.nodes(data=True)), orient='index')
-            go_annotations["def"] = go_annotations["def"].apply(
+            go_terms = pd.DataFrame.from_dict(dict(self.network.nodes(data=True)), orient='index')
+            go_terms["def"] = go_terms["def"].apply(
                 lambda x: x.split('"')[1] if isinstance(x, str) else None)
-            go_annotations.index.name = "go_id"
+            go_terms.index.name = "go_id"
         else:
-            go_annotations = None
+            go_terms = None
 
         # Handle .gaf annotation files
         dfs = {}
-        for filename in file_resources:
+        for filename, filepath_or_buffer in file_resources.items():
             gaf_name = filename.split(".")[0]
-            if blocksize:
-                if filename.endswith(".gaf.gz") and gaf_name not in dfs:
-                    dfs[gaf_name] = read_gaf(file_resources[filename], blocksize=blocksize if blocksize > 10 else None,
-                                             compression='gzip')
+            if blocksize and isinstance(filepath_or_buffer, str):
+                if filename.endswith(".parquet") and gaf_name not in dfs:
+                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize)
                 elif filename.endswith(".gaf") and gaf_name not in dfs:
-                    dfs[gaf_name] = read_gaf(file_resources[filename], blocksize=blocksize if blocksize > 10 else None)
+                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize)
+                elif filename.endswith(".gaf.gz") and gaf_name not in dfs:
+                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize, compression='gzip')
+                elif gaf_name in dfs:
+                    logger.warn(f"At least 2 duplicate files were given for {filename}")
             else:
                 if filename.endswith(".gaf"):
-                    dfs[gaf_name] = read_gaf(file_resources[filename], )
+                    dfs[gaf_name] = read_gaf(filepath_or_buffer, )
 
         if len(dfs):
             self.annotations = dd.concat(list(dfs.values())) if blocksize else pd.concat(dfs.values())
             self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
 
-        return go_annotations
+        return go_terms
 
     def load_network(self, file_resources) -> Tuple[nx.Graph, np.ndarray]:
         for file in file_resources:
@@ -290,7 +294,7 @@ class GeneOntology(Ontology):
                 network = network.reverse(copy=True)
                 node_list = np.array(network.nodes)
 
-        return network, node_list
+                return network, node_list
 
     def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", train_date="2017-06-15",
                           valid_date="2017-11-15", test_date="2021-12-31", groupby: List[str] = ["Qualifier"],

@@ -4,7 +4,6 @@ from io import StringIO
 from os.path import expanduser
 
 from bioservices import BioMart
-
 from openomics.database.base import Database
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
@@ -132,8 +131,8 @@ class RNAcentral(Database):
                             dtype={'gene symbol': 'str',
                                    'database': 'category', 'species_id': 'category', 'RNA type': 'category', })
                 if blocksize:
-                    id_mapping = dd.read_table(file_resources[filename],
-                                               blocksize=blocksize if blocksize > 10 else None, **args)
+                    id_mapping: dd.DataFrame = dd.read_table(file_resources[filename],
+                                                             blocksize=blocksize if blocksize > 10 else None, **args)
                     id_mapping = id_mapping.set_index("RNAcentral id", sorted=True)
                 else:
                     id_mapping = pd.read_table(file_resources[filename], index_col="RNAcentral id", **args)
