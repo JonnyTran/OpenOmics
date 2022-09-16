@@ -84,6 +84,7 @@ class RNAcentral(Database):
             "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
             "database_mappings/gencode.tsv": "id_mapping/database_mappings/gencode.tsv",
             "database_mappings/mirbase.tsv": "id_mapping/database_mappings/mirbase.tsv",
+            ...
         }
     """
     COLUMNS_RENAME_DICT = {
@@ -130,12 +131,21 @@ class RNAcentral(Database):
                             names=["RNAcentral id", "database", "external id", "species_id", "RNA type", "gene symbol"],
                             dtype={'gene symbol': 'str',
                                    'database': 'category', 'species_id': 'category', 'RNA type': 'category', })
+
                 if blocksize:
-                    id_mapping: dd.DataFrame = dd.read_table(file_resources[filename],
-                                                             blocksize=blocksize if blocksize > 10 else None, **args)
+                    if filename.endswith('.tsv'):
+                        id_mapping: dd.DataFrame = dd.read_table(file_resources[filename],
+                                                                 blocksize=blocksize if blocksize > 10 else None,
+                                                                 **args)
+                    elif filename.endswith('.parquet'):
+                        id_mapping: dd.DataFrame = dd.read_parquet(file_resources[filename],
+                                                                   blocksize=blocksize if blocksize > 10 else None)
                     id_mapping = id_mapping.set_index("RNAcentral id", sorted=True)
                 else:
-                    id_mapping = pd.read_table(file_resources[filename], index_col="RNAcentral id", **args)
+                    if filename.endswith('.tsv'):
+                        id_mapping = pd.read_table(file_resources[filename], index_col="RNAcentral id", **args)
+                    elif filename.endswith('.parquet'):
+                        id_mapping = pd.read_parquet(file_resources[filename], index_col="RNAcentral id")
 
                 if self.remove_version_num and 'gene symbol' in id_mapping.columns:
                     id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)

@@ -346,8 +346,8 @@ class UniProt(SequenceDatabase):
             dtype='str')
 
         if blocksize:
-            if "idmapping_selected.parquet" in file_resources and isinstance(
-                file_resources["idmapping_selected.parquet"], str):
+            if "idmapping_selected.parquet" in file_resources and \
+                isinstance(file_resources["idmapping_selected.parquet"], str):
                 idmapping = dd.read_parquet(file_resources["idmapping_selected.parquet"], blocksize=blocksize)
                 idmapping = idmapping.set_index('UniProtKB-AC', sorted=True)
 
