@@ -81,7 +81,7 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
         return input.split(sep)
 
     def parse_taxon(input: str, sep='|'):
-        return sep.join([s.replace("taxon:", '').strip() for s in input.split(sep)])
+        return [s.replace("taxon:", '').strip() for s in input.split(sep)]
 
     args = dict(
         sep="\t",
@@ -96,10 +96,10 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
             "Annotation_Extension": "str",
             "Gene_Product_Form_ID": "str",
         },
-        converters={
-            'Taxon_ID': parse_taxon,
-            **{col: split_str for col in (list_dtype_columns if list_dtype_columns else [])}
-        },
+        # converters={
+        #     'Taxon_ID': parse_taxon,
+        #     **{col: split_str for col in (list_dtype_columns if list_dtype_columns else [])}
+        # },
     )
 
     if blocksize:
