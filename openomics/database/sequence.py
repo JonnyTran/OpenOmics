@@ -4,16 +4,16 @@ from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple
 
-import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
-from openomics.utils.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
+import openomics
+from openomics.utils.read_gtf import read_gtf
 from .base import Database
 
 SEQUENCE_COL = 'sequence'
@@ -362,7 +362,7 @@ class UniProt(SequenceDatabase):
 
         else:
             idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"],
-                                                    # index_col='UniProtKB-AC',
+                                                    index_col='UniProtKB-AC',
                                                     **args)
 
 
