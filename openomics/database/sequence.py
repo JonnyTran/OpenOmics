@@ -4,16 +4,16 @@ from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple
 
+import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
+from openomics.utils.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
-import openomics
-from openomics.utils.read_gtf import read_gtf
 from .base import Database
 
 SEQUENCE_COL = 'sequence'
@@ -262,7 +262,6 @@ class UniProt(SequenceDatabase):
         "NCBI-taxon": "species_id",
         "GeneID (EntrezGene)": "entrezgene_id",
         "GO": "go_id",
-
         # FASTA headers
         "OS": 'species', "OX": 'species_id', 'GN': 'gene_name', 'PE': 'ProteinExistence', 'SV': "version",
     }
@@ -291,7 +290,10 @@ class UniProt(SequenceDatabase):
             file_resources['uniprot_sprot.xml.gz'] = "knowledgebase/complete/uniprot_sprot.xml.gz
             file_resources['uniprot_trembl.xml.gz'] = "knowledgebase/complete/uniprot_trembl.xml.gz
             file_resources["idmapping_selected.tab.gz"] = "knowledgebase/idmapping/idmapping_selected.tab.gz'
-            file_resources['speclist.txt'] = 'https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/docs/speclist'
+            file_resources["proteomes.tsv"] = "https://rest.uniprot.org/proteomes/stream?compressed=true&
+                fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
+            file_resources['speclist.txt'] = 'https://ftp.uniprot.org/pub/databases/uniprot/current_release/
+                knowledgebase/complete/docs/speclist'
         }
 
         Args:
@@ -310,8 +312,8 @@ class UniProt(SequenceDatabase):
 
             file_resources['uniprot_sprot.xml.gz'] = os.path.join(path, "knowledgebase/complete/uniprot_sprot.xml.gz")
             file_resources['uniprot_trembl.xml.gz'] = os.path.join(path, "knowledgebase/complete/uniprot_trembl.xml.gz")
-            file_resources["idmapping_selected.tab.gz"] = os.path.join(path, "knowledgebase/idmapping/",
-                                                                       'idmapping_selected.tab.gz')
+            file_resources["idmapping_selected.tab.gz"] = os.path.join(path,
+                                                                       "knowledgebase/idmapping/idmapping_selected.tab.gz")
 
             if self.species:
                 file_resources['uniprot_sprot.xml.gz'] = os.path.join(
@@ -322,7 +324,6 @@ class UniProt(SequenceDatabase):
                     path, "knowledgebase/idmapping/by_organism/",
                     f'{self.species}_{self.species_id}_idmapping_selected.tab.gz')
 
-        if 'proteomes.tsv' not in file_resources:
             file_resources["proteomes.tsv"] = \
                 "https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
 
@@ -335,8 +336,8 @@ class UniProt(SequenceDatabase):
             file_resources:
             blocksize:
         """
-        # Load idmapping_selected
-        options = dict(
+        # Load idmapping_selected.tab
+        args = dict(
             names=['UniProtKB-AC', 'UniProtKB-ID', 'GeneID (EntrezGene)', 'RefSeq', 'GI', 'PDB', 'GO', 'UniRef100',
                    'UniRef90', 'UniRef50', 'UniParc', 'PIR', 'NCBI-taxon', 'MIM', 'UniGene', 'PubMed', 'EMBL',
                    'EMBL-CDS', 'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO', 'Additional PubMed'],
@@ -345,14 +346,24 @@ class UniProt(SequenceDatabase):
             dtype='str')
 
         if blocksize:
-            if "idmapping_selected.tab" in file_resources and isinstance(file_resources["idmapping_selected.tab"], str):
-                idmapping = dd.read_table(file_resources["idmapping_selected.tab"], **options)
+            if "idmapping_selected.parquet" in file_resources and isinstance(
+                file_resources["idmapping_selected.parquet"], str):
+                idmapping = dd.read_parquet(file_resources["idmapping_selected.parquet"], blocksize=blocksize)
+                idmapping = idmapping.set_index('UniProtKB-AC', sorted=True)
+
+            elif "idmapping_selected.tab" in file_resources and isinstance(file_resources["idmapping_selected.tab"],
+                                                                           str):
+                idmapping = dd.read_table(file_resources["idmapping_selected.tab"], blocksize=blocksize, **args)
+                idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
+
             else:
-                idmapping: dd.DataFrame = dd.read_table(file_resources["idmapping_selected.tab.gz"], compression="gzip",
-                                                        **options)
+                idmapping = dd.read_table(file_resources["idmapping_selected.tab.gz"], compression="gzip", **args, )
+                idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
+
         else:
-            idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], index_col='UniProtKB-AC',
-                                                    **options)
+            idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"],
+                                                    # index_col='UniProtKB-AC',
+                                                    **args)
 
 
         for col in ['PDB', 'GI', 'GO', 'RefSeq']:
@@ -375,12 +386,13 @@ class UniProt(SequenceDatabase):
                     axis=1)
 
         # Load proteome.tsv
-        proteomes = pd.read_table(file_resources["proteomes.tsv"],
-                                  usecols=['Organism Id', 'Proteome Id'],
-                                  dtype={'Organism Id': 'str', 'Proteome Id': 'str'}) \
-            .rename(columns={'Organism Id': 'NCBI-taxon', 'Proteome Id': 'proteome_id'}) \
-            .dropna()
-        idmapping = idmapping.join(proteomes.set_index('NCBI-taxon'), on='NCBI-taxon')
+        if "proteomes.tsv" in file_resources:
+            proteomes = pd.read_table(file_resources["proteomes.tsv"],
+                                      usecols=['Organism Id', 'Proteome Id'],
+                                      dtype={'Organism Id': 'str', 'Proteome Id': 'str'}) \
+                .rename(columns={'Organism Id': 'NCBI-taxon', 'Proteome Id': 'proteome_id'}) \
+                .dropna().set_index('NCBI-taxon')
+            idmapping = idmapping.join(proteomes, on='NCBI-taxon')
 
         # Load species info from speclist.txt
         if 'speclist.txt' in file_resources:
