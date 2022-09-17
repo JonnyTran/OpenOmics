@@ -12,6 +12,7 @@ import dask.dataframe as dd
 import filetype
 import pandas as pd
 import validators
+
 from openomics.utils.df import get_multi_aggregators
 from openomics.utils.io import get_pkg_data_filename, decompress_file
 
@@ -30,10 +31,10 @@ class Database(object):
 
     def __init__(
         self,
-        path,
-        file_resources=None,
-        col_rename=None,
-        blocksize=None,
+        path: str,
+        file_resources: Dict[str, str] = None,
+        col_rename: Dict[str, str] = None,
+        blocksize: int = None,
         verbose=False,
     ):
         """
@@ -65,7 +66,7 @@ class Database(object):
         if col_rename is not None:
             self.data = self.data.rename(columns=col_rename)
             if self.data.index.name in col_rename:
-                self.data.index.name = col_rename[self.data.index.name]
+                self.data.index = self.data.index.rename(col_rename[self.data.index.name])
 
     def __repr__(self):
         return "{}: {}".format(self.name(), self.data.columns.tolist())
@@ -94,7 +95,10 @@ class Database(object):
             # Remote database file URL
             if validators.url(filepath) or validators.url(join(base_path, filepath)):
                 filepath = get_pkg_data_filename(base_path, filepath)
-                filepath_ext = filetype.guess(filepath)
+                try:
+                    filepath_ext = filetype.guess(filepath)
+                except:
+                    filepath_ext = None
 
             # Local database path
             elif exists(filepath) or exists(join(base_path, filepath)):
@@ -105,9 +109,10 @@ class Database(object):
                         warnings.warn(f"`base_path` is a local file directory, so all file_resources must be local. "
                                       f"Cannot use `filepath` = {filepath} with `base_path` = {base_path}")
                         continue
-
-                filepath_ext = filetype.guess(filepath)
-
+                try:
+                    filepath_ext = filetype.guess(filepath)
+                except:
+                    filepath_ext = None
             else:
                 # file_path is an external file outside of `base_path`
                 filepath_ext = None
