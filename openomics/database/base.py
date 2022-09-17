@@ -70,7 +70,7 @@ class Database(object):
     def __repr__(self):
         return "{}: {}".format(self.name(), self.data.columns.tolist())
 
-    def load_file_resources(self, base_path, file_resources, verbose=False) -> Dict[str, Any]:
+    def load_file_resources(self, base_path: str, file_resources: Dict[str, str], verbose=False) -> Dict[str, Any]:
         """For each file in file_resources, download the file if path+file is a
         URL or load from disk if a local path. Additionally unzip or unrar if
         the file is compressed.
@@ -87,6 +87,8 @@ class Database(object):
             verbose:
         """
         file_resources_new = copy.copy(file_resources)
+        if '~' in base_path:
+            base_path = os.path.expanduser(base_path)
 
         for filename, filepath in file_resources.items():
             # Remote database file URL
