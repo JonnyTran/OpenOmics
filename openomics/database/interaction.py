@@ -322,8 +322,11 @@ class STRING(Interactions, SequenceDatabase):
                                        low_memory=True)
                     data_dfs.append(df)
 
+        # Need to load .data df first
         self.data = dd.concat(data_dfs, axis=0) if blocksize else pd.concat(data_dfs, axis=0)
         self.data = self.data.rename(columns=self.COLUMNS_RENAME_DICT)
+        if self.data.index.name in self.COLUMNS_RENAME_DICT:
+            self.data.index = self.data.index.rename(self.COLUMNS_RENAME_DICT[self.data.index.name])
 
         # Determine which edge attr to add
         if isinstance(edge_attr, (list, tuple)):

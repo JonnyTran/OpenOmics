@@ -2,19 +2,20 @@ import os
 import re
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
+from collections.abc import Iterable
 from typing import Union, List, Callable, Dict, Tuple
 
 import numpy as np
-import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
-from openomics.utils.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
+import openomics
+from openomics.utils.read_gtf import read_gtf
 from .base import Database
 
 SEQUENCE_COL = 'sequence'
@@ -281,7 +282,9 @@ class UniProt(SequenceDatabase):
 
     def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
                  species_id: str = "9606", remove_version_num=True,
-                 file_resources: Dict[str, str] = None, col_rename=COLUMNS_RENAME_DICT, verbose=False,
+                 file_resources: Dict[str, str] = None,
+                 col_rename=COLUMNS_RENAME_DICT,
+                 verbose=False,
                  blocksize=None):
         """
         Loads the UniProt database from https://uniprot.org/ .
@@ -351,7 +354,8 @@ class UniProt(SequenceDatabase):
             if "idmapping_selected.parquet" in file_resources and \
                 isinstance(file_resources["idmapping_selected.parquet"], str):
                 idmapping = dd.read_parquet(file_resources["idmapping_selected.parquet"], blocksize=blocksize)
-                idmapping = idmapping.set_index('UniProtKB-AC', sorted=True)
+                if not idmapping.index.name:
+                    idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
 
             elif "idmapping_selected.tab" in file_resources and isinstance(file_resources["idmapping_selected.tab"],
                                                                            str):
@@ -363,20 +367,22 @@ class UniProt(SequenceDatabase):
                 idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
 
         else:
-            idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"],
-                                                    index_col='UniProtKB-AC',
+            idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], index_col='UniProtKB-AC',
                                                     **args)
 
-
+        list2array = lambda x: np.array(x) if x is not None else x
+        args = dict(meta=pd.Series([np.array([''])])) if isinstance(idmapping, dd.DataFrame) else {}
         for col in ['PDB', 'GI', 'GO', 'RefSeq']:
+            if col not in idmapping.columns or idmapping[col].head(100).map(type).isin({Iterable}).any(): continue
             # Split string to list
-            idmapping[col] = idmapping[col].str.split("; ")
+            idmapping[col] = idmapping[col].str.split("; ").map(list2array, **args)
 
         for col in ['Ensembl', 'Ensembl_TRS', 'Ensembl_PRO']:
+            if col not in idmapping.columns or idmapping[col].head(100).map(type).isin({Iterable}).any(): continue
             # Removing .# ENGS gene version number at the end
             if self.remove_version_num:
                 idmapping[col] = idmapping[col].str.replace("[.]\d*", "", regex=True)
-            idmapping[col] = idmapping[col].str.split("; ").map(np.array)
+            idmapping[col] = idmapping[col].str.split("; ").map(list2array, **args)
 
             if col == 'Ensembl_PRO':
                 # Prepend species_id to ensembl protein ids to match with STRING PPI
@@ -385,8 +391,7 @@ class UniProt(SequenceDatabase):
                     lambda x: np.array(
                         [".".join([x['NCBI-taxon'], protein_id]) for protein_id in x['protein_external_id']]) \
                         if isinstance(x['protein_external_id'], list) else None,
-                    meta=pd.Series([np.array(['', ''])]),
-                    axis=1)
+                    axis=1, **args)
 
         # Load proteome.tsv
         if "proteomes.tsv" in file_resources:

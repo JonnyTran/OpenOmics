@@ -1,4 +1,5 @@
 import gzip
+import os.path
 from io import TextIOWrapper
 from os.path import exists
 from typing import List, Optional, Union, Dict, Callable
@@ -29,11 +30,15 @@ def read_gaf(filepath_or_buffer, blocksize=None, compression: Optional[str] = No
         usecols (list of str or None): Restrict which columns are loaded to the
             give set. If None, then load all columns.
     """
+    if isinstance(filepath_or_buffer, str) and "~" in filepath_or_buffer:
+        filepath_or_buffer = os.path.expanduser(filepath_or_buffer)
+
     if isinstance(filepath_or_buffer, string_types) and not exists(filepath_or_buffer):
         raise ValueError(f"GAF file does not exist: {filepath_or_buffer}")
 
     COLUMN_NAMES = infer_gaf_columns(filepath_or_buffer)
     index_col = COLUMN_NAMES[1]
+
     if blocksize:
         assert isinstance(filepath_or_buffer, str), f'dd.read_table() must have `filepath_or_buffer` as a path, and ' \
                                                     f'if compressed, use the `compression` arg. ' \
@@ -78,11 +83,17 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
 
     """
 
-    def split_str(input: str, sep='|') -> np.ndarray:
-        return np.array(input.split(sep))
+    def split_str(input: str, sep='|') -> Optional[np.ndarray]:
+        if input:
+            return np.array(input.split(sep), dtype='<U18')
+        else:
+            return None
 
-    def parse_taxon(input: str, sep='|') -> np.ndarray:
-        return np.array([s.replace("taxon:", '').strip() for s in input.split(sep)])
+    def parse_taxon(input: str, sep='|') -> Optional[np.ndarray]:
+        if input:
+            return np.array([s.replace("taxon:", '').strip() for s in input.split(sep)], dtype='<U18')
+        else:
+            return None
 
     args = dict(
         sep="\t",
@@ -92,11 +103,7 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
         skipinitialspace=True,
         skip_blank_lines=True,
         on_bad_lines='error',
-        dtype={
-            "Date": 'str',
-            "Annotation_Extension": "str",
-            "Gene_Product_Form_ID": "str",
-        },
+        dtype='str',
         converters={
             'Taxon_ID': parse_taxon,
             **{col: split_str for col in (list_dtype_columns if list_dtype_columns else [])}
@@ -106,12 +113,13 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
     if blocksize:
         if filepath_or_buffer.endswith('.parquet'):
             df: dd.DataFrame = dd.read_parquet(filepath_or_buffer,
-                                               blocksize=blocksize if blocksize > 10 else None)
+                                               blocksize=blocksize if blocksize > 10 else None,
+                                               converters=args['converters'])
         else:
             df: dd.DataFrame = dd.read_table(filepath_or_buffer, compression=compression,
                                              blocksize=blocksize if blocksize > 10 else None, **args)
-        # if index_col is not None:
-        #     df = df.set_index(index_col, sorted=True)
+            # if index_col is not None:
+            #     df = df.set_index(index_col, sorted=True)
         df['Date'] = dd.to_datetime(df['Date'])
 
     else:
