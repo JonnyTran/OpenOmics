@@ -4,16 +4,17 @@ from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple
 
+import numpy as np
+import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
+from openomics.utils.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
-import openomics
-from openomics.utils.read_gtf import read_gtf
 from .base import Database
 
 SEQUENCE_COL = 'sequence'
@@ -279,7 +280,7 @@ class UniProt(SequenceDatabase):
     }
 
     def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
-                 species_id: str = "9606",
+                 species_id: str = "9606", remove_version_num=True,
                  file_resources: Dict[str, str] = None, col_rename=COLUMNS_RENAME_DICT, verbose=False,
                  blocksize=None):
         """
@@ -306,6 +307,7 @@ class UniProt(SequenceDatabase):
         self.species_id = species_id
         self.species = UniProt.SPECIES_ID_NAME[species_id] if isinstance(species_id, str) else None
         self.taxonomic_id = UniProt.SPECIES_ID_TAXONOMIC[self.species] if isinstance(self.species, str) else None
+        self.remove_version_num = remove_version_num
 
         if file_resources is None:
             file_resources = {}
@@ -372,17 +374,18 @@ class UniProt(SequenceDatabase):
 
         for col in ['Ensembl', 'Ensembl_TRS', 'Ensembl_PRO']:
             # Removing .# ENGS gene version number at the end
-            idmapping[col] = idmapping[col].str.replace("[.]\d*", "", regex=True)
-            idmapping[col] = idmapping[col].str.split("; ")
+            if self.remove_version_num:
+                idmapping[col] = idmapping[col].str.replace("[.]\d*", "", regex=True)
+            idmapping[col] = idmapping[col].str.split("; ").map(np.array)
 
             if col == 'Ensembl_PRO':
                 # Prepend species_id to ensembl protein ids to match with STRING PPI
                 idmapping['protein_external_id'] = idmapping[col]
                 idmapping['protein_external_id'] = idmapping[["NCBI-taxon", 'protein_external_id']].apply(
-                    lambda x: [".".join([x['NCBI-taxon'], protein_id]) \
-                               for protein_id in x['protein_external_id']] \
+                    lambda x: np.array(
+                        [".".join([x['NCBI-taxon'], protein_id]) for protein_id in x['protein_external_id']]) \
                         if isinstance(x['protein_external_id'], list) else None,
-                    meta=pd.Series([['', '']]),
+                    meta=pd.Series([np.array(['', ''])]),
                     axis=1)
 
         # Load proteome.tsv

@@ -165,7 +165,6 @@ def infer_gaf_columns(handle: Union[str, TextIOWrapper]) -> List[str]:
         raise Exception(f"{inline} not supported.")
 
 
-@DeprecationWarning
 def gafiterator(handle: TextIOWrapper):
     inline = handle.readline()
     if inline.strip().startswith("!gaf-version: 2"):
