@@ -4,6 +4,7 @@ from os.path import exists
 from typing import List, Optional, Union, Dict, Callable
 
 import dask.dataframe as dd
+import numpy as np
 import pandas as pd
 from Bio.UniProt.GOA import GAF20FIELDS, GAF10FIELDS, _gaf20iterator, _gaf10iterator
 from filetype import filetype
@@ -77,11 +78,11 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
 
     """
 
-    def split_str(input: str, sep='|') -> List[str]:
-        return input.split(sep)
+    def split_str(input: str, sep='|') -> np.ndarray:
+        return np.array(input.split(sep))
 
-    def parse_taxon(input: str, sep='|'):
-        return [s.replace("taxon:", '').strip() for s in input.split(sep)]
+    def parse_taxon(input: str, sep='|') -> np.ndarray:
+        return np.array([s.replace("taxon:", '').strip() for s in input.split(sep)])
 
     args = dict(
         sep="\t",
@@ -96,10 +97,10 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
             "Annotation_Extension": "str",
             "Gene_Product_Form_ID": "str",
         },
-        # converters={
-        #     'Taxon_ID': parse_taxon,
-        #     **{col: split_str for col in (list_dtype_columns if list_dtype_columns else [])}
-        # },
+        converters={
+            'Taxon_ID': parse_taxon,
+            **{col: split_str for col in (list_dtype_columns if list_dtype_columns else [])}
+        },
     )
 
     if blocksize:

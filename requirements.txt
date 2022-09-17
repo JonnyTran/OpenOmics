@@ -9,7 +9,6 @@ matplotlib
 scipy
 astropy
 h5py
-typing
 bioservices
 itsdangerous
 dash
