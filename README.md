@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/BioMeCIS-Lab/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png" max-height="200">
+  <img src="https://github.com/JonnyTran/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png" max-height="200">
 </p>
 
 [![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
@@ -7,11 +7,12 @@
 [![pyOpenSci](https://tinyurl.com/y22nb8up)](https://github.com/pyOpenSci/software-review/issues/31)
 [![status](https://joss.theoj.org/papers/aca43e3c2989a803b514faef72dd3294/status.svg)](https://joss.theoj.org/papers/aca43e3c2989a803b514faef72dd3294)
 [![DOI](https://zenodo.org/badge/125549505.svg)](https://zenodo.org/badge/latestdoi/125549505)
-[![OpenOmics](https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml/badge.svg?branch=master)](https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml)
-[![codecov](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics/branch/master/graph/badge.svg?token=6N1UZ27MPH)](https://codecov.io/gh/BioMeCIS-Lab/OpenOmics)
+[![OpenOmics](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml/badge.svg?branch=master)](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml)
+[![codecov](https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg?token=6N1UZ27MPH)](https://codecov.io/gh/JonnyTran/OpenOmics)
 
 This Python package provide a series of tools to integrate and explore the genomics, transcriptomics, proteomics, and
-clinical data (aka multi-omics data). With interfaces to popular annotation databases and scalable data-frame manipulation tools, OpenOmics facilitates the common
+clinical data (aka multi-omics data). With interfaces to popular annotation databases and scalable data-frame
+manipulation tools, OpenOmics facilitates the common
 data wrangling tasks when preparing data for RNA-seq bioinformatics analysis.
 
 Documentation ([Latest](https://openomics.readthedocs.io/en/latest/)
@@ -39,7 +40,7 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 $ pip install openomics
 ```
 
-## 
+##
 
 ## Citations
 The journal paper for this scientific package was reviewed by JOSS at <https://joss.theoj.org/papers/10.21105/joss.03249#>, and can be cited with:

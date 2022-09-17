@@ -5,7 +5,8 @@ encapsulate the data import process with one line of code along with a few param
 dataset, the library loads the data as a tabular structure where rows correspond to observation samples and columns
 correspond to measurements of different biomolecules.
 
-Import TCGA LUAD data included in tests dataset (preprocessed from TCGA-Assembler). It is located at [tests/data/TCGA_LUAD](https://github.com/BioMeCIS-Lab/OpenOmics/tree/master/tests/data/TCGA_LUAD).
+Import TCGA LUAD data included in tests dataset (preprocessed from TCGA-Assembler). It is located
+at [tests/data/TCGA_LUAD](https://github.com/JonnyTran/OpenOmics/tree/master/tests/data/TCGA_LUAD).
 
 ```{code-block} python
 folder_path = "tests/data/TCGA_LUAD/"

@@ -1,5 +1,7 @@
 import gzip
 import os.path
+import warnings
+from collections.abc import Iterable
 from io import TextIOWrapper
 from os.path import exists
 from typing import List, Optional, Union, Dict, Callable
@@ -7,8 +9,9 @@ from typing import List, Optional, Union, Dict, Callable
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-from Bio.UniProt.GOA import GAF20FIELDS, GAF10FIELDS, _gaf20iterator, _gaf10iterator
+from Bio.UniProt.GOA import GAF20FIELDS, GAF10FIELDS
 from filetype import filetype
+from logzero import logger
 from six import string_types
 from six.moves import intern
 
@@ -37,7 +40,8 @@ def read_gaf(filepath_or_buffer, blocksize=None, compression: Optional[str] = No
         raise ValueError(f"GAF file does not exist: {filepath_or_buffer}")
 
     COLUMN_NAMES = infer_gaf_columns(filepath_or_buffer)
-    index_col = COLUMN_NAMES[1]
+    index_col = None
+    # index_col = COLUMN_NAMES[1]
 
     if blocksize:
         assert isinstance(filepath_or_buffer, str), f'dd.read_table() must have `filepath_or_buffer` as a path, and ' \
@@ -84,14 +88,18 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
     """
 
     def split_str(input: str, sep='|') -> Optional[np.ndarray]:
-        if input:
-            return np.array(input.split(sep), dtype='<U18')
+        if isinstance(input, str):
+            return np.array(input.split(sep))
+        elif isinstance(input, Iterable):
+            return input
         else:
             return None
 
     def parse_taxon(input: str, sep='|') -> Optional[np.ndarray]:
-        if input:
-            return np.array([s.replace("taxon:", '').strip() for s in input.split(sep)], dtype='<U18')
+        if isinstance(input, str):
+            return np.array([s.replace("taxon:", '').strip() for s in input.split(sep)])
+        elif isinstance(input, Iterable):
+            return input
         else:
             return None
 
@@ -104,22 +112,27 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
         skip_blank_lines=True,
         on_bad_lines='error',
         dtype='str',
-        converters={
-            'Taxon_ID': parse_taxon,
-            **{col: split_str for col in (list_dtype_columns if list_dtype_columns else [])}
-        },
+        # converters={
+        #     'Taxon_ID': parse_taxon,
+        #     **{col: split_str for col in (list_dtype_columns if list_dtype_columns else [])}
+        # },
     )
 
     if blocksize:
         if filepath_or_buffer.endswith('.parquet'):
             df: dd.DataFrame = dd.read_parquet(filepath_or_buffer,
-                                               blocksize=blocksize if blocksize > 10 else None,
-                                               converters=args['converters'])
+                                               blocksize=blocksize if blocksize > 10 else None)
+            if 'Taxon_ID' in df.columns:
+                df['Taxon_ID'] = df['Taxon_ID'].map(parse_taxon)
+            for col in df.columns.intersection(list_dtype_columns):
+                df[col] = df[col].map(split_str)
+
         else:
             df: dd.DataFrame = dd.read_table(filepath_or_buffer, compression=compression,
                                              blocksize=blocksize if blocksize > 10 else None, **args)
-            # if index_col is not None:
-            #     df = df.set_index(index_col, sorted=True)
+        if index_col is not None and df.index.name != index_col:
+            logger.info(f"Setting index at {index_col}")
+            df = df.set_index(index_col, sorted=False)
         df['Date'] = dd.to_datetime(df['Date'])
 
     else:
@@ -140,30 +153,32 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
     return df
 
 
-def infer_gaf_columns(handle: Union[str, TextIOWrapper]) -> List[str]:
+def infer_gaf_columns(filepath_or_buffer: Union[str, TextIOWrapper]) -> List[str]:
     """
     Grab first line of the file, filestream, or a compressed file, then determine the gaf version and return
     corresponding column names to expect from the tab-delimited .gaf file.
     Args:
-        handle ():
+        filepath_or_buffer ():
 
     Returns:
 
     """
-    if isinstance(handle, str) and exists(handle):
-        filepath_ext = filetype.guess(handle)
+    if isinstance(filepath_or_buffer, str) and exists(filepath_or_buffer) and os.path.isfile(filepath_or_buffer):
+        filepath_ext = filetype.guess(filepath_or_buffer)
 
         if filepath_ext is not None and filepath_ext.extension == 'gz':
-            with gzip.open(handle, 'rt') as file:
+            with gzip.open(filepath_or_buffer, 'rt') as file:
                 inline = file.readline()
         else:
-            with open(handle, 'rt') as file:
+            with open(filepath_or_buffer, 'rt') as file:
                 inline = file.readline()
 
-    elif hasattr(handle, 'readline'):
-        inline = handle.readline()
+    elif hasattr(filepath_or_buffer, 'readline'):
+        inline = filepath_or_buffer.readline()
     else:
-        raise IOError(f"`handle` of type {type(handle)} not supported.")
+        warnings.warn(f"`filepath_or_buffer`={type(filepath_or_buffer)} not supported to peek first line and "
+                      f"infer GAF version for column names. Defaulting to `GAF20FIELDS`")
+        return GAF20FIELDS
 
     if inline.strip().startswith("!gaf-version: 2"):
         return GAF20FIELDS
@@ -173,11 +188,3 @@ def infer_gaf_columns(handle: Union[str, TextIOWrapper]) -> List[str]:
         raise Exception(f"{inline} not supported.")
 
 
-def gafiterator(handle: TextIOWrapper):
-    inline = handle.readline()
-    if inline.strip().startswith("!gaf-version: 2"):
-        return _gaf20iterator(handle)
-    elif inline.strip() == "!gaf-version: 1.0":
-        return _gaf10iterator(handle)
-    else:
-        return _gaf20iterator(handle)

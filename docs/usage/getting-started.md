@@ -6,7 +6,9 @@ Welcome! This tutorial highlights the OpenOmics API’s core features; for in-de
 
 Suppose you have a single-omics dataset and would like to load them as a dataframe.
 
-As an example, we use the `TGCA` Lung Adenocarcinoma dataset from [tests/data/TCGA_LUAD](https://github.com/BioMeCIS-Lab/OpenOmics/tree/master/tests/data/TCGA_LUAD). Data tables are tab-delimited and have the following format:
+As an example, we use the `TGCA` Lung Adenocarcinoma dataset
+from [tests/data/TCGA_LUAD](https://github.com/JonnyTran/OpenOmics/tree/master/tests/data/TCGA_LUAD). Data tables are
+tab-delimited and have the following format:
 
 | GeneSymbol | EntrezID  | TCGA-05-4244-01A-01R-1107-07 | TCGA-05-4249-01A-01R-1107-07 | ...  |
 | ---------- | --------- | ---------------------------- | ---------------------------- | ---- |
@@ -22,7 +24,7 @@ If the dataset is a local file in a tabular format, OpenOmics can help you load 
 from openomics.multiomics import MessengerRNA
 
 mrna = MessengerRNA(
-    data="https://raw.githubusercontent.com/BioMeCIS-Lab/OpenOmics/master/tests/data/TCGA_LUAD/LUAD__geneExp.txt",
+    data="https://raw.githubusercontent.com/JonnyTran/OpenOmics/master/tests/data/TCGA_LUAD/LUAD__geneExp.txt",
     transpose=True,
     usecols="GeneSymbol|TCGA", # A regex that matches all column name with either "GeneSymbol" or "TCGA substring
     gene_index="GeneSymbol", # This column contains the gene index
@@ -133,7 +135,7 @@ With multiple single-omics, each with different sets of genes and samples, you c
 ```{code-block} python
 from openomics.multiomics import MultiOmics, MessengerRNA, MicroRNA, LncRNA, SomaticMutation, Protein
 
-path = "https://raw.githubusercontent.com/BioMeCIS-Lab/OpenOmics/master/tests/data/TCGA_LUAD/"
+path = "https://raw.githubusercontent.com/JonnyTran/OpenOmics/master/tests/data/TCGA_LUAD/"
 
 # Load each expression dataframe
 mRNA = MessengerRNA(path+"LUAD__geneExp.txt",
@@ -188,7 +190,7 @@ When sample attributes are provided for the study cohort, load it as a data tabl
 from openomics import ClinicalData
 
 clinical = ClinicalData(
-    "https://raw.githubusercontent.com/BioMeCIS-Lab/OpenOmics/master/tests/data/TCGA_LUAD/nationwidechildrens.org_clinical_patient_luad.txt",
+    "https://raw.githubusercontent.com/JonnyTran/OpenOmics/master/tests/data/TCGA_LUAD/nationwidechildrens.org_clinical_patient_luad.txt",
     patient_index="bcr_patient_barcode")
 
 luad_data.add_clinical_data(clinical)
