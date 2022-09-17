@@ -15,15 +15,15 @@ the [Anaconda Python distribution](https://www.anaconda.com/products/individual)
 
 ## From sources
 
-The sources for OpenOmics can be downloaded from the [Github repo](https://github.com/BioMeCIS-Lab/OpenOmics).
+The sources for OpenOmics can be downloaded from the [Github repo](https://github.com/JonnyTran/OpenOmics).
 
 You can either clone the public repository:
 
-    $ git clone https://github.com/BioMeCIS-Lab/OpenOmics
+    $ git clone https://github.com/JonnyTran/OpenOmics
 
 Once you have a copy of the source, you can install it with:
 
     $ cd OpenOmics
     $ pip install ./ -e
 
-The versioned release history can be found at [OpenOmics/releases](https://github.com/BioMeCIS-Lab/OpenOmics/releases).
+The versioned release history can be found at [OpenOmics/releases](https://github.com/JonnyTran/OpenOmics/releases).
