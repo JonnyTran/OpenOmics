@@ -95,8 +95,8 @@ class RNAcentral(Database):
     }
 
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606', blocksize=None, verbose=False,
-                 remove_version_num=True):
+                 col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606', remove_version_num=True, blocksize=None,
+                 verbose=False):
         """
         Args:
             path:
