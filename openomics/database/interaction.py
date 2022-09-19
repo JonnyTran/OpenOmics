@@ -405,9 +405,7 @@ class LncBase(Interactions, Database):
             file_resources = {}
             file_resources["LncBasev2_download.csv"] = os.path.join(path, "LncBasev2_download.csv")
 
-        super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
-                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
-                         edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes)
+        super().__init__(path=path, file_resources=file_resources)
 
     def get_rename_dict(self, from_index="geneId", to_index="geneName"):
         lncbase_df = pd.read_table(self.file_resources["LncBasev2_download.csv"], low_memory=True)
@@ -635,9 +633,7 @@ class lncRNome(Interactions, Database):
             file_resources["miRNA_binding_sites.txt"] = os.path.join(path, "miRNA_binding_sites.txt")
             file_resources["general_information.txt"] = os.path.join(path, "general_information.txt")
 
-        super().__init__(path, file_resources=file_resources, source_col_name=source_col_name,
-                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
-                         edge_attr=edge_attr, directed=directed, relabel_nodes=relabel_nodes)
+        super().__init__(path, file_resources=file_resources)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
                      blocksize=None):
@@ -817,9 +813,7 @@ class TargetScan(Interactions, Database):
             file_resources["Predicted_Targets_Info.default_predictions.txt"] = os.path.join(path,
                                                                                             "Predicted_Targets_Info.default_predictions.txt")
 
-        super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
-                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
-                         edge_attr=edge_attr, directed=directed, relabel_nodes=relabel_nodes)
+        super().__init__(path=path, file_resources=file_resources)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
                      blocksize=None):

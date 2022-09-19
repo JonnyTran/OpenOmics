@@ -15,7 +15,7 @@ from pyfaidx import Fasta
 from six.moves import intern
 
 import openomics
-from openomics.utils.read_gtf import read_gtf
+from openomics.io.read_gtf import read_gtf
 from .base import Database
 
 SEQUENCE_COL = 'sequence'
@@ -267,7 +267,8 @@ class UniProt(SequenceDatabase):
         # FASTA headers
         "OS": 'species', "OX": 'species_id', 'GN': 'gene_name', 'PE': 'ProteinExistence', 'SV': "version",
         # UniProt XML headers
-        "accession": "protein_id", "name": "protein_name", "gene": "gene_name", "geneLocation": "subcellular_location",
+        "accession": "UniProtKB-AC", "name": "protein_name", "gene": "gene_name",
+        "geneLocation": "subcellular_location",
         "keyword": "keywords",
     }
 
@@ -358,7 +359,7 @@ class UniProt(SequenceDatabase):
                 isinstance(file_resources["idmapping_selected.parquet"], str):
                 idmapping = dd.read_parquet(file_resources["idmapping_selected.parquet"])
                 if not idmapping.index.name:
-                    idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
+                    idmapping = idmapping.set_index('UniProtKB-AC', sorted=True)
 
             elif "idmapping_selected.tab" in file_resources and isinstance(file_resources["idmapping_selected.tab"],
                                                                            str):
@@ -376,12 +377,12 @@ class UniProt(SequenceDatabase):
         list2array = lambda x: np.array(x) if x is not None else x
         args = dict(meta=pd.Series([np.array([''])])) if isinstance(idmapping, dd.DataFrame) else {}
         for col in ['PDB', 'GI', 'GO', 'RefSeq']:
-            if col not in idmapping.columns or idmapping[col].head(100).map(type).isin({Iterable}).any(): continue
+            if col not in idmapping.columns or idmapping[col].head(300).map(type).isin({Iterable}).any(): continue
             # Split string to list
             idmapping[col] = idmapping[col].str.split("; ").map(list2array, **args)
 
         for col in ['Ensembl', 'Ensembl_TRS', 'Ensembl_PRO']:
-            if col not in idmapping.columns or idmapping[col].head(100).map(type).isin({Iterable}).any(): continue
+            if col not in idmapping.columns or idmapping[col].head(300).map(type).isin({Iterable}).any(): continue
             # Removing .# ENGS gene version number at the end
             if self.remove_version_num:
                 idmapping[col] = idmapping[col].str.replace("[.]\d*", "", regex=True)
@@ -395,6 +396,11 @@ class UniProt(SequenceDatabase):
                         [".".join([x['NCBI-taxon'], protein_id]) for protein_id in x['protein_external_id']]) \
                         if isinstance(x['protein_external_id'], list) else None,
                     axis=1, **args)
+
+        if 'uniprot_sprot.parquet' in file_resources or 'uniprot_trembl.parquet' in file_resources:
+            uniprot = self.load_uniprot_parquet(file_resources, blocksize=blocksize)
+            to_join = uniprot[uniprot.columns.difference(idmapping.columns)]
+            idmapping = idmapping.join(to_join, how='left')
 
         # Load proteome.tsv
         if "proteomes.tsv" in file_resources:
@@ -429,7 +435,26 @@ class UniProt(SequenceDatabase):
 
         return idmapping
 
-    def load_uniprot_xml(self, xml_file: str, keys=None, blocksize=None) -> pd.DataFrame:
+    def load_uniprot_parquet(self, file_resources: Dict[str, str], blocksize=None) -> Union[dd.DataFrame, pd.DataFrame]:
+        dfs = []
+        for filename, file_path in file_resources.items():
+            if filename not in ['uniprot_sprot.parquet', 'uniprot_trembl.parquet']: continue
+            if blocksize:
+                df = dd.read_parquet(file_path).rename(columns=UniProt.COLUMNS_RENAME_DICT)
+                df = df.set_index('UniProtKB-AC', sorted=True)
+            else:
+                df = pd.read_parquet(file_path).rename(columns=UniProt.COLUMNS_RENAME_DICT)
+                df = df.set_index('UniProtKB-AC')
+            dfs.append(df)
+
+        if dfs:
+            dfs = dd.concat(dfs) if blocksize else pd.concat(dfs)
+
+            return dfs
+        else:
+            return None
+
+    def load_uniprot_xml(self, file_path: str, keys=None, blocksize=None) -> pd.DataFrame:
         records = []
         seqfeats = []
         if isinstance(keys, str):
@@ -441,7 +466,7 @@ class UniProt(SequenceDatabase):
         else:
             index = keys_set = None
 
-        for record in tqdm.tqdm(SeqIO.parse(xml_file, "uniprot-xml"), desc=str(xml_file)):
+        for record in tqdm.tqdm(SeqIO.parse(file_path, "uniprot-xml"), desc=str(file_path)):
             # Sequence features
             annotations = defaultdict(None, record.annotations)
             record_dict = {

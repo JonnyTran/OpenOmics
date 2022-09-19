@@ -42,7 +42,7 @@ class ProteinAtlas(Database):
             file_resources = {}
             file_resources["proteinatlas.tsv.zip"] = "proteinatlas.tsv.zip"
 
-        super().__init__(path, file_resources, col_rename, blocksize, verbose)
+        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize, verbose=verbose)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
@@ -115,8 +115,7 @@ class RNAcentral(Database):
             file_resources["rnacentral_rfam_annotations.tsv.gz"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
             file_resources["database_mappings/gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
             file_resources["database_mappings/mirbase.tsv"] = "id_mapping/database_mappings/mirbase.tsv"
-        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize,
-                         verbose=verbose)
+        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize, verbose=verbose)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
@@ -305,7 +304,7 @@ class NONCODE(Database):
             file_resources["NONCODEv5_Transcript2Gene"] = os.path.join(path, "NONCODEv5_Transcript2Gene")
             file_resources["NONCODEv5_human.func"] = os.path.join(path, "NONCODEv5_human.func")
 
-        super().__init__(path, file_resources, col_rename, verbose=verbose, blocksize=blocksize)
+        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize, verbose=verbose)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
@@ -589,7 +588,7 @@ class TANRIC(Database):
             blocksize:
             verbose:
         """
-        super().__init__(path, file_resources, col_rename, blocksize, verbose)
+        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize, verbose=verbose)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
