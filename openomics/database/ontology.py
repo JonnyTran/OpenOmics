@@ -13,9 +13,9 @@ from logzero import logger
 from networkx import NetworkXError
 from pandas import DataFrame
 
+from openomics.io.read_gaf import read_gaf
 from openomics.utils.adj import slice_adj
 from .base import Database
-from ..utils.read_gaf import read_gaf
 
 
 class Ontology(Database):
@@ -40,13 +40,8 @@ class Ontology(Database):
         """
         self.network, self.node_list = self.load_network(file_resources)
 
-        super().__init__(
-            path=path,
-            file_resources=file_resources,
-            col_rename=col_rename,
-            blocksize=blocksize,
-            verbose=verbose,
-        )
+        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, blocksize=blocksize,
+                         verbose=verbose)
 
     def load_network(self, file_resources) -> Tuple[nx.MultiDiGraph, List[str]]:
         raise NotImplementedError()
@@ -256,7 +251,7 @@ class GeneOntology(Ontology):
 
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None) -> DataFrame:
         if self.network:
-            # Annotations for each GO term
+            # Annotations for each GO term from nodes in the NetworkX graph created by the .obo file
             go_terms = pd.DataFrame.from_dict(dict(self.network.nodes(data=True)), orient='index')
             go_terms["def"] = go_terms["def"].apply(
                 lambda x: x.split('"')[1] if isinstance(x, str) else None)
@@ -286,7 +281,8 @@ class GeneOntology(Ontology):
             self.annotations = dd.concat(list(dfs.values())) if blocksize else pd.concat(dfs.values())
             self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
             if self.annotations.index.name in self.COLUMNS_RENAME_DICT:
-                self.annotations.index = self.data.index.rename(self.COLUMNS_RENAME_DICT[self.data.index.name])
+                self.annotations.index = self.annotations.index.rename(
+                    self.COLUMNS_RENAME_DICT[self.annotations.index.name])
 
         return go_terms
 

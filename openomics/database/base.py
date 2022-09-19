@@ -29,28 +29,32 @@ class Database(object):
     data: pd.DataFrame
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
 
-    def __init__(
-        self,
-        path: str,
-        file_resources: Dict[str, str] = None,
-        col_rename: Dict[str, str] = None,
-        blocksize: int = None,
-        verbose=False,
-    ):
+    def __init__(self, path: str, file_resources: Dict[str, str] = None, index_col=None, keys=None,
+                 col_rename: Dict[str, str] = None, blocksize: int = None, verbose=False):
         """
         Args:
-            path: The folder or url path containing the data file resources. If
+            path:
+                The folder or url path containing the data file resources. If
                 url path, the files will be downloaded and cached to the user's
                 home folder (at ~/.astropy/).
-            file_resources: Used to list required files for preprocessing of the
+            file_resources:
+                Used to list required files for preprocessing of the
                 database. A dictionary where keys are required filenames and
                 value are file paths. If None, then the class constructor should
                 automatically build the required file resources dict.
-            col_rename (dict): default None, A dictionary to rename columns in
-                the data table. If None, then automatically load defaults.
-            blocksize (int): [0-n], default 0 If 0, then uses a Pandas
-                DataFrame, if >1, then creates an off-memory Dask DataFrame with
-                partitions where each partion contains `blocksize` rows.
+            index_col: str of column name, default None.
+                 If provided, then set_index() the dataframe at self.data by this
+                 column name.
+            keys: a pd.Index or a List of str
+                If provided, then filter the rows in self.data with `index_col`
+                containing these values.
+            col_rename (dict): default None,
+                A dictionary to rename columns in the data table. If None, then
+                automatically load defaults.
+            blocksize (int): [0-n], default 0
+                If 0, then uses a Pandas DataFrame, if >1, then creates an
+                off-memory Dask DataFrame with partitions where each partion
+                contains `blocksize` rows.
             verbose (bool): Default False.
         """
         if blocksize:
@@ -60,6 +64,8 @@ class Database(object):
         self.blocksize = blocksize
         self.verbose = verbose
         self.data_path = path
+        self.index_col = index_col
+        self.keys = keys.compute() if isinstance(keys, (dd.Index, dd.Series)) else keys
 
         self.file_resources = self.load_file_resources(path, file_resources=file_resources, verbose=verbose)
         self.data = self.load_dataframe(self.file_resources, blocksize=blocksize)
