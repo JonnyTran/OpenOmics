@@ -11,9 +11,9 @@ import obonet
 import pandas as pd
 from logzero import logger
 from networkx import NetworkXError
-from openomics.utils.adj import slice_adj
 from pandas import DataFrame
 
+from openomics.utils.adj import slice_adj
 from .base import Database
 from ..utils.read_gaf import read_gaf
 
@@ -269,6 +269,7 @@ class GeneOntology(Ontology):
         for filename, filepath_or_buffer in file_resources.items():
             gaf_name = filename.split(".")[0]
             if blocksize and isinstance(filepath_or_buffer, str):
+                # Ensure no duplicate GAF file (if provided by accident or having same files uncompressed)
                 if filename.endswith(".parquet") and gaf_name not in dfs:
                     dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize)
                 elif filename.endswith(".gaf") and gaf_name not in dfs:
@@ -284,6 +285,8 @@ class GeneOntology(Ontology):
         if len(dfs):
             self.annotations = dd.concat(list(dfs.values())) if blocksize else pd.concat(dfs.values())
             self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
+            if self.annotations.index.name in self.COLUMNS_RENAME_DICT:
+                self.annotations.index = self.data.index.rename(self.COLUMNS_RENAME_DICT[self.data.index.name])
 
         return go_terms
 

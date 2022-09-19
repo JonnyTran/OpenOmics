@@ -54,7 +54,7 @@ class Database(object):
             verbose (bool): Default False.
         """
         if blocksize:
-            assert isinstance(blocksize, bool) or (isinstance(blocksize, int) and blocksize > 10), \
+            assert isinstance(blocksize, bool) or (isinstance(blocksize, (int, float)) and blocksize > 10), \
                 f"blocksize ({blocksize}) is too small and will cause a huge overhead in Dask dataframes."
 
         self.blocksize = blocksize
