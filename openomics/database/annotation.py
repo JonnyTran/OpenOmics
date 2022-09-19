@@ -4,6 +4,7 @@ from io import StringIO
 from os.path import expanduser
 
 from bioservices import BioMart
+
 from openomics.database.base import Database
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
@@ -138,8 +139,8 @@ class RNAcentral(Database):
                                                                  blocksize=blocksize if blocksize > 10 else None,
                                                                  **args)
                     elif filename.endswith('.parquet'):
-                        id_mapping: dd.DataFrame = dd.read_parquet(file_resources[filename],
-                                                                   blocksize=blocksize if blocksize > 10 else None)
+                        id_mapping: dd.DataFrame = dd.read_parquet(file_resources[filename])
+
                     id_mapping = id_mapping.set_index("RNAcentral id", sorted=True)
                 else:
                     if filename.endswith('.tsv'):

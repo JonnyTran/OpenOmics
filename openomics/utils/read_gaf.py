@@ -120,8 +120,7 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, usecols=Non
 
     if blocksize:
         if filepath_or_buffer.endswith('.parquet'):
-            df: dd.DataFrame = dd.read_parquet(filepath_or_buffer,
-                                               blocksize=blocksize if blocksize > 10 else None)
+            df: dd.DataFrame = dd.read_parquet(filepath_or_buffer)
             if 'Taxon_ID' in df.columns:
                 df['Taxon_ID'] = df['Taxon_ID'].map(parse_taxon)
             for col in df.columns.intersection(list_dtype_columns):

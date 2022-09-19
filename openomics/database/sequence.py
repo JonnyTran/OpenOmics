@@ -266,6 +266,9 @@ class UniProt(SequenceDatabase):
         "GO": "go_id",
         # FASTA headers
         "OS": 'species', "OX": 'species_id', 'GN': 'gene_name', 'PE': 'ProteinExistence', 'SV': "version",
+        # UniProt XML headers
+        "accession": "protein_id", "name": "protein_name", "gene": "gene_name", "geneLocation": "subcellular_location",
+        "keyword": "keywords",
     }
 
     SPECIES_ID_NAME = {
@@ -353,7 +356,7 @@ class UniProt(SequenceDatabase):
         if blocksize:
             if "idmapping_selected.parquet" in file_resources and \
                 isinstance(file_resources["idmapping_selected.parquet"], str):
-                idmapping = dd.read_parquet(file_resources["idmapping_selected.parquet"], blocksize=blocksize)
+                idmapping = dd.read_parquet(file_resources["idmapping_selected.parquet"])
                 if not idmapping.index.name:
                     idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
 
@@ -429,6 +432,15 @@ class UniProt(SequenceDatabase):
     def load_uniprot_xml(self, xml_file: str, keys=None, blocksize=None) -> pd.DataFrame:
         records = []
         seqfeats = []
+        if isinstance(keys, str):
+            index = keys
+            keys_set = self.data.index if keys == self.data.index.name else self.data[keys]
+        if isinstance(keys, (dd.Index, dd.Series)):
+            index = keys.name
+            keys_set = keys.compute()
+        else:
+            index = keys_set = None
+
         for record in tqdm.tqdm(SeqIO.parse(xml_file, "uniprot-xml"), desc=str(xml_file)):
             # Sequence features
             annotations = defaultdict(None, record.annotations)
@@ -446,6 +458,9 @@ class UniProt(SequenceDatabase):
                 'sequence_mass': annotations['sequence_mass'],
                 SEQUENCE_COL: str(record.seq),
             }
+            if index is not None:
+                if record_dict[keys] not in keys_set: continue
+
             records.append(record_dict)
 
             # Sequence interval features
