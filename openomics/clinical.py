@@ -6,7 +6,7 @@ import dask.dataframe as dd
 import pandas as pd
 import validators
 
-from .utils import get_pkg_data_filename
+from openomics.io.files import get_pkg_data_filename
 
 BCR_PATIENT_BARCODE_COL = "bcr_patient_barcode"
 HISTOLOGIC_SUBTYPE_COL = "histologic_subtype"

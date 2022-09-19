@@ -56,23 +56,23 @@ if os.path.isfile(user_conf_path):
         logging.info("Could not import configurations from", user_conf_path)
 
 # Import submodule
-from . import database, utils, transcriptomics, proteomics, clinical, multiomics
+# from . import database, io, transcriptomics, proteomics, clinical, multiomics
 
-from .transcriptomics import (
+from openomics.transcriptomics import (
     Expression, MessengerRNA, MicroRNA, LncRNA,
 )
 
-from .genomics import (
+from openomics.genomics import (
     SomaticMutation, DNAMethylation, CopyNumberVariation
 )
 
-from .proteomics import (
+from openomics.proteomics import (
     Protein
 )
 
-from .clinical import ClinicalData
+from openomics.clinical import ClinicalData
 
-from .multiomics import (
+from openomics.multiomics import (
     MultiOmics
 )
 
