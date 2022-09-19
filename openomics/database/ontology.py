@@ -24,9 +24,7 @@ class Ontology(Database):
     def __init__(self,
                  path,
                  file_resources=None,
-                 col_rename=None,
-                 blocksize=0,
-                 verbose=False):
+                 **kwargs):
         """
         Manages dataset input processing from tables and construct an ontology network from .obo file. There ontology
         network is G(V,E) where there exists e_ij for child i to parent j to present "node i is_a node j".
@@ -40,8 +38,7 @@ class Ontology(Database):
         """
         self.network, self.node_list = self.load_network(file_resources)
 
-        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, blocksize=blocksize,
-                         verbose=verbose)
+        super().__init__(path=path, file_resources=file_resources, **kwargs)
 
     def load_network(self, file_resources) -> Tuple[nx.MultiDiGraph, List[str]]:
         raise NotImplementedError()
@@ -210,9 +207,10 @@ class GeneOntology(Ontology):
         path="http://geneontology.org/gene-associations/",
         species="HUMAN",
         file_resources=None,
+        index='DB_Object_Symbol', keys=None,
         col_rename=COLUMNS_RENAME_DICT,
         blocksize=0,
-        verbose=False,
+        **kwargs
     ):
         """
         Loads the GeneOntology database from http://geneontology.org .
@@ -244,7 +242,8 @@ class GeneOntology(Ontology):
                 f'No .obo file provided in `file_resources`, so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
             file_resources["go-basic.obo"] = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 
-        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize, verbose=verbose, )
+        super().__init__(path, file_resources, index=index, keys=keys, col_rename=col_rename, blocksize=blocksize,
+                         **kwargs)
 
     def info(self):
         print("network {}".format(nx.info(self.network)))
@@ -264,21 +263,24 @@ class GeneOntology(Ontology):
         for filename, filepath_or_buffer in file_resources.items():
             gaf_name = filename.split(".")[0]
             if blocksize and isinstance(filepath_or_buffer, str):
-                # Ensure no duplicate GAF file (if provided by accident or having same files uncompressed)
-                if filename.endswith(".parquet") and gaf_name not in dfs:
-                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize)
-                elif filename.endswith(".gaf") and gaf_name not in dfs:
-                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize)
+                # Ensure no duplicate GAF file (if having files uncompressed with same prefix)
+                if (filename.endswith(".parquet") or filename.endswith(".gaf")) and gaf_name not in dfs:
+                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize, index_col=self.index_col)
                 elif filename.endswith(".gaf.gz") and gaf_name not in dfs:
-                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize, compression='gzip')
+                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize, index_col=self.index_col,
+                                             compression='gzip')
                 elif gaf_name in dfs:
                     logger.warn(f"At least 2 duplicate files were given for {filename}")
             else:
                 if filename.endswith(".gaf"):
-                    dfs[gaf_name] = read_gaf(filepath_or_buffer, )
+                    dfs[gaf_name] = read_gaf(filepath_or_buffer, index_col=self.index_col)
 
         if len(dfs):
             self.annotations = dd.concat(list(dfs.values())) if blocksize else pd.concat(dfs.values())
+
+            if self.keys is not None and self.annotations.index.name != None:
+                self.annotations = self.annotations.loc[self.annotations.index.isin(self.keys)]
+
             self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
             if self.annotations.index.name in self.COLUMNS_RENAME_DICT:
                 self.annotations.index = self.annotations.index.rename(
@@ -488,9 +490,10 @@ class UniProtGOA(GeneOntology):
         path="ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/",
         species="HUMAN",
         file_resources=None,
+        index='DB_Object_Symbol', keys=None,
         col_rename=COLUMNS_RENAME_DICT,
         blocksize=0,
-        verbose=False,
+        **kwargs,
     ):
         """
         Loads the UniProtGOA database from https://www.ebi.ac.uk/GOA/ .
@@ -524,21 +527,29 @@ class UniProtGOA(GeneOntology):
                 f'No .obo file provided in `file_resources`, so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
             file_resources["go-basic.obo"] = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 
-        super(GeneOntology, self).__init__(path=path, file_resources=file_resources, col_rename=col_rename,
-                                           blocksize=blocksize, verbose=verbose)
+        super(GeneOntology, self).__init__(path=path, file_resources=file_resources, index=index, keys=keys,
+                                           col_rename=col_rename,
+                                           blocksize=blocksize, **kwargs)
 
 
 class InterPro(Ontology):
 
     def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/",
-                 file_resources=None, col_rename=None, verbose=False, blocksize=None):
+                 file_resources=None, col_rename=None, **kwargs):
         """
+        Default parameters
+            path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/"
+            file_resources = {}
+            file_resources["entry.list"] = os.path.join(path, "entry.list")
+            file_resources["protein2ipr.dat.gz"] = os.path.join(path, "protein2ipr.dat.gz")
+            file_resources["interpro2go"] = os.path.join(path, "interpro2go")
+            file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
+
         Args:
             path:
             file_resources:
             col_rename:
             verbose:
-            blocksize:
         """
 
         if file_resources is None:
@@ -548,8 +559,7 @@ class InterPro(Ontology):
             file_resources["interpro2go"] = os.path.join(path, "interpro2go")
             file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
 
-        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, verbose=verbose,
-                         blocksize=blocksize)
+        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None):
         ipr_entries = pd.read_table(file_resources["entry.list"], index_col="ENTRY_AC")
@@ -564,6 +574,10 @@ class InterPro(Ontology):
             dtype={'UniProtKB-AC': 'str', 'ENTRY_AC': 'str', 'start': 'int8', 'stop': 'int8'},
             low_memory=True,
             blocksize=blocksize if blocksize > 10 else None)
+        self.annotations = self.annotations.set_index('UniProtKB-AC', sorted=True)
+
+        if self.keys is not None:
+            self.annotations = self.annotations.loc[self.annotations.index.isin(self.keys)]
 
         return ipr_entries
 

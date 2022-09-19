@@ -13,8 +13,8 @@ import filetype
 import pandas as pd
 import validators
 
+from openomics.io.files import get_pkg_data_filename, decompress_file
 from openomics.utils.df import get_multi_aggregators
-from openomics.utils.io import get_pkg_data_filename, decompress_file
 
 
 class Database(object):
@@ -30,7 +30,7 @@ class Database(object):
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
 
     def __init__(self, path: str, file_resources: Dict[str, str] = None, index_col=None, keys=None,
-                 col_rename: Dict[str, str] = None, blocksize: int = None, verbose=False):
+                 col_rename: Dict[str, str] = None, blocksize: int = None, verbose=False, **kwargs):
         """
         Args:
             path:

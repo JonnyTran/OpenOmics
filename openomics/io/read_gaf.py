@@ -16,7 +16,7 @@ from six import string_types
 from six.moves import intern
 
 
-def read_gaf(filepath_or_buffer, blocksize=None, compression: Optional[str] = None,
+def read_gaf(filepath_or_buffer, index_col=None, blocksize=None, compression: Optional[str] = None,
              column_converters: Dict[str, Callable] = None, usecols: List[str] = None, chunksize=1024 * 1024) -> Union[
     pd.DataFrame, dd.DataFrame]:
     """Parse a GTF into a dictionary mapping column names to sequences of
@@ -40,8 +40,6 @@ def read_gaf(filepath_or_buffer, blocksize=None, compression: Optional[str] = No
         raise ValueError(f"GAF file does not exist: {filepath_or_buffer}")
 
     COLUMN_NAMES = infer_gaf_columns(filepath_or_buffer)
-    index_col = None
-    # index_col = COLUMN_NAMES[1]
 
     if blocksize:
         assert isinstance(filepath_or_buffer, str), f'dd.read_table() must have `filepath_or_buffer` as a path, and ' \

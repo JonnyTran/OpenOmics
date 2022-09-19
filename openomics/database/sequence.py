@@ -285,11 +285,11 @@ class UniProt(SequenceDatabase):
     }
 
     def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
-                 species_id: str = "9606", remove_version_num=True,
                  file_resources: Dict[str, str] = None,
+                 species_id: str = "9606", remove_version_num=True,
+                 index='UniProtKB-AC', keys=None,
                  col_rename=COLUMNS_RENAME_DICT,
-                 verbose=False,
-                 blocksize=None):
+                 **kwargs):
         """
         Loads the UniProt database from https://uniprot.org/ .
 
@@ -336,8 +336,8 @@ class UniProt(SequenceDatabase):
             file_resources["proteomes.tsv"] = \
                 "https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
 
-        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, verbose=verbose,
-                         blocksize=blocksize)
+        super().__init__(path=path, file_resources=file_resources, index=index, keys=keys, col_rename=col_rename,
+                         **kwargs)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
@@ -374,6 +374,11 @@ class UniProt(SequenceDatabase):
             idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], index_col='UniProtKB-AC',
                                                     **args)
 
+        # Filter UniProt accession keys
+        if self.keys is not None and idmapping.index.name != None:
+            idmapping = idmapping.loc[idmapping.index.isin(self.keys)]
+
+        # Convert string of list elements to a np.array
         list2array = lambda x: np.array(x) if x is not None else x
         args = dict(meta=pd.Series([np.array([''])])) if isinstance(idmapping, dd.DataFrame) else {}
         for col in ['PDB', 'GI', 'GO', 'RefSeq']:
@@ -397,6 +402,7 @@ class UniProt(SequenceDatabase):
                         if isinstance(x['protein_external_id'], list) else None,
                     axis=1, **args)
 
+        # Join metadata from uniprot_sprot.parquet
         if 'uniprot_sprot.parquet' in file_resources or 'uniprot_trembl.parquet' in file_resources:
             uniprot = self.load_uniprot_parquet(file_resources, blocksize=blocksize)
             to_join = uniprot[uniprot.columns.difference(idmapping.columns)]
@@ -443,8 +449,7 @@ class UniProt(SequenceDatabase):
                 df = dd.read_parquet(file_path).rename(columns=UniProt.COLUMNS_RENAME_DICT)
                 df = df.set_index('UniProtKB-AC', sorted=True)
             else:
-                df = pd.read_parquet(file_path).rename(columns=UniProt.COLUMNS_RENAME_DICT)
-                df = df.set_index('UniProtKB-AC')
+                df = pd.read_parquet(file_path, index_col='UniProtKB-AC').rename(columns=UniProt.COLUMNS_RENAME_DICT)
             dfs.append(df)
 
         if dfs:

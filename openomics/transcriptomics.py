@@ -12,9 +12,9 @@ import validators
 # from Bio.UniProt import GOA
 from dask import delayed
 
-from .database.base import Annotatable
-from .utils import get_pkg_data_filename
-from .utils.df import drop_duplicate_columns
+from openomics.database.base import Annotatable
+from openomics.io.files import get_pkg_data_filename
+from openomics.utils.df import drop_duplicate_columns
 
 
 class Expression(object):
