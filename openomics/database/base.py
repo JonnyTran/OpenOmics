@@ -51,21 +51,19 @@ class Database(object):
             col_rename (dict): default None,
                 A dictionary to rename columns in the data table. If None, then
                 automatically load defaults.
-            blocksize (int): [0-n], default 0
-                If 0, then uses a Pandas DataFrame, if >1, then creates an
-                off-memory Dask DataFrame with partitions where each partion
-                contains `blocksize` rows.
+            blocksize (int): str, int or None, optional. Default None to
+                Number of bytes by which to cut up larger files. Default value
+                is computed based on available physical memory and the number
+                of cores, up to a maximum of 64MB. Can be a number like 64000000
+                or a string like "64MB". If None, a single block is used for
+                each file.
             verbose (bool): Default False.
         """
-        if blocksize:
-            assert isinstance(blocksize, bool) or (isinstance(blocksize, (int, float)) and blocksize > 10), \
-                f"blocksize ({blocksize}) is too small and will cause a huge overhead in Dask dataframes."
-
-        self.blocksize = blocksize
-        self.verbose = verbose
         self.data_path = path
         self.index_col = index_col
         self.keys = keys.compute() if isinstance(keys, (dd.Index, dd.Series)) else keys
+        self.blocksize = blocksize
+        self.verbose = verbose
 
         self.file_resources = self.load_file_resources(path, file_resources=file_resources, verbose=verbose)
         self.data = self.load_dataframe(self.file_resources, blocksize=blocksize)

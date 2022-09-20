@@ -358,18 +358,15 @@ class UniProt(SequenceDatabase):
             if "idmapping_selected.parquet" in file_resources and \
                 isinstance(file_resources["idmapping_selected.parquet"], str):
                 idmapping = dd.read_parquet(file_resources["idmapping_selected.parquet"])
-                if not idmapping.index.name:
-                    idmapping = idmapping.set_index('UniProtKB-AC', sorted=True)
 
             elif "idmapping_selected.tab" in file_resources and isinstance(file_resources["idmapping_selected.tab"],
                                                                            str):
                 idmapping = dd.read_table(file_resources["idmapping_selected.tab"], blocksize=blocksize, **args)
-                idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
-
             else:
                 idmapping = dd.read_table(file_resources["idmapping_selected.tab.gz"], compression="gzip", **args, )
-                idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
 
+            if not idmapping.index.name:
+                idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
         else:
             idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], index_col='UniProtKB-AC',
                                                     **args)
@@ -445,11 +442,23 @@ class UniProt(SequenceDatabase):
         dfs = []
         for filename, file_path in file_resources.items():
             if filename not in ['uniprot_sprot.parquet', 'uniprot_trembl.parquet']: continue
+
             if blocksize:
                 df = dd.read_parquet(file_path).rename(columns=UniProt.COLUMNS_RENAME_DICT)
-                df = df.set_index('UniProtKB-AC', sorted=True)
+                if self.keys is not None and self.index_col:
+                    df = df.loc[df[self.index_col].isin(self.keys)]
+
+                if not df.index.name:
+                    try:
+                        df = df.set_index(self.index_col, sorted=True)
+                    except Exception as e:
+                        print(file_path, e)
+                        df = df.set_index(self.index_col, sorted=False)
             else:
-                df = pd.read_parquet(file_path, index_col='UniProtKB-AC').rename(columns=UniProt.COLUMNS_RENAME_DICT)
+                df = pd.read_parquet(file_path, index_col=self.index_col).rename(columns=UniProt.COLUMNS_RENAME_DICT)
+                if self.keys is not None:
+                    df_keys = df.index if df.index.name == self.index_col else df[self.index_col]
+                    df = df.loc[df_keys.isin(self.keys)]
             dfs.append(df)
 
         if dfs:

@@ -158,7 +158,7 @@ class GeneMania(Interactions):
 
     def __init__(self, path, file_resources=None, source_col_name="Gene_A", target_col_name="Gene_B",
                  source_index="gene_name", target_index="gene_name",
-                 edge_attr=None, filters=None, directed=True, relabel_nodes=None):
+                 edge_attr=None, filters=None, directed=True, relabel_nodes=None, **kwargs):
         if edge_attr is None:
             edge_attr = ["Weight"]
         if file_resources is None:
@@ -170,7 +170,7 @@ class GeneMania(Interactions):
 
         super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
                          target_col_name=target_col_name, source_index=source_index, target_index=target_index,
-                         edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes)
+                         edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes, **kwargs)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
                      blocksize=None):
@@ -203,14 +203,14 @@ class BioGRID(Interactions):
                  target_col_name="Official Symbol Interactor B",
                  source_index="gene_name", target_index="gene_name",
                  edge_attr=['Score', 'Throughput', 'Experimental System', 'Experimental System Type'],
-                 filters={"Organism Interactor A": 9606}, directed=False, relabel_nodes=None):
+                 filters={"Organism Interactor A": 9606}, directed=False, relabel_nodes=None, **kwargs):
         if file_resources is None:
             file_resources = {}
             file_resources["BIOGRID-ALL-LATEST.tab2.zip"] = os.path.join(path, "BIOGRID-ALL-LATEST.tab2.zip")
 
         super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
                          target_col_name=target_col_name, source_index=source_index, target_index=target_index,
-                         edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes)
+                         edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes, **kwargs)
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
                      blocksize=None):
