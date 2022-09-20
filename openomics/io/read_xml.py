@@ -1,6 +1,6 @@
 import os
 import sys
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 try:
@@ -37,7 +37,7 @@ def read_uniprot_xml(filepath: Path, index_col='accession') \
     return df
 
 
-def start_sparksession():
+def start_sparksession(args: Namespace):
     os.environ["PYSPARK_PYTHON"] = sys.executable
     os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages com.databricks:spark-xml_2.12:0.15.0 ' \
                                         f'--driver-memory {args["driver-memory"]} ' \
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    spark = start_sparksession()
+    spark = start_sparksession(args)
 
     df = read_uniprot_xml(filepath=os.path.expanduser(args.filepath))
 

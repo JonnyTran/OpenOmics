@@ -256,6 +256,7 @@ class GENCODE(SequenceDatabase):
 
 class UniProt(SequenceDatabase):
     COLUMNS_RENAME_DICT = {
+        # idmapping_selected.tab
         "UniProtKB-AC": 'protein_id',
         "UniProtKB-ID": 'protein_name',
         "Ensembl": "gene_id",
@@ -267,9 +268,9 @@ class UniProt(SequenceDatabase):
         # FASTA headers
         "OS": 'species', "OX": 'species_id', 'GN': 'gene_name', 'PE': 'ProteinExistence', 'SV': "version",
         # UniProt XML headers
-        "accession": "UniProtKB-AC", "name": "protein_name", "gene": "gene_name",
+        "accession": "UniProtKB-AC", "name": "protein_name", "gene": "gene_name", "keyword": "keywords",
         "geneLocation": "subcellular_location",
-        "keyword": "keywords",
+
     }
 
     SPECIES_ID_NAME = {
@@ -442,9 +443,9 @@ class UniProt(SequenceDatabase):
         dfs = []
         for filename, file_path in file_resources.items():
             if filename not in ['uniprot_sprot.parquet', 'uniprot_trembl.parquet']: continue
-
             if blocksize:
-                df = dd.read_parquet(file_path).rename(columns=UniProt.COLUMNS_RENAME_DICT)
+                df = dd.read_parquet(file_path, blocksize=blocksize if not isinstance(blocksize, bool) else None) \
+                    .rename(columns=UniProt.COLUMNS_RENAME_DICT)
                 if self.keys is not None and self.index_col:
                     df = df.loc[df[self.index_col].isin(self.keys)]
 
