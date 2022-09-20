@@ -15,6 +15,8 @@ except ImportError:
 
 def read_uniprot_xml(filepath: Path, index_col='accession') \
     -> SparkDataFrame:
+    spark = SparkSession.getActiveSession()
+
     sdf = spark.read.format("com.databricks.spark.xml") \
         .option("rowTag", "entry").option("samplingRatio", 0.01).option("excludeAttribute", True) \
         .option("inferSchema", True).option("nullValue", "") \
@@ -25,6 +27,7 @@ def read_uniprot_xml(filepath: Path, index_col='accession') \
     sdf = sdf.withColumn("gene", F.col("gene").getItem('name').getItem(0))
     sdf = sdf.withColumn("geneLocation", F.col("geneLocation").getItem('name').getItem(0))
 
+    # TODO extract `protein` and `feature`
     sdf = sdf.drop('organism').drop('organismHost').drop('comment').drop('dbReference').drop('reference') \
         .drop('evidence').drop('protein').drop('proteinExistence').drop('feature')
 
@@ -32,6 +35,21 @@ def read_uniprot_xml(filepath: Path, index_col='accession') \
     df: SparkDataFrame = sdf.to_pandas_on_spark(index_col=index_col)
 
     return df
+
+
+def start_sparksession():
+    os.environ["PYSPARK_PYTHON"] = sys.executable
+    os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages com.databricks:spark-xml_2.12:0.15.0 ' \
+                                        f'--driver-memory {args["driver-memory"]} ' \
+                                        f'--executor-memory {args["executor-memory"]} ' \
+                                        'pyspark-shell'
+    os.environ['PYARROW_IGNORE_TIMEZONE'] = '1'
+    spark = SparkSession.builder \
+        .appName('OpenOmics') \
+        .getOrCreate()
+    # spark.sparkContext.setSystemProperty('spark.driver.maxResultSize', '128g')
+    spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+    return spark
 
 
 if __name__ == '__main__':
@@ -44,19 +62,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    os.environ["PYSPARK_PYTHON"] = sys.executable
-    os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages com.databricks:spark-xml_2.12:0.15.0 ' \
-                                        f'--driver-memory {args["driver-memory"]} ' \
-                                        f'--executor-memory {args["executor-memory"]} ' \
-                                        'pyspark-shell'
-    os.environ['PYARROW_IGNORE_TIMEZONE'] = '1'
-
-    spark = SparkSession.builder \
-        .appName('OpenOmics') \
-        .getOrCreate()
-
-    # spark.sparkContext.setSystemProperty('spark.driver.maxResultSize', '128g')
-    spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+    spark = start_sparksession()
 
     df = read_uniprot_xml(filepath=os.path.expanduser(args.filepath))
+
     df.to_parquet(args.output, index_col=args.index, )
