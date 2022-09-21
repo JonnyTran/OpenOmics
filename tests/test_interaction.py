@@ -1,4 +1,4 @@
-from openomics.database import MiRTarBase, STRING, LncRNA2Target
+from openomics.database.interaction import MiRTarBase, STRING, LncRNA2Target
 from .test_multiomics import *
 
 
