@@ -49,12 +49,12 @@ class SequenceDatabase(Database):
         raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, index_name: str, omic: str, agg: str, **kwargs) -> Union[pd.Series, Dict]:
+    def get_sequences(self, index: str, omic: str, agg: str, **kwargs) -> Union[pd.Series, Dict]:
         """Returns a dictionary where keys are 'index' and values are
         sequence(s).
 
         Args:
-            index_name (str): {"gene_id", "gene_name", "transcript_id",
+            index (str): {"gene_id", "gene_name", "transcript_id",
                 "transcript_name"}
             omic (str): {"lncRNA", "microRNA", "messengerRNA"}
             agg (str): {"all", "shortest", "longest"}
@@ -288,7 +288,7 @@ class UniProt(SequenceDatabase):
     def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
                  file_resources: Dict[str, str] = None,
                  species_id: str = "9606", remove_version_num=True,
-                 index='UniProtKB-AC', keys=None,
+                 index_col='UniProtKB-AC', keys=None,
                  col_rename=COLUMNS_RENAME_DICT,
                  **kwargs):
         """
@@ -322,8 +322,8 @@ class UniProt(SequenceDatabase):
 
             file_resources['uniprot_sprot.xml.gz'] = os.path.join(path, "knowledgebase/complete/uniprot_sprot.xml.gz")
             file_resources['uniprot_trembl.xml.gz'] = os.path.join(path, "knowledgebase/complete/uniprot_trembl.xml.gz")
-            file_resources["idmapping_selected.tab.gz"] = os.path.join(path,
-                                                                       "knowledgebase/idmapping/idmapping_selected.tab.gz")
+            file_resources["idmapping_selected.tab.gz"] = os.path.join(
+                path, "knowledgebase/idmapping/idmapping_selected.tab.gz")
 
             if self.species:
                 file_resources['uniprot_sprot.xml.gz'] = os.path.join(
@@ -337,7 +337,8 @@ class UniProt(SequenceDatabase):
             file_resources["proteomes.tsv"] = \
                 "https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
 
-        super().__init__(path=path, file_resources=file_resources, index=index, keys=keys, col_rename=col_rename,
+        super().__init__(path=path, file_resources=file_resources, index_col=index_col, keys=keys,
+                         col_rename=col_rename,
                          **kwargs)
 
     def load_dataframe(self, file_resources, blocksize=None):
@@ -376,16 +377,26 @@ class UniProt(SequenceDatabase):
         if self.keys is not None and idmapping.index.name != None:
             idmapping = idmapping.loc[idmapping.index.isin(self.keys)]
 
+        # Join metadata from uniprot_sprot.parquet
+        if 'uniprot_sprot.parquet' in file_resources or 'uniprot_trembl.parquet' in file_resources:
+            uniprot = self.load_uniprot_parquet(file_resources, blocksize=blocksize)
+            to_join = uniprot[uniprot.columns.difference(idmapping.columns)]
+            assert idmapping.index.name == to_join.index.name
+            idmapping = idmapping.join(to_join, how='left')
+
         # Convert string of list elements to a np.array
-        list2array = lambda x: np.array(x) if x is not None else x
+        list2array = lambda x: np.array(x) if isinstance(x, Iterable) else x
         args = dict(meta=pd.Series([np.array([''])])) if isinstance(idmapping, dd.DataFrame) else {}
+        idmapping_sample = idmapping.head(
+            300)  # Used to sample dtype of columns and check if they need to be transformed
+
         for col in ['PDB', 'GI', 'GO', 'RefSeq']:
-            if col not in idmapping.columns or idmapping[col].head(300).map(type).isin({Iterable}).any(): continue
+            if col not in idmapping.columns or idmapping_sample[col].map(type).isin({Iterable}).any(): continue
             # Split string to list
             idmapping[col] = idmapping[col].str.split("; ").map(list2array, **args)
 
         for col in ['Ensembl', 'Ensembl_TRS', 'Ensembl_PRO']:
-            if col not in idmapping.columns or idmapping[col].head(300).map(type).isin({Iterable}).any(): continue
+            if col not in idmapping.columns or idmapping_sample[col].map(type).isin({Iterable}).any(): continue
             # Removing .# ENGS gene version number at the end
             if self.remove_version_num:
                 idmapping[col] = idmapping[col].str.replace("[.]\d*", "", regex=True)
@@ -399,12 +410,6 @@ class UniProt(SequenceDatabase):
                         [".".join([x['NCBI-taxon'], protein_id]) for protein_id in x['protein_external_id']]) \
                         if isinstance(x['protein_external_id'], list) else None,
                     axis=1, **args)
-
-        # Join metadata from uniprot_sprot.parquet
-        if 'uniprot_sprot.parquet' in file_resources or 'uniprot_trembl.parquet' in file_resources:
-            uniprot = self.load_uniprot_parquet(file_resources, blocksize=blocksize)
-            to_join = uniprot[uniprot.columns.difference(idmapping.columns)]
-            idmapping = idmapping.join(to_join, how='left')
 
         # Load proteome.tsv
         if "proteomes.tsv" in file_resources:
@@ -442,7 +447,7 @@ class UniProt(SequenceDatabase):
     def load_uniprot_parquet(self, file_resources: Dict[str, str], blocksize=None) -> Union[dd.DataFrame, pd.DataFrame]:
         dfs = []
         for filename, file_path in file_resources.items():
-            if filename not in ['uniprot_sprot.parquet', 'uniprot_trembl.parquet']: continue
+            if not ('uniprot' in filename and filename.endswith('.parquet')): continue
             if blocksize:
                 df = dd.read_parquet(file_path, blocksize=blocksize if not isinstance(blocksize, bool) else None) \
                     .rename(columns=UniProt.COLUMNS_RENAME_DICT)
@@ -456,7 +461,8 @@ class UniProt(SequenceDatabase):
                         print(file_path, e)
                         df = df.set_index(self.index_col, sorted=False)
             else:
-                df = pd.read_parquet(file_path, index_col=self.index_col).rename(columns=UniProt.COLUMNS_RENAME_DICT)
+                df = pd.read_parquet(file_path, index_col=self.index_col) \
+                    .rename(columns=UniProt.COLUMNS_RENAME_DICT)
                 if self.keys is not None:
                     df_keys = df.index if df.index.name == self.index_col else df[self.index_col]
                     df = df.loc[df_keys.isin(self.keys)]
@@ -475,7 +481,7 @@ class UniProt(SequenceDatabase):
         if isinstance(keys, str):
             index = keys
             keys_set = self.data.index if keys == self.data.index.name else self.data[keys]
-        if isinstance(keys, (dd.Index, dd.Series)):
+        elif isinstance(keys, (dd.Index, dd.Series)):
             index = keys.name
             keys_set = keys.compute()
         else:

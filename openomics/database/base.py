@@ -351,10 +351,10 @@ class Annotatable(ABC):
         if isinstance(database, (pd.DataFrame, dd.DataFrame)):
             df = database
             if on == df.index.name and on in df.columns:
-                # Avoid ambiguous groupby if `on` is both in index name and columns
-                df.pop(on)
+                df.pop(on)  # Avoid ambiguous groupby col error
             agg_funcs = get_multi_aggregators(agg=agg, agg_for=agg_for, use_dask=isinstance(df, dd.DataFrame))
-            values = df.groupby(on).agg({col: agg_funcs[col] for col in columns})
+            groupby = df.groupby(lambda x: x) if on == df.index.name else df.groupby(on)
+            values = groupby.agg({col: agg_funcs[col] for col in columns})
         else:
             values = database.get_annotations(on, columns=columns, agg=agg, agg_for=agg_for, keys=keys)
 

@@ -5,6 +5,7 @@ from typing import Union, List, Dict, Callable, Mapping
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+from pandas.core.groupby import SeriesGroupBy
 
 
 def get_agg_func(keyword: str, use_dask=False) -> Union[str, Callable, dd.Aggregation]:
@@ -20,11 +21,7 @@ def get_agg_func(keyword: str, use_dask=False) -> Union[str, Callable, dd.Aggreg
     if keyword == "unique":
         # get unique values (in a list) from each groupby key
         if use_dask:
-            func = dd.Aggregation(
-                name=keyword,
-                chunk=lambda s1: s1.apply(concat_uniques),
-                agg=lambda s2: s2.obj,
-            )
+            func = concat_unique_dask_agg()
         else:
             func = concat_uniques
 
@@ -57,6 +54,38 @@ def get_multi_aggregators(agg: str, agg_for: Dict[str, Union[str, Callable, dd.A
     col_aggregators = defaultdict(lambda: get_agg_func(agg, use_dask=use_dask), col2func)
 
     return col_aggregators
+
+
+def concat_unique_dask_agg() -> dd.Aggregation:
+    def chunk(s: pd.Series) -> pd.Series:
+        '''
+        The function applied to the
+        individual partition (map)
+        '''
+        return s.apply(lambda x: list(set(x)) if isinstance(x, Iterable) else [x])
+
+    def agg(s: SeriesGroupBy) -> pd.Series:
+        '''
+        The function whic will aggrgate
+        the result from all the partitions(reduce)
+        '''
+        s = s._selected_obj
+        return s.groupby(level=list(range(s.index.nlevels))).sum()
+
+    def finalize(s) -> pd.Series:
+        '''
+        The optional functional that will be
+        applied to the result of the agg_tu functions
+        '''
+        return s.apply(lambda x: np.unique(x))
+
+    func = dd.Aggregation(
+        name='unique',
+        chunk=chunk,
+        agg=agg,
+        finalize=finalize
+    )
+    return func
 
 
 def concat_uniques(series: pd.Series) -> Union[str, List, np.ndarray, None]:

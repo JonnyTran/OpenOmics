@@ -51,7 +51,8 @@ class ProteinAtlas(Database):
             blocksize:
         """
         if blocksize:
-            df = dd.read_table(file_resources["proteinatlas.tsv"], blocksize=blocksize if blocksize > 10 else None)
+            df = dd.read_table(file_resources["proteinatlas.tsv"],
+                               blocksize=None if isinstance(blocksize, bool) else blocksize)
         else:
             df = pd.read_table(file_resources["proteinatlas.tsv"])
 
@@ -135,10 +136,13 @@ class RNAcentral(Database):
                 if blocksize:
                     if filename.endswith('.tsv'):
                         id_mapping: dd.DataFrame = dd.read_table(file_resources[filename],
-                                                                 blocksize=blocksize if blocksize > 10 else None,
+                                                                 blocksize=None if isinstance(blocksize,
+                                                                                              bool) else blocksize,
                                                                  **args)
                     elif filename.endswith('.parquet'):
-                        id_mapping: dd.DataFrame = dd.read_parquet(file_resources[filename])
+                        id_mapping: dd.DataFrame = dd.read_parquet(file_resources[filename],
+                                                                   blocksize=None if isinstance(blocksize,
+                                                                                                bool) else blocksize, )
 
                     id_mapping = id_mapping.set_index("RNAcentral id", sorted=True)
                 else:
@@ -152,6 +156,7 @@ class RNAcentral(Database):
 
                 transcripts_df.append(id_mapping)
 
+        # Concatenate multiple `database_mappings` files from different databases
         if blocksize:
             transcripts_df = dd.concat(transcripts_df, axis=0, join='outer')
         else:
@@ -167,7 +172,7 @@ class RNAcentral(Database):
         if blocksize:
             if 'rnacentral_rfam_annotations.tsv' in file_resources and isinstance(
                 file_resources['rnacentral_rfam_annotations.tsv'], str):
-                anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
+                anns: dd.DataFrame = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
             else:
                 anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip", **args)
             anns = anns.set_index("RNAcentral id", sorted=True, npartitions=10)
@@ -175,13 +180,13 @@ class RNAcentral(Database):
             # Filter annotations by "RNAcentral id" in `transcripts_df`
             idx = transcripts_df.index.drop_duplicates().compute()
             anns = anns.loc[anns.index.isin(idx)]
-
-            agg_func = dd.Aggregation(name='_unique',
+            agg_func = dd.Aggregation(name='unique',
                                       chunk=lambda s: s.unique(),
                                       agg=lambda s0: s0.obj)
 
+            # Groupby on index
             anns_groupby: dd.DataFrame = anns \
-                .groupby("RNAcentral id") \
+                .groupby(by=lambda idx: idx) \
                 .agg({col: agg_func for col in ["GO terms", 'Rfams']}) \
                 .persist()
         else:
@@ -320,7 +325,7 @@ class NONCODE(Database):
 
         if blocksize:
             self.noncode_func_df = dd.read_table(file_resources["NONCODEv5_human.func"], header=None,
-                                                 blocksize=blocksize if blocksize > 10 else None)
+                                                 blocksize=None if isinstance(blocksize, bool) else blocksize)
         else:
             self.noncode_func_df = pd.read_table(file_resources["NONCODEv5_human.func"], header=None)
         self.noncode_func_df.columns = ["NONCODE Gene ID", "GO terms"]
@@ -382,7 +387,7 @@ class BioMartManager:
 
         if os.path.exists(filename):
             if blocksize:
-                df = dd.read_csv(filename, blocksize=blocksize if blocksize > 10 else None, **args)
+                df = dd.read_csv(filename, blocksize=None if isinstance(blocksize, bool) else blocksize, **args)
             else:
                 df = pd.read_csv(filename, **args)
         else:
@@ -430,7 +435,7 @@ class BioMartManager:
         try:
             if blocksize:
                 df = dd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True,
-                                 dtype=self.DTYPES, blocksize=blocksize if blocksize > 10 else None)
+                                 dtype=self.DTYPES, blocksize=None if isinstance(blocksize, bool) else blocksize)
             else:
                 df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True,
                                  dtype=self.DTYPES)

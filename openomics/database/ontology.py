@@ -573,7 +573,7 @@ class InterPro(Ontology):
             usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
             dtype={'UniProtKB-AC': 'str', 'ENTRY_AC': 'str', 'start': 'int8', 'stop': 'int8'},
             low_memory=True,
-            blocksize=blocksize if blocksize > 10 else None)
+            blocksize=None if isinstance(blocksize, bool) else blocksize)
         self.annotations = self.annotations.set_index('UniProtKB-AC', sorted=True)
 
         if self.keys is not None:
