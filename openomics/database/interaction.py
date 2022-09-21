@@ -294,7 +294,7 @@ class STRING(Interactions, SequenceDatabase):
                 if "links.txt" in filename and isinstance(file_resources[filename], str):
                     df = dd.read_table(file_resources[filename], sep=" ", low_memory=True,
                                        compression='gzip' if filename.endswith(".gz") else None,
-                                       blocksize=blocksize if blocksize > 10 else None)
+                                       blocksize=None if isinstance(blocksize, bool) else blocksize)
                     edges_dfs.append(df)
         else:
             for filename in file_resources:
@@ -313,7 +313,7 @@ class STRING(Interactions, SequenceDatabase):
                     df = dd.read_table(file_resources[filename], na_values=['annotation not available'],
                                        low_memory=True,
                                        compression='gzip' if filename.endswith(".gz") else None,
-                                       blocksize=blocksize if blocksize > 10 else None)
+                                       blocksize=None if isinstance(blocksize, bool) else blocksize)
                     data_dfs.append(df)
         else:
             for filename in file_resources:
@@ -358,7 +358,7 @@ class STRING(Interactions, SequenceDatabase):
         # network = nx.relabel_nodes(network, self.protein_id2name)
         return G
 
-    def get_sequences(self, index_name="protein_id", omic=None, agg=None):
+    def get_sequences(self, index="protein_id", omic=None, agg=None):
         if hasattr(self, "seq_dict"):
             return self.seq_dict
 
@@ -368,9 +368,9 @@ class STRING(Interactions, SequenceDatabase):
             gene_id = str(record.name)
 
             sequence_str = str(record.seq)
-            if index_name == "protein_name":
+            if index == "protein_name":
                 key = self.protein_id2name[gene_id]
-            elif index_name == "protein_id":
+            elif index == "protein_id":
                 key = gene_id
 
 
@@ -379,7 +379,7 @@ class STRING(Interactions, SequenceDatabase):
 
             self.seq_dict[key] = sequence_str
 
-        print("Seq {} collisions: {}".format(index_name, collisions))
+        print("Seq {} collisions: {}".format(index, collisions))
         return self.seq_dict
 
 
