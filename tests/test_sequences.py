@@ -1,6 +1,6 @@
 import dask.dataframe as dd
 
-from openomics.database import GENCODE, MirBase
+from openomics.database.sequence import GENCODE, MirBase
 from .test_multiomics import *
 
 

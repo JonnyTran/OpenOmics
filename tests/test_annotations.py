@@ -1,4 +1,5 @@
-from openomics.database import RNAcentral, GTEx, GeneOntology
+from openomics.database.annotation import RNAcentral, GTEx
+from openomics.database.ontology import GeneOntology
 from .test_multiomics import *
 
 
