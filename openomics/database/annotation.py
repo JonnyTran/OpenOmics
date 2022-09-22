@@ -4,8 +4,8 @@ from io import StringIO
 from os.path import expanduser
 
 from bioservices import BioMart
-
 from openomics.database.base import Database
+from pandas.errors import ParserError
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
@@ -440,8 +440,7 @@ class BioMartManager:
                 df = pd.read_csv(StringIO(results), header=None, names=attributes, sep="\t", low_memory=True,
                                  dtype=self.DTYPES)
         except Exception as e:
-            print('BioMart Query Result:', results)
-            raise e
+            raise ParserError(f'BioMart Query Result: {results}')
 
         if cache:
             self.cache_dataset(dataset, df, save_filename)
