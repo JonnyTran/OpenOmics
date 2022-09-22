@@ -374,7 +374,7 @@ class UniProt(SequenceDatabase):
             idmapping = pd.read_table(file_resources["idmapping_selected.tab"], index_col=self.index_col, **args)
 
         # Filter UniProt accession keys
-        if self.keys is not None and idmapping.index.name != self.index_col:
+        if self.keys is not None and idmapping.index.name != None:
             idmapping = idmapping.loc[idmapping.index.isin(self.keys)]
 
         # Transform list columns
@@ -426,22 +426,15 @@ class UniProt(SequenceDatabase):
     def transform_idmapping(self, idmapping: pd.DataFrame) -> Dict[str, Union[dd.Series, pd.Series]]:
         # Convert string of list elements to a np.array
         list2array = lambda x: np.array(x) if isinstance(x, Iterable) else x
-
-        # Used to sample dtype of columns and check if they need to be transformed
-        idmapping_meta = idmapping.head(150)
-
         assign_fn = {}
-        for col in ['PDB', 'GI', 'GO', 'RefSeq']:
-            if col not in idmapping.columns or idmapping_meta[col].map(type).isin({Iterable}).any(): continue
+        for col in {'PDB', 'GI', 'GO', 'RefSeq'}.intersection(idmapping.columns):
             try:
                 # Split string to list
                 assign_fn[col] = idmapping[col].str.split("; ").map(list2array)
             except:
                 continue
 
-        for col in ['Ensembl', 'Ensembl_TRS', 'Ensembl_PRO']:
-            if col not in idmapping.columns or idmapping_meta[col].map(type).isin({Iterable}).any(): continue
-
+        for col in {'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO'}.intersection(idmapping.columns):
             # Removing .# ENGS gene version number at the end
             try:
                 if self.remove_version_num:
@@ -457,8 +450,8 @@ class UniProt(SequenceDatabase):
                         if isinstance(idmapping, dd.DataFrame) else \
                         pd.concat([idmapping["NCBI-taxon"], assign_fn[col]])
                     assign_fn['protein_external_id'] = concat.apply(
-                        lambda row: np.array(
-                            [".".join([row['NCBI-taxon'], protein_id]) for protein_id in row['Ensembl_PRO']]) \
+                        lambda row:
+                        np.char.add(row['NCBI-taxon'] + ".", row['Ensembl_PRO']) \
                             if isinstance(row['Ensembl_PRO'], Iterable) else None,
                         axis=1)
             except:
