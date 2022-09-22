@@ -1,6 +1,5 @@
 from collections import defaultdict
-from collections.abc import Iterable
-from typing import Union, List, Dict, Callable, Mapping
+from typing import Union, List, Dict, Callable, Mapping, Iterable
 
 import dask.dataframe as dd
 import numpy as np
@@ -99,6 +98,34 @@ def concat_unique_dask_agg() -> dd.Aggregation:
     return func
 
 
+def merge_values(a: Union[str, None, Iterable], b: Union[str, None, Iterable]) -> Union[np.ndarray, str, None]:
+    """
+    Used as function in pd.combine() or dd.combine()
+    Args:
+        a (Union[str,None,Iterable]):
+        b (Union[str,None,Iterable]):
+
+    Returns:
+        combined_value (Union[np.ndarray, str, None])
+    """
+    a_isna = pd.isna(a)
+    b_isna = pd.isna(b)
+    if a_isna is True or (isinstance(a_isna, Iterable) and all(a_isna)):
+        return b
+    elif b_isna is True or (isinstance(b_isna, Iterable) and all(b_isna)):
+        return a
+    elif isinstance(a, str) and isinstance(b, str):
+        return np.array([a, b])
+    elif not isinstance(a, Iterable) and isinstance(b, Iterable):
+        return np.hstack([[a], b])
+    elif isinstance(a, Iterable) and not isinstance(b, Iterable):
+        return np.hstack([a, [b]])
+    elif isinstance(a, Iterable) and isinstance(b, Iterable):
+        return np.hstack([a, b])
+    else:
+        return b
+
+
 def concat_uniques(series: pd.Series) -> Union[str, List, np.ndarray, None]:
     """ An aggregation custom function to be applied to each column of a groupby
     Args:
@@ -126,7 +153,6 @@ def concat_uniques(series: pd.Series) -> Union[str, List, np.ndarray, None]:
     else:
         return series.tolist()
 
-
 def concat(series: pd.Series) -> Union[str, List, np.ndarray, None]:
     """
     Args:
@@ -150,6 +176,7 @@ def concat(series: pd.Series) -> Union[str, List, np.ndarray, None]:
 
     else:
         return series.tolist()
+
 
 def drop_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
     """

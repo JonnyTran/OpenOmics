@@ -4,19 +4,17 @@ import logging
 import os
 import warnings
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
-from itertools import chain
 from os.path import exists, join
 from typing import Dict, Union, Any, Callable
 from typing import List
 
 import dask.dataframe as dd
 import filetype
-import numpy as np
 import pandas as pd
 import validators
+from logzero import logger
 from openomics.io.files import get_pkg_data_filename, decompress_file
-from openomics.utils.df import get_multi_aggregators
+from openomics.utils.df import get_multi_aggregators, merge_values
 
 
 class Database(object):
@@ -31,7 +29,7 @@ class Database(object):
     data: pd.DataFrame
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
 
-    def __init__(self, path: str, file_resources: Dict[str, str] = None, index_col=None, keys=None,
+    def __init__(self, path: str, file_resources: Dict[str, str] = None, index_col=None, keys=None, usecols=None,
                  col_rename: Dict[str, str] = None, blocksize: int = None, verbose=False, **kwargs):
         """
         Args:
@@ -53,6 +51,9 @@ class Database(object):
             col_rename (dict): default None,
                 A dictionary to rename columns in the data table. If None, then
                 automatically load defaults.
+            usecols (list, optional): list of strings, default None.
+                If provided when loading the dataframes, only use a subset of these
+                columns, otherwise load all columns.
             blocksize (int): str, int or None, optional. Default None to
                 Number of bytes by which to cut up larger files. Default value
                 is computed based on available physical memory and the number
@@ -64,6 +65,7 @@ class Database(object):
         self.data_path = path
         self.index_col = index_col
         self.keys = keys.compute() if isinstance(keys, (dd.Index, dd.Series)) else keys
+        self.usecols = usecols
         self.blocksize = blocksize
         self.verbose = verbose
 
@@ -333,10 +335,10 @@ class Annotatable(ABC):
             agg_for (Dict[str, Any]): Bypass the `agg` function for certain
                 columns with functions specified in this dict of column names
                 and the `agg` function to aggregate for that column.
-            fuzzy_match (bool): default False. Whether to join the annotation
-                by applying a fuzzy match on the index with
-                difflib.get_close_matches(). It can be slow and thus should
-                only be used sparingly.
+            fuzzy_match (bool): default False.
+                Whether to join the annotation by applying a fuzzy match on the
+                string value index with difflib.get_close_matches(). It can be
+                slow and thus should only be used sparingly.
         """
         if not hasattr(self, "annotations"):
             raise Exception("Must run .initialize_annotations() on, ", self.__class__.__name__, " first.")
@@ -379,31 +381,18 @@ class Annotatable(ABC):
         # Merge columns if the database DataFrame has overlapping columns with existing column
         duplicate_cols = {col: col.rstrip("_") for col in merged.columns if col.endswith("_")}
 
-        def merge_values(a: Any, b: Any):
-            a_isna = pd.isna(a)
-            b_isna = pd.isna(b)
-            if a_isna is True or (isinstance(a_isna, Iterable) and all(a_isna)):
-                return b
-            elif b_isna is True or (isinstance(b_isna, Iterable) and all(b_isna)):
-                return a
-            elif isinstance(a, str) and isinstance(b, str):
-                return np.array([a, b])
-            elif isinstance(a, str) and isinstance(b, Iterable):
-                return np.array([val for val in chain([a], b)])
-            elif isinstance(a, Iterable) and isinstance(b, str):
-                return np.array([val for val in chain(a, [b])])
-            elif isinstance(a, Iterable) and isinstance(b, Iterable):
-                return np.hstack([a, b])
-            else:
-                return b
+        if duplicate_cols:
+            new_annotations = merged[list(duplicate_cols.keys())].rename(columns=duplicate_cols)
+            logger.info(f"merging {new_annotations.columns}")
 
-        # Combine new values from columns with
-        new_annotations = merged[list(duplicate_cols.keys())].rename(columns=duplicate_cols)
-        merged = merged.combine(new_annotations, merge_values)
-        # then drop duplicate columns with "_" suffix
-        merged = merged.drop(columns=list(duplicate_cols.keys()))
+            # Combine new values with old values in overlapping columns
+            assign_fn = {old_col: merged[old_col].combine(merged[new_col], func=merge_values) \
+                         for new_col, old_col in duplicate_cols.items()}
+            merged = merged.assign(**assign_fn)
+            # then drop duplicate columns with "_" suffix
+            merged = merged.drop(columns=list(duplicate_cols.keys()))
 
-        # Revert back to Pandas df if not previously a dask df
+        # Revert back to Pandas DF if not previously a Dask DF
         if isinstance(self.annotations, pd.DataFrame) and isinstance(merged, dd.DataFrame):
             merged = merged.compute()
 
