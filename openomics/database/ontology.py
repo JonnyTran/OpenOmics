@@ -534,7 +534,8 @@ class UniProtGOA(GeneOntology):
 
 class InterPro(Ontology):
 
-    def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/",
+    def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/", index_col='UniProtKB-AC',
+                 keys=None,
                  file_resources=None, col_rename=None, **kwargs):
         """
         Default parameters
@@ -559,7 +560,8 @@ class InterPro(Ontology):
             file_resources["interpro2go"] = os.path.join(path, "interpro2go")
             file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
 
-        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, **kwargs)
+        super().__init__(path=path, file_resources=file_resources, index_col=index_col, keys=keys,
+                         col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None):
         ipr_entries = pd.read_table(file_resources["entry.list"], index_col="ENTRY_AC")
@@ -574,10 +576,12 @@ class InterPro(Ontology):
             dtype={'UniProtKB-AC': 'str', 'ENTRY_AC': 'str', 'start': 'int8', 'stop': 'int8'},
             low_memory=True,
             blocksize=None if isinstance(blocksize, bool) else blocksize)
-        self.annotations = self.annotations.set_index('UniProtKB-AC', sorted=True)
 
-        if self.keys is not None:
-            self.annotations = self.annotations.loc[self.annotations.index.isin(self.keys)]
+        if self.keys is not None and self.index_col is not None:
+            self.annotations = self.annotations.loc[self.annotations[self.index_col].isin(self.keys)]
+
+        if self.index_col:
+            self.annotations = self.annotations.set_index(self.index_col, sorted=True)
 
         return ipr_entries
 
