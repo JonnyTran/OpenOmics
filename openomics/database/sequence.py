@@ -6,16 +6,16 @@ from collections.abc import Iterable
 from typing import Union, List, Callable, Dict, Tuple
 
 import numpy as np
+import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
+from openomics.io.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
-import openomics
-from openomics.io.read_gtf import read_gtf
 from .base import Database
 
 SEQUENCE_COL = 'sequence'
@@ -379,9 +379,9 @@ class UniProt(SequenceDatabase):
 
         # Transform list columns
         if isinstance(idmapping, dd.DataFrame):
-            idmapping = idmapping.map_partitions(self.transform_idmapping)
+            idmapping = idmapping.assign(**self.transform_idmapping(idmapping))
         else:
-            idmapping = self.transform_idmapping(idmapping)
+            idmapping = idmapping.assign(**self.transform_idmapping(idmapping))
 
         # Join metadata from uniprot_sprot.parquet
         if 'uniprot_sprot.parquet' in file_resources or 'uniprot_trembl.parquet' in file_resources:
@@ -423,18 +423,19 @@ class UniProt(SequenceDatabase):
 
         return idmapping
 
-    def transform_idmapping(self, idmapping: pd.DataFrame) -> pd.DataFrame:
+    def transform_idmapping(self, idmapping: pd.DataFrame) -> Dict[str, Union[dd.Series, pd.Series]]:
         # Convert string of list elements to a np.array
         list2array = lambda x: np.array(x) if isinstance(x, Iterable) else x
 
         # Used to sample dtype of columns and check if they need to be transformed
-        idmapping_meta = idmapping.head(min(300, idmapping.index.size))
+        idmapping_meta = idmapping.head(150)
 
+        assign_fn = {}
         for col in ['PDB', 'GI', 'GO', 'RefSeq']:
             if col not in idmapping.columns or idmapping_meta[col].map(type).isin({Iterable}).any(): continue
             try:
                 # Split string to list
-                idmapping[col] = idmapping[col].str.split("; ").map(list2array)
+                assign_fn[col] = idmapping[col].str.split("; ").map(list2array)
             except:
                 continue
 
@@ -444,20 +445,26 @@ class UniProt(SequenceDatabase):
             # Removing .# ENGS gene version number at the end
             try:
                 if self.remove_version_num:
-                    idmapping[col] = idmapping[col].str.replace("[.]\d*", "", regex=True)
-                idmapping[col] = idmapping[col].str.split("; ").map(list2array)
+                    series = idmapping[col].str.replace("[.]\d*", "", regex=True)
+                else:
+                    series = idmapping[col]
+
+                assign_fn[col] = series.str.split("; ").map(list2array)
+
+                if col == 'Ensembl_PRO':
+                    # Prepend species_id to ensembl protein ids to match with STRING PPI
+                    concat = dd.concat([idmapping["NCBI-taxon"], assign_fn[col]]) \
+                        if isinstance(idmapping, dd.DataFrame) else \
+                        pd.concat([idmapping["NCBI-taxon"], assign_fn[col]])
+                    assign_fn['protein_external_id'] = concat.apply(
+                        lambda row: np.array(
+                            [".".join([row['NCBI-taxon'], protein_id]) for protein_id in row['Ensembl_PRO']]) \
+                            if isinstance(row['Ensembl_PRO'], Iterable) else None,
+                        axis=1)
             except:
                 continue
 
-            if col == 'Ensembl_PRO':
-                # Prepend species_id to ensembl protein ids to match with STRING PPI
-                idmapping = idmapping.assign(protein_external_id=idmapping[["NCBI-taxon", 'Ensembl_PRO']].apply(
-                    lambda row: np.array(
-                        [".".join([row['NCBI-taxon'], protein_id]) for protein_id in row['Ensembl_PRO']]) \
-                        if isinstance(row['Ensembl_PRO'], Iterable) else None,
-                    axis=1))
-
-        return idmapping
+        return assign_fn
 
     def load_uniprot_parquet(self, file_resources: Dict[str, str], blocksize=None) -> Union[dd.DataFrame, pd.DataFrame]:
         dfs = []
@@ -602,7 +609,7 @@ class MirBase(SequenceDatabase):
 
     def __init__(
         self,
-        path="ftp://mirbase.org/pub/mirbase/CURRENT/",
+        path="http://mirbase.org/ftp/CURRENT/",
         file_resources=None,
         species_id: str = '9606',
         sequence: str = "mature",

@@ -4,15 +4,17 @@ import logging
 import os
 import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
+from itertools import chain
 from os.path import exists, join
 from typing import Dict, Union, Any, Callable
 from typing import List
 
 import dask.dataframe as dd
 import filetype
+import numpy as np
 import pandas as pd
 import validators
-
 from openomics.io.files import get_pkg_data_filename, decompress_file
 from openomics.utils.df import get_multi_aggregators
 
@@ -368,27 +370,45 @@ class Annotatable(ABC):
         # Performing join if `on` is already self's index
         if on == self.annotations.index.name or (
             hasattr(self.annotations.index, 'names') and on == self.annotations.index.names):
-            new_annotations = self.annotations.join(values, on=on, how="left", rsuffix="_")
+            merged = self.annotations.join(values, on=on, how="left", rsuffix="_")
         # Perfrom merge if `on` another column
         else:
-            new_annotations = self.annotations.merge(values, left_on=on, right_index=True, how="left",
-                                                     suffixes=("_", ""))
+            merged = self.annotations.merge(values, left_on=on, right_index=True, how="left",
+                                            suffixes=("", "_"))
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
-        duplicate_cols = [col for col in new_annotations.columns if col.endswith("_")]
+        duplicate_cols = {col: col.rstrip("_") for col in merged.columns if col.endswith("_")}
 
-        # Fill in null values then drop duplicate columns
-        for new_col in duplicate_cols:
-            old_col = new_col.rstrip("_")
-            new_annotations[old_col] = new_annotations[old_col].fillna(new_annotations[new_col], axis=0)
-            new_annotations = new_annotations.drop(columns=new_col)
+        def merge_values(a: Any, b: Any):
+            a_isna = pd.isna(a)
+            b_isna = pd.isna(b)
+            if a_isna is True or (isinstance(a_isna, Iterable) and all(a_isna)):
+                return b
+            elif b_isna is True or (isinstance(b_isna, Iterable) and all(b_isna)):
+                return a
+            elif isinstance(a, str) and isinstance(b, str):
+                return np.array([a, b])
+            elif isinstance(a, str) and isinstance(b, Iterable):
+                return np.array([val for val in chain([a], b)])
+            elif isinstance(a, Iterable) and isinstance(b, str):
+                return np.array([val for val in chain(a, [b])])
+            elif isinstance(a, Iterable) and isinstance(b, Iterable):
+                return np.hstack([a, b])
+            else:
+                return b
+
+        # Combine new values from columns with
+        new_annotations = merged[list(duplicate_cols.keys())].rename(columns=duplicate_cols)
+        merged = merged.combine(new_annotations, merge_values)
+        # then drop duplicate columns with "_" suffix
+        merged = merged.drop(columns=list(duplicate_cols.keys()))
 
         # Revert back to Pandas df if not previously a dask df
-        if isinstance(self.annotations, pd.DataFrame) and isinstance(new_annotations, dd.DataFrame):
-            new_annotations = new_annotations.compute()
+        if isinstance(self.annotations, pd.DataFrame) and isinstance(merged, dd.DataFrame):
+            merged = merged.compute()
 
         # Assign the new results
-        self.annotations = new_annotations
+        self.annotations = merged
 
     def annotate_sequences(self,
                            database,
@@ -417,18 +437,20 @@ class Annotatable(ABC):
         # Map sequences to the keys of `on` columns.
         if type(self.annotations.index) == pd.MultiIndex and self.annotations.index.names in on:
             seqs = self.annotations.index.get_level_values(on).map(sequences)
+
         elif self.annotations.index.name == on:
             seqs = self.annotations.index.map(sequences)
+
         elif isinstance(on, list):
             # Index is a multi columns
             seqs = pd.MultiIndex.from_frame(self.annotations.reset_index()[on]).map(sequences)
         else:
             seqs = pd.Index(self.annotations.reset_index()[on]).map(sequences)
 
-        self.annotations[Annotatable.SEQUENCE_COL] = seqs
+        self.annotations = self.annotations.assign(**{Annotatable.SEQUENCE_COL: seqs})
 
     def annotate_expressions(self, database, index, fuzzy_match=False):
-        """Annotate :param database: :param index: :param fuzzy_match:
+        """
 
         Args:
             database:
@@ -478,7 +500,7 @@ class Annotatable(ABC):
         else:
             raise Exception()
 
-        self.annotations[Annotatable.DISEASE_ASSOCIATIONS_COL] = values
+        self.annotations = self.annotations.assign(**{Annotatable.DISEASE_ASSOCIATIONS_COL: values})
 
     def set_index(self, new_index):
         """Resets :param new_index: :type new_index: str
