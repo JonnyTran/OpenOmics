@@ -224,16 +224,17 @@ class Database(object):
             columns.pop(columns.index(on))
 
         # Select a subset of columns
-        select_col = columns + ([on] if not isinstance(on, list) else on)
-        if self.data.index.name in select_col:
-            index_col = select_col.pop(select_col.index(self.data.index.name))
+        select_cols = columns + ([on] if not isinstance(on, list) else on)
+        if self.data.index.name in select_cols:
+            # Remove self.data's index_col since we can't select
+            index_col = select_cols.pop(select_cols.index(self.data.index.name))
         else:
             index_col = None
 
         if isinstance(self.data, pd.DataFrame):
-            df = self.data.filter(select_col, axis="columns")
+            df = self.data.filter(select_cols, axis="columns")
         elif isinstance(self.data, dd.DataFrame):
-            df = self.data[select_col]
+            df = self.data[select_cols]
         else:
             raise Exception(f"{self} must have self.data as a pd.DataFrame or dd.DataFrame")
 
@@ -353,7 +354,9 @@ class Annotatable(ABC):
             if on == df.index.name and on in df.columns:
                 df.pop(on)  # Avoid ambiguous groupby col error
             agg_funcs = get_multi_aggregators(agg=agg, agg_for=agg_for, use_dask=isinstance(df, dd.DataFrame))
-            groupby = df.groupby(lambda x: x) if on == df.index.name else df.groupby(on)
+            groupby = df.reset_index().groupby(on) \
+                if on == df.index.name or df.index.name in columns \
+                else df.groupby(on)
             values = groupby.agg({col: agg_funcs[col] for col in columns})
         else:
             values = database.get_annotations(on, columns=columns, agg=agg, agg_for=agg_for, keys=keys)
@@ -469,9 +472,11 @@ class Annotatable(ABC):
             values = keys.map(groupby_agg)
 
         elif isinstance(keys, dd.DataFrame):
-            values = keys.apply(lambda x: groupby_agg.loc[x], axis=1, meta=pd.Series([['']])).head()
+            values = keys.apply(lambda x: groupby_agg.loc[x], axis=1, meta=pd.Series([['']]))
         elif isinstance(keys, dd.Series):
             values = keys.map(groupby_agg)
+        else:
+            raise Exception()
 
         self.annotations[Annotatable.DISEASE_ASSOCIATIONS_COL] = values
 

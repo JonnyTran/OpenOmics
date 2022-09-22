@@ -313,8 +313,9 @@ class UniProt(SequenceDatabase):
             blocksize:
         """
         self.species_id = species_id
-        self.species = UniProt.SPECIES_ID_NAME[species_id] if isinstance(species_id, str) else None
-        self.taxonomic_id = UniProt.SPECIES_ID_TAXONOMIC[self.species] if isinstance(self.species, str) else None
+        self.species = UniProt.SPECIES_ID_NAME[species_id] if species_id in UniProt.SPECIES_ID_NAME else None
+        self.taxonomic_id = UniProt.SPECIES_ID_TAXONOMIC[
+            self.species] if self.species in UniProt.SPECIES_ID_TAXONOMIC else None
         self.remove_version_num = remove_version_num
 
         if file_resources is None:
@@ -361,21 +362,26 @@ class UniProt(SequenceDatabase):
                 isinstance(file_resources["idmapping_selected.parquet"], str):
                 idmapping = dd.read_parquet(file_resources["idmapping_selected.parquet"])
 
-            elif "idmapping_selected.tab" in file_resources and isinstance(file_resources["idmapping_selected.tab"],
-                                                                           str):
+            elif "idmapping_selected.tab" in file_resources and \
+                isinstance(file_resources["idmapping_selected.tab"], str):
                 idmapping = dd.read_table(file_resources["idmapping_selected.tab"], blocksize=blocksize, **args)
             else:
                 idmapping = dd.read_table(file_resources["idmapping_selected.tab.gz"], compression="gzip", **args, )
 
             if not idmapping.index.name:
-                idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
+                idmapping = idmapping.set_index(self.index_col, sorted=False)
         else:
-            idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"], index_col='UniProtKB-AC',
-                                                    **args)
+            idmapping = pd.read_table(file_resources["idmapping_selected.tab"], index_col=self.index_col, **args)
 
         # Filter UniProt accession keys
-        if self.keys is not None and idmapping.index.name != None:
+        if self.keys is not None and idmapping.index.name != self.index_col:
             idmapping = idmapping.loc[idmapping.index.isin(self.keys)]
+
+        # Transform list columns
+        if isinstance(idmapping, dd.DataFrame):
+            idmapping = idmapping.map_partitions(self.transform_idmapping)
+        else:
+            idmapping = self.transform_idmapping(idmapping)
 
         # Join metadata from uniprot_sprot.parquet
         if 'uniprot_sprot.parquet' in file_resources or 'uniprot_trembl.parquet' in file_resources:
@@ -383,33 +389,6 @@ class UniProt(SequenceDatabase):
             to_join = uniprot[uniprot.columns.difference(idmapping.columns)]
             assert idmapping.index.name == to_join.index.name
             idmapping = idmapping.join(to_join, how='left')
-
-        # Convert string of list elements to a np.array
-        list2array = lambda x: np.array(x) if isinstance(x, Iterable) else x
-        args = dict(meta=pd.Series([np.array([''])])) if isinstance(idmapping, dd.DataFrame) else {}
-        idmapping_sample = idmapping.head(
-            300)  # Used to sample dtype of columns and check if they need to be transformed
-
-        for col in ['PDB', 'GI', 'GO', 'RefSeq']:
-            if col not in idmapping.columns or idmapping_sample[col].map(type).isin({Iterable}).any(): continue
-            # Split string to list
-            idmapping[col] = idmapping[col].str.split("; ").map(list2array, **args)
-
-        for col in ['Ensembl', 'Ensembl_TRS', 'Ensembl_PRO']:
-            if col not in idmapping.columns or idmapping_sample[col].map(type).isin({Iterable}).any(): continue
-            # Removing .# ENGS gene version number at the end
-            if self.remove_version_num:
-                idmapping[col] = idmapping[col].str.replace("[.]\d*", "", regex=True)
-            idmapping[col] = idmapping[col].str.split("; ").map(list2array, **args)
-
-            if col == 'Ensembl_PRO':
-                # Prepend species_id to ensembl protein ids to match with STRING PPI
-                idmapping['protein_external_id'] = idmapping[col]
-                idmapping['protein_external_id'] = idmapping[["NCBI-taxon", 'protein_external_id']].apply(
-                    lambda x: np.array(
-                        [".".join([x['NCBI-taxon'], protein_id]) for protein_id in x['protein_external_id']]) \
-                        if isinstance(x['protein_external_id'], list) else None,
-                    axis=1, **args)
 
         # Load proteome.tsv
         if "proteomes.tsv" in file_resources:
@@ -444,6 +423,42 @@ class UniProt(SequenceDatabase):
 
         return idmapping
 
+    def transform_idmapping(self, idmapping: pd.DataFrame) -> pd.DataFrame:
+        # Convert string of list elements to a np.array
+        list2array = lambda x: np.array(x) if isinstance(x, Iterable) else x
+
+        # Used to sample dtype of columns and check if they need to be transformed
+        idmapping_meta = idmapping.head(min(300, idmapping.index.size))
+
+        for col in ['PDB', 'GI', 'GO', 'RefSeq']:
+            if col not in idmapping.columns or idmapping_meta[col].map(type).isin({Iterable}).any(): continue
+            try:
+                # Split string to list
+                idmapping[col] = idmapping[col].str.split("; ").map(list2array)
+            except:
+                continue
+
+        for col in ['Ensembl', 'Ensembl_TRS', 'Ensembl_PRO']:
+            if col not in idmapping.columns or idmapping_meta[col].map(type).isin({Iterable}).any(): continue
+
+            # Removing .# ENGS gene version number at the end
+            try:
+                if self.remove_version_num:
+                    idmapping[col] = idmapping[col].str.replace("[.]\d*", "", regex=True)
+                idmapping[col] = idmapping[col].str.split("; ").map(list2array)
+            except:
+                continue
+
+            if col == 'Ensembl_PRO':
+                # Prepend species_id to ensembl protein ids to match with STRING PPI
+                idmapping = idmapping.assign(protein_external_id=idmapping[["NCBI-taxon", 'Ensembl_PRO']].apply(
+                    lambda row: np.array(
+                        [".".join([row['NCBI-taxon'], protein_id]) for protein_id in row['Ensembl_PRO']]) \
+                        if isinstance(row['Ensembl_PRO'], Iterable) else None,
+                    axis=1))
+
+        return idmapping
+
     def load_uniprot_parquet(self, file_resources: Dict[str, str], blocksize=None) -> Union[dd.DataFrame, pd.DataFrame]:
         dfs = []
         for filename, file_path in file_resources.items():
@@ -451,6 +466,7 @@ class UniProt(SequenceDatabase):
             if blocksize:
                 df = dd.read_parquet(file_path, blocksize=blocksize if not isinstance(blocksize, bool) else None) \
                     .rename(columns=UniProt.COLUMNS_RENAME_DICT)
+
                 if self.keys is not None and self.index_col:
                     df = df.loc[df[self.index_col].isin(self.keys)]
 

@@ -19,7 +19,7 @@ def get_agg_func(keyword: str, use_dask=False) -> Union[str, Callable, dd.Aggreg
         func (callable): a callable function, pandas aggregator func name, or a Dask Aggregation.
     """
     if keyword == "unique":
-        # get unique values (in a list) from each groupby key
+        # get unique values (in a list-like np.array) from each groupby key
         if use_dask:
             func = concat_unique_dask_agg()
         else:
@@ -59,25 +59,36 @@ def get_multi_aggregators(agg: str, agg_for: Dict[str, Union[str, Callable, dd.A
 def concat_unique_dask_agg() -> dd.Aggregation:
     def chunk(s: pd.Series) -> pd.Series:
         '''
-        The function applied to the
-        individual partition (map)
+        The function applied to the individual partition (map)
         '''
-        return s.apply(lambda x: list(set(x)) if isinstance(x, Iterable) else [x])
+
+        def to_list(x: Union[str, List, np.ndarray]):
+            if isinstance(x, str):
+                return [x]
+            elif isinstance(x, np.ndarray):
+                return x
+            elif isinstance(x, Iterable):
+                if any(isinstance(a, Iterable) for a in x):
+                    return list(set(np.hstack(x)))
+                else:
+                    return list(set(x))
+            else:
+                return [x]
+
+        return s.apply(to_list)
 
     def agg(s: SeriesGroupBy) -> pd.Series:
         '''
-        The function whic will aggrgate
-        the result from all the partitions(reduce)
+        The function which will aggregate the result from all the partitions(reduce)
         '''
         s = s._selected_obj
-        return s.groupby(level=list(range(s.index.nlevels))).sum()
+        return s.groupby(level=list(range(s.index.nlevels))).apply(np.hstack)
 
     def finalize(s) -> pd.Series:
         '''
-        The optional functional that will be
-        applied to the result of the agg_tu functions
+        The optional functional that will be applied to the result of the agg_tu functions
         '''
-        return s.apply(lambda x: np.unique(x))
+        return s.apply(lambda arr: np.unique(arr[~pd.isna(arr)]))
 
     func = dd.Aggregation(
         name='unique',
