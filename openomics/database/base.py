@@ -203,8 +203,8 @@ class Database(object):
         columns by concatenating all unique values.
 
         Args:
-            on (str): The column name of the DataFrame to join by.
-            columns (list): a list of column names.
+            on (str, list): The column name(s) of the DataFrame to group by.
+            columns (list): a list of column names to aggregate.
             agg (str): Function to aggregate when there is more than one values
                 for each index key value. E.g. ['first', 'last', 'sum', 'mean',
                 'size', 'concat'], default 'concat'.
@@ -220,17 +220,19 @@ class Database(object):
         if not set(columns).issubset(set(self.data.columns).union([self.data.index.name])):
             raise Exception(
                 f"The columns argument must be a list such that it's subset of the following columns in the dataframe. "
-                f"These columns doesn't exist in database: {list(set(columns) - set(self.data.columns.tolist()))}"
+                f"These columns doesn't exist in `self.data`: {list(set(columns) - set(self.data.columns.tolist()))}"
             )
+        elif len(set(columns)) < len(columns):
+            raise Exception(f"Duplicate values in `columns`: {columns}")
 
         # Select df columns including df. However, the `columns` list shouldn't contain the index column
         if on in columns:
-            columns.pop(columns.index(on))
+            columns = [col for col in columns if col not in on]
 
-        # Select a subset of columns
+        # All columns including `on` and `columns`
         select_cols = columns + ([on] if not isinstance(on, list) else on)
         if self.data.index.name in select_cols:
-            # Remove self.data's index_col since we can't select
+            # Remove self.data's index_col since we can't select index from the df
             index_col = select_cols.pop(select_cols.index(self.data.index.name))
         else:
             index_col = None
@@ -250,21 +252,24 @@ class Database(object):
             if isinstance(keys, (dd.Series, dd.Index)):
                 keys = keys.compute()
 
-            if set(on).issubset(df.columns):
-                df = df[df[on].isin(keys)]
+            if on in df.columns:
+                df = df.loc[df[on].isin(keys)]
             elif on == df.index.name:
-                df = df[df.index.isin(keys)]
+                df = df.loc[df.index.isin(keys)]
 
-        if on != df.index.name and df.index.name in columns:
-            # Groupby on
+        if on != df.index.name and df.index.name in select_cols:
+            # Groupby includes column that was in the index
             groupby = df.reset_index().groupby(on)
+
+        elif on == df.index.name:
+            groupby = df.groupby(lambda x: x)
+
         else:
-            # Groupby on index
+            # Groupby on index or other columns
             groupby = df.groupby(on)
 
         #  Aggregate by all columns by concatenating unique values
         agg_funcs = get_multi_aggregators(agg, agg_for=agg_for, use_dask=isinstance(df, dd.DataFrame))
-
         values = groupby.agg({col: agg_funcs[col] for col in columns})
 
         return values
@@ -349,6 +354,9 @@ class Annotatable(ABC):
             keys = self.annotations[on]
         elif on == self.annotations.index.name:
             keys = self.annotations.index
+        elif hasattr(self.annotations.index, 'names') and on in self.annotations.index.names:
+            # MultiIndex
+            keys = self.annotations.index.get_level_values(on)
         else:
             keys = None
 
@@ -435,6 +443,9 @@ class Annotatable(ABC):
             seqs = pd.MultiIndex.from_frame(self.annotations.reset_index()[on]).map(sequences)
         else:
             seqs = pd.Index(self.annotations.reset_index()[on]).map(sequences)
+
+        if isinstance(self.annotations, dd.DataFrame) and isinstance(seqs, pd.Series):
+            seqs = dd.from_pandas(seqs, npartitions=self.annotations.npartitions)
 
         self.annotations = self.annotations.assign(**{Annotatable.SEQUENCE_COL: seqs})
 
