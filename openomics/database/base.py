@@ -13,8 +13,10 @@ import filetype
 import pandas as pd
 import validators
 from logzero import logger
-from openomics.io.files import get_pkg_data_filename, decompress_file
-from openomics.utils.df import get_multi_aggregators, merge_values
+
+from ..io.files import get_pkg_data_filename, decompress_file
+from ..transforms.agg import get_multi_aggregators, merge_values
+from ..transforms.df import drop_duplicate_columns
 
 
 class Database(object):
@@ -215,7 +217,7 @@ class Database(object):
                 filter before performing the groupby-agg operations.
 
         Returns:
-            DataFrame: A dataframe to be used for annotation
+            values: An filted-groupby-aggregated dataframe to be used for annotation.
         """
         if not set(columns).issubset(set(self.data.columns).union([self.data.index.name])):
             raise Exception(
@@ -257,15 +259,18 @@ class Database(object):
             elif on == df.index.name:
                 df = df.loc[df.index.isin(keys)]
 
-        if on != df.index.name and df.index.name in select_cols:
-            # Groupby includes column that was in the index
+        df = drop_duplicate_columns(df)
+
+        # Groupby includes column that was in the index
+        if on != df.index.name and df.index.name in columns:
             groupby = df.reset_index().groupby(on)
 
+        # Groupby on index
         elif on == df.index.name:
             groupby = df.groupby(lambda x: x)
 
+        # Groupby on other columns
         else:
-            # Groupby on index or other columns
             groupby = df.groupby(on)
 
         #  Aggregate by all columns by concatenating unique values
@@ -279,8 +284,8 @@ class Database(object):
         Args:
             index:
         """
-        return self.data.groupby(index).median(
-        )  # TODO if index by gene, aggregate medians of transcript-level expressions
+        # TODO if index by gene, aggregate medians of transcript-level expressions
+        return self.data.groupby(index).median()
 
 
 
