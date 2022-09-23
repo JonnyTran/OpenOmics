@@ -3,7 +3,7 @@ import re
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from collections.abc import Iterable
-from typing import Union, List, Callable, Dict, Tuple
+from typing import Union, List, Callable, Dict, Tuple, Optional
 
 import numpy as np
 import openomics
@@ -606,7 +606,7 @@ class MirBase(SequenceDatabase):
         self,
         path="http://mirbase.org/ftp/CURRENT/",
         file_resources=None,
-        species_id: str = '9606',
+        species_id: Optional[str] = '9606',
         sequence: str = "mature",
         col_rename=None,
         blocksize=None,
@@ -642,9 +642,9 @@ class MirBase(SequenceDatabase):
         """
         rnacentral_mirbase = pd.read_table(
             file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
-            names=["RNAcentral id", "database", "mirbase id", "species_id", "RNA type", "NA", ],
+            names=["RNAcentral id", "database", "mirbase id", "species_id", "RNA type", "NA"],
             usecols=["RNAcentral id", "database", "mirbase id", "species_id", "RNA type"],
-            dtype={'mirbase id': 'str', "species_id": "str"})
+            dtype={'mirbase id': 'str', "species_id": "category", 'database': 'category', 'RNA type': 'category'})
 
         if isinstance(self.species_id, str):
             rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species_id"] == self.species_id]

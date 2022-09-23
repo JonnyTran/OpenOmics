@@ -1,4 +1,3 @@
-import io
 import logging
 import os
 import re
@@ -6,15 +5,16 @@ from glob import glob
 from typing import Union
 
 import dask.dataframe as dd
+import io
 import numpy as np
 import pandas as pd
 import validators
 # from Bio.UniProt import GOA
 from dask import delayed
 
-from openomics.database.base import Annotatable
-from openomics.io.files import get_pkg_data_filename
-from openomics.utils.df import drop_duplicate_columns
+from .database.base import Annotatable
+from .io.files import get_pkg_data_filename
+from .transforms.df import drop_duplicate_columns
 
 
 class Expression(object):

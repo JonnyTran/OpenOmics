@@ -1,17 +1,19 @@
 import os
 import re
-from io import StringIO
 from os.path import expanduser
 
+import dask.dataframe as dd
+import pandas as pd
 from bioservices import BioMart
-from openomics.database.base import Database
+from io import StringIO
 from pandas.errors import ParserError
+
+from .base import Database
+from ..transforms.agg import get_agg_func
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
-import pandas as pd
-import dask.dataframe as dd
 
 class ProteinAtlas(Database):
     """Loads the  database from  .
@@ -97,16 +99,15 @@ class RNAcentral(Database):
     }
 
     def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606', remove_version_num=True, blocksize=None,
-                 verbose=False):
+                 col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606',
+                 index_col="RNAcentral id",
+                 remove_version_num=True, **kwargs):
         """
         Args:
             path:
             file_resources:
             col_rename:
             species_id:
-            blocksize:
-            verbose:
         """
         self.species_id = species_id
         self.remove_version_num = remove_version_num
@@ -116,7 +117,8 @@ class RNAcentral(Database):
             file_resources["rnacentral_rfam_annotations.tsv.gz"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
             file_resources["database_mappings/gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
             file_resources["database_mappings/mirbase.tsv"] = "id_mapping/database_mappings/mirbase.tsv"
-        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize, verbose=verbose)
+
+        super().__init__(path, file_resources, col_rename=col_rename, index_col=index_col, **kwargs)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
@@ -178,16 +180,13 @@ class RNAcentral(Database):
             anns = anns.set_index("RNAcentral id", sorted=True, npartitions=10)
 
             # Filter annotations by "RNAcentral id" in `transcripts_df`
-            idx = transcripts_df.index.drop_duplicates().compute()
+            idx = transcripts_df.index.compute()
             anns = anns.loc[anns.index.isin(idx)]
-            agg_func = dd.Aggregation(name='unique',
-                                      chunk=lambda s: s.unique(),
-                                      agg=lambda s0: s0.obj)
 
             # Groupby on index
             anns_groupby: dd.DataFrame = anns \
                 .groupby(by=lambda idx: idx) \
-                .agg({col: agg_func for col in ["GO terms", 'Rfams']}) \
+                .agg({col: get_agg_func('unique', use_dask=True) for col in ["GO terms", 'Rfams']}) \
                 .persist()
         else:
             anns = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], index_col='RNAcentral id', **args)

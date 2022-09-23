@@ -60,7 +60,7 @@ def concat_unique_dask_agg() -> dd.Aggregation:
         The function applied to the individual partition (map)
         '''
 
-        def to_list(x: Union[str, List, np.ndarray]):
+        def to_list(x: Union[str, List, np.ndarray]) -> List:
             if isinstance(x, str):
                 return [x]
             elif isinstance(x, np.ndarray):
@@ -80,7 +80,7 @@ def concat_unique_dask_agg() -> dd.Aggregation:
         The function which will aggregate the result from all the partitions(reduce)
         '''
         s = s._selected_obj
-        return s.groupby(level=list(range(s.index.nlevels))).apply(np.hstack)
+        return s.groupby(level=list(range(s.index.nlevels))).apply(lambda li: np.hstack(li) if li else None)
 
     def finalize(s) -> pd.Series:
         '''
@@ -177,13 +177,3 @@ def concat(series: pd.Series) -> Union[str, List, np.ndarray, None]:
         return series.tolist()
 
 
-def drop_duplicate_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Args:
-        df:
-    """
-    if df.columns.duplicated().any():
-        _, i = np.unique(df.columns, return_index=True)
-        df = df.iloc[:, i]
-
-    return df

@@ -1,7 +1,6 @@
 import os
 import warnings
 from collections.abc import Iterable
-from io import TextIOWrapper, StringIO
 from typing import Tuple, List, Dict, Union, Callable, Optional
 
 import dask.dataframe as dd
@@ -9,12 +8,13 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
+from io import TextIOWrapper, StringIO
 from logzero import logger
 from networkx import NetworkXError
+from openomics.io.read_gaf import read_gaf
+from openomics.transforms.adj import slice_adj
 from pandas import DataFrame
 
-from openomics.io.read_gaf import read_gaf
-from openomics.utils.adj import slice_adj
 from .base import Database
 
 
@@ -319,7 +319,9 @@ class GeneOntology(Ontology):
             if isinstance(self.annotations, dd.DataFrame):
                 agg = dd.Aggregation(name='_unique_add_parent',
                                      chunk=lambda s: s.unique(),
-                                     agg=lambda s0: s0.apply(get_predecessor_terms, node_ancestors, keep_terms=True))
+                                     agg=lambda s0: s0.apply(get_predecessor_terms, node_ancestors, keep_terms=True),
+                                     finalize=lambda s1: s1.apply(lambda li: np.hstack(li) if li else None)
+                                     )
             else:
                 agg = lambda s: get_predecessor_terms(s, g=node_ancestors, join_groups=True, keep_terms=True)
 
