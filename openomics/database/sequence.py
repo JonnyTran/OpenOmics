@@ -379,16 +379,16 @@ class UniProt(SequenceDatabase):
 
         # Transform list columns
         if isinstance(idmapping, dd.DataFrame):
-            idmapping = idmapping.assign(**self.transform_idmapping(idmapping))
+            idmapping = idmapping.assign(**self.assign_transforms(idmapping))
         else:
-            idmapping = idmapping.assign(**self.transform_idmapping(idmapping))
+            idmapping = idmapping.assign(**self.assign_transforms(idmapping))
 
         # Join metadata from uniprot_sprot.parquet
         if 'uniprot_sprot.parquet' in file_resources or 'uniprot_trembl.parquet' in file_resources:
             uniprot = self.load_uniprot_parquet(file_resources, blocksize=blocksize)
             to_join = uniprot[uniprot.columns.difference(idmapping.columns)]
-            assert idmapping.index.name == to_join.index.name
-            idmapping = idmapping.join(to_join, how='left')
+            assert idmapping.index.name == to_join.index.name, f"{idmapping.index.name} != {to_join.index.name}"
+            idmapping = idmapping.join(to_join, on=idmapping.index.name, how='left')
 
         # Load proteome.tsv
         if "proteomes.tsv" in file_resources:
@@ -423,7 +423,7 @@ class UniProt(SequenceDatabase):
 
         return idmapping
 
-    def transform_idmapping(self, idmapping: pd.DataFrame) -> Dict[str, Union[dd.Series, pd.Series]]:
+    def assign_transforms(self, idmapping: pd.DataFrame) -> Dict[str, Union[dd.Series, pd.Series]]:
         # Convert string of list elements to a np.array
         list2array = lambda x: np.array(x) if isinstance(x, Iterable) else x
         assign_fn = {}
@@ -450,8 +450,7 @@ class UniProt(SequenceDatabase):
                         if isinstance(idmapping, dd.DataFrame) else \
                         pd.concat([idmapping["NCBI-taxon"], assign_fn[col]])
                     assign_fn['protein_external_id'] = concat.apply(
-                        lambda row:
-                        np.char.add(row['NCBI-taxon'] + ".", row['Ensembl_PRO']) \
+                        lambda row: np.char.add(row['NCBI-taxon'] + ".", row['Ensembl_PRO']) \
                             if isinstance(row['Ensembl_PRO'], Iterable) else None,
                         axis=1)
             except:
@@ -467,8 +466,10 @@ class UniProt(SequenceDatabase):
                 df = dd.read_parquet(file_path, blocksize=blocksize if not isinstance(blocksize, bool) else None) \
                     .rename(columns=UniProt.COLUMNS_RENAME_DICT)
 
-                if self.keys is not None and self.index_col:
+                if self.keys is not None and df.index.name != self.index_col:
                     df = df.loc[df[self.index_col].isin(self.keys)]
+                elif self.keys is not None and df.index.name == self.index_col:
+                    df = df.loc[df.index.isin(self.keys)]
 
                 if not df.index.name:
                     try:
@@ -479,6 +480,7 @@ class UniProt(SequenceDatabase):
             else:
                 df = pd.read_parquet(file_path, index_col=self.index_col) \
                     .rename(columns=UniProt.COLUMNS_RENAME_DICT)
+
                 if self.keys is not None:
                     df_keys = df.index if df.index.name == self.index_col else df[self.index_col]
                     df = df.loc[df_keys.isin(self.keys)]

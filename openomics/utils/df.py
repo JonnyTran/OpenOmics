@@ -17,12 +17,11 @@ def get_agg_func(keyword: str, use_dask=False) -> Union[str, Callable, dd.Aggreg
     Returns:
         func (callable): a callable function, pandas aggregator func name, or a Dask Aggregation.
     """
-    if keyword == "unique":
+    if keyword == "unique" and use_dask:
         # get unique values (in a list-like np.array) from each groupby key
-        if use_dask:
-            func = concat_unique_dask_agg()
-        else:
-            func = concat_uniques
+        func = concat_unique_dask_agg()
+    elif keyword == "unique" and not use_dask:
+        func = concat_uniques
 
     elif keyword == "concat":
         # Concatenate values into list
