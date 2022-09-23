@@ -6,16 +6,16 @@ from collections.abc import Iterable
 from typing import Union, List, Callable, Dict, Tuple, Optional
 
 import numpy as np
-import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
-from openomics.io.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
+import openomics
+from openomics.io.read_gtf import read_gtf
 from .base import Database
 
 SEQUENCE_COL = 'sequence'
@@ -228,7 +228,7 @@ class GENCODE(SequenceDatabase):
             raise Exception("omic argument must be one of {'MessengerRNA', 'LncRNA'}")
 
         assert isinstance(fasta_file, str), \
-            f"Fasta file provided in `file_resources` must be a non-compressed .fa file. Given {fasta_file}"
+            f"Fasta file provided in `file_resources` must be an uncompressed .fa file. Given {fasta_file}."
 
         seq_df = self.load_sequences(fasta_file)
 
