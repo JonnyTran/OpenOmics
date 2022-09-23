@@ -18,7 +18,8 @@ def generate_GENCODE():
 def generate_GENCODE_dask():
     gencode = GENCODE(path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
                       file_resources={"long_noncoding_RNAs.gtf": "gencode.v32.long_noncoding_RNAs.gtf.gz",
-                                      "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz"}, npartitions=8)
+                                      "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz"},
+                      blocksize='10MB')
 
     gencode.data = gencode.data.sample(frac=0.01)
     return gencode

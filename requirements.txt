@@ -8,7 +8,7 @@ pandas
 matplotlib
 scipy
 astropy
-h5py
+h5py!=3.7.0
 bioservices
 itsdangerous
 dash

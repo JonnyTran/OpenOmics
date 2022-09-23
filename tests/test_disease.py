@@ -1,4 +1,5 @@
-from openomics.database.disease import DisGeNet, HMDD, LncRNADisease, MalaCards
+from openomics.database.disease import DisGeNet, LncRNADisease, HMDD, MalaCards
+
 from .test_multiomics import *
 
 
