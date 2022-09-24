@@ -80,7 +80,8 @@ def concat_unique_dask_agg() -> dd.Aggregation:
         The function which will aggregate the result from all the partitions(reduce)
         '''
         s = s._selected_obj
-        return s.groupby(level=list(range(s.index.nlevels))).apply(lambda li: np.hstack(li) if li else None)
+        return s.groupby(level=list(range(s.index.nlevels))).apply(
+            lambda li: np.hstack(li) if isinstance(li, Iterable) and len(li) else None)
 
     def finalize(s) -> pd.Series:
         '''
@@ -97,12 +98,12 @@ def concat_unique_dask_agg() -> dd.Aggregation:
     return func
 
 
-def merge_values(a: Union[str, None, Iterable], b: Union[str, None, Iterable]) -> Union[np.ndarray, str, None]:
+def merge_concat(a: Union[str, None, Iterable], b: Union[str, None, Iterable]) -> Union[np.ndarray, str, None]:
     """
     Used as function in pd.combine() or dd.combine()
     Args:
-        a (Union[str,None,Iterable]):
-        b (Union[str,None,Iterable]):
+        a (Union[str,None,Iterable]): cell value in a pd.Series
+        b (Union[str,None,Iterable]): cell value in a pd.Series
 
     Returns:
         combined_value (Union[np.ndarray, str, None])
@@ -114,6 +115,8 @@ def merge_values(a: Union[str, None, Iterable], b: Union[str, None, Iterable]) -
     elif b_isna is True or (isinstance(b_isna, Iterable) and all(b_isna)):
         return a
     elif isinstance(a, str) and isinstance(b, str):
+        if a == b:
+            return a
         return np.array([a, b])
     elif not isinstance(a, Iterable) and isinstance(b, Iterable):
         return np.hstack([[a], b])
