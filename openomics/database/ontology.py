@@ -1,6 +1,7 @@
 import os
 import warnings
 from collections.abc import Iterable
+from io import TextIOWrapper, StringIO
 from typing import Tuple, List, Dict, Union, Callable, Optional
 
 import dask.dataframe as dd
@@ -8,13 +9,12 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
-from io import TextIOWrapper, StringIO
 from logzero import logger
 from networkx import NetworkXError
-from openomics.io.read_gaf import read_gaf
-from openomics.transforms.adj import slice_adj
 from pandas import DataFrame
 
+from openomics.io.read_gaf import read_gaf
+from openomics.transforms.adj import slice_adj
 from .base import Database
 
 
@@ -205,11 +205,11 @@ class GeneOntology(Ontology):
     def __init__(
         self,
         path="http://geneontology.org/gene-associations/",
-        species="HUMAN",
+        species=None,
         file_resources=None,
         index='DB_Object_Symbol', keys=None,
         col_rename=COLUMNS_RENAME_DICT,
-        blocksize=0,
+        blocksize=None,
         **kwargs
     ):
         """
@@ -228,8 +228,8 @@ class GeneOntology(Ontology):
         Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
         functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
         """
-
-        self.species = species.lower()
+        if species and not hasattr(self, 'species'):
+            self.species = species.lower()
 
         if file_resources is None:
             file_resources = {
@@ -237,6 +237,7 @@ class GeneOntology(Ontology):
                 f"goa_{species.lower()}_rna.gaf.gz": f"goa_{species.lower()}_rna.gaf.gz",
                 f"goa_{species.lower()}_isoform.gaf.gz": f"goa_{species.lower()}_isoform.gaf.gz",
             }
+
         if not any('.obo' in file for file in file_resources):
             warnings.warn(
                 f'No .obo file provided in `file_resources`, so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
@@ -271,12 +272,14 @@ class GeneOntology(Ontology):
                                              compression='gzip')
                 elif gaf_name in dfs:
                     logger.warn(f"At least 2 duplicate files were given for {filename}")
+                print(gaf_name, dfs[gaf_name].known_divisions)
             else:
                 if filename.endswith(".gaf"):
                     dfs[gaf_name] = read_gaf(filepath_or_buffer, index_col=self.index_col)
 
         if len(dfs):
-            self.annotations = dd.concat(list(dfs.values())) if blocksize else pd.concat(dfs.values())
+            self.annotations = dd.concat(list(dfs.values()), interleave_partitions=True) \
+                if blocksize else pd.concat(dfs.values())
 
             if self.keys is not None and self.annotations.index.name != None:
                 self.annotations = self.annotations.loc[self.annotations.index.isin(self.keys)]
@@ -299,7 +302,7 @@ class GeneOntology(Ontology):
 
     def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", train_date="2017-06-15",
                           valid_date="2017-11-15", test_date="2021-12-31", groupby: List[str] = ["Qualifier"],
-                          query: str = "Evidence in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
+                          query: str = "`Evidence` in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
                           filter_src_nodes: pd.Index = None, filter_dst_nodes: pd.Index = None,
                           agg: Union[str, Callable, dd.Aggregation] = "unique") \
         -> Tuple[DataFrame, DataFrame, DataFrame]:
@@ -320,8 +323,7 @@ class GeneOntology(Ontology):
                 agg = dd.Aggregation(name='_unique_add_parent',
                                      chunk=lambda s: s.unique(),
                                      agg=lambda s0: s0.apply(get_predecessor_terms, node_ancestors, keep_terms=True),
-                                     finalize=lambda s1: s1.apply(lambda li: np.hstack(li) if li else None)
-                                     )
+                                     finalize=lambda s1: s1.apply(lambda li: np.hstack(li) if li else None))
             else:
                 agg = lambda s: get_predecessor_terms(s, g=node_ancestors, join_groups=True, keep_terms=True)
 
@@ -529,9 +531,9 @@ class UniProtGOA(GeneOntology):
                 f'No .obo file provided in `file_resources`, so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
             file_resources["go-basic.obo"] = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 
-        super(GeneOntology, self).__init__(path=path, file_resources=file_resources, index=index, keys=keys,
-                                           col_rename=col_rename,
-                                           blocksize=blocksize, **kwargs)
+        super().__init__(path=path, file_resources=file_resources, index=index, keys=keys,
+                         col_rename=col_rename,
+                         blocksize=blocksize, **kwargs)
 
 
 class InterPro(Ontology):

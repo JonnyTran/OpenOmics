@@ -15,7 +15,7 @@ import validators
 from logzero import logger
 
 from ..io.files import get_pkg_data_filename, decompress_file
-from ..transforms.agg import get_multi_aggregators, merge_values
+from ..transforms.agg import get_multi_aggregators, merge_concat
 from ..transforms.df import drop_duplicate_columns
 
 
@@ -371,9 +371,10 @@ class Annotatable(ABC):
             if on == df.index.name and on in df.columns:
                 df.pop(on)  # Avoid ambiguous groupby col error
             agg_funcs = get_multi_aggregators(agg=agg, agg_for=agg_for, use_dask=isinstance(df, dd.DataFrame))
-            groupby = df.reset_index().groupby(on) \
-                if on == df.index.name or df.index.name in columns \
-                else df.groupby(on)
+            if on == df.index.name or df.index.name in columns:
+                groupby = df.reset_index().groupby(on)
+            else:
+                groupby = df.groupby(on)
             values = groupby.agg({col: agg_funcs[col] for col in columns})
         else:
             values = database.get_annotations(on, columns=columns, agg=agg, agg_for=agg_for, keys=keys)
@@ -399,7 +400,7 @@ class Annotatable(ABC):
             logger.info(f"merging {new_annotations.columns}")
 
             # Combine new values with old values in overlapping columns
-            assign_fn = {old_col: merged[old_col].combine(merged[new_col], func=merge_values) \
+            assign_fn = {old_col: merged[old_col].combine(merged[new_col], func=merge_concat) \
                          for new_col, old_col in duplicate_cols.items()}
             merged = merged.assign(**assign_fn)
             # then drop duplicate columns with "_" suffix

@@ -1,15 +1,13 @@
 import os
-import re
+from io import StringIO
 from os.path import expanduser
 
 import dask.dataframe as dd
 import pandas as pd
 from bioservices import BioMart
-from io import StringIO
 from pandas.errors import ParserError
 
 from .base import Database
-from ..transforms.agg import get_agg_func
 
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
@@ -80,125 +78,6 @@ class ProteinAtlas(Database):
         return expressions
 
 
-class RNAcentral(Database):
-    """Loads the RNAcentral database from https://rnacentral.org/ .
-
-        Default path: ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/ .
-        Default file_resources: {
-            "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
-            "database_mappings/gencode.tsv": "id_mapping/database_mappings/gencode.tsv",
-            "database_mappings/mirbase.tsv": "id_mapping/database_mappings/mirbase.tsv",
-            ...
-        }
-    """
-    COLUMNS_RENAME_DICT = {
-        'ensembl_gene_id': 'gene_id',
-        'external id': 'transcript_id',
-        'GO terms': 'go_id',
-        'gene symbol': 'gene_id',
-    }
-
-    def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606',
-                 index_col="RNAcentral id",
-                 remove_version_num=True, **kwargs):
-        """
-        Args:
-            path:
-            file_resources:
-            col_rename:
-            species_id:
-        """
-        self.species_id = species_id
-        self.remove_version_num = remove_version_num
-
-        if file_resources is None:
-            file_resources = {}
-            file_resources["rnacentral_rfam_annotations.tsv.gz"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
-            file_resources["database_mappings/gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
-            file_resources["database_mappings/mirbase.tsv"] = "id_mapping/database_mappings/mirbase.tsv"
-
-        super().__init__(path, file_resources, col_rename=col_rename, index_col=index_col, **kwargs)
-
-    def load_dataframe(self, file_resources, blocksize=None):
-        """
-        Args:
-            file_resources:
-            blocksize:
-        """
-        # Build transcripts ids by combining `database_mappings/` files
-        transcripts_df = []
-        for filename in file_resources:
-            if "database_mappings" in filename:
-                args = dict(low_memory=True, header=None,
-                            names=["RNAcentral id", "database", "external id", "species_id", "RNA type", "gene symbol"],
-                            dtype={'gene symbol': 'str',
-                                   'database': 'category', 'species_id': 'category', 'RNA type': 'category', })
-
-                if blocksize:
-                    if filename.endswith('.tsv'):
-                        id_mapping: dd.DataFrame = dd.read_table(file_resources[filename],
-                                                                 blocksize=None if isinstance(blocksize,
-                                                                                              bool) else blocksize,
-                                                                 **args)
-                    elif filename.endswith('.parquet'):
-                        id_mapping: dd.DataFrame = dd.read_parquet(file_resources[filename],
-                                                                   blocksize=None if isinstance(blocksize,
-                                                                                                bool) else blocksize, )
-
-                    id_mapping = id_mapping.set_index("RNAcentral id", sorted=True)
-                else:
-                    if filename.endswith('.tsv'):
-                        id_mapping = pd.read_table(file_resources[filename], index_col="RNAcentral id", **args)
-                    elif filename.endswith('.parquet'):
-                        id_mapping = pd.read_parquet(file_resources[filename], index_col="RNAcentral id")
-
-                if self.remove_version_num and 'gene symbol' in id_mapping.columns:
-                    id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
-
-                transcripts_df.append(id_mapping)
-
-        # Concatenate multiple `database_mappings` files from different databases
-        if blocksize:
-            transcripts_df = dd.concat(transcripts_df, axis=0, join='outer')
-        else:
-            transcripts_df = pd.concat(transcripts_df, axis=0, join='outer')
-
-        if self.species_id:
-            transcripts_df = transcripts_df.where(transcripts_df["species_id"] == self.species_id)
-
-        # Join go_id and Rfams annotations to each "RNAcentral id" from 'rnacentral_rfam_annotations.tsv'
-        args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"])
-        if self.remove_version_num:
-            args['converters'] = {"RNAcentral id": lambda s: re.sub("_(.*)", '', s)}
-        if blocksize:
-            if 'rnacentral_rfam_annotations.tsv' in file_resources and isinstance(
-                file_resources['rnacentral_rfam_annotations.tsv'], str):
-                anns: dd.DataFrame = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
-            else:
-                anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip", **args)
-            anns = anns.set_index("RNAcentral id", sorted=True, npartitions=10)
-
-            # Filter annotations by "RNAcentral id" in `transcripts_df`
-            idx = transcripts_df.index.compute()
-            anns = anns.loc[anns.index.isin(idx)]
-
-            # Groupby on index
-            anns_groupby: dd.DataFrame = anns \
-                .groupby(by=lambda idx: idx) \
-                .agg({col: get_agg_func('unique', use_dask=True) for col in ["GO terms", 'Rfams']}) \
-                .persist()
-        else:
-            anns = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], index_col='RNAcentral id', **args)
-            idx = transcripts_df.index.drop_duplicates()
-            anns = anns.loc[anns.index.isin(idx)]
-            anns_groupby = anns.groupby("RNAcentral id").agg({col: 'unique' for col in ["GO terms", 'Rfams']})
-
-        transcripts_df = transcripts_df.merge(anns_groupby, how='left', left_index=True, right_index=True)
-
-        return transcripts_df
-
-
 class GTEx(Database):
     """Loads the  database from https://www.gtexportal.org/home/ .
 
@@ -237,7 +116,7 @@ class GTEx(Database):
 
         super().__init__(path, file_resources, col_rename=None, blocksize=blocksize, verbose=verbose)
 
-    def load_dataframe(self, file_resources, blocksize=None):  # type: (dict) -> pd.DataFrame
+    def load_dataframe(self, file_resources, blocksize=None) -> pd.DataFrame:
         """
         Args:
             file_resources:
