@@ -9,7 +9,6 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
-from logzero import logger
 from networkx import NetworkXError
 from pandas import DataFrame
 
@@ -207,7 +206,8 @@ class GeneOntology(Ontology):
         path="http://geneontology.org/gene-associations/",
         species=None,
         file_resources=None,
-        index='DB_Object_Symbol', keys=None,
+        index_col='DB_Object_Symbol',
+        keys=None,
         col_rename=COLUMNS_RENAME_DICT,
         blocksize=None,
         **kwargs
@@ -243,7 +243,8 @@ class GeneOntology(Ontology):
                 f'No .obo file provided in `file_resources`, so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
             file_resources["go-basic.obo"] = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 
-        super().__init__(path, file_resources, index=index, keys=keys, col_rename=col_rename, blocksize=blocksize,
+        super().__init__(path, file_resources, index_col=index_col, keys=keys, col_rename=col_rename,
+                         blocksize=blocksize,
                          **kwargs)
 
     def info(self):
@@ -263,31 +264,51 @@ class GeneOntology(Ontology):
         dfs = {}
         for filename, filepath_or_buffer in file_resources.items():
             gaf_name = filename.split(".")[0]
+            # Ensure no duplicate GAF file (if having files uncompressed with same prefix)
+            if gaf_name in dfs: continue
             if blocksize and isinstance(filepath_or_buffer, str):
-                # Ensure no duplicate GAF file (if having files uncompressed with same prefix)
-                if (filename.endswith(".parquet") or filename.endswith(".gaf")) and gaf_name not in dfs:
-                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize, index_col=self.index_col)
-                elif filename.endswith(".gaf.gz") and gaf_name not in dfs:
+                if filename.endswith(".processed.parquet"):
+                    # Parsed and filtered gaf file
+                    dfs[gaf_name] = dd.read_parquet(filepath_or_buffer)
+                    if dfs[gaf_name].index.name != self.index_col and self.index_col in dfs[gaf_name].columns:
+                        dfs[gaf_name] = dfs[gaf_name].set_index(self.index_col, sorted=True)
+                    elif not dfs[gaf_name].known_divisions:
+                        dfs[gaf_name].divisions = dfs[gaf_name].compute_current_divisions()
+
+                elif (filename.endswith(".parquet") or filename.endswith(".gaf")):
+                    # .parquet from .gaf.gz file, unfiltered, with raw str values
                     dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize, index_col=self.index_col,
-                                             compression='gzip')
-                elif gaf_name in dfs:
-                    logger.warn(f"At least 2 duplicate files were given for {filename}")
-                print(gaf_name, dfs[gaf_name].known_divisions)
+                                             keys=self.keys, usecols=self.usecols)
+
+                elif filename.endswith(".gaf.gz"):
+                    # Compressed .gaf file downloaded
+                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize, index_col=self.index_col,
+                                             keys=self.keys, usecols=self.usecols, compression='gzip')
+
             else:
                 if filename.endswith(".gaf"):
-                    dfs[gaf_name] = read_gaf(filepath_or_buffer, index_col=self.index_col)
+                    dfs[gaf_name] = read_gaf(filepath_or_buffer, index_col=self.index_col, keys=self.keys,
+                                             usecols=self.usecols)
+
+        # Filter and set index divisions
+        # for gaf_name, df in dfs.items():
+        #     if self.keys is not None and self.index_col and df.index.name == self.index_col:
+        #         dfs[gaf_name] = df.loc[df.index.isin(self.keys)]
+        #     elif self.keys is not None and self.index_col and df.index.name != self.index_col:
+        #         dfs[gaf_name] = df.loc[df[self.index_col].isin(self.keys)]
+        #
+        #     if isinstance(df, dd.DataFrame) and not df.known_divisions:
+        #         dfs[gaf_name].divisions = df.compute_current_divisions()
 
         if len(dfs):
             self.annotations = dd.concat(list(dfs.values()), interleave_partitions=True) \
                 if blocksize else pd.concat(dfs.values())
 
-            if self.keys is not None and self.annotations.index.name != None:
-                self.annotations = self.annotations.loc[self.annotations.index.isin(self.keys)]
-
-            self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
-            if self.annotations.index.name in self.COLUMNS_RENAME_DICT:
-                self.annotations.index = self.annotations.index.rename(
-                    self.COLUMNS_RENAME_DICT[self.annotations.index.name])
+            if self.annotations.columns.intersection(UniProtGOA.COLUMNS_RENAME_DICT.keys()):
+                self.annotations = self.annotations.rename(columns=UniProtGOA.COLUMNS_RENAME_DICT)
+                if self.annotations.index.name in UniProtGOA.COLUMNS_RENAME_DICT:
+                    self.annotations.index = self.annotations.index.rename(
+                        UniProtGOA.COLUMNS_RENAME_DICT[self.annotations.index.name])
 
         return go_terms
 
@@ -478,7 +499,6 @@ class UniProtGOA(GeneOntology):
 
     Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
     Default file_resources: {
-        "goa_uniprot_all.gpi": "goa_uniprot_all.gpi.gz",
         "goa_uniprot_all.gaf": "goa_uniprot_all.gaf.gz",
     }
     """
@@ -494,9 +514,9 @@ class UniProtGOA(GeneOntology):
         path="ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/",
         species="HUMAN",
         file_resources=None,
-        index='DB_Object_Symbol', keys=None,
+        index_col='DB_Object_ID', keys=None,
         col_rename=COLUMNS_RENAME_DICT,
-        blocksize=0,
+        blocksize=None,
         **kwargs,
     ):
         """
@@ -504,12 +524,22 @@ class UniProtGOA(GeneOntology):
 
             Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
             Default file_resources: {
-                "goa_uniprot.gaf.gz": "goa_uniprot.gaf.gz",
+                "goa_uniprot_all.gaf.gz": "goa_uniprot_all.gaf.gz",
                 "go.obo": "http://current.geneontology.org/ontology/go.obo",
             }
 
-        Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
+        Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provides
         functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
+
+        Args:
+            path ():
+            species ():
+            file_resources ():
+            index_col ():
+            keys ():
+            col_rename ():
+            blocksize ():
+            **kwargs ():
         """
         if species is None:
             self.species = species = 'UNIPROT'
@@ -527,11 +557,11 @@ class UniProtGOA(GeneOntology):
             }
 
         if not any('.obo' in file for file in file_resources):
-            warnings.warn(
-                f'No .obo file provided in `file_resources`, so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
+            warnings.warn(f'No .obo file provided in `file_resources`, '
+                          f'so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
             file_resources["go-basic.obo"] = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 
-        super().__init__(path=path, file_resources=file_resources, index=index, keys=keys,
+        super().__init__(path=path, file_resources=file_resources, index_col=index_col, keys=keys,
                          col_rename=col_rename,
                          blocksize=blocksize, **kwargs)
 

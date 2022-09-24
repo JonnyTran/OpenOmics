@@ -2,7 +2,6 @@ import os
 import re
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
-from pathlib import Path
 from typing import Union, List, Callable, Dict, Tuple, Optional, Iterable
 
 import numpy as np
@@ -11,6 +10,7 @@ import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
+from logzero import logger
 from pyfaidx import Fasta
 from six.moves import intern
 
@@ -781,7 +781,8 @@ class RNAcentral(SequenceDatabase):
             file_resources["database_mappings/gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
             file_resources["database_mappings/mirbase.tsv"] = "id_mapping/database_mappings/mirbase.tsv"
 
-        super().__init__(path, file_resources, col_rename=col_rename, index_col=index_col, keys=keys, **kwargs)
+        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, index_col=index_col,
+                         keys=keys, **kwargs)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
@@ -799,22 +800,23 @@ class RNAcentral(SequenceDatabase):
 
             if blocksize:
                 if filename.endswith('.tsv'):
-                    id_mapping: dd.DataFrame = dd.read_table(file_resources[filename],
-                                                             blocksize=None if isinstance(blocksize,
-                                                                                          bool) else blocksize,
-                                                             **args)
+                    id_mapping: dd.DataFrame = dd.read_table(
+                        file_resources[filename], blocksize=None if isinstance(blocksize, bool) else blocksize, **args)
                 elif filename.endswith('.parquet'):
-                    id_mapping: dd.DataFrame = dd.read_parquet(file_resources[filename],
-                                                               blocksize=None if isinstance(blocksize,
-                                                                                            bool) else blocksize, )
+                    id_mapping: dd.DataFrame = dd.read_parquet(
+                        file_resources[filename], blocksize=None if isinstance(blocksize, bool) else blocksize, )
+                else:
+                    id_mapping = None
             else:
                 if filename.endswith('.tsv'):
                     id_mapping = pd.read_table(file_resources[filename], **args)
                 elif filename.endswith('.parquet'):
                     id_mapping = pd.read_parquet(file_resources[filename])
+                else:
+                    id_mapping = None
 
-            if self.remove_version_num and 'gene symbol' in id_mapping.columns:
-                id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
+            if id_mapping is None:
+                raise Exception("Must provide a file with 'database_mappings/(*).tsv' in file_resources")
 
             if isinstance(self.species_id, str):
                 id_mapping = id_mapping.where(id_mapping["species_id"] == self.species_id)
@@ -826,11 +828,31 @@ class RNAcentral(SequenceDatabase):
             elif self.keys and id_mapping.index.name != self.index_col:
                 id_mapping = id_mapping.loc[id_mapping[self.index_col].isin(self.keys)]
 
-            if not self.remove_species_suffix:
+            if "RNAcentral id" in id_mapping.columns:
                 id_mapping["RNAcentral id"] = id_mapping["RNAcentral id"] + "_" + id_mapping["species_id"].astype(str)
+            elif "RNAcentral id" == id_mapping.index.name:
+                id_mapping.index = id_mapping.index + "_" + id_mapping["species_id"].astype(str)
 
+            # Add sequence column from FASTA file of the same database
+            fasta_filename = f"{filename.split('/')[-1].split('.')[0]}.fasta"
+            if fasta_filename in file_resources:
+                id_mapping = id_mapping.merge(self.load_sequences(file_resources[fasta_filename]), how='left',
+                                              left_on="RNAcentral id",
+                                              left_index=True if id_mapping.index.name == "RNAcentral id" else False,
+                                              right_index=True)
+            else:
+                logger.info(f"{fasta_filename} not provided for `{filename}` so missing sequencing data")
+
+            if self.remove_version_num and 'gene symbol' in id_mapping.columns:
+                id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
+            if self.remove_species_suffix:
+                id_mapping["RNAcentral id"] = id_mapping["RNAcentral id"].str.replace("_(\d*)", '', regex=True)
+
+            # Set index
             args = dict(sorted=True) if blocksize else {}
             id_mapping = id_mapping.set_index(self.index_col, **args)
+            if not id_mapping.known_divisions:
+                id_mapping.divisions = id_mapping.compute_current_divisions()
 
             transcripts_df.append(id_mapping)
 
@@ -842,15 +864,15 @@ class RNAcentral(SequenceDatabase):
 
         # Join go_id and Rfams annotations to each "RNAcentral id" from 'rnacentral_rfam_annotations.tsv'
         args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"])
-        if self.remove_species_suffix:
-            args['converters'] = {"RNAcentral id": lambda s: re.sub("_(\d*)", '', s)}
         if blocksize:
             if 'rnacentral_rfam_annotations.tsv' in file_resources and isinstance(
                 file_resources['rnacentral_rfam_annotations.tsv'], str):
-                anns: dd.DataFrame = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
+                anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
             else:
                 anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip", **args)
             anns = anns.set_index("RNAcentral id", sorted=True, npartitions=10)
+            if not anns.known_divisions:
+                anns.divisions = anns.compute_current_divisions()
 
             # Filter annotations by "RNAcentral id" in `transcripts_df`
             idx = transcripts_df.index.compute()
@@ -863,22 +885,15 @@ class RNAcentral(SequenceDatabase):
                 .persist()
         else:
             anns = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], index_col='RNAcentral id', **args)
-            idx = transcripts_df.index.drop_duplicates()
-            anns = anns.loc[anns.index.isin(idx)]
+            idx = transcripts_df.index.compute() if isinstance(transcripts_df, dd.DataFrame) else transcripts_df.index
+            anns = anns.loc[anns.index.isin(set(idx))]
             anns_groupby = anns.groupby("RNAcentral id").agg({col: 'unique' for col in ["GO terms", 'Rfams']})
 
         transcripts_df = transcripts_df.merge(anns_groupby, how='left', left_index=True, right_index=True)
 
-        # Join sequences from FASTA
-        sequences_df = [self.load_sequences(path) for filename, path in file_resources.items() \
-                        if filename.endswith('.fasta') or filename.endswith('.fa')]
-        if sequences_df:
-            sequences_df = dd.concat(sequences_df) if blocksize else pd.concat(sequences_df)
-            transcripts_df = transcripts_df.merge(sequences_df, how='left', left_index=True, right_index=True)
-
         return transcripts_df
 
-    def load_sequences(self, fasta_file: Path, index=None, keys=None, blocksize=None):
+    def load_sequences(self, fasta_file: str, index=None, keys=None, blocksize=None):
         """
         Args:
             index ():
@@ -893,8 +908,8 @@ class RNAcentral(SequenceDatabase):
 
         entries = []
         for key, record in tqdm.tqdm(fa.items(), desc=str(fasta_file)):
-            id = re.sub("_(\d*)", '', key) if self.remove_version_num else key
-            if keys is not None and id not in keys:
+            id = re.sub("_(\d*)", '', key) if self.remove_species_suffix else key
+            if keys is not None and self.index_col == 'RNAcentral id' and id not in keys:
                 continue
 
             if ") " in record.long_name:
@@ -907,8 +922,8 @@ class RNAcentral(SequenceDatabase):
                 desc = record.long_name.split(" ", maxsplit=3)[-1]
 
             record_dict = {
-                "RNAcentral id": id,
-                "description": desc,
+                'RNAcentral id': key,
+                'description': desc,
                 SEQUENCE_COL: str(record),
             }
 
