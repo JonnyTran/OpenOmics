@@ -98,10 +98,13 @@ class Database(object):
             verbose:
         """
         file_resources_new = copy.copy(file_resources)
-        if '~' in base_path:
+        if base_path.startswith("~"):
             base_path = os.path.expanduser(base_path)
 
         for filename, filepath in file_resources.items():
+            if filepath:
+                filepath = os.path.expanduser(filepath)
+
             # Remote database file URL
             if validators.url(filepath) or validators.url(join(base_path, filepath)):
                 filepath = get_pkg_data_filename(base_path, filepath)
@@ -383,14 +386,23 @@ class Annotatable(ABC):
             values.index = values.index.map(
                 lambda x: difflib.get_close_matches(x, self.annotations.index, n=1)[0])
 
-        # Performing join if `on` is already self's index
-        if on == self.annotations.index.name or (
-            hasattr(self.annotations.index, 'names') and on == self.annotations.index.names):
+        if isinstance(self.annotations, type(values)) and (on == self.annotations.index.name or
+                                                           (hasattr(self.annotations.index,
+                                                                    'names') and on == self.annotations.index.names)):
+            # Performing join if `on` is already self's index
             merged = self.annotations.join(values, on=on, how="left", rsuffix="_")
-        # Perfrom merge if `on` another column
         else:
-            merged = self.annotations.merge(values, left_on=on, right_index=True, how="left",
-                                            suffixes=("", "_"))
+            # Perfrom merge if `on` another column
+            if isinstance(self.annotations, pd.DataFrame) and isinstance(values, dd.DataFrame):
+                merged = dd.merge(self.annotations, values, how="left",
+                                  left_on=on if self.annotations.index.name != on else None,
+                                  left_index=True if self.annotations.index.name == on else False,
+                                  right_on=on if values.index.name != on else None,
+                                  right_index=True if values.index.name == on else False,
+                                  suffixes=("", "_"))
+            else:
+                merged = self.annotations.merge(values, left_on=on, right_index=True, how="left",
+                                                suffixes=("", "_"))
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
         duplicate_cols = {col: col.rstrip("_") for col in merged.columns if col.endswith("_")}
@@ -412,6 +424,8 @@ class Annotatable(ABC):
 
         # Assign the new results
         self.annotations = merged
+
+        return self
 
     def annotate_sequences(self,
                            database,
@@ -455,6 +469,8 @@ class Annotatable(ABC):
 
         self.annotations = self.annotations.assign(**{Annotatable.SEQUENCE_COL: seqs})
 
+        return self
+
     def annotate_expressions(self, database, index, fuzzy_match=False):
         """
 
@@ -470,6 +486,8 @@ class Annotatable(ABC):
                 database.get_expressions(index=index))
         else:
             raise Exception(f"index argument must be one of {database.data.index}")
+
+        return self
 
     def annotate_interactions(self, database, index):
         """

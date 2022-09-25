@@ -5,17 +5,17 @@ from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple, Optional, Iterable
 
 import numpy as np
+import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
 from logzero import logger
+from openomics.io.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
-import openomics
-from openomics.io.read_gtf import read_gtf
 from .base import Database
 from ..transforms.agg import get_agg_func
 
@@ -745,11 +745,11 @@ class MirBase(SequenceDatabase):
 class RNAcentral(SequenceDatabase):
     """Loads the RNAcentral database from https://rnacentral.org/ .
 
-        Default path: ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/ .
+        Default path: https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/ .
         Default file_resources: {
             "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
             "database_mappings/gencode.tsv": "id_mapping/database_mappings/gencode.tsv",
-            "database_mappings/mirbase.tsv": "id_mapping/database_mappings/mirbase.tsv",
+            "gencode.fasta": "sequences/by-database/gencode.fasta",
             ...
         }
     """
@@ -760,16 +760,22 @@ class RNAcentral(SequenceDatabase):
         'gene symbol': 'gene_id',
     }
 
-    def __init__(self, path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
+    def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
                  col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606',
                  index_col="RNAcentral id", keys=None,
                  remove_version_num=True, remove_species_suffix=True, **kwargs):
         """
+
         Args:
-            path:
-            file_resources:
-            col_rename:
-            species_id:
+            path ():
+            file_resources ():
+            col_rename ():
+            species_id ():
+            index_col ():
+            keys ():
+            remove_version_num ():
+            remove_species_suffix ():
+            **kwargs ():
         """
         self.species_id = species_id
         self.remove_version_num = remove_version_num
@@ -838,7 +844,7 @@ class RNAcentral(SequenceDatabase):
             if fasta_filename in file_resources:
                 id_mapping = id_mapping.merge(self.load_sequences(file_resources[fasta_filename]), how='left',
                                               left_on="RNAcentral id",
-                                              left_index=True if id_mapping.index.name == "RNAcentral id" else False,
+                                              left_index=True if id_mapping.index.name == "RNAcentral id" else None,
                                               right_index=True)
             else:
                 logger.info(f"{fasta_filename} not provided for `{filename}` so missing sequencing data")
@@ -858,7 +864,7 @@ class RNAcentral(SequenceDatabase):
 
         # Concatenate multiple `database_mappings` files from different databases
         if blocksize:
-            transcripts_df = dd.concat(transcripts_df, axis=0, interleave_partitions=True)
+            transcripts_df = dd.concat(transcripts_df, axis=0, interleave_partitions=True, join='outer')
         else:
             transcripts_df = pd.concat(transcripts_df, axis=0, join='outer')
 
@@ -870,13 +876,13 @@ class RNAcentral(SequenceDatabase):
                 anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
             else:
                 anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip", **args)
-            anns = anns.set_index("RNAcentral id", sorted=True, npartitions=10)
-            if not anns.known_divisions:
-                anns.divisions = anns.compute_current_divisions()
 
             # Filter annotations by "RNAcentral id" in `transcripts_df`
-            idx = transcripts_df.index.compute()
-            anns = anns.loc[anns.index.isin(idx)]
+            anns = anns.loc[anns["RNAcentral id"].isin(transcripts_df.index.compute())]
+
+            anns = anns.set_index("RNAcentral id", sorted=True)
+            if not anns.known_divisions:
+                anns.divisions = anns.compute_current_divisions()
 
             # Groupby on index
             anns_groupby: dd.DataFrame = anns \

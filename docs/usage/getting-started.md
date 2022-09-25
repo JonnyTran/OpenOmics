@@ -286,7 +286,7 @@ OpenOmics provides a simple, hassle-free API to download the GENCODE annotation 
    To see which file alias keys are required to construct a dataframe, refer to the docstring in {class}`openomics.database.sequence.GENCODE`.
 
 ```python
-from openomics.database import GENCODE
+from openomics.database.sequence import GENCODE
 
 gencode = GENCODE(
     path="ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_32/",
@@ -295,7 +295,7 @@ gencode = GENCODE(
                     "lncRNA_transcripts.fa": "gencode.v32.lncRNA_transcripts.fa.gz", # lncRNA sequences
                     "transcripts.fa": "gencode.v32.transcripts.fa.gz" # mRNA sequences
                     },
-    npartitions=0, # if > 1, then use Dask partition the dataframe and leverage out-of-core multiprocessing
+    blocksize='100MB', # if not null, then use partition the dataframe with Dask to this size and leverage out-of-core multiprocessing
 )
 ```
 To access the attributes constructed from the combination of annotations `long_noncoding_RNAs.gtf` and `
