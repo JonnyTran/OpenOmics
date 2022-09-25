@@ -10,10 +10,10 @@ import numpy as np
 import obonet
 import pandas as pd
 from networkx import NetworkXError
-from pandas import DataFrame
-
 from openomics.io.read_gaf import read_gaf
 from openomics.transforms.adj import slice_adj
+from pandas import DataFrame
+
 from .base import Database
 
 
@@ -266,6 +266,7 @@ class GeneOntology(Ontology):
             gaf_name = filename.split(".")[0]
             # Ensure no duplicate GAF file (if having files uncompressed with same prefix)
             if gaf_name in dfs: continue
+
             if blocksize and isinstance(filepath_or_buffer, str):
                 if filename.endswith(".processed.parquet"):
                     # Parsed and filtered gaf file
@@ -304,7 +305,7 @@ class GeneOntology(Ontology):
             self.annotations = dd.concat(list(dfs.values()), interleave_partitions=True) \
                 if blocksize else pd.concat(dfs.values())
 
-            if self.annotations.columns.intersection(UniProtGOA.COLUMNS_RENAME_DICT.keys()):
+            if len(self.annotations.columns.intersection(UniProtGOA.COLUMNS_RENAME_DICT.keys())):
                 self.annotations = self.annotations.rename(columns=UniProtGOA.COLUMNS_RENAME_DICT)
                 if self.annotations.index.name in UniProtGOA.COLUMNS_RENAME_DICT:
                     self.annotations.index = self.annotations.index.rename(
