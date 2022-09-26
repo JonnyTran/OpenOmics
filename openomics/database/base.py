@@ -10,6 +10,7 @@ from typing import List
 
 import dask.dataframe as dd
 import filetype
+import networkx as nx
 import pandas as pd
 import validators
 from logzero import logger
@@ -79,7 +80,12 @@ class Database(object):
                 self.data.index = self.data.index.rename(col_rename[self.data.index.name])
 
     def __repr__(self):
-        return "{}: {}".format(self.name(), self.data.columns.tolist())
+        out = []
+        if hasattr(self, "data") and isinstance(self.data, (pd.DataFrame, dd.DataFrame)):
+            out.append("{}: {}".format(self.name(), self.data.columns.tolist()))
+        if hasattr(self, "network") and isinstance(self.network, nx.Graph):
+            out.append("{} {}".format(self.network.name, str(self.network)))
+        return "\n".join(out)
 
     def load_file_resources(self, base_path: str, file_resources: Dict[str, str], verbose=False) -> Dict[str, Any]:
         """For each file in file_resources, download the file if path+file is a

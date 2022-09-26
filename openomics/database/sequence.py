@@ -5,17 +5,17 @@ from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple, Optional, Iterable
 
 import numpy as np
-import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
 from logzero import logger
-from openomics.io.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
+import openomics
+from openomics.io.read_gtf import read_gtf
 from .base import Database
 from ..transforms.agg import get_agg_func
 
@@ -460,6 +460,7 @@ class UniProt(SequenceDatabase):
                     concat = dd.concat([idmapping["NCBI-taxon"], assign_fn[col]]) \
                         if isinstance(idmapping, dd.DataFrame) else \
                         pd.concat([idmapping["NCBI-taxon"], assign_fn[col]])
+
                     assign_fn['protein_external_id'] = concat.apply(
                         lambda row: np.char.add(row['NCBI-taxon'] + ".", row['Ensembl_PRO']) \
                             if isinstance(row['Ensembl_PRO'], Iterable) else None,
@@ -844,7 +845,7 @@ class RNAcentral(SequenceDatabase):
             if fasta_filename in file_resources:
                 id_mapping = id_mapping.merge(self.load_sequences(file_resources[fasta_filename]), how='left',
                                               left_on="RNAcentral id",
-                                              left_index=True if id_mapping.index.name == "RNAcentral id" else None,
+                                              left_index=True if id_mapping.index.name == "RNAcentral id" else False,
                                               right_index=True)
             else:
                 logger.info(f"{fasta_filename} not provided for `{filename}` so missing sequencing data")
