@@ -116,7 +116,8 @@ def parse_gaf(filepath_or_buffer, column_names=None, index_col=None, keys=None, 
 
     if blocksize:
         if filepath_or_buffer.endswith('.parquet'):
-            df: dd.DataFrame = dd.read_parquet(filepath_or_buffer, usecols=usecols)
+            # Raw GAF file in .parquet format
+            df: dd.DataFrame = dd.read_parquet(filepath_or_buffer, usecols=usecols, chunksize=blocksize)
         else:
             df: dd.DataFrame = dd.read_table(filepath_or_buffer, compression=compression,
                                              blocksize=blocksize if blocksize > 10 else None, **parse_args)

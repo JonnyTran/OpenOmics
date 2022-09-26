@@ -10,10 +10,10 @@ import numpy as np
 import obonet
 import pandas as pd
 from networkx import NetworkXError
-from openomics.io.read_gaf import read_gaf
-from openomics.transforms.adj import slice_adj
 from pandas import DataFrame
 
+from openomics.io.read_gaf import read_gaf
+from openomics.transforms.adj import slice_adj
 from .base import Database
 
 
@@ -270,10 +270,10 @@ class GeneOntology(Ontology):
             if blocksize and isinstance(filepath_or_buffer, str):
                 if filename.endswith(".processed.parquet"):
                     # Parsed and filtered gaf file
-                    dfs[gaf_name] = dd.read_parquet(filepath_or_buffer)
+                    dfs[gaf_name] = dd.read_parquet(filepath_or_buffer, chunksize=blocksize)
                     if dfs[gaf_name].index.name != self.index_col and self.index_col in dfs[gaf_name].columns:
                         dfs[gaf_name] = dfs[gaf_name].set_index(self.index_col, sorted=True)
-                    elif not dfs[gaf_name].known_divisions:
+                    if not dfs[gaf_name].known_divisions:
                         dfs[gaf_name].divisions = dfs[gaf_name].compute_current_divisions()
 
                 elif (filename.endswith(".parquet") or filename.endswith(".gaf")):
@@ -287,6 +287,8 @@ class GeneOntology(Ontology):
                                              keys=self.keys, usecols=self.usecols, compression='gzip')
 
             else:
+                if filename.endswith(".processed.parquet"):
+                    dfs[gaf_name] = pd.read_parquet(filepath_or_buffer)
                 if filename.endswith(".gaf"):
                     dfs[gaf_name] = read_gaf(filepath_or_buffer, index_col=self.index_col, keys=self.keys,
                                              usecols=self.usecols)
@@ -375,6 +377,8 @@ class GeneOntology(Ontology):
             annotations = annotations[annotations[src_node_col].isin(filter_src_nodes)]
         if filter_dst_nodes is not None:
             annotations = annotations[annotations[dst_node_col].isin(filter_dst_nodes)]
+        if annotations.index.name in groupby:
+            annotations = annotations.reset_index()
 
         # Split train/valid/test annotations
         train_anns = annotations[annotations["Date"] <= pd.to_datetime(train_date)]

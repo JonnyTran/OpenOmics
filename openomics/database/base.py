@@ -82,7 +82,7 @@ class Database(object):
     def __repr__(self):
         out = []
         if hasattr(self, "data") and isinstance(self.data, (pd.DataFrame, dd.DataFrame)):
-            out.append("{}: {}".format(self.name(), self.data.columns.tolist()))
+            out.append("{}: {} {}".format(self.name(), self.data.index.name, self.data.columns.tolist()))
         if hasattr(self, "network") and isinstance(self.network, nx.Graph):
             out.append("{} {}".format(self.network.name, str(self.network)))
         return "\n".join(out)
