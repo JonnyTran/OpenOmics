@@ -10,10 +10,11 @@ import numpy as np
 import obonet
 import pandas as pd
 from networkx import NetworkXError
-from pandas import DataFrame
-
 from openomics.io.read_gaf import read_gaf
 from openomics.transforms.adj import slice_adj
+from openomics.transforms.agg import get_agg_func
+from pandas import DataFrame
+
 from .base import Database
 
 
@@ -324,8 +325,9 @@ class GeneOntology(Ontology):
 
                 return network, node_list
 
-    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", train_date="2017-06-15",
-                          valid_date="2017-11-15", test_date="2021-12-31", groupby: List[str] = ["Qualifier"],
+    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id",
+                          train_date="2017-06-15", valid_date="2017-11-15", test_date="2021-12-31",
+                          groupby: List[str] = ["Qualifier"],
                           query: str = "`Evidence` in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
                           filter_src_nodes: pd.Index = None, filter_dst_nodes: pd.Index = None,
                           agg: Union[str, Callable, dd.Aggregation] = "unique") \
@@ -352,7 +354,7 @@ class GeneOntology(Ontology):
                 agg = lambda s: get_predecessor_terms(s, g=node_ancestors, join_groups=True, keep_terms=True)
 
         elif agg == 'unique' and isinstance(self.annotations, dd.DataFrame):
-            agg = dd.Aggregation(name='_unique', chunk=lambda s: s.unique(), agg=lambda s0: s0.obj)
+            agg = get_agg_func('unique', use_dask=True)
 
         elif isinstance(self.annotations, dd.DataFrame) and not isinstance(agg, dd.Aggregation):
             raise Exception("`agg` must be a dd.Aggregation for groupby.agg() on columns of a dask DataFrame")
@@ -451,6 +453,7 @@ def get_predecessor_terms(anns: Union[pd.Series, Iterable], g: Union[nx.MultiDiG
     Args:
         anns ():
         g (nx.MultiDiGraph, Dict[str,Set[str]]): Either a NetworkX DAG or a precomputed lookup table of node to ancestors
+        join_groups (): whether to concatenate multiple
         keep_terms ():
         exclude ():
 
