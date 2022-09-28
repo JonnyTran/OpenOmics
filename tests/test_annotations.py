@@ -6,7 +6,7 @@ from .test_multiomics import *
 
 @pytest.fixture
 def generate_RNACentral_ftp():
-    rnacentral = RNAcentral(path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/")
+    rnacentral = RNAcentral(path="https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/")
     rnacentral.data = rnacentral.data.sample(frac=0.01)
     return rnacentral
 

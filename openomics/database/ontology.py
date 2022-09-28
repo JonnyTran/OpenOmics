@@ -10,11 +10,11 @@ import numpy as np
 import obonet
 import pandas as pd
 from networkx import NetworkXError
+from pandas import DataFrame
+
 from openomics.io.read_gaf import read_gaf
 from openomics.transforms.adj import slice_adj
 from openomics.transforms.agg import get_agg_func
-from pandas import DataFrame
-
 from .base import Database
 
 
@@ -185,7 +185,8 @@ class Ontology(Database):
 class GeneOntology(Ontology):
     """Loads the GeneOntology database from http://geneontology.org .
 
-    Default path: "http://geneontology.org/gene-associations/" .
+    Default path: "http://geneontology.org/gene-associations/".
+
     Default file_resources: {
         "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
         "goa_human.gaf": "goa_human.gaf.gz",
