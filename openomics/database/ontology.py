@@ -9,12 +9,12 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
-from logzero import logger
 from networkx import NetworkXError
+from openomics.io.read_gaf import read_gaf
+from openomics.transforms.adj import slice_adj
+from openomics.transforms.agg import get_agg_func
 from pandas import DataFrame
 
-from openomics.io.read_gaf import read_gaf
-from openomics.utils.adj import slice_adj
 from .base import Database
 
 
@@ -205,11 +205,12 @@ class GeneOntology(Ontology):
     def __init__(
         self,
         path="http://geneontology.org/gene-associations/",
-        species="HUMAN",
+        species=None,
         file_resources=None,
-        index='DB_Object_Symbol', keys=None,
+        index_col='DB_Object_Symbol',
+        keys=None,
         col_rename=COLUMNS_RENAME_DICT,
-        blocksize=0,
+        blocksize=None,
         **kwargs
     ):
         """
@@ -228,8 +229,8 @@ class GeneOntology(Ontology):
         Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
         functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
         """
-
-        self.species = species.lower()
+        if species and not hasattr(self, 'species'):
+            self.species = species.lower()
 
         if file_resources is None:
             file_resources = {
@@ -237,12 +238,14 @@ class GeneOntology(Ontology):
                 f"goa_{species.lower()}_rna.gaf.gz": f"goa_{species.lower()}_rna.gaf.gz",
                 f"goa_{species.lower()}_isoform.gaf.gz": f"goa_{species.lower()}_isoform.gaf.gz",
             }
+
         if not any('.obo' in file for file in file_resources):
             warnings.warn(
                 f'No .obo file provided in `file_resources`, so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
             file_resources["go-basic.obo"] = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 
-        super().__init__(path, file_resources, index=index, keys=keys, col_rename=col_rename, blocksize=blocksize,
+        super().__init__(path, file_resources, index_col=index_col, keys=keys, col_rename=col_rename,
+                         blocksize=blocksize,
                          **kwargs)
 
     def info(self):
@@ -262,29 +265,54 @@ class GeneOntology(Ontology):
         dfs = {}
         for filename, filepath_or_buffer in file_resources.items():
             gaf_name = filename.split(".")[0]
+            # Ensure no duplicate GAF file (if having files uncompressed with same prefix)
+            if gaf_name in dfs: continue
+
             if blocksize and isinstance(filepath_or_buffer, str):
-                # Ensure no duplicate GAF file (if having files uncompressed with same prefix)
-                if (filename.endswith(".parquet") or filename.endswith(".gaf")) and gaf_name not in dfs:
-                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize, index_col=self.index_col)
-                elif filename.endswith(".gaf.gz") and gaf_name not in dfs:
+                if filename.endswith(".processed.parquet"):
+                    # Parsed and filtered gaf file
+                    dfs[gaf_name] = dd.read_parquet(filepath_or_buffer, chunksize=blocksize)
+                    if dfs[gaf_name].index.name != self.index_col and self.index_col in dfs[gaf_name].columns:
+                        dfs[gaf_name] = dfs[gaf_name].set_index(self.index_col, sorted=True)
+                    if not dfs[gaf_name].known_divisions:
+                        dfs[gaf_name].divisions = dfs[gaf_name].compute_current_divisions()
+
+                elif (filename.endswith(".parquet") or filename.endswith(".gaf")):
+                    # .parquet from .gaf.gz file, unfiltered, with raw str values
                     dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize, index_col=self.index_col,
-                                             compression='gzip')
-                elif gaf_name in dfs:
-                    logger.warn(f"At least 2 duplicate files were given for {filename}")
+                                             keys=self.keys, usecols=self.usecols)
+
+                elif filename.endswith(".gaf.gz"):
+                    # Compressed .gaf file downloaded
+                    dfs[gaf_name] = read_gaf(filepath_or_buffer, blocksize=blocksize, index_col=self.index_col,
+                                             keys=self.keys, usecols=self.usecols, compression='gzip')
+
             else:
+                if filename.endswith(".processed.parquet"):
+                    dfs[gaf_name] = pd.read_parquet(filepath_or_buffer)
                 if filename.endswith(".gaf"):
-                    dfs[gaf_name] = read_gaf(filepath_or_buffer, index_col=self.index_col)
+                    dfs[gaf_name] = read_gaf(filepath_or_buffer, index_col=self.index_col, keys=self.keys,
+                                             usecols=self.usecols)
+
+        # Filter and set index divisions
+        # for gaf_name, df in dfs.items():
+        #     if self.keys is not None and self.index_col and df.index.name == self.index_col:
+        #         dfs[gaf_name] = df.loc[df.index.isin(self.keys)]
+        #     elif self.keys is not None and self.index_col and df.index.name != self.index_col:
+        #         dfs[gaf_name] = df.loc[df[self.index_col].isin(self.keys)]
+        #
+        #     if isinstance(df, dd.DataFrame) and not df.known_divisions:
+        #         dfs[gaf_name].divisions = df.compute_current_divisions()
 
         if len(dfs):
-            self.annotations = dd.concat(list(dfs.values())) if blocksize else pd.concat(dfs.values())
+            self.annotations = dd.concat(list(dfs.values()), interleave_partitions=True) \
+                if blocksize else pd.concat(dfs.values())
 
-            if self.keys is not None and self.annotations.index.name != None:
-                self.annotations = self.annotations.loc[self.annotations.index.isin(self.keys)]
-
-            self.annotations = self.annotations.rename(columns=self.COLUMNS_RENAME_DICT)
-            if self.annotations.index.name in self.COLUMNS_RENAME_DICT:
-                self.annotations.index = self.annotations.index.rename(
-                    self.COLUMNS_RENAME_DICT[self.annotations.index.name])
+            if len(self.annotations.columns.intersection(UniProtGOA.COLUMNS_RENAME_DICT.keys())):
+                self.annotations = self.annotations.rename(columns=UniProtGOA.COLUMNS_RENAME_DICT)
+                if self.annotations.index.name in UniProtGOA.COLUMNS_RENAME_DICT:
+                    self.annotations.index = self.annotations.index.rename(
+                        UniProtGOA.COLUMNS_RENAME_DICT[self.annotations.index.name])
 
         return go_terms
 
@@ -297,9 +325,10 @@ class GeneOntology(Ontology):
 
                 return network, node_list
 
-    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", train_date="2017-06-15",
-                          valid_date="2017-11-15", test_date="2021-12-31", groupby: List[str] = ["Qualifier"],
-                          query: str = "Evidence in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
+    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id",
+                          train_date="2017-06-15", valid_date="2017-11-15", test_date="2021-12-31",
+                          groupby: List[str] = ["Qualifier"],
+                          query: str = "`Evidence` in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
                           filter_src_nodes: pd.Index = None, filter_dst_nodes: pd.Index = None,
                           agg: Union[str, Callable, dd.Aggregation] = "unique") \
         -> Tuple[DataFrame, DataFrame, DataFrame]:
@@ -319,12 +348,13 @@ class GeneOntology(Ontology):
             if isinstance(self.annotations, dd.DataFrame):
                 agg = dd.Aggregation(name='_unique_add_parent',
                                      chunk=lambda s: s.unique(),
-                                     agg=lambda s0: s0.apply(get_predecessor_terms, node_ancestors, keep_terms=True))
+                                     agg=lambda s0: s0.apply(get_predecessor_terms, node_ancestors, keep_terms=True),
+                                     finalize=lambda s1: s1.apply(lambda li: np.hstack(li) if li else None))
             else:
                 agg = lambda s: get_predecessor_terms(s, g=node_ancestors, join_groups=True, keep_terms=True)
 
         elif agg == 'unique' and isinstance(self.annotations, dd.DataFrame):
-            agg = dd.Aggregation(name='_unique', chunk=lambda s: s.unique(), agg=lambda s0: s0.obj)
+            agg = get_agg_func('unique', use_dask=True)
 
         elif isinstance(self.annotations, dd.DataFrame) and not isinstance(agg, dd.Aggregation):
             raise Exception("`agg` must be a dd.Aggregation for groupby.agg() on columns of a dask DataFrame")
@@ -349,6 +379,8 @@ class GeneOntology(Ontology):
             annotations = annotations[annotations[src_node_col].isin(filter_src_nodes)]
         if filter_dst_nodes is not None:
             annotations = annotations[annotations[dst_node_col].isin(filter_dst_nodes)]
+        if annotations.index.name in groupby:
+            annotations = annotations.reset_index()
 
         # Split train/valid/test annotations
         train_anns = annotations[annotations["Date"] <= pd.to_datetime(train_date)]
@@ -421,6 +453,7 @@ def get_predecessor_terms(anns: Union[pd.Series, Iterable], g: Union[nx.MultiDiG
     Args:
         anns ():
         g (nx.MultiDiGraph, Dict[str,Set[str]]): Either a NetworkX DAG or a precomputed lookup table of node to ancestors
+        join_groups (): whether to concatenate multiple
         keep_terms ():
         exclude ():
 
@@ -474,7 +507,6 @@ class UniProtGOA(GeneOntology):
 
     Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
     Default file_resources: {
-        "goa_uniprot_all.gpi": "goa_uniprot_all.gpi.gz",
         "goa_uniprot_all.gaf": "goa_uniprot_all.gaf.gz",
     }
     """
@@ -490,9 +522,9 @@ class UniProtGOA(GeneOntology):
         path="ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/",
         species="HUMAN",
         file_resources=None,
-        index='DB_Object_Symbol', keys=None,
+        index_col='DB_Object_ID', keys=None,
         col_rename=COLUMNS_RENAME_DICT,
-        blocksize=0,
+        blocksize=None,
         **kwargs,
     ):
         """
@@ -500,12 +532,22 @@ class UniProtGOA(GeneOntology):
 
             Default path: "ftp://ftp.ebi.ac.uk/pub/databases/GO/goa/UNIPROT/" .
             Default file_resources: {
-                "goa_uniprot.gaf.gz": "goa_uniprot.gaf.gz",
+                "goa_uniprot_all.gaf.gz": "goa_uniprot_all.gaf.gz",
                 "go.obo": "http://current.geneontology.org/ontology/go.obo",
             }
 
-        Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provide
+        Handles downloading the latest Gene Ontology obo and annotation data, preprocesses them. It provides
         functionalities to create a directed acyclic graph of GO terms, filter terms, and filter annotations.
+
+        Args:
+            path ():
+            species ():
+            file_resources ():
+            index_col ():
+            keys ():
+            col_rename ():
+            blocksize ():
+            **kwargs ():
         """
         if species is None:
             self.species = species = 'UNIPROT'
@@ -523,18 +565,19 @@ class UniProtGOA(GeneOntology):
             }
 
         if not any('.obo' in file for file in file_resources):
-            warnings.warn(
-                f'No .obo file provided in `file_resources`, so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
+            warnings.warn(f'No .obo file provided in `file_resources`, '
+                          f'so automatically adding "http://purl.obolibrary.org/obo/go/go-basic.obo"')
             file_resources["go-basic.obo"] = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 
-        super(GeneOntology, self).__init__(path=path, file_resources=file_resources, index=index, keys=keys,
-                                           col_rename=col_rename,
-                                           blocksize=blocksize, **kwargs)
+        super().__init__(path=path, file_resources=file_resources, index_col=index_col, keys=keys,
+                         col_rename=col_rename,
+                         blocksize=blocksize, **kwargs)
 
 
 class InterPro(Ontology):
 
-    def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/",
+    def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/", index_col='UniProtKB-AC',
+                 keys=None,
                  file_resources=None, col_rename=None, **kwargs):
         """
         Default parameters
@@ -559,7 +602,8 @@ class InterPro(Ontology):
             file_resources["interpro2go"] = os.path.join(path, "interpro2go")
             file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
 
-        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, **kwargs)
+        super().__init__(path=path, file_resources=file_resources, index_col=index_col, keys=keys,
+                         col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None):
         ipr_entries = pd.read_table(file_resources["entry.list"], index_col="ENTRY_AC")
@@ -573,11 +617,13 @@ class InterPro(Ontology):
             usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
             dtype={'UniProtKB-AC': 'str', 'ENTRY_AC': 'str', 'start': 'int8', 'stop': 'int8'},
             low_memory=True,
-            blocksize=blocksize if blocksize > 10 else None)
-        self.annotations = self.annotations.set_index('UniProtKB-AC', sorted=True)
+            blocksize=None if isinstance(blocksize, bool) else blocksize)
 
-        if self.keys is not None:
-            self.annotations = self.annotations.loc[self.annotations.index.isin(self.keys)]
+        if self.keys is not None and self.index_col is not None:
+            self.annotations = self.annotations.loc[self.annotations[self.index_col].isin(self.keys)]
+
+        if self.index_col:
+            self.annotations = self.annotations.set_index(self.index_col, sorted=True)
 
         return ipr_entries
 

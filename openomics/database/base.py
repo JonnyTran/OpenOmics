@@ -10,11 +10,14 @@ from typing import List
 
 import dask.dataframe as dd
 import filetype
+import networkx as nx
 import pandas as pd
 import validators
+from logzero import logger
 
-from openomics.io.files import get_pkg_data_filename, decompress_file
-from openomics.utils.df import get_multi_aggregators
+from ..io.files import get_pkg_data_filename, decompress_file
+from ..transforms.agg import get_multi_aggregators, merge_concat
+from ..transforms.df import drop_duplicate_columns
 
 
 class Database(object):
@@ -29,7 +32,7 @@ class Database(object):
     data: pd.DataFrame
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
 
-    def __init__(self, path: str, file_resources: Dict[str, str] = None, index_col=None, keys=None,
+    def __init__(self, path: str, file_resources: Dict[str, str] = None, index_col=None, keys=None, usecols=None,
                  col_rename: Dict[str, str] = None, blocksize: int = None, verbose=False, **kwargs):
         """
         Args:
@@ -51,6 +54,9 @@ class Database(object):
             col_rename (dict): default None,
                 A dictionary to rename columns in the data table. If None, then
                 automatically load defaults.
+            usecols (list, optional): list of strings, default None.
+                If provided when loading the dataframes, only use a subset of these
+                columns, otherwise load all columns.
             blocksize (int): str, int or None, optional. Default None to
                 Number of bytes by which to cut up larger files. Default value
                 is computed based on available physical memory and the number
@@ -62,6 +68,7 @@ class Database(object):
         self.data_path = path
         self.index_col = index_col
         self.keys = keys.compute() if isinstance(keys, (dd.Index, dd.Series)) else keys
+        self.usecols = usecols
         self.blocksize = blocksize
         self.verbose = verbose
 
@@ -73,7 +80,12 @@ class Database(object):
                 self.data.index = self.data.index.rename(col_rename[self.data.index.name])
 
     def __repr__(self):
-        return "{}: {}".format(self.name(), self.data.columns.tolist())
+        out = []
+        if hasattr(self, "data") and isinstance(self.data, (pd.DataFrame, dd.DataFrame)):
+            out.append("{}: {} {}".format(self.name(), self.data.index.name, self.data.columns.tolist()))
+        if hasattr(self, "network") and isinstance(self.network, nx.Graph):
+            out.append("{} {}".format(self.network.name, str(self.network)))
+        return "\n".join(out)
 
     def load_file_resources(self, base_path: str, file_resources: Dict[str, str], verbose=False) -> Dict[str, Any]:
         """For each file in file_resources, download the file if path+file is a
@@ -92,10 +104,13 @@ class Database(object):
             verbose:
         """
         file_resources_new = copy.copy(file_resources)
-        if '~' in base_path:
+        if base_path.startswith("~"):
             base_path = os.path.expanduser(base_path)
 
         for filename, filepath in file_resources.items():
+            if filepath:
+                filepath = os.path.expanduser(filepath)
+
             # Remote database file URL
             if validators.url(filepath) or validators.url(join(base_path, filepath)):
                 filepath = get_pkg_data_filename(base_path, filepath)
@@ -199,8 +214,8 @@ class Database(object):
         columns by concatenating all unique values.
 
         Args:
-            on (str): The column name of the DataFrame to join by.
-            columns (list): a list of column names.
+            on (str, list): The column name(s) of the DataFrame to group by.
+            columns (list): a list of column names to aggregate.
             agg (str): Function to aggregate when there is more than one values
                 for each index key value. E.g. ['first', 'last', 'sum', 'mean',
                 'size', 'concat'], default 'concat'.
@@ -211,29 +226,32 @@ class Database(object):
                 filter before performing the groupby-agg operations.
 
         Returns:
-            DataFrame: A dataframe to be used for annotation
+            values: An filted-groupby-aggregated dataframe to be used for annotation.
         """
         if not set(columns).issubset(set(self.data.columns).union([self.data.index.name])):
             raise Exception(
                 f"The columns argument must be a list such that it's subset of the following columns in the dataframe. "
-                f"These columns doesn't exist in database: {list(set(columns) - set(self.data.columns.tolist()))}"
+                f"These columns doesn't exist in `self.data`: {list(set(columns) - set(self.data.columns.tolist()))}"
             )
+        elif len(set(columns)) < len(columns):
+            raise Exception(f"Duplicate values in `columns`: {columns}")
 
         # Select df columns including df. However, the `columns` list shouldn't contain the index column
         if on in columns:
-            columns.pop(columns.index(on))
+            columns = [col for col in columns if col not in on]
 
-        # Select a subset of columns
-        select_col = columns + ([on] if not isinstance(on, list) else on)
-        if self.data.index.name in select_col:
-            index_col = select_col.pop(select_col.index(self.data.index.name))
+        # All columns including `on` and `columns`
+        select_cols = columns + ([on] if not isinstance(on, list) else on)
+        if self.data.index.name in select_cols:
+            # Remove self.data's index_col since we can't select index from the df
+            index_col = select_cols.pop(select_cols.index(self.data.index.name))
         else:
             index_col = None
 
         if isinstance(self.data, pd.DataFrame):
-            df = self.data.filter(select_col, axis="columns")
+            df = self.data.filter(select_cols, axis="columns")
         elif isinstance(self.data, dd.DataFrame):
-            df = self.data[select_col]
+            df = self.data[select_cols]
         else:
             raise Exception(f"{self} must have self.data as a pd.DataFrame or dd.DataFrame")
 
@@ -245,21 +263,27 @@ class Database(object):
             if isinstance(keys, (dd.Series, dd.Index)):
                 keys = keys.compute()
 
-            if set(on).issubset(df.columns):
-                df = df[df[on].isin(keys)]
+            if on in df.columns:
+                df = df.loc[df[on].isin(keys)]
             elif on == df.index.name:
-                df = df[df.index.isin(keys)]
+                df = df.loc[df.index.isin(keys)]
 
+        df = drop_duplicate_columns(df)
+
+        # Groupby includes column that was in the index
         if on != df.index.name and df.index.name in columns:
-            # Groupby on
             groupby = df.reset_index().groupby(on)
+
+        # Groupby on index
+        elif on == df.index.name:
+            groupby = df.groupby(lambda x: x)
+
+        # Groupby on other columns
         else:
-            # Groupby on index
             groupby = df.groupby(on)
 
         #  Aggregate by all columns by concatenating unique values
         agg_funcs = get_multi_aggregators(agg, agg_for=agg_for, use_dask=isinstance(df, dd.DataFrame))
-
         values = groupby.agg({col: agg_funcs[col] for col in columns})
 
         return values
@@ -269,8 +293,8 @@ class Database(object):
         Args:
             index:
         """
-        return self.data.groupby(index).median(
-        )  # TODO if index by gene, aggregate medians of transcript-level expressions
+        # TODO if index by gene, aggregate medians of transcript-level expressions
+        return self.data.groupby(index).median()
 
 
 
@@ -330,10 +354,10 @@ class Annotatable(ABC):
             agg_for (Dict[str, Any]): Bypass the `agg` function for certain
                 columns with functions specified in this dict of column names
                 and the `agg` function to aggregate for that column.
-            fuzzy_match (bool): default False. Whether to join the annotation
-                by applying a fuzzy match on the index with
-                difflib.get_close_matches(). It can be slow and thus should
-                only be used sparingly.
+            fuzzy_match (bool): default False.
+                Whether to join the annotation by applying a fuzzy match on the
+                string value index with difflib.get_close_matches(). It can be
+                slow and thus should only be used sparingly.
         """
         if not hasattr(self, "annotations"):
             raise Exception("Must run .initialize_annotations() on, ", self.__class__.__name__, " first.")
@@ -344,6 +368,9 @@ class Annotatable(ABC):
             keys = self.annotations[on]
         elif on == self.annotations.index.name:
             keys = self.annotations.index
+        elif hasattr(self.annotations.index, 'names') and on in self.annotations.index.names:
+            # MultiIndex
+            keys = self.annotations.index.get_level_values(on)
         else:
             keys = None
 
@@ -351,10 +378,13 @@ class Annotatable(ABC):
         if isinstance(database, (pd.DataFrame, dd.DataFrame)):
             df = database
             if on == df.index.name and on in df.columns:
-                # Avoid ambiguous groupby if `on` is both in index name and columns
-                df.pop(on)
+                df.pop(on)  # Avoid ambiguous groupby col error
             agg_funcs = get_multi_aggregators(agg=agg, agg_for=agg_for, use_dask=isinstance(df, dd.DataFrame))
-            values = df.groupby(on).agg({col: agg_funcs[col] for col in columns})
+            if on == df.index.name or df.index.name in columns:
+                groupby = df.reset_index().groupby(on)
+            else:
+                groupby = df.groupby(on)
+            values = groupby.agg({col: agg_funcs[col] for col in columns})
         else:
             values = database.get_annotations(on, columns=columns, agg=agg, agg_for=agg_for, keys=keys)
 
@@ -362,30 +392,46 @@ class Annotatable(ABC):
             values.index = values.index.map(
                 lambda x: difflib.get_close_matches(x, self.annotations.index, n=1)[0])
 
-        # Performing join if `on` is already self's index
-        if on == self.annotations.index.name or (
-            hasattr(self.annotations.index, 'names') and on == self.annotations.index.names):
-            new_annotations = self.annotations.join(values, on=on, how="left", rsuffix="_")
-        # Perfrom merge if `on` another column
+        if isinstance(self.annotations, type(values)) and (on == self.annotations.index.name or
+                                                           (hasattr(self.annotations.index,
+                                                                    'names') and on == self.annotations.index.names)):
+            # Performing join if `on` is already self's index
+            merged = self.annotations.join(values, on=on, how="left", rsuffix="_")
         else:
-            new_annotations = self.annotations.merge(values, left_on=on, right_index=True, how="left",
-                                                     suffixes=("_", ""))
+            # Perfrom merge if `on` another column
+            if isinstance(self.annotations, pd.DataFrame) and isinstance(values, dd.DataFrame):
+                merged = dd.merge(self.annotations, values, how="left",
+                                  left_on=on if self.annotations.index.name != on else None,
+                                  left_index=True if self.annotations.index.name == on else False,
+                                  right_on=on if values.index.name != on else None,
+                                  right_index=True if values.index.name == on else False,
+                                  suffixes=("", "_"))
+            else:
+                merged = self.annotations.merge(values, left_on=on, right_index=True, how="left",
+                                                suffixes=("", "_"))
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
-        duplicate_cols = [col for col in new_annotations.columns if col.endswith("_")]
+        duplicate_cols = {col: col.rstrip("_") for col in merged.columns if col.endswith("_")}
 
-        # Fill in null values then drop duplicate columns
-        for new_col in duplicate_cols:
-            old_col = new_col.rstrip("_")
-            new_annotations[old_col] = new_annotations[old_col].fillna(new_annotations[new_col], axis=0)
-            new_annotations = new_annotations.drop(columns=new_col)
+        if duplicate_cols:
+            new_annotations = merged[list(duplicate_cols.keys())].rename(columns=duplicate_cols)
+            logger.info(f"merging {new_annotations.columns}")
 
-        # Revert back to Pandas df if not previously a dask df
-        if isinstance(self.annotations, pd.DataFrame) and isinstance(new_annotations, dd.DataFrame):
-            new_annotations = new_annotations.compute()
+            # Combine new values with old values in overlapping columns
+            assign_fn = {old_col: merged[old_col].combine(merged[new_col], func=merge_concat) \
+                         for new_col, old_col in duplicate_cols.items()}
+            merged = merged.assign(**assign_fn)
+            # then drop duplicate columns with "_" suffix
+            merged = merged.drop(columns=list(duplicate_cols.keys()))
+
+        # Revert back to Pandas DF if not previously a Dask DF
+        if isinstance(self.annotations, pd.DataFrame) and isinstance(merged, dd.DataFrame):
+            merged = merged.compute()
 
         # Assign the new results
-        self.annotations = new_annotations
+        self.annotations = merged
+
+        return self
 
     def annotate_sequences(self,
                            database,
@@ -414,18 +460,25 @@ class Annotatable(ABC):
         # Map sequences to the keys of `on` columns.
         if type(self.annotations.index) == pd.MultiIndex and self.annotations.index.names in on:
             seqs = self.annotations.index.get_level_values(on).map(sequences)
+
         elif self.annotations.index.name == on:
             seqs = self.annotations.index.map(sequences)
+
         elif isinstance(on, list):
             # Index is a multi columns
             seqs = pd.MultiIndex.from_frame(self.annotations.reset_index()[on]).map(sequences)
         else:
             seqs = pd.Index(self.annotations.reset_index()[on]).map(sequences)
 
-        self.annotations[Annotatable.SEQUENCE_COL] = seqs
+        if isinstance(self.annotations, dd.DataFrame) and isinstance(seqs, pd.Series):
+            seqs = dd.from_pandas(seqs, npartitions=self.annotations.npartitions)
+
+        self.annotations = self.annotations.assign(**{Annotatable.SEQUENCE_COL: seqs})
+
+        return self
 
     def annotate_expressions(self, database, index, fuzzy_match=False):
-        """Annotate :param database: :param index: :param fuzzy_match:
+        """
 
         Args:
             database:
@@ -439,6 +492,8 @@ class Annotatable(ABC):
                 database.get_expressions(index=index))
         else:
             raise Exception(f"index argument must be one of {database.data.index}")
+
+        return self
 
     def annotate_interactions(self, database, index):
         """
@@ -469,11 +524,13 @@ class Annotatable(ABC):
             values = keys.map(groupby_agg)
 
         elif isinstance(keys, dd.DataFrame):
-            values = keys.apply(lambda x: groupby_agg.loc[x], axis=1, meta=pd.Series([['']])).head()
+            values = keys.apply(lambda x: groupby_agg.loc[x], axis=1, meta=pd.Series([['']]))
         elif isinstance(keys, dd.Series):
             values = keys.map(groupby_agg)
+        else:
+            raise Exception()
 
-        self.annotations[Annotatable.DISEASE_ASSOCIATIONS_COL] = values
+        self.annotations = self.annotations.assign(**{Annotatable.DISEASE_ASSOCIATIONS_COL: values})
 
     def set_index(self, new_index):
         """Resets :param new_index: :type new_index: str

@@ -242,7 +242,7 @@ def parse_gtf_dask(filepath_or_buffer, blocksize=None, compression=None, feature
         filepath_or_buffer,
         sep="\t",
         compression=compression,
-        blocksize=blocksize if blocksize > 10 else None,
+        blocksize=None if isinstance(blocksize, bool) else blocksize,
         comment="#",
         names=COLUMN_NAMES,
         skipinitialspace=True,
