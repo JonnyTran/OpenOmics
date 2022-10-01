@@ -5,17 +5,17 @@ from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple, Optional, Iterable
 
 import numpy as np
+import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
 from logzero import logger
+from openomics.io.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
-import openomics
-from openomics.io.read_gtf import read_gtf
 from .base import Database
 from ..transforms.agg import get_agg_func
 
@@ -475,13 +475,18 @@ class UniProt(SequenceDatabase):
         for filename, file_path in file_resources.items():
             if not ('uniprot' in filename and filename.endswith('.parquet')): continue
             if blocksize:
-                df = dd.read_parquet(file_path) \
+                df: dd.DataFrame = dd.read_parquet(file_path) \
                     .rename(columns=UniProt.COLUMNS_RENAME_DICT)
+                if df.index.name in UniProt.COLUMNS_RENAME_DICT:
+                    df.index = df.index.rename(UniProt.COLUMNS_RENAME_DICT[df.index.name])
 
-                if self.keys is not None and df.index.name != self.index_col:
-                    df = df.loc[df[self.index_col].isin(self.keys)]
-                elif self.keys is not None and df.index.name == self.index_col:
-                    df = df.loc[df.index.isin(self.keys)]
+                if self.keys is not None:
+                    if self.index_col in df.columns:
+                        df = df.loc[df[self.index_col].isin(self.keys)]
+                    elif df.index.name == self.index_col:
+                        df = df.loc[df.index.isin(self.keys)]
+
+                if df.index.size.compute() == 0: continue
 
                 if df.index.name != self.index_col:
                     try:
@@ -489,6 +494,7 @@ class UniProt(SequenceDatabase):
                     except Exception as e:
                         print(file_path, e)
                         df = df.set_index(self.index_col, sorted=False)
+
                 if not df.known_divisions:
                     df.divisions = df.compute_current_divisions()
 
@@ -498,6 +504,8 @@ class UniProt(SequenceDatabase):
                 if self.keys is not None:
                     df_keys = df.index if df.index.name == self.index_col else df[self.index_col]
                     df = df.loc[df_keys.isin(self.keys)]
+                if df.index.size == 0: continue
+
             dfs.append(df)
 
         if dfs:

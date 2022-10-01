@@ -10,11 +10,11 @@ import numpy as np
 import obonet
 import pandas as pd
 from networkx import NetworkXError
-from pandas import DataFrame
-
 from openomics.io.read_gaf import read_gaf
 from openomics.transforms.adj import slice_adj
 from openomics.transforms.agg import get_agg_func
+from pandas import DataFrame
+
 from .base import Database
 
 
@@ -576,6 +576,15 @@ class UniProtGOA(GeneOntology):
 
 
 class InterPro(Ontology):
+    """
+    Default parameters
+    path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/"
+    file_resources = {}
+    file_resources["entry.list"] = os.path.join(path, "entry.list")
+    file_resources["protein2ipr.dat.gz"] = os.path.join(path, "protein2ipr.dat.gz")
+    file_resources["interpro2go"] = os.path.join(path, "interpro2go")
+    file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
+    """
 
     def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/", index_col='UniProtKB-AC',
                  keys=None,
@@ -595,6 +604,8 @@ class InterPro(Ontology):
             col_rename:
             verbose:
         """
+        assert keys is not None
+        assert index_col is not None
 
         if file_resources is None:
             file_resources = {}
@@ -612,21 +623,43 @@ class InterPro(Ontology):
 
         ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
 
-        self.annotations = dd.read_table(
-            file_resources["protein2ipr.dat"],
-            names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
-            usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
-            dtype={'UniProtKB-AC': 'str', 'ENTRY_AC': 'str', 'start': 'int8', 'stop': 'int8'},
-            low_memory=True,
-            blocksize=None if isinstance(blocksize, bool) else blocksize)
+        # Load
+        args = dict(names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
+                    usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
+                    dtype={'UniProtKB-AC': 'str', 'ENTRY_AC': 'str', 'start': 'int8', 'stop': 'int8'}, low_memory=True,
+                    blocksize=None if isinstance(blocksize, bool) else blocksize)
+        if 'protein2ipr.parquet' in file_resources:
+            annotations = dd.read_parquet(file_resources["protein2ipr.parquet"])
+        else:
+            annotations = dd.read_table(file_resources["protein2ipr.dat"], **args)
 
-        if self.keys is not None and self.index_col is not None:
-            self.annotations = self.annotations.loc[self.annotations[self.index_col].isin(self.keys)]
+        if self.keys is not None and self.index_col in annotations.columns:
+            annotations = annotations.loc[annotations[self.index_col].isin(self.keys)]
+        elif self.keys is not None and self.index_col == annotations.index.name:
+            annotations = annotations.loc[annotations.index.isin(self.keys)]
 
-        if self.index_col:
-            self.annotations = self.annotations.set_index(self.index_col, sorted=True)
+        if annotations.index.name != self.index_col:
+            annotations = annotations.set_index(self.index_col, sorted=True)
+        if not annotations.known_divisions:
+            annotations.divisions = annotations.compute_current_divisions()
+
+        # Create a Networkx Graph each partition, then combine them
+        def edgelist2graph(edgelist_df: DataFrame) -> None:
+            if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo': return
+            g = nx.from_pandas_edgelist(edgelist_df.reset_index(), source='UniProtKB-AC', target='ENTRY_AC',
+                                        edge_attr=['start', 'stop'], create_using=nx.MultiDiGraph())
+            return g
+
+        graphs = annotations.map_partitions(edgelist2graph, meta=pd.Series([nx.MultiDiGraph()])).compute()
+        G = nx.compose_all(graphs.values)
+
+        # Create a sparse matrix of UniProtKB-AC x ENTRY_AC
+        adj = nx.bipartite.biadjacency_matrix(G, row_order=self.keys.tolist(), column_order=ipr_entries.index,
+                                              weight='weight', format='csc')
+        self.annotations = pd.DataFrame.sparse.from_spmatrix(adj, index=self.keys, columns=ipr_entries.index)
 
         return ipr_entries
+
 
     def parse_interpro2go(self, file: StringIO) -> DataFrame:
         if isinstance(file, str):
@@ -645,32 +678,14 @@ class InterPro(Ontology):
         return pd.DataFrame(tuples, columns=['ENTRY_AC', "go_id", "go_desc"])
 
     def load_network(self, file_resources) -> Tuple[nx.Graph, np.ndarray]:
-        for file in file_resources:
-            if 'ParentChildTreeFile' in file and isinstance(file_resources[file], str) \
-                and os.path.exists(file_resources[file]):
-                network: nx.MultiDiGraph = self.parse_ipr_treefile(file_resources[file])
+        network, node_list = None, None
+        for filename in file_resources:
+            if 'ParentChildTreeFile' in filename and isinstance(file_resources[filename], str):
+                network: nx.MultiDiGraph = self.parse_ipr_treefile(file_resources[filename])
                 node_list = np.array(network.nodes)
 
-                return network, node_list
-        return None, None
+        return network, node_list
 
-    def get_annotations_adj(self, protein_ids: pd.Index):
-        g = nx.MultiDiGraph()
-        g.add_nodes_from(protein_ids.tolist())
-
-        def add_edgelist(edgelist_df: DataFrame) -> None:
-            edge_mask = edgelist_df["UniProtKB-AC"].isin(protein_ids)
-            if edge_mask.sum():
-                edgelist = [(row[0], row[1], row[2:].to_dict()) for i, row in edgelist_df.iterrows()]
-                g.add_edges_from(edgelist, weight=1)
-
-        # Add edges to Networkx Graph
-        self.annotations.map_partitions(add_edgelist).compute()
-
-        adj = nx.bipartite.biadjacency_matrix(g, row_order=protein_ids, column_order=self.data["ENTRY_AC"],
-                                              weight='weight', format='csc')
-        adj = pd.DataFrame(adj, index=protein_ids, columns=self.data["ENTRY_AC"])
-        return adj
     def parse_ipr_treefile(self, lines: Union[Iterable[str], StringIO]) -> nx.MultiDiGraph:
         """Parse the InterPro Tree from the given file.
         Args:
