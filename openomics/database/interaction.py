@@ -11,6 +11,7 @@ from logzero import logger
 from openomics.database.annotation import *
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
+from openomics.transforms.df import filter_rows
 
 
 class Interactions(Database):
@@ -111,31 +112,6 @@ class Interactions(Database):
             return g.subgraph(nodelist).edges(data=data)
         else:
             return g.edges(nbunch=nodelist, data=data)
-
-    def filter_values(self, df: pd.DataFrame, filters: Dict[str, List], case: bool = False):
-        if filters is None:
-            return df
-
-        for col, values in filters.items():
-            if col not in df.columns:
-                print("Filter key `", col, "` must be in one of ", df.columns)
-                continue
-            n_rows = df.shape[0]
-
-            if isinstance(values, list):
-                if case is False:
-                    df = df[df[col].str.upper().isin([val.upper() for val in values])]
-                else:
-                    df = df[df[col].isin(values)]
-            elif isinstance(values, str):
-                df = df[df[col].str.contains(values, case=case)]
-            else:
-                df = df[df[col] == values]
-
-            print("INFO: Removed ", n_rows - df.shape[0], " rows with `", col, "` != ", values)
-
-        assert df.shape[0] > 0, f"ERROR: Dataframe is empty ({df.shape}) because of filter: {filters}"
-        return df
 
 
 class STRING(Interactions, SequenceDatabase):
@@ -375,6 +351,15 @@ class GeneMania(Interactions):
         return genemania_RNA_RNA_network
 
 
+class IntAct(Interactions):
+
+    def __init__(self, path, file_resources: Dict, source_col_name: str = None, target_col_name: str = None,
+                 source_index: str = None, target_index: str = None, edge_attr: List[str] = None, filters: dict = None,
+                 directed: bool = True, relabel_nodes: dict = None, blocksize=None, **kwargs):
+        super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index, edge_attr,
+                         filters, directed, relabel_nodes, blocksize, **kwargs)
+
+
 class BioGRID(Interactions):
     """Loads the BioGRID database from https://thebiogrid.org .
 
@@ -413,22 +398,96 @@ class BioGRID(Interactions):
                          target_col_name=target_col_name, source_index=source_index, target_index=target_index,
                          edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes, **kwargs)
 
+    def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
+        args = dict(na_values=["-"], header=0, low_memory=True,
+                    # usecols=['Official Symbol Interactor A', 'Official Symbol Interactor B',
+                    #          'Organism Interactor A', 'Score', 'Throughput', 'Qualifications',
+                    #          'Modification', 'Phenotypes', 'Source Database'],
+                    dtype={'Score': 'float', 'Entrez Gene Interactor A': 'str', 'Entrez Gene Interactor B': 'str',
+                           'Organism Interactor A': 'category', 'Organism Interactor B': 'category'})
+
+        if blocksize:
+            df = dd.read_table(file_resources["BIOGRID-ALL-LATEST.tab2"], blocksize=blocksize, **args, )
+        else:
+            df = pd.read_table(file_resources["BIOGRID-ALL-LATEST.tab2"], **args, )
+
+        return df
+
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
                      blocksize=None):
-        df = pd.read_table(file_resources["BIOGRID-ALL-LATEST.tab2"],
-                           na_values=["-"],
-                           # usecols=['Official Symbol Interactor A', 'Official Symbol Interactor B',
-                           #          'Organism Interactor A', 'Score', 'Throughput', 'Qualifications',
-                           #          'Modification', 'Phenotypes'],
-                           low_memory=True)
-
-        print("{}: {}".format(self.name(), df.columns.tolist()))
-
-        df = self.filter_values(df, filters)
+        return
+        df = self.data
+        df = filter_rows(df, filters)
         network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                           edge_attr=edge_attr,
                                           create_using=nx.DiGraph() if directed else nx.Graph())
         return network
+
+
+class MiRTarBase(Interactions):
+    """Loads the  database from  .
+
+            Default path:  .
+            Default file_resources: {
+                "": "",
+                "": "",
+                "": "",
+            }
+            """
+
+    def __init__(self, path="http://mirtarbase.mbc.nctu.edu.tw/cache/download/7.0/", file_resources=None,
+                 source_col_name="miRNA", target_col_name="Target Gene",
+                 source_index="transcript_name", target_index="gene_name",
+                 edge_attr=None,
+                 filters=None,
+                 directed=True,
+                 relabel_nodes=None,
+                 strip_mirna_name=False, **kwargs):
+        """
+
+        Args:
+            path ():
+            file_resources ():
+            source_col_name ():
+            target_col_name ():
+            source_index ():
+            target_index ():
+            edge_attr ():
+            filters (): default None, example {"Species (Target Gene)": "Homo sapiens"}
+            directed ():
+            relabel_nodes ():
+            strip_mirna_name ():
+            **kwargs ():
+        """
+        if edge_attr is None:
+            edge_attr = ["Support Type"]
+        self.strip_mirna_name = strip_mirna_name
+
+        if file_resources is None:
+            file_resources = {}
+            file_resources["miRTarBase_MTI.xlsx"] = os.path.join(path, "miRTarBase_MTI.xlsx")
+
+        super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
+                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
+                         edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes, **kwargs)
+
+    def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
+        df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
+        return df
+
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
+                     blocksize=None):
+        df = self.data
+        df = filter_rows(df, filters)
+
+        if self.strip_mirna_name:
+            df['miRNA'] = df['miRNA'].str.lower()
+            df['miRNA'] = df['miRNA'].str.replace("-3p.*|-5p.*", "", regex=True)
+
+        mir_target_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
+                                                     edge_attr=edge_attr,
+                                                     create_using=nx.DiGraph() if directed else nx.Graph())
+        return mir_target_network
 
 
 class LncBase(Interactions, Database):
@@ -481,399 +540,26 @@ class LncBase(Interactions, Database):
                                               index=lncbase_df["geneId"]).to_dict()
         return gene_id_to_gene_name_dict
 
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
-                     blocksize=None):
-        if edge_attr is None:
-            edge_attr = ["tissue", "positive_negative"]
+    def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
         df = pd.read_table(file_resources["LncBasev2_download.csv"], low_memory=True)
         df.replace({"species": {"Homo Sapiens": "Homo sapiens", "Mus Musculus": "Mus musculus"}}, inplace=True)
+        return df
 
-        df = self.filter_values(df, filters)
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
+                     blocksize=None):
+        df = self.data
+        df = filter_rows(df, filters)
 
         if self.strip_mirna_name:
             df['mirna'] = df['mirna'].str.lower()
             df['mirna'] = df['mirna'].str.replace("-3p.*|-5p.*", "", regex=True)
 
+        if edge_attr is None:
+            edge_attr = ["tissue", "positive_negative"]
         lncBase_lncRNA_miRNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                                                edge_attr=edge_attr,
                                                                create_using=nx.DiGraph() if directed else nx.Graph())
         return lncBase_lncRNA_miRNA_network
-
-
-class LncReg(Interactions):
-    """Loads the  database from  .
-
-    Default path:  .
-    Default file_resources: {
-        "": "",
-        "": "",
-        "": "",
-    }
-    """
-    def __init__(self, path, file_resources,
-                 source_col_name='A_name_in_paper', target_col_name='B_name_in_paper',
-                 source_index="transcript_name", target_index="gene_name",
-                 edge_attr=["relationship", "mechanism", "pmid"], filters=None, directed=True, relabel_nodes=None,
-                 verbose=False):
-        if file_resources is None:
-            file_resources = {}
-            file_resources["data.xlsx"] = os.path.join(path, "data.xlsx")
-
-        super().__init__(path, file_resources=file_resources, source_col_name=source_col_name,
-                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
-                         edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes,
-                         verbose=verbose)
-
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
-                     blocksize=None):
-        df = pd.read_excel(self.file_resources["data.xlsx"])
-        print(self.name(), df.columns.tolist())
-
-        df = df[df["species"] == "Homo sapiens"]
-        df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
-            "B_name_in_paper"].str.replace("-3p.*|-5p.*", "")
-        df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
-            "B_name_in_paper"].str.replace("MIR", "hsa-mir-")
-        df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
-            "B_name_in_paper"].str.replace("let-", "hsa-let-")
-
-        LncReg_lncRNA_RNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
-                                                            edge_attr=edge_attr,
-                                                            create_using=nx.DiGraph())
-        return LncReg_lncRNA_RNA_network
-
-
-class lncRInter(Interactions):
-    """Loads the  database from  .
-
-    Default path:  .
-    Default file_resources: {
-        "": "",
-        "": "",
-        "": "",
-    }
-    """
-    def __init__(self, path, file_resources=None, source_col_name="lncrna",
-                 target_col_name='Interacting partner',
-                 source_index="gene_name", target_index="gene_name",
-                 edge_attr=None, filters=None,
-                 directed=True, relabel_nodes=None):
-        if edge_attr is None:
-            edge_attr = ["Interaction Class", "Interaction Mode", "Tissue", "Phenotype"]
-        if file_resources is None:
-            file_resources = {}
-            file_resources["human_interactions.txt"] = os.path.join(path, "human_interactions.txt")
-
-        super().__init__(path, file_resources, source_col_name=source_col_name, target_col_name=target_col_name,
-                         source_index=source_index, target_index=target_index, edge_attr=edge_attr, filters=filters,
-                         directed=directed, relabel_nodes=relabel_nodes)
-
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
-                     blocksize=None):
-        lncRInter_df = pd.read_table(file_resources["human_interactions.txt"])
-        print(self.name(), lncRInter_df.columns.tolist())
-
-        lncRInter_df = self.filter_values(lncRInter_df, filters)
-        # Data cleaning
-        lncRInter_df.loc[lncRInter_df["Interacting partner"].str.contains("MIR"), "Interacting partner"] = \
-            lncRInter_df.loc[
-                lncRInter_df["Interacting partner"].str.contains("MIR"), "Interacting partner"].str.lower()
-        lncRInter_df["Interacting partner"] = lncRInter_df["Interacting partner"].str.replace("mirlet", "hsa-let-")
-        lncRInter_df["Interacting partner"] = lncRInter_df["Interacting partner"].str.replace("mir", "hsa-mir-")
-        lncRInter_df["Interacting partner"][
-            lncRInter_df["Interacting partner"].str.contains(r"[mir|let]\-[\d]+[a-z]+[\d]+")] = \
-            lncRInter_df["Interacting partner"][
-                lncRInter_df["Interacting partner"].str.contains(r"[mir|let]\-[\d]+[a-z]+[\d]+")].apply(
-                lambda x: x[:-1] + "-" + x[-1])
-
-        lncRInter_network = nx.from_pandas_edgelist(lncRInter_df, source=source_col_name,
-                                                    target=target_col_name,
-                                                    edge_attr=edge_attr,
-                                                    create_using=nx.DiGraph() if directed else nx.Graph())
-        return lncRInter_network
-
-
-class LncRNA2Target(Interactions):
-    """Loads the  database from  .
-
-            Default path:  .
-            Default file_resources: {
-                "": "",
-                "": "",
-                "": "",
-            }
-            """
-
-    def __init__(self, path="http://123.59.132.21/lncrna2target/data/", file_resources=None, source_index="gene_name",
-                 target_index="gene_name", edge_attr=None,
-                 filters=None,
-                 directed=True, relabel_nodes=None, version="high_throughput", ):
-        """
-
-        Args:
-            filters (): default None, example {"species_id": 9606, "Species": "Homo sapiens"}.
-            version (str): one of ["high_throughput", "low_throughput"].
-                The high_throughput version of lncRNA2Target database is v2.0 and low_throughput is v1.0, according to the database's website.
-            species_id (str, int): one of [9606, "Homo sapiens"].
-                The species column in high_throughput is formatted in int (e.g. 9606) and in low_throughput is in str (e.g. "Homo sapiens")
-        """
-        self.version = version
-        if file_resources is None:
-            file_resources = {}
-            file_resources["lncRNA_target_from_high_throughput_experiments.txt.rar"] = os.path.join(path,
-                                                                                                    "lncrna_target.rar")
-            file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"] = os.path.join(path,
-                                                                                                "lncRNA_target_from_low_throughput_experiments.xlsx")
-
-        if self.version == "high_throughput":
-            super().__init__(path, file_resources, source_col_name="lncrna_symbol", target_col_name="gene_symbol",
-                             source_index=source_index, target_index=target_index, edge_attr=edge_attr, filters=filters,
-                             directed=directed, relabel_nodes=relabel_nodes)
-        if self.version == "low_throughput":
-            super().__init__(path, file_resources, source_col_name="GENCODE_gene_name",
-                             target_col_name="Target_official_symbol", source_index=source_index,
-                             target_index=target_index, edge_attr=edge_attr, filters=filters, directed=directed,
-                             relabel_nodes=relabel_nodes)
-
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
-                     blocksize=None):
-        if self.version == "high_throughput":
-            return self.load_network_high_throughput(file_resources, source_col_name, target_col_name, edge_attr,
-                                                     directed)
-        elif self.version == "low_throughput":
-            return self.load_network_low_throughput(file_resources, source_col_name, target_col_name, edge_attr,
-                                                    directed)
-        else:
-            raise Exception("LncRNA2Target version argument must be one of 'high_throughput' or 'low_throughput'")
-
-    def load_network_high_throughput(self, file_resources, source_col_name="lncrna_symbol",
-                                     target_col_name="gene_symbol",
-                                     edge_attr=None, directed=True, filters=None):
-        table = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"], sep="\t")
-        table = self.filter_values(table, filters)
-        print(self.name(), table.columns.tolist())
-
-        table["lncrna_symbol"] = table["lncrna_symbol"].str.upper()
-        table["lncrna_symbol"] = table["lncrna_symbol"].str.replace("LINC", "")
-        table["gene_symbol"] = table["gene_symbol"].str.upper()
-        lncrna2target_high_throughput_network = nx.from_pandas_edgelist(table,
-                                                                        source=source_col_name,
-                                                                        target=target_col_name,
-                                                                        edge_attr=edge_attr,
-                                                                        create_using=nx.DiGraph() if directed else nx.Graph())
-        return lncrna2target_high_throughput_network
-
-    def load_network_low_throughput(self, file_resources, source_col_name="GENCODE_gene_name",
-                                    target_col_name="Target_official_symbol",
-                                    edge_attr=None, directed=True, filters=None):
-        table = pd.read_excel(file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"])
-        table = self.filter_values(table, filters)
-        print(self.name(), table.columns.tolist())
-
-        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-",
-                                                                                      regex=True)
-        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("--", "-")
-        table["Target_official_symbol"].apply(lambda x: x.lower() if "mir" in x.lower() else x.upper())
-        table["GENCODE_gene_name"] = table["GENCODE_gene_name"].str.upper()
-        lncrna2target_low_throughput_network = nx.from_pandas_edgelist(table,
-                                                                       source=source_col_name,
-                                                                       target=target_col_name,
-                                                                       edge_attr=edge_attr,
-                                                                       create_using=nx.DiGraph() if directed else nx.Graph())
-        return lncrna2target_low_throughput_network
-
-
-class lncRNome(Interactions, Database):
-    """Loads the lncRNome database from  .
-
-    Default path:  .
-    Default file_resources: {
-        "": "",
-        "": "",
-        "": "",
-    }
-    """
-
-    def __init__(self, path, file_resources, source_col_name='Gene Name', target_col_name='Binding miRNAs',
-                 source_index="gene_name", target_index="gene_name",
-                 edge_attr=["miRNA Interaction Site", "Transcript ID"], directed=True, relabel_nodes=None,
-                 blocksize=0):
-        if file_resources is None:
-            file_resources = {}
-            file_resources["miRNA_binding_sites.txt"] = os.path.join(path, "miRNA_binding_sites.txt")
-            file_resources["general_information.txt"] = os.path.join(path, "general_information.txt")
-
-        super().__init__(path, file_resources=file_resources)
-
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
-                     blocksize=None):
-        df = pd.read_table(self.file_resources["miRNA_binding_sites.txt"], header=0)
-        print(self.name(), df.columns.tolist())
-
-        df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
-        df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "", regex=True)
-
-        lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source=source_col_name,
-                                                                       target=target_col_name,
-                                                                       edge_attr=edge_attr,
-                                                                       create_using=nx.DiGraph())
-
-        return lncRNome_miRNA_binding_sites_network
-
-    def load_dataframe(self, file_resources, blocksize=None):
-        return pd.read_table(self.file_resources["general_information.txt"], header=0,
-                             usecols=["Gene Name", "Transcript Name", "Transcript Type", "Location", "Strand"])
-
-
-class NPInter(Interactions):
-    """Loads the NPInter database from http://bigdata.ibp.ac.cn/npinter4/ .
-
-    Default path: "http://bigdata.ibp.ac.cn/npinter4/download/" .
-    Default file_resources: {
-        "interaction_NPInterv4.expr.txt": "file/interaction_NPInterv4.expr.txt.gz",
-    }
-    """
-    def __init__(self, path="http://bigdata.ibp.ac.cn/npinter4/download/", file_resources=None,
-                 source_col_name='ncName', target_col_name='tarName',
-                 source_index="gene_name", target_index="gene_name",
-                 edge_attr=["tarType", "tissueOrCell", "tag", 'class', "level"],
-                 filters=None,
-                 directed=True, relabel_nodes=None, verbose=False):
-        if file_resources is None:
-            file_resources = {}
-            file_resources["interaction_NPInterv4.expr.txt.gz"] = \
-                os.path.join(path, "file/interaction_NPInterv4.expr.txt.gz")
-
-        super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
-                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
-                         edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes,
-                         verbose=verbose)
-
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
-                     blocksize=None):
-        df = pd.read_table(file_resources["interaction_NPInterv4.expr.txt"], header=0, na_values=["-"])
-        print(self.name(), df.columns.tolist())
-        df["ncName"] = df["ncName"].str.upper()
-        df["ncName"] = df["ncName"].str.strip("LNCRNA-")
-        df["ncName"] = df["ncName"].str.replace("MALAT-1", "MALAT1")
-        df["ncName"] = df["ncName"].str.replace("^MIR-", "hsa-mir-", regex=True)
-        df["ncName"] = df["ncName"].str.replace("^MICRORNA-", "hsa-mir-", regex=True)
-
-        df["tarName"] = df["tarName"].str.upper()
-
-        df = self.filter_values(df, filters)
-
-        lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source=source_col_name,
-                                                                       target=target_col_name,
-                                                                       edge_attr=edge_attr,
-                                                                       create_using=nx.DiGraph() if directed else nx.Graph())
-
-        return lncRNome_miRNA_binding_sites_network
-
-
-class StarBase(Interactions):
-    """Loads the  database from  .
-
-    Default path:  .
-    Default file_resources: {
-        "": "",
-        "": "",
-        "": "",
-    }
-    """
-
-    def __init__(self, path, file_resources, source_col_name="geneName", target_col_name="pairGeneName",
-                 source_index="gene_name", target_index="gene_name",
-                 min_interactionNum=1, min_expNum=1,
-                 edge_attr=None, directed=True, relabel_nodes=None, blocksize=0):
-        if file_resources is None:
-            file_resources = {}
-            file_resources["starbase_3.0_lncrna_rna_interactions.csv"] = \
-                os.path.join(path, "starbase_3.0_lncrna_rna_interactions.csv")
-        self.min_interactionNum = min_interactionNum
-        self.min_expNum = min_expNum
-        super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index, edge_attr,
-                         directed, relabel_nodes, blocksize)
-
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
-                     blocksize=None):
-        df = pd.read_csv(self.file_resources["starbase_3.0_lncrna_rna_interactions.csv"], header=0)
-
-        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
-            "pairGeneName"].str.lower()
-        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
-            "pairGeneName"].str.replace("-3p.*|-5p.*", "")
-        df = df[df["interactionNum"] >= self.min_interactionNum]
-        df = df[df["expNum"] >= self.min_expNum]
-
-        self.starBase_RNA_RNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
-                                                                edge_attr=["interactionNum"],
-                                                                create_using=nx.DiGraph())
-        return self.starBase_RNA_RNA_network
-
-
-class MiRTarBase(Interactions):
-    """Loads the  database from  .
-
-            Default path:  .
-            Default file_resources: {
-                "": "",
-                "": "",
-                "": "",
-            }
-            """
-
-    def __init__(self, path="http://mirtarbase.mbc.nctu.edu.tw/cache/download/7.0/", file_resources=None,
-                 source_col_name="miRNA", target_col_name="Target Gene",
-                 source_index="transcript_name", target_index="gene_name",
-                 edge_attr=None,
-                 filters=None,
-                 directed=True,
-                 relabel_nodes=None,
-                 strip_mirna_name=False, **kwargs):
-        """
-
-        Args:
-            path ():
-            file_resources ():
-            source_col_name ():
-            target_col_name ():
-            source_index ():
-            target_index ():
-            edge_attr ():
-            filters (): default None, example {"Species (Target Gene)": "Homo sapiens"}
-            directed ():
-            relabel_nodes ():
-            strip_mirna_name ():
-            **kwargs ():
-        """
-        if edge_attr is None:
-            edge_attr = ["Support Type"]
-        self.strip_mirna_name = strip_mirna_name
-
-        if file_resources is None:
-            file_resources = {}
-            file_resources["miRTarBase_MTI.xlsx"] = os.path.join(path, "miRTarBase_MTI.xlsx")
-
-        super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
-                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
-                         edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes, **kwargs)
-
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
-                     blocksize=None):
-        df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
-        print(self.name(), df.columns.tolist())
-
-        df = self.filter_values(df, filters)
-
-        if self.strip_mirna_name:
-            df['miRNA'] = df['miRNA'].str.lower()
-            df['miRNA'] = df['miRNA'].str.replace("-3p.*|-5p.*", "", regex=True)
-
-        mir_target_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
-                                                     edge_attr=edge_attr,
-                                                     create_using=nx.DiGraph() if directed else nx.Graph())
-        return mir_target_network
 
 
 class TargetScan(Interactions, Database):
@@ -970,3 +656,319 @@ class TargetScan(Interactions, Database):
             mir_interactions_df['MiRBase ID'] = mir_interactions_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
 
         return mir_interactions_df
+
+
+class LncReg(Interactions):
+    """Loads the  database from  .
+
+    Default path:  .
+    Default file_resources: {
+        "": "",
+        "": "",
+        "": "",
+    }
+    """
+    def __init__(self, path, file_resources,
+                 source_col_name='A_name_in_paper', target_col_name='B_name_in_paper',
+                 source_index="transcript_name", target_index="gene_name",
+                 edge_attr=["relationship", "mechanism", "pmid"], filters=None, directed=True, relabel_nodes=None,
+                 verbose=False):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["data.xlsx"] = os.path.join(path, "data.xlsx")
+
+        super().__init__(path, file_resources=file_resources, source_col_name=source_col_name,
+                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
+                         edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes,
+                         verbose=verbose)
+
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
+                     blocksize=None):
+        df = pd.read_excel(self.file_resources["data.xlsx"])
+        print(self.name(), df.columns.tolist())
+
+        df = df[df["species"] == "Homo sapiens"]
+        df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
+            "B_name_in_paper"].str.replace("-3p.*|-5p.*", "")
+        df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
+            "B_name_in_paper"].str.replace("MIR", "hsa-mir-")
+        df.loc[df["B_category"] == "miRNA", "B_name_in_paper"] = df[df["B_category"] == "miRNA"][
+            "B_name_in_paper"].str.replace("let-", "hsa-let-")
+
+        LncReg_lncRNA_RNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
+                                                            edge_attr=edge_attr,
+                                                            create_using=nx.DiGraph())
+        return LncReg_lncRNA_RNA_network
+
+
+class lncRInter(Interactions):
+    """Loads the  database from  .
+
+    Default path:  .
+    Default file_resources: {
+        "": "",
+        "": "",
+        "": "",
+    }
+    """
+    def __init__(self, path, file_resources=None, source_col_name="lncrna",
+                 target_col_name='Interacting partner',
+                 source_index="gene_name", target_index="gene_name",
+                 edge_attr=None, filters=None,
+                 directed=True, relabel_nodes=None):
+        if edge_attr is None:
+            edge_attr = ["Interaction Class", "Interaction Mode", "Tissue", "Phenotype"]
+        if file_resources is None:
+            file_resources = {}
+            file_resources["human_interactions.txt"] = os.path.join(path, "human_interactions.txt")
+
+        super().__init__(path, file_resources, source_col_name=source_col_name, target_col_name=target_col_name,
+                         source_index=source_index, target_index=target_index, edge_attr=edge_attr, filters=filters,
+                         directed=directed, relabel_nodes=relabel_nodes)
+
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
+                     blocksize=None):
+        lncRInter_df = pd.read_table(file_resources["human_interactions.txt"])
+        print(self.name(), lncRInter_df.columns.tolist())
+
+        lncRInter_df = filter_rows(lncRInter_df, filters)
+        # Data cleaning
+        lncRInter_df.loc[lncRInter_df["Interacting partner"].str.contains("MIR"), "Interacting partner"] = \
+            lncRInter_df.loc[
+                lncRInter_df["Interacting partner"].str.contains("MIR"), "Interacting partner"].str.lower()
+        lncRInter_df["Interacting partner"] = lncRInter_df["Interacting partner"].str.replace("mirlet", "hsa-let-")
+        lncRInter_df["Interacting partner"] = lncRInter_df["Interacting partner"].str.replace("mir", "hsa-mir-")
+        lncRInter_df["Interacting partner"][
+            lncRInter_df["Interacting partner"].str.contains(r"[mir|let]\-[\d]+[a-z]+[\d]+")] = \
+            lncRInter_df["Interacting partner"][
+                lncRInter_df["Interacting partner"].str.contains(r"[mir|let]\-[\d]+[a-z]+[\d]+")].apply(
+                lambda x: x[:-1] + "-" + x[-1])
+
+        lncRInter_network = nx.from_pandas_edgelist(lncRInter_df, source=source_col_name,
+                                                    target=target_col_name,
+                                                    edge_attr=edge_attr,
+                                                    create_using=nx.DiGraph() if directed else nx.Graph())
+        return lncRInter_network
+
+
+class LncRNA2Target(Interactions):
+    """Loads the  database from  .
+
+            Default path:  .
+            Default file_resources: {
+                "": "",
+                "": "",
+                "": "",
+            }
+            """
+
+    def __init__(self, path="http://123.59.132.21/lncrna2target/data/", file_resources=None, source_index="gene_name",
+                 target_index="gene_name", edge_attr=None,
+                 filters=None,
+                 directed=True, relabel_nodes=None, version="high_throughput", ):
+        """
+
+        Args:
+            filters (): default None, example {"species_id": 9606, "Species": "Homo sapiens"}.
+            version (str): one of ["high_throughput", "low_throughput"].
+                The high_throughput version of lncRNA2Target database is v2.0 and low_throughput is v1.0, according to the database's website.
+            species_id (str, int): one of [9606, "Homo sapiens"].
+                The species column in high_throughput is formatted in int (e.g. 9606) and in low_throughput is in str (e.g. "Homo sapiens")
+        """
+        self.version = version
+        if file_resources is None:
+            file_resources = {}
+            file_resources["lncRNA_target_from_high_throughput_experiments.txt.rar"] = os.path.join(path,
+                                                                                                    "lncrna_target.rar")
+            file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"] = os.path.join(path,
+                                                                                                "lncRNA_target_from_low_throughput_experiments.xlsx")
+
+        if self.version == "high_throughput":
+            super().__init__(path, file_resources, source_col_name="lncrna_symbol", target_col_name="gene_symbol",
+                             source_index=source_index, target_index=target_index, edge_attr=edge_attr, filters=filters,
+                             directed=directed, relabel_nodes=relabel_nodes)
+        if self.version == "low_throughput":
+            super().__init__(path, file_resources, source_col_name="GENCODE_gene_name",
+                             target_col_name="Target_official_symbol", source_index=source_index,
+                             target_index=target_index, edge_attr=edge_attr, filters=filters, directed=directed,
+                             relabel_nodes=relabel_nodes)
+
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
+                     blocksize=None):
+        if self.version == "high_throughput":
+            return self.load_network_high_throughput(file_resources, source_col_name, target_col_name, edge_attr,
+                                                     directed)
+        elif self.version == "low_throughput":
+            return self.load_network_low_throughput(file_resources, source_col_name, target_col_name, edge_attr,
+                                                    directed)
+        else:
+            raise Exception("LncRNA2Target version argument must be one of 'high_throughput' or 'low_throughput'")
+
+    def load_network_high_throughput(self, file_resources, source_col_name="lncrna_symbol",
+                                     target_col_name="gene_symbol",
+                                     edge_attr=None, directed=True, filters=None):
+        table = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"], sep="\t")
+        table = filter_rows(table, filters)
+        print(self.name(), table.columns.tolist())
+
+        table["lncrna_symbol"] = table["lncrna_symbol"].str.upper()
+        table["lncrna_symbol"] = table["lncrna_symbol"].str.replace("LINC", "")
+        table["gene_symbol"] = table["gene_symbol"].str.upper()
+        lncrna2target_high_throughput_network = nx.from_pandas_edgelist(table,
+                                                                        source=source_col_name,
+                                                                        target=target_col_name,
+                                                                        edge_attr=edge_attr,
+                                                                        create_using=nx.DiGraph() if directed else nx.Graph())
+        return lncrna2target_high_throughput_network
+
+    def load_network_low_throughput(self, file_resources, source_col_name="GENCODE_gene_name",
+                                    target_col_name="Target_official_symbol",
+                                    edge_attr=None, directed=True, filters=None):
+        table = pd.read_excel(file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"])
+        table = filter_rows(table, filters)
+        print(self.name(), table.columns.tolist())
+
+        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-",
+                                                                                      regex=True)
+        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("--", "-")
+        table["Target_official_symbol"].apply(lambda x: x.lower() if "mir" in x.lower() else x.upper())
+        table["GENCODE_gene_name"] = table["GENCODE_gene_name"].str.upper()
+        lncrna2target_low_throughput_network = nx.from_pandas_edgelist(table,
+                                                                       source=source_col_name,
+                                                                       target=target_col_name,
+                                                                       edge_attr=edge_attr,
+                                                                       create_using=nx.DiGraph() if directed else nx.Graph())
+        return lncrna2target_low_throughput_network
+
+
+class lncRNome(Interactions, Database):
+    """Loads the lncRNome database from  .
+
+    Default path:  .
+    Default file_resources: {
+        "": "",
+        "": "",
+        "": "",
+    }
+    """
+
+    def __init__(self, path, file_resources, source_col_name='Gene Name', target_col_name='Binding miRNAs',
+                 source_index="gene_name", target_index="gene_name",
+                 edge_attr=["miRNA Interaction Site", "Transcript ID"], directed=True, relabel_nodes=None,
+                 blocksize=0):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["miRNA_binding_sites.txt"] = os.path.join(path, "miRNA_binding_sites.txt")
+            file_resources["general_information.txt"] = os.path.join(path, "general_information.txt")
+
+        super().__init__(path, file_resources=file_resources)
+
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
+                     blocksize=None):
+        df = pd.read_table(self.file_resources["miRNA_binding_sites.txt"], header=0)
+        print(self.name(), df.columns.tolist())
+
+        df['Binding miRNAs'] = df['Binding miRNAs'].str.lower()
+        df['Binding miRNAs'] = df['Binding miRNAs'].str.replace("-3p.*|-5p.*", "", regex=True)
+
+        lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source=source_col_name,
+                                                                       target=target_col_name,
+                                                                       edge_attr=edge_attr,
+                                                                       create_using=nx.DiGraph())
+
+        return lncRNome_miRNA_binding_sites_network
+
+    def load_dataframe(self, file_resources, blocksize=None):
+        return pd.read_table(self.file_resources["general_information.txt"], header=0,
+                             usecols=["Gene Name", "Transcript Name", "Transcript Type", "Location", "Strand"])
+
+
+class NPInter(Interactions):
+    """Loads the NPInter database from http://bigdata.ibp.ac.cn/npinter4/ .
+
+    Default path: "http://bigdata.ibp.ac.cn/npinter4/download/" .
+    Default file_resources: {
+        "interaction_NPInterv4.expr.txt": "file/interaction_NPInterv4.expr.txt.gz",
+    }
+    """
+    def __init__(self, path="http://bigdata.ibp.ac.cn/npinter4/download/", file_resources=None,
+                 source_col_name='ncName', target_col_name='tarName',
+                 source_index="gene_name", target_index="gene_name",
+                 edge_attr=["tarType", "tissueOrCell", "tag", 'class', "level"],
+                 filters=None,
+                 directed=True, relabel_nodes=None, verbose=False):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["interaction_NPInterv4.expr.txt.gz"] = \
+                os.path.join(path, "file/interaction_NPInterv4.expr.txt.gz")
+
+        super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
+                         target_col_name=target_col_name, source_index=source_index, target_index=target_index,
+                         edge_attr=edge_attr, filters=filters, directed=directed, relabel_nodes=relabel_nodes,
+                         verbose=verbose)
+
+    def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
+        df = pd.read_table(file_resources["interaction_NPInterv4.expr.txt"], header=0, na_values=["-"])
+        print(self.name(), df.columns.tolist())
+        df["ncName"] = df["ncName"].str.upper()
+        df["ncName"] = df["ncName"].str.strip("LNCRNA-")
+        df["ncName"] = df["ncName"].str.replace("MALAT-1", "MALAT1")
+        df["ncName"] = df["ncName"].str.replace("^MIR-", "hsa-mir-", regex=True)
+        df["ncName"] = df["ncName"].str.replace("^MICRORNA-", "hsa-mir-", regex=True)
+
+        df["tarName"] = df["tarName"].str.upper()
+
+        return df
+
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
+                     blocksize=None):
+        df = self.data
+        df = filter_rows(df, filters)
+
+        lncRNome_miRNA_binding_sites_network = nx.from_pandas_edgelist(df, source=source_col_name,
+                                                                       target=target_col_name,
+                                                                       edge_attr=edge_attr,
+                                                                       create_using=nx.DiGraph() if directed else nx.Graph())
+
+        return lncRNome_miRNA_binding_sites_network
+
+
+class StarBase(Interactions):
+    """Loads the  database from  .
+
+    Default path:  .
+    Default file_resources: {
+        "": "",
+        "": "",
+        "": "",
+    }
+    """
+
+    def __init__(self, path, file_resources, source_col_name="geneName", target_col_name="pairGeneName",
+                 source_index="gene_name", target_index="gene_name",
+                 min_interactionNum=1, min_expNum=1,
+                 edge_attr=None, directed=True, relabel_nodes=None, blocksize=0):
+        if file_resources is None:
+            file_resources = {}
+            file_resources["starbase_3.0_lncrna_rna_interactions.csv"] = \
+                os.path.join(path, "starbase_3.0_lncrna_rna_interactions.csv")
+        self.min_interactionNum = min_interactionNum
+        self.min_expNum = min_expNum
+        super().__init__(path, file_resources, source_col_name, target_col_name, source_index, target_index, edge_attr,
+                         directed, relabel_nodes, blocksize)
+
+    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
+                     blocksize=None):
+        df = pd.read_csv(self.file_resources["starbase_3.0_lncrna_rna_interactions.csv"], header=0)
+
+        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
+            "pairGeneName"].str.lower()
+        df.loc[df["pairGeneType"] == "miRNA", "pairGeneName"] = df[df["pairGeneType"] == "miRNA"][
+            "pairGeneName"].str.replace("-3p.*|-5p.*", "")
+        df = df[df["interactionNum"] >= self.min_interactionNum]
+        df = df[df["expNum"] >= self.min_expNum]
+
+        self.starBase_RNA_RNA_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
+                                                                edge_attr=["interactionNum"],
+                                                                create_using=nx.DiGraph())
+        return self.starBase_RNA_RNA_network

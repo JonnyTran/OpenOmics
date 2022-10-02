@@ -5,17 +5,17 @@ from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple, Optional, Iterable
 
 import numpy as np
-import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
 from logzero import logger
-from openomics.io.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
+import openomics
+from openomics.io.read_gtf import read_gtf
 from .base import Database
 from ..transforms.agg import get_agg_func
 
@@ -629,7 +629,7 @@ class MirBase(SequenceDatabase):
         path="http://mirbase.org/ftp/CURRENT/",
         file_resources=None,
         species_id: Optional[str] = '9606',
-        index_col: str = "mirbase id",
+        index_col: str = "mirbase_id",
         col_rename=None,
         **kwargs,
     ):
@@ -653,7 +653,7 @@ class MirBase(SequenceDatabase):
                                                        "id_mapping/database_mappings/mirbase.tsv"
 
         self.species_id = species_id
-        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, **kwargs)
+        super().__init__(path=path, file_resources=file_resources, index_col=index_col, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
@@ -663,10 +663,10 @@ class MirBase(SequenceDatabase):
         """
         rnacentral_mirbase = pd.read_table(
             file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
-            names=["RNAcentral id", "database", "mirbase id", "species_id", "RNA type", "NA"],
-            usecols=["RNAcentral id", "database", "mirbase id", "species_id", "RNA type"],
+            names=["RNAcentral id", "database", "mirbase_id", "species_id", "RNA type", "NA"],
+            usecols=["RNAcentral id", "database", "mirbase_id", "species_id", "RNA type"],
             index_col="RNAcentral id",
-            dtype={'mirbase id': 'str', "species_id": "category", 'database': 'category', 'RNA type': 'category'})
+            dtype={'mirbase_id': 'str', "species_id": "category", 'database': 'category', 'RNA type': 'category'})
 
         if isinstance(self.species_id, str):
             rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species_id"] == self.species_id]
@@ -674,15 +674,29 @@ class MirBase(SequenceDatabase):
             rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species_id"].isin(set(self.species_id))]
 
         mirbase_df = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
-                                   names=["mirbase id", "mirbase name"], index_col=self.index_col,
+                                   names=["mirbase_id", "mirbase_name"], index_col=self.index_col,
                                    dtype='str', )
         if mirbase_df.index.name == 'mirbase id':
-            mirbase_df = mirbase_df.join(rnacentral_mirbase, on='mirbase id', how="left", rsuffix='_rnacentral')
+            mirbase_df = mirbase_df.join(rnacentral_mirbase, on=self.index_col, how="left", rsuffix='_rnacentral')
         else:
-            mirbase_df = mirbase_df.merge(rnacentral_mirbase, on='mirbase id', how="left")
+            mirbase_df = mirbase_df.merge(rnacentral_mirbase, on=self.index_col, how="left")
 
         # Expanding miRNA names in each MirBase Ascension ID
-        mirbase_df['mirbase name'] = mirbase_df['mirbase name'].str.rstrip(";").str.split(";")
+        mirbase_df['mirbase_name'] = mirbase_df['mirbase_name'].str.rstrip(";").str.split(";")
+
+        seq_dfs = []
+        for filename in file_resources:
+            if filename.endswith('.fa') or filename.endswith('.fasta'):
+                assert isinstance(file_resources[filename], str), f"Must provide a path to an uncompressed .fa file. " \
+                                                                  f"Given {file_resources[filename]}"
+                df = self.load_sequences(file_resources[filename], index=self.index_col, keys=self.keys)
+                seq_dfs.append(df)
+
+        if len(seq_dfs):
+            seq_dfs = pd.concat(seq_dfs, axis=0)
+            mirbase_df = mirbase_df.join(seq_dfs, how='left', on=self.index_col)
+        else:
+            logger.info('Missing sequence data because no "hairpin.fa" or "mature.fa" file were given.')
 
         # mirbase_df = mirbase_df.explode(column='gene_name')
         # mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.lower()
@@ -693,8 +707,8 @@ class MirBase(SequenceDatabase):
     def load_sequences(self, fasta_file, index=None, keys=None, blocksize=None):
         """
         Args:
-            index ():
             fasta_file:
+            index ():
             keys ():
             blocksize:
         """
@@ -709,15 +723,21 @@ class MirBase(SequenceDatabase):
             record_dict = {
                 "gene_id": attrs[0],
                 "mirbase_id": attrs[1],
-                "gene_name": attrs[-2],
-                "species": " ".join(attrs[2:-3]),
-                "type": attrs[-1],
+                "species": intern(" ".join(attrs[2:4])),
+                "gene_name": attrs[4],
+                "type": intern(attrs[5]) if len(attrs) >= 6 else None,
                 SEQUENCE_COL: str(record),
             }
+            if keys is not None and index:
+                if record_dict[index] not in keys:
+                    del record_dict
+                    continue
 
             entries.append(record_dict)
 
         df = pd.DataFrame(entries)
+        if index:
+            df = df.set_index(index)
         # if blocksize:
         #     df = dd.from_pandas(df, chunksize=blocksize)
 
@@ -833,16 +853,19 @@ class RNAcentral(SequenceDatabase):
             if id_mapping is None:
                 raise Exception("Must provide a file with 'database_mappings/(*).tsv' in file_resources")
 
+            # Filter by species
             if isinstance(self.species_id, str):
                 id_mapping = id_mapping.where(id_mapping["species_id"] == self.species_id)
             elif isinstance(self.species_id, Iterable):
                 id_mapping = id_mapping.where(id_mapping["species_id"].isin(self.species_id))
 
+            # Filter by index
             if self.keys and id_mapping.index.name == self.index_col:
                 id_mapping = id_mapping.loc[id_mapping.index.isin(self.keys)]
             elif self.keys and id_mapping.index.name != self.index_col:
                 id_mapping = id_mapping.loc[id_mapping[self.index_col].isin(self.keys)]
 
+            # Add species_id prefix to index values
             if "RNAcentral id" in id_mapping.columns:
                 id_mapping["RNAcentral id"] = id_mapping["RNAcentral id"] + "_" + id_mapping["species_id"].astype(str)
             elif "RNAcentral id" == id_mapping.index.name:
@@ -858,6 +881,7 @@ class RNAcentral(SequenceDatabase):
             else:
                 logger.info(f"{fasta_filename} not provided for `{filename}` so missing sequencing data")
 
+            # Remove species_id prefix from index values if necessary
             if self.remove_version_num and 'gene symbol' in id_mapping.columns:
                 id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
             if self.remove_species_suffix:
