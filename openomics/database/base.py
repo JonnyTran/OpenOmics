@@ -194,7 +194,6 @@ class Database(object):
                 full file path.
             blocksize (int):
         """
-        raise NotImplementedError
 
     @classmethod
     def name(cls):
