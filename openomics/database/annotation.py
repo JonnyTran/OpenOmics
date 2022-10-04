@@ -12,6 +12,8 @@ from .base import Database
 DEFAULT_CACHE_PATH = os.path.join(expanduser("~"), ".openomics")
 DEFAULT_LIBRARY_PATH = os.path.join(expanduser("~"), ".openomics", "databases")
 
+__all__ = ['ProteinAtlas', 'GTEx', 'NONCODE', 'EnsemblGenes', 'EnsemblGeneSequences', 'EnsemblTranscriptSequences',
+           'EnsemblSNP', 'EnsemblSomaticVariation', 'TANRIC']
 
 class ProteinAtlas(Database):
     """Loads the  database from  .

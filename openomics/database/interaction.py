@@ -1,18 +1,21 @@
 import copy
-import warnings
+import gc
+import os
 from abc import abstractmethod
 from collections.abc import Iterable
 from typing import List, Dict, Any, Union
 
+import dask as dd
 import networkx as nx
+import pandas as pd
 from Bio import SeqIO
 from logzero import logger
-
-from openomics.database.annotation import *
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
 from openomics.transforms.df import filter_rows
 
+__all__ = ['STRING', 'GeneMania', 'IntAct', 'BioGRID', 'MiRTarBase', 'LncBase', 'TargetScan', 'LncReg', 'LncRNA2Target',
+           'lncRNome', 'NPInter', 'StarBase']
 
 class Interactions(Database):
     def __init__(self, path, file_resources: Dict, source_col_name: str = None, target_col_name: str = None,
@@ -43,18 +46,12 @@ class Interactions(Database):
                 A dictionary to rename nodes in the network, where the nodes with name <dict[key]> will be renamed to <dict[value]>
             blocksize ():
         """
-        # This class should NOT call super's __init__()
         super().__init__(path=path, file_resources=file_resources, blocksize=blocksize, **kwargs)
         self.source_index = source_index
         self.target_index = target_index
         self.network = self.load_network(file_resources=self.file_resources, source_col_name=source_col_name,
                                          target_col_name=target_col_name, edge_attr=edge_attr, directed=directed,
                                          filters=filters, blocksize=blocksize)
-
-        # self.network.name = self.name()
-        # if self.network is None:
-        #     raise Exception(
-        #         "Make sure load_network() returns a Networkx Graph and is called with super().__init__() in the constructor.")
 
         if relabel_nodes is not None:
             self.network = nx.relabel_nodes(self.network, mapping=relabel_nodes)
@@ -131,7 +128,7 @@ class STRING(Interactions, SequenceDatabase):
     COLUMNS_RENAME_DICT = {
         "#string_protein_id": "protein_id",
         "protein_external_id": "protein_id",
-        "preferred_name": "protein_name",
+        "preferred_name": "gene_name",
         'combined_score': "weight",
     }
 
@@ -140,7 +137,10 @@ class STRING(Interactions, SequenceDatabase):
                  source_col_name="protein1", target_col_name="protein2",
                  source_index="protein_name", target_index="protein_name",
                  edge_attr=['weight'], directed=False,
-                 relabel_nodes=None, index_col='#string_protein_id', blocksize=None, **kwargs):
+                 relabel_nodes=None,
+                 index_col='#string_protein_id',
+                 keys=None,
+                 blocksize=None, **kwargs):
         """
 
         Args:
@@ -182,8 +182,8 @@ class STRING(Interactions, SequenceDatabase):
         super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
                          target_col_name=target_col_name, source_index=source_index, target_index=target_index,
                          edge_attr=edge_attr, directed=directed, relabel_nodes=relabel_nodes,
-                         index_col=index_col,
-                         blocksize=blocksize, **kwargs)
+                         index_col=index_col, keys=keys,
+                         blocksize=blocksize, col_rename=STRING.COLUMNS_RENAME_DICT, **kwargs)
 
     def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
         # Load nodes
@@ -192,15 +192,16 @@ class STRING(Interactions, SequenceDatabase):
             for filename in [fn for fn, path in file_resources.items() \
                              if 'info.txt' in fn and isinstance(path, str)]:
                 compression = 'gzip' if filename.endswith(".gz") else None
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore')
-                    df = dd.read_table(file_resources[filename], na_values=['annotation not available'],
-                                       low_memory=True, compression=compression,
-                                       dtype={'protein_size': 'int8'},
-                                       blocksize=None if isinstance(blocksize, bool) else blocksize)
+                df = dd.read_table(file_resources[filename], na_values=['annotation not available'],
+                                   low_memory=True, compression=compression,
+                                   dtype={'protein_size': 'int8'},
+                                   blocksize=None if isinstance(blocksize, bool) else blocksize)
 
                 if self.keys is not None:
                     df = df.loc[df[self.index_col].isin(self.keys)]
+
+                index_split = df['#string_protein_id'].str.split(".", expand=True, n=1)
+                df = df.assign(species_id=index_split[0], protein_embl_id=index_split[1])
 
                 if self.index_col:
                     df = df.set_index(self.index_col, sorted=True)
@@ -211,15 +212,13 @@ class STRING(Interactions, SequenceDatabase):
                     df = pd.read_table(file_resources[filename], na_values=['annotation not available'],
                                        dtype={'protein_size': 'int8'},
                                        index_col=self.index_col, low_memory=True)
+                    index_split = df['#string_protein_id'].str.split(".", expand=True, n=1)
+                    df = df.assign(species_id=index_split[0], protein_embl_id=index_split[1])
                     data_dfs.append(df)
 
         # Need to load .data df first
         nodes_df = dd.concat(data_dfs, axis=0, interleave_partitions=True) \
             if blocksize else pd.concat(data_dfs, axis=0)
-        logger.info(f"nodes_df {nodes_df.columns}")
-        nodes_df = nodes_df.rename(columns=self.COLUMNS_RENAME_DICT)
-        if nodes_df.index.name in self.COLUMNS_RENAME_DICT:
-            nodes_df.index = nodes_df.index.rename(self.COLUMNS_RENAME_DICT[nodes_df.index.name])
 
         return nodes_df
 
@@ -227,29 +226,28 @@ class STRING(Interactions, SequenceDatabase):
                      blocksize=None):
         # Load edges
         edges_dfs = []
-        if blocksize:
-            for filename in [fn for fn, path in file_resources.items() \
-                             if "links.txt" in fn and isinstance(path, str)]:
+        keys = self.data.index.compute() if isinstance(self.data, dd.DataFrame) else self.data.index
+
+        for filename in [fn for fn, path in file_resources.items() \
+                         if "links.txt" in fn and isinstance(path, str)]:
+            if blocksize:
                 compression = 'gzip' if filename.endswith(".gz") else None
-                with warnings.catch_warnings():
-                    warnings.simplefilter('ignore')
-                    df: dd.DataFrame = dd.read_table(file_resources[filename], sep=" ", low_memory=True,
-                                                     compression=compression,
-                                                     blocksize=None if isinstance(blocksize, bool) else blocksize)
+                df: dd.DataFrame = dd.read_table(file_resources[filename], sep=" ", low_memory=True,
+                                                 compression=compression,
+                                                 blocksize=None if isinstance(blocksize, bool) else blocksize)
+
                 if compression:
                     logger.info(f"Repartitioning {filename} from {df.npartitions} "
                                 f"partitions to {blocksize}-size partitions")
                     df = df.repartition(partition_size=blocksize)
 
-                if self.keys is not None:
-                    df = df.loc[df['protein1'].isin(self.keys) | df['protein2'].isin(self.keys)]
-                edges_dfs.append(df)
-        else:
-            for filename in file_resources:
-                if filename.endswith("links.txt"):
-                    df = pd.read_table(file_resources[filename], sep=" ", low_memory=True)
-                    edges_dfs.append(df)
+            else:
+                df = pd.read_table(file_resources[filename], sep=" ", low_memory=True)
 
+            df = df.loc[df['protein1'].isin(keys) | df['protein2'].isin(keys)]
+            edges_dfs.append(df)
+
+        # Concatenate multiple edgelists into dataframe
         edges_df = dd.concat(edges_dfs, axis=0) if blocksize else pd.concat(edges_dfs, axis=0)
         edges_df = edges_df.rename(columns=self.COLUMNS_RENAME_DICT)
         logger.info(f"{self.name()}-{self.species_id}: {edges_df.columns.tolist()}, {edges_df.shape}")
@@ -265,6 +263,8 @@ class STRING(Interactions, SequenceDatabase):
         # return None
         # Add edgelist to nx Graph
         if blocksize:
+            edges_df: dd.DataFrame
+
             def edgelist2graph(edgelist_df: pd.DataFrame) -> nx.Graph():
                 if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo': return
                 G = nx.from_pandas_edgelist(edgelist_df, source=source_col_name, target=target_col_name,
@@ -272,9 +272,10 @@ class STRING(Interactions, SequenceDatabase):
                 return G
 
             # Add edges to Networkx Graph
-            edges_df: dd.DataFrame
             graphs_df = edges_df.map_partitions(edgelist2graph, meta=pd.Series([nx.Graph])).compute()
             G = nx.compose_all(graphs_df.values)
+            del graphs_df, edges_df
+            gc.collect()
 
         else:
             G = nx.from_pandas_edgelist(edges_df, source=source_col_name, target=target_col_name,
@@ -403,7 +404,13 @@ class BioGRID(Interactions):
                     # usecols=['Official Symbol Interactor A', 'Official Symbol Interactor B',
                     #          'Organism Interactor A', 'Score', 'Throughput', 'Qualifications',
                     #          'Modification', 'Phenotypes', 'Source Database'],
-                    dtype={'Score': 'float', 'Entrez Gene Interactor A': 'str', 'Entrez Gene Interactor B': 'str',
+                    dtype={'Score': 'float', 'Entrez Gene Interactor A': 'category',
+                           'Entrez Gene Interactor B': 'category',
+                           'BioGRID ID Interactor A': 'category', 'BioGRID ID Interactor B': 'category',
+                           'Systematic Name Interactor A': 'category', 'Systematic Name Interactor B': 'category',
+                           'Official Symbol Interactor A': 'category', 'Official Symbol Interactor B': 'category',
+                           'Pubmed ID': 'str', 'Throughput': 'category', 'Experimental System Type': 'category',
+                           'Experimental System': 'category', 'Modification': 'category', 'Source Database': 'category',
                            'Organism Interactor A': 'category', 'Organism Interactor B': 'category'})
 
         if blocksize:
@@ -415,7 +422,6 @@ class BioGRID(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
                      blocksize=None):
-        return
         df = self.data
         df = filter_rows(df, filters)
         network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
@@ -427,13 +433,13 @@ class BioGRID(Interactions):
 class MiRTarBase(Interactions):
     """Loads the  database from  .
 
-            Default path:  .
-            Default file_resources: {
-                "": "",
-                "": "",
-                "": "",
-            }
-            """
+        Default path:  .
+        Default file_resources: {
+            "": "",
+            "": "",
+            "": "",
+        }
+        """
 
     def __init__(self, path="http://mirtarbase.mbc.nctu.edu.tw/cache/download/7.0/", file_resources=None,
                  source_col_name="miRNA", target_col_name="Target Gene",

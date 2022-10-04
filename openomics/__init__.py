@@ -55,25 +55,13 @@ if os.path.isfile(user_conf_path):
     except Exception as e:
         logging.info("Could not import configurations from", user_conf_path)
 
-# Import submodule
+# Import submodules
 
-from .transcriptomics import (
-    Expression, MessengerRNA, MicroRNA, LncRNA,
-)
-
-from .genomics import (
-    SomaticMutation, DNAMethylation, CopyNumberVariation
-)
-
-from .proteomics import (
-    Protein
-)
-
-from .clinical import ClinicalData
-
-from .multiomics import (
-    MultiOmics
-)
+from .transcriptomics import *
+from .genomics import *
+from .proteomics import *
+from .clinical import *
+from .multiomics import *
 
 
 def set_backend(new: str = "pandas"):
@@ -82,7 +70,7 @@ def set_backend(new: str = "pandas"):
     Args:
         new (str): Either "dask" or "pandas". Default "pandas.
     """
-    assert new in ["dask", "pandas"]
+    assert new in ["dask", "pandas", "modin"]
 
     if new == "dask":
         this.config["backend"] = dd
