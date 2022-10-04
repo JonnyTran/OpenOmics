@@ -76,7 +76,7 @@ class Database(object):
         self.file_resources = self.load_file_resources(path, file_resources=file_resources, verbose=verbose)
 
         self.data = self.load_dataframe(self.file_resources, blocksize=blocksize)
-        if col_rename is not None:
+        if self.data is not None and col_rename is not None:
             self.data = self.data.rename(columns=col_rename)
             if self.data.index.name in col_rename:
                 self.data.index = self.data.index.rename(col_rename[self.data.index.name])
