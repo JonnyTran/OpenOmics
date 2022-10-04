@@ -1,13 +1,14 @@
 import copy
-import gc
 import os
 from abc import abstractmethod
 from collections.abc import Iterable
 from typing import List, Dict, Any, Union
 
-import dask as dd
+import dask.dataframe as dd
 import networkx as nx
+import numpy as np
 import pandas as pd
+import scipy.sparse as ssp
 from Bio import SeqIO
 from logzero import logger
 from openomics.database.base import Database
@@ -100,7 +101,7 @@ class Interactions(Database):
 
         g = self.network
         if relabel_nodes:
-            g = nx.relabel_nodes(g, relabel_nodes)
+            g = nx.relabel_nodes(g, relabel_nodes, copy=False)
 
         if nodelist is None:
             return g.edges(data=data)
@@ -222,8 +223,8 @@ class STRING(Interactions, SequenceDatabase):
 
         return nodes_df
 
-    def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
-                     blocksize=None):
+    def load_network(self, file_resources, source_col_name='protein1', target_col_name='protein2',
+                     edge_attr='weight', directed=False, filters=None, blocksize=None):
         # Load edges
         edges_dfs = []
         keys = self.data.index.compute() if isinstance(self.data, dd.DataFrame) else self.data.index
@@ -244,7 +245,7 @@ class STRING(Interactions, SequenceDatabase):
             else:
                 df = pd.read_table(file_resources[filename], sep=" ", low_memory=True)
 
-            df = df.loc[df['protein1'].isin(keys) | df['protein2'].isin(keys)]
+            df = df.loc[df[source_col_name].isin(keys) & df[target_col_name].isin(keys)]
             edges_dfs.append(df)
 
         # Concatenate multiple edgelists into dataframe
@@ -260,29 +261,42 @@ class STRING(Interactions, SequenceDatabase):
         else:
             use_attrs = False
 
-        # return None
-        # Add edgelist to nx Graph
+        # Set ordering for rows and columns
+        node2idx = {node: i for i, node in enumerate(keys)}
+
         if blocksize:
             edges_df: dd.DataFrame
 
-            def edgelist2graph(edgelist_df: pd.DataFrame) -> nx.Graph():
-                if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo': return
-                G = nx.from_pandas_edgelist(edgelist_df, source=source_col_name, target=target_col_name,
-                                            edge_attr=use_attrs, create_using=nx.DiGraph() if directed else nx.Graph())
-                return G
+            def edgelist2graph(edgelist_df: pd.DataFrame) -> ssp.coo_matrix:
+                if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo':
+                    return ssp.coo_matrix((len(keys), len(keys)), dtype=np.float)
+                edgelist_df['row'] = edgelist_df[source_col_name].map(node2idx).astype('int')
+                edgelist_df['col'] = edgelist_df[target_col_name].map(node2idx).astype('int')
+                edgelist_df = edgelist_df.dropna(subset=['row', 'col'])
+                if edgelist_df.shape[0] == 0:
+                    return ssp.coo_matrix((len(keys), len(keys)), dtype=np.float)
 
-            # Add edges to Networkx Graph
-            graphs_df = edges_df.map_partitions(edgelist2graph, meta=pd.Series([nx.Graph])).compute()
-            G = nx.compose_all(graphs_df.values)
-            del graphs_df, edges_df
-            gc.collect()
+                coo_adj = ssp.coo_matrix((edgelist_df['weight'], (edgelist_df['row'], edgelist_df['col'])),
+                                         shape=(len(keys), len(keys)))
+                return coo_adj
+
+            # Create a sparse adjacency matrix each partition, then combine them
+            adj = edges_df.reduction(chunk=edgelist2graph,
+                                     aggregate=lambda x: x.sum(),
+                                     meta=pd.Series([ssp.coo_matrix])).compute()
+            assert len(adj) == 1, f"len(adj) = {len(adj)}"
+
+            G = nx.from_scipy_sparse_matrix(adj[0], create_using=nx.DiGraph() if directed else nx.Graph())
+
+            idx2node = {i: node for i, node in enumerate(keys)}
+            G = nx.relabel_nodes(G, mapping=idx2node, copy=False)
+            # del graphs_df, edges_df
+            # gc.collect()
 
         else:
             G = nx.from_pandas_edgelist(edges_df, source=source_col_name, target=target_col_name,
                                         edge_attr=use_attrs, create_using=nx.DiGraph() if directed else nx.Graph())
 
-        # self.protein_id2name = nodes_df.set_index("protein_id")["protein_name"].to_dict()
-        # network = nx.relabel_nodes(network, self.protein_id2name)
         return G
 
     def get_sequences(self, index="protein_id", omic=None, agg=None):
