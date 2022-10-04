@@ -8,14 +8,13 @@ from urllib.error import URLError
 
 import dask.dataframe as dd
 import filetype
+import openomics
 import rarfile
 import requests
 import sqlalchemy as sa
 import validators
 from astropy.utils import data
 from requests.adapters import HTTPAdapter, Retry
-
-import openomics
 
 
 # @astropy.config.set_temp_cache(openomics.config["cache_dir"])
@@ -69,12 +68,12 @@ def decompress_file(filepath: Path, filename: str, file_ext: filetype.Type) \
     elif file_ext.extension == "gz":
         logging.info("Decompressed gzip file at {}".format(filepath))
         data = gzip.open(filepath, "rt")
-        filename = filename.removesuffix(".gz")
+        filename = filename.replace(".gz", "")
 
     elif file_ext.extension == "zip":
         logging.info("Decompressed zip file at {}".format(filepath))
         zf = zipfile.ZipFile(filepath, "r")
-        filename = filename.removesuffix(".zip")
+        filename = filename.replace(".zip", "")
 
         for subfile in zf.infolist():
             # If the file extension matches
@@ -84,7 +83,7 @@ def decompress_file(filepath: Path, filename: str, file_ext: filetype.Type) \
     elif file_ext.extension == "rar":
         logging.info("Decompressed rar file at {}".format(filepath))
         rf = rarfile.RarFile(filepath, "r")
-        filename = filename.removesuffix(".rar")
+        filename = filename.replace(".rar", "")
 
         for subfile in rf.infolist():
             # If the file extension matches
