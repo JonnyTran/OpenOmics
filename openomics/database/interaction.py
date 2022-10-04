@@ -217,7 +217,6 @@ class STRING(Interactions, SequenceDatabase):
                     df = df.assign(species_id=index_split[0], protein_embl_id=index_split[1])
                     data_dfs.append(df)
 
-        # Need to load .data df first
         nodes_df = dd.concat(data_dfs, axis=0, interleave_partitions=True) \
             if blocksize else pd.concat(data_dfs, axis=0)
 
@@ -267,7 +266,7 @@ class STRING(Interactions, SequenceDatabase):
         if blocksize:
             edges_df: dd.DataFrame
 
-            def edgelist2graph(edgelist_df: pd.DataFrame) -> ssp.coo_matrix:
+            def edgelist2adj(edgelist_df: pd.DataFrame) -> ssp.coo_matrix:
                 if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo':
                     return ssp.coo_matrix((len(keys), len(keys)), dtype=np.float)
                 edgelist_df['row'] = edgelist_df[source_col_name].map(node2idx).astype('int')
@@ -281,7 +280,7 @@ class STRING(Interactions, SequenceDatabase):
                 return coo_adj
 
             # Create a sparse adjacency matrix each partition, then combine them
-            adj = edges_df.reduction(chunk=edgelist2graph,
+            adj = edges_df.reduction(chunk=edgelist2adj,
                                      aggregate=lambda x: x.sum(),
                                      meta=pd.Series([ssp.coo_matrix])).compute()
             assert len(adj) == 1, f"len(adj) = {len(adj)}"

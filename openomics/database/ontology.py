@@ -208,7 +208,7 @@ class GeneOntology(Ontology):
     def __init__(
         self,
         path="http://geneontology.org/gene-associations/",
-        species=None,
+        species='human',
         file_resources=None,
         index_col='DB_Object_Symbol',
         keys=None,
@@ -234,13 +234,16 @@ class GeneOntology(Ontology):
         """
         if species and not hasattr(self, 'species'):
             self.species = species.lower()
+        elif species is None:
+            self.species = 'uniprot'
 
         if file_resources is None:
             file_resources = {
-                f"goa_{species.lower()}.gaf.gz": f"goa_{species.lower()}.gaf.gz",
-                f"goa_{species.lower()}_rna.gaf.gz": f"goa_{species.lower()}_rna.gaf.gz",
-                f"goa_{species.lower()}_isoform.gaf.gz": f"goa_{species.lower()}_isoform.gaf.gz",
+                f"goa_{self.species}.gaf.gz": f"goa_{self.species}.gaf.gz",
             }
+            if species != 'uniprot':
+                file_resources[f"goa_{self.species}_rna.gaf.gz"] = f"goa_{self.species}_rna.gaf.gz"
+                file_resources[f"goa_{self.species}_isoform.gaf.gz"] = f"goa_{self.species}_isoform.gaf.gz"
 
         if not any('.obo' in file for file in file_resources):
             warnings.warn(
@@ -652,7 +655,7 @@ class InterPro(Ontology):
         row2idx = {node: i for i, node in enumerate(row_order)}
         col2idx = {node: i for i, node in enumerate(col_order)}
 
-        def edgelist2graph(edgelist_df: DataFrame, source='UniProtKB-AC', target='ENTRY_AC') -> ssp.coo_matrix:
+        def edgelist2adj(edgelist_df: DataFrame, source='UniProtKB-AC', target='ENTRY_AC') -> ssp.coo_matrix:
             if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo': return
 
             if edgelist_df.index.name == source:
@@ -671,7 +674,7 @@ class InterPro(Ontology):
             return coo
 
         # Create a sparse adjacency matrix each partition, then combine them
-        graphs = annotations.map_partitions(edgelist2graph, meta=pd.Series([ssp.coo_matrix])).compute()
+        graphs = annotations.map_partitions(edgelist2adj, meta=pd.Series([ssp.coo_matrix])).compute()
         adj = sum(graphs.dropna())
 
         # Create a sparse matrix of UniProtKB-AC x ENTRY_AC
@@ -705,7 +708,7 @@ class InterPro(Ontology):
 
         return network, node_list
 
-    def parse_ipr_treefile(self, lines: Union[Iterable[str], StringIO]) -> nx.MultiDiGraph:
+    def parse_ipr_treefile(self, lines: Union[List[str], StringIO]) -> nx.MultiDiGraph:
         """Parse the InterPro Tree from the given file.
         Args:
             lines: A readable file or file-like
