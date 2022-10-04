@@ -9,6 +9,7 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
+import scipy.sparse as ssp
 from networkx import NetworkXError
 from openomics.io.read_gaf import read_gaf
 from openomics.transforms.adj import slice_adj
@@ -17,6 +18,7 @@ from pandas import DataFrame
 
 from .base import Database
 
+__all__ = ['GeneOntology', 'UniProtGOA', 'InterPro', 'HumanPhenotypeOntology', ]
 
 class Ontology(Database):
     annotations: pd.DataFrame
@@ -626,7 +628,8 @@ class InterPro(Ontology):
         # Load
         args = dict(names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
                     usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
-                    dtype={'UniProtKB-AC': 'str', 'ENTRY_AC': 'str', 'start': 'int8', 'stop': 'int8'}, low_memory=True,
+                    dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category', 'start': 'int8', 'stop': 'int8'},
+                    low_memory=True,
                     blocksize=None if isinstance(blocksize, bool) else blocksize)
         if 'protein2ipr.parquet' in file_resources:
             annotations = dd.read_parquet(file_resources["protein2ipr.parquet"])
@@ -638,25 +641,41 @@ class InterPro(Ontology):
         elif self.keys is not None and self.index_col == annotations.index.name:
             annotations = annotations.loc[annotations.index.isin(self.keys)]
 
-        if annotations.index.name != self.index_col:
-            annotations = annotations.set_index(self.index_col, sorted=True)
-        if not annotations.known_divisions:
-            annotations.divisions = annotations.compute_current_divisions()
+        # if annotations.index.name != self.index_col:
+        #     annotations = annotations.set_index(self.index_col, sorted=True)
+        # if not annotations.known_divisions:
+        #     annotations.divisions = annotations.compute_current_divisions()
 
-        # Create a Networkx Graph each partition, then combine them
-        def edgelist2graph(edgelist_df: DataFrame) -> None:
+        # Set ordering for rows and columns
+        row_order = self.keys
+        col_order = ipr_entries.index
+        row2idx = {node: i for i, node in enumerate(row_order)}
+        col2idx = {node: i for i, node in enumerate(col_order)}
+
+        def edgelist2graph(edgelist_df: DataFrame, source='UniProtKB-AC', target='ENTRY_AC') -> ssp.coo_matrix:
             if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo': return
-            g = nx.from_pandas_edgelist(edgelist_df.reset_index(), source='UniProtKB-AC', target='ENTRY_AC',
-                                        edge_attr=['start', 'stop'], create_using=nx.MultiDiGraph())
-            return g
 
-        graphs = annotations.map_partitions(edgelist2graph, meta=pd.Series([nx.MultiDiGraph()])).compute()
-        G = nx.compose_all(graphs.values)
+            if edgelist_df.index.name == source:
+                source_nodes = edgelist_df.index
+            else:
+                source_nodes = edgelist_df[source]
+            edgelist_df['row'] = source_nodes.map(row2idx).astype('int')
+            edgelist_df['col'] = edgelist_df[target].map(col2idx).astype('int')
+            edgelist_df = edgelist_df.dropna(subset=['row', 'col'])
+            if edgelist_df.shape[0] == 0:
+                return
+
+            values = np.ones(edgelist_df.index.size)
+            coo = ssp.coo_matrix((values, (edgelist_df['row'], edgelist_df['col'])),
+                                 shape=(len(row2idx), ipr_entries.index.size))
+            return coo
+
+        # Create a sparse adjacency matrix each partition, then combine them
+        graphs = annotations.map_partitions(edgelist2graph, meta=pd.Series([ssp.coo_matrix])).compute()
+        adj = sum(graphs.dropna())
 
         # Create a sparse matrix of UniProtKB-AC x ENTRY_AC
-        adj = nx.bipartite.biadjacency_matrix(G, row_order=self.keys.tolist(), column_order=ipr_entries.index,
-                                              weight='weight', format='csc')
-        self.annotations = pd.DataFrame.sparse.from_spmatrix(adj, index=self.keys, columns=ipr_entries.index)
+        self.annotations = pd.DataFrame.sparse.from_spmatrix(adj, index=row_order, columns=col_order)
 
         return ipr_entries
 

@@ -19,6 +19,7 @@ from ..io.files import get_pkg_data_filename, decompress_file
 from ..transforms.agg import get_multi_aggregators, merge_concat
 from ..transforms.df import drop_duplicate_columns
 
+__all__ = ['Database', 'Annotatable']
 
 class Database(object):
     """This is a base class used to instantiate an external Database given a a set
@@ -73,6 +74,7 @@ class Database(object):
         self.verbose = verbose
 
         self.file_resources = self.load_file_resources(path, file_resources=file_resources, verbose=verbose)
+
         self.data = self.load_dataframe(self.file_resources, blocksize=blocksize)
         if col_rename is not None:
             self.data = self.data.rename(columns=col_rename)
@@ -108,7 +110,7 @@ class Database(object):
             base_path = os.path.expanduser(base_path)
 
         for filename, filepath in file_resources.items():
-            if filepath:
+            if filepath.startswith("~"):
                 filepath = os.path.expanduser(filepath)
 
             # Remote database file URL

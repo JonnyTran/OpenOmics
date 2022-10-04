@@ -1,6 +1,6 @@
 from openomics.database.base import Annotatable
 from openomics.transcriptomics import Expression
-
+__all__ = ['SomaticMutation', 'DNAMethylation', 'CopyNumberVariation']
 
 class SingleNucleotideVariants(Expression, Annotatable):
     def __init__(self, data, transpose, gene_index, usecols=None, gene_level=None, sample_level="sample_index",

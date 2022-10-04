@@ -1,8 +1,9 @@
 from abc import abstractmethod
 
-from openomics.database.annotation import *
+import pandas as pd
 from openomics.database.base import Database, Annotatable
 
+__all__ = ['DiseaseAssociation', 'MalaCards', 'DisGeNet', 'HMDD', 'LncRNADisease']
 
 class DiseaseAssociation(Database):
     def __init__(self, path, file_resources=None, **kwargs):

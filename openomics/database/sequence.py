@@ -5,19 +5,22 @@ from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple, Optional, Iterable
 
 import numpy as np
+import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
 from logzero import logger
+from openomics.io.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
-import openomics
-from openomics.io.read_gtf import read_gtf
 from .base import Database
 from ..transforms.agg import get_agg_func
+from ..transforms.df import drop_duplicate_columns
+
+__all__ = ['GENCODE', 'UniProt', 'MirBase', 'RNAcentral']
 
 SEQUENCE_COL = 'sequence'
 
@@ -36,7 +39,7 @@ class SequenceDatabase(Database):
 
     @abstractmethod
     def load_sequences(self, fasta_file: str, index=None, keys: Union[pd.Index, List[str]] = None, blocksize=None) \
-        -> Union[pd.DataFrame, Dict]:
+        -> pd.DataFrame:
         """Returns a pandas DataFrame containing the fasta sequence entries.
         With a column named 'sequence'.
 
@@ -395,11 +398,12 @@ class UniProt(SequenceDatabase):
             idmapping = idmapping.assign(**self.assign_transforms(idmapping))
 
         # Join metadata from uniprot_sprot.parquet
-        if 'uniprot_sprot.parquet' in file_resources or 'uniprot_trembl.parquet' in file_resources:
-            uniprot = self.load_uniprot_parquet(file_resources, blocksize=blocksize)
-            to_join = uniprot[uniprot.columns.difference(idmapping.columns)]
-            assert idmapping.index.name == to_join.index.name, f"{idmapping.index.name} != {to_join.index.name}"
-            idmapping = idmapping.join(to_join, on=idmapping.index.name, how='left')
+        if any(fn.startswith('uniprot') and fn.endswith('.parquet') for fn in file_resources):
+            uniprot_anns = self.load_uniprot_parquet(file_resources, blocksize=blocksize)
+            uniprot_anns = uniprot_anns[uniprot_anns.columns.difference(idmapping.columns)]
+            uniprot_anns = drop_duplicate_columns(uniprot_anns)
+            assert idmapping.index.name == uniprot_anns.index.name, f"{idmapping.index.name} != {uniprot_anns.index.name}"
+            idmapping = idmapping.join(uniprot_anns, on=idmapping.index.name, how='left')
 
         # Load proteome.tsv
         if "proteomes.tsv" in file_resources:
@@ -874,7 +878,8 @@ class RNAcentral(SequenceDatabase):
             # Add sequence column from FASTA file of the same database
             fasta_filename = f"{filename.split('/')[-1].split('.')[0]}.fasta"
             if fasta_filename in file_resources:
-                id_mapping = id_mapping.merge(self.load_sequences(file_resources[fasta_filename]), how='left',
+                seq_df = self.load_sequences(file_resources[fasta_filename])
+                id_mapping = id_mapping.merge(seq_df, how='left',
                                               left_on="RNAcentral id",
                                               left_index=True if id_mapping.index.name == "RNAcentral id" else False,
                                               right_index=True)
@@ -920,8 +925,7 @@ class RNAcentral(SequenceDatabase):
             # Groupby on index
             anns_groupby: dd.DataFrame = anns \
                 .groupby(by=lambda idx: idx) \
-                .agg({col: get_agg_func('unique', use_dask=True) for col in ["GO terms", 'Rfams']}) \
-                .persist()
+                .agg({col: get_agg_func('unique', use_dask=True) for col in ["GO terms", 'Rfams']})
         else:
             anns = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], index_col='RNAcentral id', **args)
             idx = transcripts_df.index.compute() if isinstance(transcripts_df, dd.DataFrame) else transcripts_df.index

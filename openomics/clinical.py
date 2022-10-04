@@ -5,7 +5,6 @@ from typing import List, Union
 import dask.dataframe as dd
 import pandas as pd
 import validators
-
 from openomics.io.files import get_pkg_data_filename
 
 BCR_PATIENT_BARCODE_COL = "bcr_patient_barcode"
@@ -17,6 +16,7 @@ PREDICTED_SUBTYPE_COL = 'predicted_subtype'
 TUMOR = "Tumor"
 NORMAL = "Normal"
 
+__all__ = ['ClinicalData']
 
 class ClinicalData:
     """This class manages the clinical data tables to handle the patient's
@@ -178,29 +178,3 @@ class ClinicalData:
         return self.sample_barcodes
 
 
-
-# class DrugResponse():
-#     def __init__(self, drugs_file_path="nationwidechildrens.org_clinical_drug.txt", patient_column="bcr_patient_barcode",
-#                  columns=['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name', 'pharmaceutical_therapy_type', 'treatment_best_response'],
-#                  drug_name_col=None, response_column=None):
-#         self.drug_name_col = drug_name_col
-#         self.response_column = response_column
-#
-#         self.drugs = pd.read_table(drugs_file_path,
-#                                    sep="\t",
-#                                    skiprows=[1, 2],
-#                                    na_values=["[Not Available]", "[Unknown]", "[Not Applicable]"],
-#                                    usecols=columns
-#                                    )
-#         self.drugs.set_index(patient_column, inplace=True)
-
-
-# class Biospecimen():
-#     def __init__(self, biospecimens_file="genome.wustl.edu_biospecimen_sample.txt", patient_col_name="bcr_patient_barcode",
-#                  columns=['bcr_sample_barcode', 'sample_type']):
-#         self.biospecimen = pd.read_table(biospecimens_file, sep="\t", skiprows=[1, ],
-#                                          na_values=["[Not Available]", "[Unknown]", "[Not Applicable]"],
-#                                          usecols=columns
-#                                          )
-#         self.sample_barcodes = self.biospecimen[patient_col_name].tolist()
-#         self.biospecimen.set_index(patient_col_name, inplace=True)
