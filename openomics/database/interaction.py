@@ -118,10 +118,11 @@ class STRING(Interactions, SequenceDatabase):
 
     Default path: "https://stringdb-static.org/download/" .
     Default file_resources: {
-        "protein.actions.txt": f"protein.actions.v11.0/{species_id}.protein.actions.v11.0.txt.gz",
-        "protein.links.txt": f"protein.links.v11.0/{species_id}.protein.links.v11.0.txt.gz",
-        "protein.info.txt": f"protein.info.v11.0/{species_id}.protein.info.v11.0.txt.gz",
-        "protein.sequences.fa": f"protein.sequences.v11.0/{species_id}.protein.sequences.v11.0.fa.gz"
+        "{species_id}.protein.info.txt.gz": f"protein.info.{version}/{species_id}.protein.info.{version}.txt.gz",
+        "{species_id}.protein.aliases.txt.gz": f"protein.links.{version}/{species_id}.protein.aliases.{version}.txt.gz",
+        "{species_id}.protein.links.txt.gz": f"protein.links.{version}/{species_id}.protein.links.{version}.txt.gz",
+        "{species_id}.protein.actions.txt.gz": f"protein.actions.{version}/{species_id}.protein.actions.{version}.txt.gz",
+        "{species_id}.protein.sequences.fa.gz": f"protein.sequences.{version}/{species_id}.protein.sequences.{version}.fa.gz"
     }
 
     Edge attributes for protein.actions.txt include ["mode", 'action', 'is_directional', 'a_is_acting' "score"]
@@ -151,8 +152,9 @@ class STRING(Interactions, SequenceDatabase):
             path ():
             file_resources ():
             species_id (): List of str of species id's
-                Must provide species_id number to download the species-specific STRING dataset.
-
+                Provide a species_id string or a list of species_id's to download the species-specific STRING dataset, and
+                integrate them. If species_id is None, then download the full-dataset version of STRING, which is very
+                time-consuming.
             version ():
             source_col_name ():
             target_col_name ():
@@ -172,21 +174,21 @@ class STRING(Interactions, SequenceDatabase):
             file_resources = {}
             if isinstance(species_id, (Iterable, str)) and len(species_id):
                 species_list = [species_id] if isinstance(species_id, str) else species_id
-                for id in species_list:
-                    file_resources[f"{id}.protein.info.txt.gz"] = \
-                        os.path.join(path, f"protein.info.{version}/{id}.protein.info.{version}.txt.gz")
-                    file_resources[f"{id}.protein.links.txt.gz"] = \
-                        os.path.join(path, f"protein.links.{version}/{id}.protein.links.{version}.txt.gz")
-                    file_resources[f"{id}.protein.homology.txt.gz"] = \
-                        os.path.join(path, f"protein.homology.{version}/{id}.protein.homology.{version}.txt.gz")
-                    file_resources[f"{id}.clusters.proteins.txt.gz"] = \
-                        os.path.join(path, f"clusters.proteins.{version}/{id}.clusters.proteins.{version}.txt.gz")
-                    file_resources[f"{id}.protein.aliases.txt.gz"] = \
-                        os.path.join(path, f"protein.aliases.{version}/{id}.protein.aliases.{version}.txt.gz")
-                    file_resources[f"{id}.enrichment.terms.txt.gz"] = \
-                        os.path.join(path, f"enrichment.terms.{version}/{id}.enrichment.terms.{version}.txt.gz")
-                    file_resources[f"{id}.protein.sequences.fa.gz"] = \
-                        os.path.join(path, f"protein.sequences.{version}/{id}.protein.sequences.{version}.fa.gz")
+                for species in species_list:
+                    file_resources[f"{species}.protein.info.txt.gz"] = \
+                        os.path.join(path, f"protein.info.{version}/{species}.protein.info.{version}.txt.gz")
+                    file_resources[f"{species}.protein.links.txt.gz"] = \
+                        os.path.join(path, f"protein.links.{version}/{species}.protein.links.{version}.txt.gz")
+                    file_resources[f"{species}.protein.homology.txt.gz"] = \
+                        os.path.join(path, f"protein.homology.{version}/{species}.protein.homology.{version}.txt.gz")
+                    file_resources[f"{species}.clusters.proteins.txt.gz"] = \
+                        os.path.join(path, f"clusters.proteins.{version}/{species}.clusters.proteins.{version}.txt.gz")
+                    file_resources[f"{species}.protein.aliases.txt.gz"] = \
+                        os.path.join(path, f"protein.aliases.{version}/{species}.protein.aliases.{version}.txt.gz")
+                    file_resources[f"{species}.enrichment.terms.txt.gz"] = \
+                        os.path.join(path, f"enrichment.terms.{version}/{species}.enrichment.terms.{version}.txt.gz")
+                    file_resources[f"{species}.protein.sequences.fa.gz"] = \
+                        os.path.join(path, f"protein.sequences.{version}/{species}.protein.sequences.{version}.fa.gz")
             else:
                 file_resources["protein.info.txt.gz"] = os.path.join(path, f"protein.info.{version}.txt.gz")
                 file_resources["protein.links.txt.gz"] = os.path.join(path, f"protein.links.{version}.txt.gz")
@@ -252,17 +254,40 @@ class STRING(Interactions, SequenceDatabase):
 
         return protein_info
 
-    def load_protein_node_annotations(self, file_resources, species_id: str,
-                                      prefixes=['protein.aliases', 'protein.homology', 'protein.enrichment',
-                                                'clusters.proteins'],
-                                      alias_types={'Ensembl_UniProt_AC'}, blocksize=None, ):
+    def load_protein_node_annotations(self, file_resources: Dict[str, str], species_id: str,
+                                      file_types=['protein.aliases', 'protein.homology', 'protein.enrichment',
+                                                  'clusters.proteins'],
+                                      alias_types={'Ensembl_UniProt_AC'}, blocksize=None, ) \
+        -> Union[dd.DataFrame, pd.DataFrame]:
+        """
+        Stack the annotations files for the provided `species_id`, such that rows in the annotations are filtered by
+        `keys` (if not null), indexed by "#string_protein_id", and with attributes transformed to a dataframe columns.
+
+        Args:
+            file_resources (): a dict of filename and filepath
+            species_id (str): the species_id string which is used to select only files that have the same prefix.
+            file_types (List[str]):
+                A list of strings that specify which types of annotation files to integrate, i.e., only select files
+                having a substring matching one of these.
+                Default ['protein.aliases', 'protein.homology', 'protein.enrichment', 'clusters.proteins'].
+            alias_types (): a set of string, default {'Ensembl_UniProt_AC'}
+                A set of `source` values in the `protein.aliases` annotation to aggregate `alias`'s for.
+                Must be a subset of {'Ensembl_Source', 'Ensembl_gene', 'Ensembl_transcript', 'Ensembl_UniGene',
+                    'Ensembl_RefSeq_short', 'Ensembl_RefSeq', 'Ensembl_OTTG', 'Ensembl_OTTP', 'Ensembl_UCSC',
+                    'Ensembl_UniProt', 'Ensembl_UniProt_AC', 'Ensembl_EntrezGene', 'Ensembl_EMBL', 'Ensembl_protein_id'}
+            blocksize ():
+
+        Returns:
+            dd.Dataframe or pd.DataFrame
+
+        """
         allowed_prefixes = {'protein.aliases', 'protein.homology', 'protein.enrichment', 'clusters.proteins'}
-        if not set(prefixes).issubset(allowed_prefixes):
-            logger.warn(f'{set(prefixes).difference(allowed_prefixes)} files are not supported')
+        if not set(file_types).issubset(allowed_prefixes):
+            logger.warn(f'{set(file_types).difference(allowed_prefixes)} files are not supported')
 
         select_files = []
         for fn, path in file_resources.items():
-            if fn.startswith(species_id) and any(prefix in fn for prefix in prefixes):
+            if fn.startswith(species_id) and any(ftype in fn for ftype in file_types):
                 select_files.append(fn)
 
         dfs = []
@@ -312,21 +337,27 @@ class STRING(Interactions, SequenceDatabase):
                 df = df.loc[df['source'].isin(alias_types)]
                 df['source'] = df['source'].cat.set_categories(alias_types)
                 if blocksize:
-                    # Set alias values to lists so aggfunc='sum' will concatenate them
+                    # Set alias values to lists so pivot_table(..., aggfunc='sum') will concatenate them
                     df = df.assign(alias=df['alias'].map(lambda x: [x], meta=pd.Series([[""]])))
                     df = dd.pivot_table(df.reset_index(),
                                         index='#string_protein_id', columns='source', values='alias', aggfunc='sum')
+                    df = df._meta.dtype
                 else:
                     df = df.reset_index().groupby([self.index_col, 'source'])['alias'].unique().unstack(level=1)
 
             if blocksize and not df.known_divisions:
                 df.divisions = df.compute_current_divisions()
+
+            if not len(df.index):
+                continue
+
             dfs.append(df)
 
         if dfs:
             attrs = dd.concat(dfs, axis=1) if blocksize else pd.concat(dfs, axis=1)
         else:
             attrs = None
+
         return attrs
 
     def load_network(self, file_resources, source_col_name='protein1', target_col_name='protein2',
