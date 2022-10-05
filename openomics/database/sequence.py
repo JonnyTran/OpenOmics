@@ -5,17 +5,17 @@ from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple, Optional, Iterable
 
 import numpy as np
-import openomics
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
 from logzero import logger
-from openomics.io.read_gtf import read_gtf
 from pyfaidx import Fasta
 from six.moves import intern
 
+import openomics
+from openomics.io.read_gtf import read_gtf
 from .base import Database
 from ..transforms.agg import get_agg_func
 from ..transforms.df import drop_duplicate_columns
@@ -794,7 +794,7 @@ class RNAcentral(SequenceDatabase):
     }
 
     def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, species_id: str = '9606',
+                 col_rename=COLUMNS_RENAME_DICT, species_id: Union[List[str], str, None] = None,
                  index_col="RNAcentral id", keys=None,
                  remove_version_num=True, remove_species_suffix=True, **kwargs):
         """

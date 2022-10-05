@@ -1,4 +1,5 @@
 import copy
+import gc
 import os
 from abc import abstractmethod
 from collections.abc import Iterable
@@ -6,11 +7,11 @@ from typing import List, Dict, Any, Union
 
 import dask.dataframe as dd
 import networkx as nx
-import numpy as np
 import pandas as pd
 import scipy.sparse as ssp
 from Bio import SeqIO
 from logzero import logger
+
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
 from openomics.transforms.df import filter_rows
@@ -131,6 +132,7 @@ class STRING(Interactions, SequenceDatabase):
         "protein_external_id": "protein_id",
         "preferred_name": "gene_name",
         'combined_score': "weight",
+        'string_protein_id_2': 'homologous_protein_id',
     }
 
     def __init__(self, path="https://stringdb-static.org/download/", file_resources=None,
@@ -141,6 +143,7 @@ class STRING(Interactions, SequenceDatabase):
                  relabel_nodes=None,
                  index_col='#string_protein_id',
                  keys=None,
+                 alias_types={'Ensembl_UniProt_AC'},
                  blocksize=None, **kwargs):
         """
 
@@ -163,16 +166,25 @@ class STRING(Interactions, SequenceDatabase):
         """
         self.version = version
         self.species_id = copy.copy(species_id)
+        self.alias_types = alias_types
 
         if file_resources is None:
             file_resources = {}
             if isinstance(species_id, (Iterable, str)) and len(species_id):
-                species_list = species_id if isinstance(species_id, list) else [species_id]
+                species_list = [species_id] if isinstance(species_id, str) else species_id
                 for id in species_list:
                     file_resources[f"{id}.protein.info.txt.gz"] = \
                         os.path.join(path, f"protein.info.{version}/{id}.protein.info.{version}.txt.gz")
                     file_resources[f"{id}.protein.links.txt.gz"] = \
                         os.path.join(path, f"protein.links.{version}/{id}.protein.links.{version}.txt.gz")
+                    file_resources[f"{id}.protein.homology.txt.gz"] = \
+                        os.path.join(path, f"protein.homology.{version}/{id}.protein.homology.{version}.txt.gz")
+                    file_resources[f"{id}.clusters.proteins.txt.gz"] = \
+                        os.path.join(path, f"clusters.proteins.{version}/{id}.clusters.proteins.{version}.txt.gz")
+                    file_resources[f"{id}.protein.aliases.txt.gz"] = \
+                        os.path.join(path, f"protein.aliases.{version}/{id}.protein.aliases.{version}.txt.gz")
+                    file_resources[f"{id}.enrichment.terms.txt.gz"] = \
+                        os.path.join(path, f"enrichment.terms.{version}/{id}.enrichment.terms.{version}.txt.gz")
                     file_resources[f"{id}.protein.sequences.fa.gz"] = \
                         os.path.join(path, f"protein.sequences.{version}/{id}.protein.sequences.{version}.fa.gz")
             else:
@@ -188,49 +200,145 @@ class STRING(Interactions, SequenceDatabase):
 
     def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
         # Load nodes
-        data_dfs = []
+        dfs = []
         if blocksize:
             for filename in [fn for fn, path in file_resources.items() \
                              if 'info.txt' in fn and isinstance(path, str)]:
                 compression = 'gzip' if filename.endswith(".gz") else None
-                df = dd.read_table(file_resources[filename], na_values=['annotation not available'],
-                                   low_memory=True, compression=compression,
-                                   dtype={'protein_size': 'int8'},
-                                   blocksize=None if isinstance(blocksize, bool) else blocksize)
+                info = dd.read_table(file_resources[filename], na_values=['annotation not available'],
+                                     low_memory=True, compression=compression,
+                                     dtype={'protein_size': 'int8'},
+                                     blocksize=None if isinstance(blocksize, bool) else blocksize)
 
                 if self.keys is not None:
-                    df = df.loc[df[self.index_col].isin(self.keys)]
+                    info = info.loc[info[self.index_col].isin(self.keys)]
 
-                index_split = df['#string_protein_id'].str.split(".", expand=True, n=1)
-                df = df.assign(species_id=index_split[0], protein_embl_id=index_split[1])
+                index_split = info['#string_protein_id'].str.split(".", expand=True, n=1)
+                info = info.assign(species_id=index_split[0], protein_embl_id=index_split[1])
 
                 if self.index_col:
-                    df = df.set_index(self.index_col, sorted=True)
-                data_dfs.append(df)
+                    info = info.set_index(self.index_col, sorted=True)
+
+                # Join other attributes to node_info
+                species_id = filename.split(".")[0]
+                attrs = self.load_protein_node_annotations(file_resources, species_id=species_id,
+                                                           alias_types=self.alias_types, blocksize=blocksize)
+                if attrs is not None:
+                    new_cols = attrs.columns.difference(info.columns)
+                    info = info.join(attrs[new_cols], on=self.index_col)
+
+                dfs.append(info)
         else:
             for filename in file_resources:
                 if filename.endswith("protein.info.txt"):
-                    df = pd.read_table(file_resources[filename], na_values=['annotation not available'],
-                                       dtype={'protein_size': 'int8'},
-                                       index_col=self.index_col, low_memory=True)
-                    index_split = df['#string_protein_id'].str.split(".", expand=True, n=1)
-                    df = df.assign(species_id=index_split[0], protein_embl_id=index_split[1])
-                    data_dfs.append(df)
+                    info = pd.read_table(file_resources[filename], na_values=['annotation not available'],
+                                         dtype={'protein_size': 'int8'},
+                                         index_col=self.index_col, low_memory=True)
+                    index_split = info['#string_protein_id'].str.split(".", expand=True, n=1)
+                    info = info.assign(species_id=index_split[0], protein_embl_id=index_split[1])
 
-        nodes_df = dd.concat(data_dfs, axis=0, interleave_partitions=True) \
-            if blocksize else pd.concat(data_dfs, axis=0)
+                    # Join other attributes to node_info
+                    species_id = filename.split(".")[0]
+                    attrs = self.load_protein_node_annotations(file_resources, species_id=species_id,
+                                                               alias_types=self.alias_types,
+                                                               blocksize=blocksize)
+                    if attrs is not None:
+                        new_cols = attrs.columns.difference(info.columns)
+                        info = info.join(attrs[new_cols], on=self.index_col)
+                    dfs.append(info)
 
-        return nodes_df
+        protein_info = dd.concat(dfs, axis=0, interleave_partitions=True) \
+            if blocksize else pd.concat(dfs, axis=0)
+
+        return protein_info
+
+    def load_protein_node_annotations(self, file_resources, species_id: str,
+                                      prefixes=['protein.aliases', 'protein.homology', 'protein.enrichment',
+                                                'clusters.proteins'],
+                                      alias_types={'Ensembl_UniProt_AC'}, blocksize=None, ):
+        allowed_prefixes = {'protein.aliases', 'protein.homology', 'protein.enrichment', 'clusters.proteins'}
+        if not set(prefixes).issubset(allowed_prefixes):
+            logger.warn(f'{set(prefixes).difference(allowed_prefixes)} files are not supported')
+
+        select_files = []
+        for fn, path in file_resources.items():
+            if fn.startswith(species_id) and any(prefix in fn for prefix in prefixes):
+                select_files.append(fn)
+
+        dfs = []
+        for filename in select_files:
+            args = dict(
+                low_memory=True,
+                dtype={'cluster_id': 'category', '#ncbi_taxid': 'category', 'category': 'category',
+                       'source': 'category'})
+            compression = 'gzip' if filename.endswith(".gz") else None
+            if blocksize:
+                if not isinstance(file_resources[filename], str): continue
+                df = dd.read_table(file_resources[filename], compression=compression, **args)
+            else:
+                df = pd.read_table(file_resources[filename], **args)
+
+            # Set index for df
+            for col in ['#string_protein_id', 'protein_id', '#string_protein_1']:
+                if col in df.columns:
+                    df = df.set_index(col, sorted=True)
+                    break
+
+            # Set index
+            if df.index.name is None:
+                continue
+            elif self.index_col and df.index.name != self.index_col:
+                df.index = df.index.rename(self.index_col)
+            if blocksize:
+                assert df.known_divisions
+
+            # Filter rows
+            if self.keys is not None:
+                df = df.loc[df.index.isin(self.keys)]
+
+            # Groupby on index and perform appropriate transforms depending on the annotation type
+            if 'protein.homology' in filename:
+                df = df.loc[df.index != df['string_protein_id_2']]
+                df = df.groupby(self.index_col)['string_protein_id_2'].unique().to_frame()
+                # TODO ignored column of size of homologous regions
+
+            elif 'clusters.protein' in filename:
+                df = df.groupby(self.index_col)['cluster_id'].unique().to_frame()
+
+            elif 'protein.enrichment' in filename:
+                df = df.groupby(self.index_col)['term'].unique().to_frame()
+
+            elif 'protein.aliases' in filename:
+                df = df.loc[df['source'].isin(alias_types)]
+                df['source'] = df['source'].cat.set_categories(alias_types)
+                if blocksize:
+                    # Set alias values to lists so aggfunc='sum' will concatenate them
+                    df = df.assign(alias=df['alias'].map(lambda x: [x], meta=pd.Series([[""]])))
+                    df = dd.pivot_table(df.reset_index(),
+                                        index='#string_protein_id', columns='source', values='alias', aggfunc='sum')
+                else:
+                    df = df.reset_index().groupby([self.index_col, 'source'])['alias'].unique().unstack(level=1)
+
+            if blocksize and not df.known_divisions:
+                df.divisions = df.compute_current_divisions()
+            dfs.append(df)
+
+        if dfs:
+            attrs = dd.concat(dfs, axis=1) if blocksize else pd.concat(dfs, axis=1)
+        else:
+            attrs = None
+        return attrs
 
     def load_network(self, file_resources, source_col_name='protein1', target_col_name='protein2',
                      edge_attr='weight', directed=False, filters=None, blocksize=None):
         # Load edges
-        edges_dfs = []
         keys = self.data.index.compute() if isinstance(self.data, dd.DataFrame) else self.data.index
 
+        edges_dfs = []
         for filename in [fn for fn, path in file_resources.items() \
-                         if "links.txt" in fn and isinstance(path, str)]:
+                         if "links" in fn]:
             if blocksize:
+                if not isinstance(file_resources[filename], str): continue
                 compression = 'gzip' if filename.endswith(".gz") else None
                 df: dd.DataFrame = dd.read_table(file_resources[filename], sep=" ", low_memory=True,
                                                  compression=compression,
@@ -247,10 +355,16 @@ class STRING(Interactions, SequenceDatabase):
             df = df.loc[df[source_col_name].isin(keys) & df[target_col_name].isin(keys)]
             edges_dfs.append(df)
 
+        if len(edges_dfs) == 0:
+            return
+
         # Concatenate multiple edgelists into dataframe
         edges_df = dd.concat(edges_dfs, axis=0) if blocksize else pd.concat(edges_dfs, axis=0)
         edges_df = edges_df.rename(columns=self.COLUMNS_RENAME_DICT)
         logger.info(f"{self.name()}-{self.species_id}: {edges_df.columns.tolist()}, {edges_df.shape}")
+
+        # Convert edge weights to float
+        edges_df['weight'] = (edges_df['weight'] / 1000).astype('float16')
 
         # Determine which edge attr to add
         if isinstance(edge_attr, (list, tuple)):
@@ -260,6 +374,8 @@ class STRING(Interactions, SequenceDatabase):
         else:
             use_attrs = False
 
+        self.edges = edges_df
+
         # Set ordering for rows and columns
         node2idx = {node: i for i, node in enumerate(keys)}
 
@@ -268,12 +384,12 @@ class STRING(Interactions, SequenceDatabase):
 
             def edgelist2adj(edgelist_df: pd.DataFrame) -> ssp.coo_matrix:
                 if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo':
-                    return ssp.coo_matrix((len(keys), len(keys)), dtype=np.float)
+                    return None
                 edgelist_df['row'] = edgelist_df[source_col_name].map(node2idx).astype('int')
                 edgelist_df['col'] = edgelist_df[target_col_name].map(node2idx).astype('int')
                 edgelist_df = edgelist_df.dropna(subset=['row', 'col'])
                 if edgelist_df.shape[0] == 0:
-                    return ssp.coo_matrix((len(keys), len(keys)), dtype=np.float)
+                    return None
 
                 coo_adj = ssp.coo_matrix((edgelist_df['weight'], (edgelist_df['row'], edgelist_df['col'])),
                                          shape=(len(keys), len(keys)))
@@ -281,7 +397,7 @@ class STRING(Interactions, SequenceDatabase):
 
             # Create a sparse adjacency matrix each partition, then combine them
             adj = edges_df.reduction(chunk=edgelist2adj,
-                                     aggregate=lambda x: x.sum(),
+                                     aggregate=lambda x: x.dropna().sum() if not x.isna().all() else None,
                                      meta=pd.Series([ssp.coo_matrix])).compute()
             assert len(adj) == 1, f"len(adj) = {len(adj)}"
 
@@ -289,8 +405,8 @@ class STRING(Interactions, SequenceDatabase):
 
             idx2node = {i: node for i, node in enumerate(keys)}
             G = nx.relabel_nodes(G, mapping=idx2node, copy=False)
-            # del graphs_df, edges_df
-            # gc.collect()
+            del adj
+            gc.collect()
 
         else:
             G = nx.from_pandas_edgelist(edges_df, source=source_col_name, target=target_col_name,
