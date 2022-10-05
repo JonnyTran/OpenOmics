@@ -11,14 +11,15 @@ import obonet
 import pandas as pd
 import scipy.sparse as ssp
 from networkx import NetworkXError
+from pandas import DataFrame
+
 from openomics.io.read_gaf import read_gaf
 from openomics.transforms.adj import slice_adj
 from openomics.transforms.agg import get_agg_func
-from pandas import DataFrame
-
 from .base import Database
 
 __all__ = ['GeneOntology', 'UniProtGOA', 'InterPro', 'HumanPhenotypeOntology', ]
+
 
 class Ontology(Database):
     annotations: pd.DataFrame
@@ -655,8 +656,9 @@ class InterPro(Ontology):
         row2idx = {node: i for i, node in enumerate(row_order)}
         col2idx = {node: i for i, node in enumerate(col_order)}
 
-        def edgelist2adj(edgelist_df: DataFrame, source='UniProtKB-AC', target='ENTRY_AC') -> ssp.coo_matrix:
-            if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo': return
+        def edgelist2adj(edgelist_df: DataFrame, source='UniProtKB-AC', target='ENTRY_AC') -> Optional[ssp.coo_matrix]:
+            if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo':
+                return None
 
             if edgelist_df.index.name == source:
                 source_nodes = edgelist_df.index
@@ -666,7 +668,7 @@ class InterPro(Ontology):
             edgelist_df['col'] = edgelist_df[target].map(col2idx).astype('int')
             edgelist_df = edgelist_df.dropna(subset=['row', 'col'])
             if edgelist_df.shape[0] == 0:
-                return
+                return None
 
             values = np.ones(edgelist_df.index.size)
             coo = ssp.coo_matrix((values, (edgelist_df['row'], edgelist_df['col'])),
@@ -674,11 +676,13 @@ class InterPro(Ontology):
             return coo
 
         # Create a sparse adjacency matrix each partition, then combine them
-        graphs = annotations.map_partitions(edgelist2adj, meta=pd.Series([ssp.coo_matrix])).compute()
-        adj = sum(graphs.dropna())
+        adj = annotations.reduction(chunk=edgelist2adj,
+                                    aggregate=lambda x: x.dropna().sum() if not x.isna().all() else None,
+                                    meta=pd.Series([ssp.coo_matrix])).compute()
+        assert len(adj) == 1, f"len(adj) = {len(adj)}"
 
         # Create a sparse matrix of UniProtKB-AC x ENTRY_AC
-        self.annotations = pd.DataFrame.sparse.from_spmatrix(adj, index=row_order, columns=col_order)
+        self.annotations = pd.DataFrame.sparse.from_spmatrix(adj[0], index=row_order, columns=col_order)
 
         return ipr_entries
 
