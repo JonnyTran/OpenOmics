@@ -11,7 +11,6 @@ import pandas as pd
 import scipy.sparse as ssp
 from Bio import SeqIO
 from logzero import logger
-
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
 from openomics.transforms.df import filter_rows
@@ -125,6 +124,7 @@ class STRING(Interactions, SequenceDatabase):
         "#string_protein_id": "string_protein_id",
         "protein_external_id": "protein_id",
         "preferred_name": "gene_name",
+        '#ncbi_taxid': 'species_id',
         'string_protein_id_2': 'homologous_protein_id',
     }
 
@@ -160,6 +160,7 @@ class STRING(Interactions, SequenceDatabase):
         self.version = version
         self.species_id = copy.copy(species_id)
         self.alias_types = alias_types
+        assert isinstance(edge_attr, str)
 
         if file_resources is None:
             file_resources = {}
@@ -218,7 +219,7 @@ class STRING(Interactions, SequenceDatabase):
                 # Join other attributes to node_info
                 species_id = filename.split(".")[0]
                 attrs = self.load_accessory_data(file_resources, species_id=species_id,
-                                                 alias_types=self.alias_types, blocksize=blocksize)
+                                                 alias_types=self.alias_types, blocksize=False)
                 if attrs is not None:
                     new_cols = attrs.columns.difference(info_df.columns)
                     info_df = info_df.join(attrs[new_cols], on=self.index_col)
@@ -256,8 +257,8 @@ class STRING(Interactions, SequenceDatabase):
     def load_accessory_data(self, file_resources: Dict[str, str], species_id: str,
                             accessory_files=['protein.aliases', 'protein.homology', 'protein.enrichment',
                                              'clusters.proteins'],
-                            alias_types={'Ensembl_UniProt', 'Ensembl_UniProt_AC'}, blocksize=None, ) \
-        -> Union[dd.DataFrame, pd.DataFrame]:
+                            alias_types={'Ensembl_UniProt', 'Ensembl_UniProt_AC'}, blocksize=False, ) \
+        -> Union[pd.DataFrame, dd.DataFrame]:
         """
         Stack the annotations files for the provided `species_id`, such that rows in the annotations are filtered by
         `keys` (if not null), indexed by "#string_protein_id", and with attributes transformed to a dataframe columns.
@@ -274,7 +275,7 @@ class STRING(Interactions, SequenceDatabase):
                 Must be a subset of {'Ensembl_Source', 'Ensembl_gene', 'Ensembl_transcript', 'Ensembl_UniGene',
                     'Ensembl_RefSeq_short', 'Ensembl_RefSeq', 'Ensembl_OTTG', 'Ensembl_OTTP', 'Ensembl_UCSC',
                     'Ensembl_UniProt', 'Ensembl_UniProt_AC', 'Ensembl_EntrezGene', 'Ensembl_EMBL', 'Ensembl_protein_id'}
-            blocksize ():
+            blocksize (bool): Recommended to use Pandas to avoid uncessary overhead.
 
         Returns:
             dd.Dataframe or pd.DataFrame
@@ -305,7 +306,7 @@ class STRING(Interactions, SequenceDatabase):
             # Set index for df
             for col in ['#string_protein_id', 'protein_id', '#string_protein_1']:
                 if col in df.columns:
-                    df = df.set_index(col, sorted=True)
+                    df = df.set_index(col, sorted=True) if blocksize else df.set_index(col)
                     break
 
             # Set index
@@ -327,7 +328,7 @@ class STRING(Interactions, SequenceDatabase):
                 # TODO ignored column of size of homologous regions
 
             elif 'clusters.protein' in filename:
-                df = df.groupby(self.index_col)['cluster_id'].unique().to_frame()
+                df = df.groupby(self.index_col)[['cluster_id', '#ncbi_taxid']].unique()
 
             elif 'protein.enrichment' in filename:
                 df = df.groupby(self.index_col)['term'].unique().to_frame()
@@ -359,7 +360,7 @@ class STRING(Interactions, SequenceDatabase):
         return attrs
 
     def load_network(self, file_resources, source_col_name='protein1', target_col_name='protein2',
-                     edge_attr='combined_score', directed=False, filters=None, blocksize=None):
+                     edge_attr: str = 'combined_score', directed=False, filters=None, blocksize=None):
         keys = self.data.index.compute() if isinstance(self.data, dd.DataFrame) else self.data.index
         select_files = [fn for fn, path in file_resources.items() if "links" in fn]
 
@@ -367,10 +368,10 @@ class STRING(Interactions, SequenceDatabase):
         edges_dfs = []
         for filename in select_files:
             args = dict(sep=" ", low_memory=True,
-                        dtype={'protein1': 'category', 'protein2': 'category', 'neighborhood': 'uint8',
-                               'fusion': 'uint8', 'cooccurence': 'uint8', 'coexpression': 'uint8',
-                               'experimental': 'uint8',
-                               'database': 'uint8', 'textmining': 'uint8', 'combined_score': 'uint8'})
+                        dtype={'protein1': 'category', 'protein2': 'category',
+                               'neighborhood': 'uint8', 'fusion': 'uint8', 'cooccurence': 'uint8',
+                               'coexpression': 'uint8', 'experimental': 'uint8', 'database': 'uint8',
+                               'textmining': 'uint8', 'combined_score': 'uint8'})
             if blocksize:
                 if not isinstance(file_resources[filename], str): continue
                 compression = 'gzip' if filename.endswith(".gz") else None
@@ -396,9 +397,9 @@ class STRING(Interactions, SequenceDatabase):
         edges_df = edges_df.rename(columns=self.COLUMNS_RENAME_DICT)
         logger.info(f"{self.name()}-{self.species_id}: {edges_df.columns.tolist()}, {edges_df.shape}")
 
-        # Convert edge weights to float
+        # Convert edge_attr (edge weights) from 3 digit integer to float
         assignfunc = {}
-        for col in ['experimental', 'database', 'textmining', 'combined_score']:
+        for col in (edge_attr if isinstance(edge_attr, Iterable) else [edge_attr]):
             if col in edges_df.columns:
                 assignfunc[col] = edges_df[col].astype('float16') / 1000
         if assignfunc:
@@ -434,7 +435,8 @@ class STRING(Interactions, SequenceDatabase):
                                      meta=pd.Series([ssp.coo_matrix])).compute()
             assert len(adj) == 1, f"len(adj) = {len(adj)}"
 
-            G = nx.from_scipy_sparse_matrix(adj[0], create_using=nx.DiGraph() if directed else nx.Graph())
+            G = nx.from_scipy_sparse_matrix(adj[0], create_using=nx.DiGraph() if directed else nx.Graph(),
+                                            edge_attribute=edge_attr)
 
             idx2node = {i: node for i, node in enumerate(keys)}
             G = nx.relabel_nodes(G, mapping=idx2node, copy=False)
