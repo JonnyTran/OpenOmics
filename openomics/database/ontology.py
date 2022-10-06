@@ -11,11 +11,11 @@ import obonet
 import pandas as pd
 import scipy.sparse as ssp
 from networkx import NetworkXError
+from pandas import DataFrame
+
 from openomics.io.read_gaf import read_gaf
 from openomics.transforms.adj import slice_adj
 from openomics.transforms.agg import get_agg_func
-from pandas import DataFrame
-
 from .base import Database
 
 __all__ = ['GeneOntology', 'UniProtGOA', 'InterPro', 'HumanPhenotypeOntology', ]
@@ -334,7 +334,7 @@ class GeneOntology(Ontology):
 
     def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id",
                           train_date="2017-06-15", valid_date="2017-11-15", test_date="2021-12-31",
-                          groupby: List[str] = ["Qualifier"],
+                          groupby: Tuple[str] = ("Qualifier",),
                           query: str = "`Evidence` in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
                           filter_src_nodes: pd.Index = None, filter_dst_nodes: pd.Index = None,
                           agg: Union[str, Callable, dd.Aggregation] = "unique") \
@@ -343,9 +343,9 @@ class GeneOntology(Ontology):
 
         # Set the source column (i.e. protein_id or gene_name), to be the first in groupby
         if src_node_col not in groupby:
-            groupby = [src_node_col] + groupby
-        if "Qualifier" not in groupby:
-            groupby.append("Qualifier")
+            groupby = (src_node_col,) + groupby
+        if "Qualifier" not in groupby and "Qualifier" in self.annotations.columns:
+            groupby = groupby + ("Qualifier",)
 
         # Aggregator function
         if agg == "add_parent":
@@ -424,7 +424,8 @@ class GeneOntology(Ontology):
             else:
                 pos_neg_anns = pd.DataFrame(
                     columns=[dst_node_col, neg_dst_col],
-                    index=pd.MultiIndex(levels=[[], ] * len(groupby), codes=[[], ] * len(groupby), names=groupby))
+                    index=pd.MultiIndex(levels=[[] for i in range(len(groupby))],
+                                        codes=[[] for i in range(len(groupby))], names=groupby))
                 outputs.append(pos_neg_anns)
                 continue
 
@@ -626,8 +627,8 @@ class InterPro(Ontology):
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None):
         ipr_entries = pd.read_table(file_resources["entry.list"], index_col="ENTRY_AC")
         ipr2go = self.parse_interpro2go(file_resources["interpro2go"])
-
-        ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
+        if ipr2go is not None:
+            ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
 
         # Use Dask
         args = dict(names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
@@ -688,11 +689,7 @@ class InterPro(Ontology):
 
         return ipr_entries
 
-
-    def parse_interpro2go(self, file: StringIO) -> DataFrame:
-        if isinstance(file, str):
-            file = open(file, 'r')
-
+    def parse_interpro2go(self, file: StringIO) -> pd.DataFrame:
         def _process_line(line: str) -> Tuple[str, str, str]:
             pos = line.find('> GO')
             interpro_terms, go_term = line[:pos], line[pos:]
@@ -702,8 +699,12 @@ class InterPro(Ontology):
 
             return (interpro_id.strip().split(':')[1], go_id.strip(), go_desc)
 
-        tuples = [_process_line(line.strip()) for line in file if line[0] != '!']
-        return pd.DataFrame(tuples, columns=['ENTRY_AC', "go_id", "go_desc"])
+        if isinstance(file, str):
+            with open(os.path.expanduser(file), 'r') as file:
+                tuples = [_process_line(line.strip()) for line in file if line[0] != '!']
+
+            ipr2go = pd.DataFrame(tuples, columns=['ENTRY_AC', "go_id", "go_desc"])
+            return ipr2go
 
     def load_network(self, file_resources) -> Tuple[nx.Graph, np.ndarray]:
         network, node_list = None, None
@@ -720,7 +721,7 @@ class InterPro(Ontology):
             lines: A readable file or file-like
         """
         if isinstance(lines, str):
-            lines = open(lines, 'r')
+            lines = open(os.path.expanduser(lines), 'r')
 
         graph = nx.MultiDiGraph()
         previous_depth, previous_name = 0, None
@@ -756,6 +757,7 @@ class InterPro(Ontology):
 
             previous_depth, previous_name = depth, interpro_id
 
+        lines.close()
         return graph
 
 
