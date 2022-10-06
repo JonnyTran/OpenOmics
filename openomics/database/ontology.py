@@ -11,11 +11,11 @@ import obonet
 import pandas as pd
 import scipy.sparse as ssp
 from networkx import NetworkXError
-from pandas import DataFrame
-
 from openomics.io.read_gaf import read_gaf
 from openomics.transforms.adj import slice_adj
 from openomics.transforms.agg import get_agg_func
+from pandas import DataFrame
+
 from .base import Database
 
 __all__ = ['GeneOntology', 'UniProtGOA', 'InterPro', 'HumanPhenotypeOntology', ]
@@ -629,7 +629,7 @@ class InterPro(Ontology):
 
         ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
 
-        # Load
+        # Use Dask
         args = dict(names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
                     usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
                     dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category', 'start': 'int8', 'stop': 'int8'},
@@ -656,7 +656,7 @@ class InterPro(Ontology):
         row2idx = {node: i for i, node in enumerate(row_order)}
         col2idx = {node: i for i, node in enumerate(col_order)}
 
-        def edgelist2adj(edgelist_df: DataFrame, source='UniProtKB-AC', target='ENTRY_AC') -> Optional[ssp.coo_matrix]:
+        def edgelist2coo(edgelist_df: DataFrame, source='UniProtKB-AC', target='ENTRY_AC') -> Optional[ssp.coo_matrix]:
             if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo':
                 return None
 
@@ -664,8 +664,10 @@ class InterPro(Ontology):
                 source_nodes = edgelist_df.index
             else:
                 source_nodes = edgelist_df[source]
-            edgelist_df['row'] = source_nodes.map(row2idx).astype('int')
-            edgelist_df['col'] = edgelist_df[target].map(col2idx).astype('int')
+
+            edgelist_df = edgelist_df.assign(row=source_nodes.map(row2idx).astype('int'),
+                                             col=edgelist_df[target].map(col2idx).astype('int'))
+
             edgelist_df = edgelist_df.dropna(subset=['row', 'col'])
             if edgelist_df.shape[0] == 0:
                 return None
@@ -676,7 +678,7 @@ class InterPro(Ontology):
             return coo
 
         # Create a sparse adjacency matrix each partition, then combine them
-        adj = annotations.reduction(chunk=edgelist2adj,
+        adj = annotations.reduction(chunk=edgelist2coo,
                                     aggregate=lambda x: x.dropna().sum() if not x.isna().all() else None,
                                     meta=pd.Series([ssp.coo_matrix])).compute()
         assert len(adj) == 1, f"len(adj) = {len(adj)}"

@@ -148,8 +148,8 @@ class Database(object):
             file_resources_new[filename] = filepath
 
             if filepath_ext:
-                file, new_filename = decompress_file(filepath, filename, file_ext=filepath_ext)
-                file_resources_new[new_filename] = file
+                filestream, new_filename = decompress_file(filepath, filename, file_ext=filepath_ext)
+                file_resources_new[new_filename] = filestream
 
         # if validators.url(base_path) or any(validators.url(filepath) for filepath in file_resources.values()):
         #     for filename, filepath in file_resources.items():
