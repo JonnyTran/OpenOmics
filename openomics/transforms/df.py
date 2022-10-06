@@ -31,6 +31,7 @@ def filter_rows(df: pd.DataFrame, filters: Union[str, Dict[str, List]], case: bo
     Returns:
 
     """
+    num_samples = df.shape[0]
     if filters is None:
         return df
 
@@ -55,5 +56,9 @@ def filter_rows(df: pd.DataFrame, filters: Union[str, Dict[str, List]], case: bo
                 df = df.loc[df[col] == values]
 
     if isinstance(df, pd.DataFrame) and df.shape[0] == 0:
-        logger.info(f"Dataframe is empty ({df.shape}) because of query: {filters}")
+        logger.warn(f"Dataframe is empty ({df.shape}) because of query: {filters}")
+
+    if isinstance(num_samples, int):
+        logger.info(f'Removed {num_samples - df.shape[0]} rows from query: {filters}')
+
     return df
