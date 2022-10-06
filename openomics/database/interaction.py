@@ -3,7 +3,7 @@ import gc
 import os
 from abc import abstractmethod
 from collections.abc import Iterable
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, Optional
 
 import dask.dataframe as dd
 import networkx as nx
@@ -11,6 +11,7 @@ import pandas as pd
 import scipy.sparse as ssp
 from Bio import SeqIO
 from logzero import logger
+
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase
 from openomics.transforms.df import filter_rows
@@ -19,6 +20,7 @@ __all__ = ['STRING', 'GeneMania', 'IntAct', 'BioGRID', 'MiRTarBase', 'LncBase', 
            'lncRNome', 'NPInter', 'StarBase']
 
 class Interactions(Database):
+    edges: Optional[Union[pd.DataFrame, dd.DataFrame]]
     def __init__(self, path, file_resources: Dict, source_col_name: str = None, target_col_name: str = None,
                  edge_attr: List[str] = None, filters: Union[str, Dict[str, Union[str, List[str]]]] = None,
                  directed: bool = True, relabel_nodes: dict = None, blocksize=None, **kwargs):
@@ -587,15 +589,17 @@ class BioGRID(Interactions):
                            'Organism Interactor A': 'category', 'Organism Interactor B': 'category'})
 
         if blocksize:
-            df = dd.read_table(file_resources["BIOGRID-ALL-LATEST.tab2"], blocksize=blocksize, **args, )
+            edges = dd.read_table(file_resources["BIOGRID-ALL-LATEST.tab2"], blocksize=blocksize, **args, )
         else:
-            df = pd.read_table(file_resources["BIOGRID-ALL-LATEST.tab2"], **args, )
+            edges = pd.read_table(file_resources["BIOGRID-ALL-LATEST.tab2"], **args, )
 
-        return df
+        self.edges = edges
+
+        return edges
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
                      blocksize=None):
-        df = self.data
+        df = self.edges
         df = filter_rows(df, filters)
         network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                           edge_attr=edge_attr,

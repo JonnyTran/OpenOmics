@@ -163,8 +163,8 @@ class Ontology(Database):
         print(go_id_colors.unique().shape, go_colors["HCL.color"].unique().shape)
         return go_id_colors
 
-    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", train_date="2017-06-15",
-                          valid_date="2017-11-15", test_date="2021-12-31", groupby: List[str] = ["Qualifier"],
+    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", groupby: List[str] = ["Qualifier"],
+                          train_date="2017-06-15", valid_date="2017-11-15", test_date="2021-12-31",
                           query: Optional[str] = "Evidence in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
                           filter_src_nodes: pd.Index = None, filter_dst_nodes: pd.Index = None,
                           agg: Union[Callable, str] = "unique") -> Tuple[DataFrame, DataFrame, DataFrame]:
@@ -332,20 +332,19 @@ class GeneOntology(Ontology):
 
                 return network, node_list
 
-    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id",
+    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", groupby: List[str] = ["Qualifier"],
                           train_date="2017-06-15", valid_date="2017-11-15", test_date="2021-12-31",
-                          groupby: Tuple[str] = ("Qualifier",),
-                          query: str = "`Evidence` in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
+                          query: str = "Evidence in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
                           filter_src_nodes: pd.Index = None, filter_dst_nodes: pd.Index = None,
                           agg: Union[str, Callable, dd.Aggregation] = "unique") \
         -> Tuple[DataFrame, DataFrame, DataFrame]:
-        assert isinstance(groupby, list)
+        assert isinstance(groupby, list) and groupby, f"`groupby` must be a nonempty list of strings. Got {groupby}"
 
         # Set the source column (i.e. protein_id or gene_name), to be the first in groupby
         if src_node_col not in groupby:
-            groupby = (src_node_col,) + groupby
+            groupby = [src_node_col] + groupby
         if "Qualifier" not in groupby and "Qualifier" in self.annotations.columns:
-            groupby = groupby + ("Qualifier",)
+            groupby.append("Qualifier")
 
         # Aggregator function
         if agg == "add_parent":
