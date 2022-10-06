@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from __future__ import print_function, division, absolute_import
 
 import logging
@@ -120,6 +121,8 @@ def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024, features=None,
               intern_columns=["seqname", "source", "strand", "frame"],
               fix_quotes_columns=["attribute"]) -> pd.DataFrame:
     """
+    Borrowed code from https://github.com/openvax/gtfparse
+
     Args:
         filepath_or_buffer (str or buffer object):
         chunksize (int): Default 1048576.

@@ -26,5 +26,4 @@ goatools
 obonet
 pyfaidx
 logzero
-pyfaidx
-logzero
+tqdm

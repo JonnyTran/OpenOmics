@@ -12,6 +12,7 @@ import dask.dataframe as dd
 import filetype
 import networkx as nx
 import pandas as pd
+import tqdm
 import validators
 from logzero import logger
 
@@ -103,15 +104,20 @@ class Database(object):
                 required filenames and value are file paths. If None, then the
                 class constructor should automatically build the required file
                 resources dict.
-            verbose:
+            verbose: default False
+                Whether to show progress bar of files being loaded
         """
         file_resources_new = copy.copy(file_resources)
         if base_path.startswith("~"):
             base_path = os.path.expanduser(base_path)
 
-        for filename, filepath in file_resources.items():
+        files_prog = tqdm.tqdm(file_resources.items(), desc='Loading file_resources', disable=not verbose)
+        for filename, filepath in files_prog:
             if filepath.startswith("~"):
                 filepath = os.path.expanduser(filepath)
+
+            if verbose:
+                files_prog.set_description("Loading file_resources['{}']".format(filename))
 
             # Remote database file URL
             if validators.url(filepath) or validators.url(join(base_path, filepath)):
