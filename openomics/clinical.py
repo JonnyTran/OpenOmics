@@ -5,6 +5,7 @@ from typing import List, Union
 import dask.dataframe as dd
 import pandas as pd
 import validators
+
 from openomics.io.files import get_pkg_data_filename
 
 BCR_PATIENT_BARCODE_COL = "bcr_patient_barcode"
@@ -102,16 +103,11 @@ class ClinicalData:
         self.samples.index.name = index
         self.samples.index = self.samples.index.str[:-4]  # Cut sample barcode for TCGA
 
-        num_samples = self.samples.shape[0]
-
         # Merge patients clinical data with patient barcode as index
         # target = pd.merge(target, self.patient,
         #                      how="left", left_on="patient_barcode", right_on="patient_barcode")
 
-
         self.samples = self.samples.join(self.patient, on=index, how="left", rsuffix="_")
-        if self.samples.shape[0] != num_samples:
-            raise Exception("Clinical data merging has wrong number of samples")
 
         # self.samples.dropna(axis=0, subset=["bcr_patient_barcode"], inplace=True) # Remove samples without clinical data
 

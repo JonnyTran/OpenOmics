@@ -8,13 +8,14 @@ from urllib.error import URLError
 
 import dask.dataframe as dd
 import filetype
-import openomics
 import rarfile
 import requests
 import sqlalchemy as sa
 import validators
 from astropy.utils import data
 from requests.adapters import HTTPAdapter, Retry
+
+import openomics
 
 
 # @astropy.config.set_temp_cache(openomics.config["cache_dir"])
@@ -72,23 +73,23 @@ def decompress_file(filepath: Path, filename: str, file_ext: filetype.Type) \
 
     elif file_ext.extension == "zip":
         logging.info("Decompressed zip file at {}".format(filepath))
-        zf = zipfile.ZipFile(filepath, "r")
-        filename = filename.replace(".zip", "")
+        with zipfile.ZipFile(filepath, "r") as zf:
+            filename = filename.replace(".zip", "")
 
-        for subfile in zf.infolist():
-            # If the file extension matches
-            if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]:
-                data = zf.open(subfile.filename, mode="r")
+            for subfile in zf.infolist():
+                # If the file extension matches
+                if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]:
+                    data = zf.open(subfile.filename, mode="r")
 
     elif file_ext.extension == "rar":
         logging.info("Decompressed rar file at {}".format(filepath))
-        rf = rarfile.RarFile(filepath, "r")
-        filename = filename.replace(".rar", "")
+        with rarfile.RarFile(filepath, "r") as rf:
+            filename = filename.replace(".rar", "")
 
-        for subfile in rf.infolist():
-            # If the file extension matches
-            if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]:
-                data = rf.open(subfile.filename, mode="r")
+            for subfile in rf.infolist():
+                # If the file extension matches
+                if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]:
+                    data = rf.open(subfile.filename, mode="r")
     else:
         print(f"WARNING: filepath_ext.extension {file_ext.extension} not supported.")
         data = filepath
@@ -103,7 +104,7 @@ def read_db(path, table, index_col):
         index_col:
     """
     engine = sa.create_engine(path)
-    conn = engine.connect()
+    # conn = engine.connect()
     m = sa.MetaData()
     table = sa.Table(table, m, autoload=True, autoload_with=engine)
 

@@ -206,4 +206,4 @@ def import_datatable_upload(n_clicks, cohort_name, data_type, list_of_contents,
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8050)
+    app.run_server(debug=False, port=8050)
