@@ -9,13 +9,16 @@ import networkx as nx
 import numpy as np
 import obonet
 import pandas as pd
+import scipy.sparse as ssp
 from networkx import NetworkXError
+from pandas import DataFrame
+
 from openomics.io.read_gaf import read_gaf
 from openomics.transforms.adj import slice_adj
 from openomics.transforms.agg import get_agg_func
-from pandas import DataFrame
-
 from .base import Database
+
+__all__ = ['GeneOntology', 'UniProtGOA', 'InterPro', 'HumanPhenotypeOntology', ]
 
 
 class Ontology(Database):
@@ -160,8 +163,8 @@ class Ontology(Database):
         print(go_id_colors.unique().shape, go_colors["HCL.color"].unique().shape)
         return go_id_colors
 
-    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", train_date="2017-06-15",
-                          valid_date="2017-11-15", test_date="2021-12-31", groupby: List[str] = ["Qualifier"],
+    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", groupby: List[str] = ["Qualifier"],
+                          train_date="2017-06-15", valid_date="2017-11-15", test_date="2021-12-31",
                           query: Optional[str] = "Evidence in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
                           filter_src_nodes: pd.Index = None, filter_dst_nodes: pd.Index = None,
                           agg: Union[Callable, str] = "unique") -> Tuple[DataFrame, DataFrame, DataFrame]:
@@ -185,7 +188,8 @@ class Ontology(Database):
 class GeneOntology(Ontology):
     """Loads the GeneOntology database from http://geneontology.org .
 
-    Default path: "http://geneontology.org/gene-associations/" .
+    Default path: "http://geneontology.org/gene-associations/".
+
     Default file_resources: {
         "go-basic.obo": "http://purl.obolibrary.org/obo/go/go-basic.obo",
         "goa_human.gaf": "goa_human.gaf.gz",
@@ -205,7 +209,7 @@ class GeneOntology(Ontology):
     def __init__(
         self,
         path="http://geneontology.org/gene-associations/",
-        species=None,
+        species='human',
         file_resources=None,
         index_col='DB_Object_Symbol',
         keys=None,
@@ -231,13 +235,16 @@ class GeneOntology(Ontology):
         """
         if species and not hasattr(self, 'species'):
             self.species = species.lower()
+        elif species is None:
+            self.species = 'uniprot'
 
         if file_resources is None:
             file_resources = {
-                f"goa_{species.lower()}.gaf.gz": f"goa_{species.lower()}.gaf.gz",
-                f"goa_{species.lower()}_rna.gaf.gz": f"goa_{species.lower()}_rna.gaf.gz",
-                f"goa_{species.lower()}_isoform.gaf.gz": f"goa_{species.lower()}_isoform.gaf.gz",
+                f"goa_{self.species}.gaf.gz": f"goa_{self.species}.gaf.gz",
             }
+            if species != 'uniprot':
+                file_resources[f"goa_{self.species}_rna.gaf.gz"] = f"goa_{self.species}_rna.gaf.gz"
+                file_resources[f"goa_{self.species}_isoform.gaf.gz"] = f"goa_{self.species}_isoform.gaf.gz"
 
         if not any('.obo' in file for file in file_resources):
             warnings.warn(
@@ -325,19 +332,18 @@ class GeneOntology(Ontology):
 
                 return network, node_list
 
-    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id",
+    def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", groupby: List[str] = ["Qualifier"],
                           train_date="2017-06-15", valid_date="2017-11-15", test_date="2021-12-31",
-                          groupby: List[str] = ["Qualifier"],
-                          query: str = "`Evidence` in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
+                          query: str = "Evidence in ['EXP', 'IDA', 'IPI', 'IMP', 'IGI', 'IEP', 'TAS', 'IC']",
                           filter_src_nodes: pd.Index = None, filter_dst_nodes: pd.Index = None,
                           agg: Union[str, Callable, dd.Aggregation] = "unique") \
         -> Tuple[DataFrame, DataFrame, DataFrame]:
-        assert isinstance(groupby, list)
+        assert isinstance(groupby, list) and groupby, f"`groupby` must be a nonempty list of strings. Got {groupby}"
 
         # Set the source column (i.e. protein_id or gene_name), to be the first in groupby
         if src_node_col not in groupby:
             groupby = [src_node_col] + groupby
-        if "Qualifier" not in groupby:
+        if "Qualifier" not in groupby and "Qualifier" in self.annotations.columns:
             groupby.append("Qualifier")
 
         # Aggregator function
@@ -417,7 +423,8 @@ class GeneOntology(Ontology):
             else:
                 pos_neg_anns = pd.DataFrame(
                     columns=[dst_node_col, neg_dst_col],
-                    index=pd.MultiIndex(levels=[[], ] * len(groupby), codes=[[], ] * len(groupby), names=groupby))
+                    index=pd.MultiIndex(levels=[[] for i in range(len(groupby))],
+                                        codes=[[] for i in range(len(groupby))], names=groupby))
                 outputs.append(pos_neg_anns)
                 continue
 
@@ -575,6 +582,15 @@ class UniProtGOA(GeneOntology):
 
 
 class InterPro(Ontology):
+    """
+    Default parameters
+    path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/"
+    file_resources = {}
+    file_resources["entry.list"] = os.path.join(path, "entry.list")
+    file_resources["protein2ipr.dat.gz"] = os.path.join(path, "protein2ipr.dat.gz")
+    file_resources["interpro2go"] = os.path.join(path, "interpro2go")
+    file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
+    """
 
     def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/", index_col='UniProtKB-AC',
                  keys=None,
@@ -594,6 +610,8 @@ class InterPro(Ontology):
             col_rename:
             verbose:
         """
+        assert keys is not None
+        assert index_col is not None
 
         if file_resources is None:
             file_resources = {}
@@ -608,29 +626,69 @@ class InterPro(Ontology):
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None):
         ipr_entries = pd.read_table(file_resources["entry.list"], index_col="ENTRY_AC")
         ipr2go = self.parse_interpro2go(file_resources["interpro2go"])
+        if ipr2go is not None:
+            ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
 
-        ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
+        # Use Dask
+        args = dict(names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
+                    usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
+                    dtype={'UniProtKB-AC': 'category', 'ENTRY_AC': 'category', 'start': 'int8', 'stop': 'int8'},
+                    low_memory=True,
+                    blocksize=None if isinstance(blocksize, bool) else blocksize)
+        if 'protein2ipr.parquet' in file_resources:
+            annotations = dd.read_parquet(file_resources["protein2ipr.parquet"])
+        else:
+            annotations = dd.read_table(file_resources["protein2ipr.dat"], **args)
 
-        self.annotations = dd.read_table(
-            file_resources["protein2ipr.dat"],
-            names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
-            usecols=['UniProtKB-AC', 'ENTRY_AC', 'start', 'stop'],
-            dtype={'UniProtKB-AC': 'str', 'ENTRY_AC': 'str', 'start': 'int8', 'stop': 'int8'},
-            low_memory=True,
-            blocksize=None if isinstance(blocksize, bool) else blocksize)
+        if self.keys is not None and self.index_col in annotations.columns:
+            annotations = annotations.loc[annotations[self.index_col].isin(self.keys)]
+        elif self.keys is not None and self.index_col == annotations.index.name:
+            annotations = annotations.loc[annotations.index.isin(self.keys)]
 
-        if self.keys is not None and self.index_col is not None:
-            self.annotations = self.annotations.loc[self.annotations[self.index_col].isin(self.keys)]
+        # if annotations.index.name != self.index_col:
+        #     annotations = annotations.set_index(self.index_col, sorted=True)
+        # if not annotations.known_divisions:
+        #     annotations.divisions = annotations.compute_current_divisions()
 
-        if self.index_col:
-            self.annotations = self.annotations.set_index(self.index_col, sorted=True)
+        # Set ordering for rows and columns
+        row_order = self.keys
+        col_order = ipr_entries.index
+        row2idx = {node: i for i, node in enumerate(row_order)}
+        col2idx = {node: i for i, node in enumerate(col_order)}
+
+        def edgelist2coo(edgelist_df: DataFrame, source='UniProtKB-AC', target='ENTRY_AC') -> Optional[ssp.coo_matrix]:
+            if edgelist_df.shape[0] == 1 and edgelist_df.iloc[0, 0] == 'foo':
+                return None
+
+            if edgelist_df.index.name == source:
+                source_nodes = edgelist_df.index
+            else:
+                source_nodes = edgelist_df[source]
+
+            edgelist_df = edgelist_df.assign(row=source_nodes.map(row2idx).astype('int'),
+                                             col=edgelist_df[target].map(col2idx).astype('int'))
+
+            edgelist_df = edgelist_df.dropna(subset=['row', 'col'])
+            if edgelist_df.shape[0] == 0:
+                return None
+
+            values = np.ones(edgelist_df.index.size)
+            coo = ssp.coo_matrix((values, (edgelist_df['row'], edgelist_df['col'])),
+                                 shape=(len(row2idx), ipr_entries.index.size))
+            return coo
+
+        # Create a sparse adjacency matrix each partition, then combine them
+        adj = annotations.reduction(chunk=edgelist2coo,
+                                    aggregate=lambda x: x.dropna().sum() if not x.isna().all() else None,
+                                    meta=pd.Series([ssp.coo_matrix])).compute()
+        assert len(adj) == 1, f"len(adj) = {len(adj)}"
+
+        # Create a sparse matrix of UniProtKB-AC x ENTRY_AC
+        self.annotations = pd.DataFrame.sparse.from_spmatrix(adj[0], index=row_order, columns=col_order)
 
         return ipr_entries
 
-    def parse_interpro2go(self, file: StringIO) -> DataFrame:
-        if isinstance(file, str):
-            file = open(file, 'r')
-
+    def parse_interpro2go(self, file: StringIO) -> pd.DataFrame:
         def _process_line(line: str) -> Tuple[str, str, str]:
             pos = line.find('> GO')
             interpro_terms, go_term = line[:pos], line[pos:]
@@ -640,43 +698,29 @@ class InterPro(Ontology):
 
             return (interpro_id.strip().split(':')[1], go_id.strip(), go_desc)
 
-        tuples = [_process_line(line.strip()) for line in file if line[0] != '!']
-        return pd.DataFrame(tuples, columns=['ENTRY_AC', "go_id", "go_desc"])
+        if isinstance(file, str):
+            with open(os.path.expanduser(file), 'r') as file:
+                tuples = [_process_line(line.strip()) for line in file if line[0] != '!']
+
+            ipr2go = pd.DataFrame(tuples, columns=['ENTRY_AC', "go_id", "go_desc"])
+            return ipr2go
 
     def load_network(self, file_resources) -> Tuple[nx.Graph, np.ndarray]:
-        for file in file_resources:
-            if 'ParentChildTreeFile' in file and isinstance(file_resources[file], str) \
-                and os.path.exists(file_resources[file]):
-                network: nx.MultiDiGraph = self.parse_ipr_treefile(file_resources[file])
+        network, node_list = None, None
+        for filename in file_resources:
+            if 'ParentChildTreeFile' in filename and isinstance(file_resources[filename], str):
+                network: nx.MultiDiGraph = self.parse_ipr_treefile(file_resources[filename])
                 node_list = np.array(network.nodes)
 
-                return network, node_list
-        return None, None
+        return network, node_list
 
-    def get_annotations_adj(self, protein_ids: pd.Index):
-        g = nx.MultiDiGraph()
-        g.add_nodes_from(protein_ids.tolist())
-
-        def add_edgelist(edgelist_df: DataFrame) -> None:
-            edge_mask = edgelist_df["UniProtKB-AC"].isin(protein_ids)
-            if edge_mask.sum():
-                edgelist = [(row[0], row[1], row[2:].to_dict()) for i, row in edgelist_df.iterrows()]
-                g.add_edges_from(edgelist, weight=1)
-
-        # Add edges to Networkx Graph
-        self.annotations.map_partitions(add_edgelist).compute()
-
-        adj = nx.bipartite.biadjacency_matrix(g, row_order=protein_ids, column_order=self.data["ENTRY_AC"],
-                                              weight='weight', format='csc')
-        adj = pd.DataFrame(adj, index=protein_ids, columns=self.data["ENTRY_AC"])
-        return adj
-    def parse_ipr_treefile(self, lines: Union[Iterable[str], StringIO]) -> nx.MultiDiGraph:
+    def parse_ipr_treefile(self, lines: Union[List[str], StringIO]) -> nx.MultiDiGraph:
         """Parse the InterPro Tree from the given file.
         Args:
             lines: A readable file or file-like
         """
         if isinstance(lines, str):
-            lines = open(lines, 'r')
+            lines = open(os.path.expanduser(lines), 'r')
 
         graph = nx.MultiDiGraph()
         previous_depth, previous_name = 0, None
@@ -712,6 +756,7 @@ class InterPro(Ontology):
 
             previous_depth, previous_name = depth, interpro_id
 
+        lines.close()
         return graph
 
 

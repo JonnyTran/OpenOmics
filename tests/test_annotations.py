@@ -1,12 +1,13 @@
 from openomics.database.annotation import GTEx
 from openomics.database.ontology import GeneOntology
 from openomics.database.sequence import RNAcentral
+
 from .test_multiomics import *
 
 
 @pytest.fixture
 def generate_RNACentral_ftp():
-    rnacentral = RNAcentral(path="ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/")
+    rnacentral = RNAcentral(path="https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/")
     rnacentral.data = rnacentral.data.sample(frac=0.01)
     return rnacentral
 
@@ -18,7 +19,7 @@ def generate_GTEx_expressions():
 
 @pytest.fixture
 def generate_GeneOntology():
-    go = GeneOntology(path="http://geneontology.org/gene-associations/")
+    go = GeneOntology(path="http://geneontology.org/gene-associations/", species='human')
     go.data = go.data.sample(frac=0.01)
     return go
 

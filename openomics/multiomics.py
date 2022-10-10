@@ -1,9 +1,9 @@
 import logging
 from typing import List, Dict, Union
 
+import openomics
 import pandas as pd
 
-import openomics
 from .clinical import (
     ClinicalData,
     HISTOLOGIC_SUBTYPE_COL,
@@ -17,6 +17,7 @@ from .imageomics import WholeSlideImage
 from .proteomics import Protein
 from .transcriptomics import MessengerRNA, MicroRNA, LncRNA, Expression
 
+__all__ = ['MultiOmics']
 
 class MultiOmics:
     """A data object which holds multiple -omics data for a single clinical

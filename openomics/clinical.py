@@ -17,6 +17,7 @@ PREDICTED_SUBTYPE_COL = 'predicted_subtype'
 TUMOR = "Tumor"
 NORMAL = "Normal"
 
+__all__ = ['ClinicalData']
 
 class ClinicalData:
     """This class manages the clinical data tables to handle the patient's
@@ -102,16 +103,11 @@ class ClinicalData:
         self.samples.index.name = index
         self.samples.index = self.samples.index.str[:-4]  # Cut sample barcode for TCGA
 
-        num_samples = self.samples.shape[0]
-
         # Merge patients clinical data with patient barcode as index
         # target = pd.merge(target, self.patient,
         #                      how="left", left_on="patient_barcode", right_on="patient_barcode")
 
-
         self.samples = self.samples.join(self.patient, on=index, how="left", rsuffix="_")
-        if self.samples.shape[0] != num_samples:
-            raise Exception("Clinical data merging has wrong number of samples")
 
         # self.samples.dropna(axis=0, subset=["bcr_patient_barcode"], inplace=True) # Remove samples without clinical data
 
@@ -178,29 +174,3 @@ class ClinicalData:
         return self.sample_barcodes
 
 
-
-# class DrugResponse():
-#     def __init__(self, drugs_file_path="nationwidechildrens.org_clinical_drug.txt", patient_column="bcr_patient_barcode",
-#                  columns=['bcr_patient_barcode', 'pharmaceutical_therapy_drug_name', 'pharmaceutical_therapy_type', 'treatment_best_response'],
-#                  drug_name_col=None, response_column=None):
-#         self.drug_name_col = drug_name_col
-#         self.response_column = response_column
-#
-#         self.drugs = pd.read_table(drugs_file_path,
-#                                    sep="\t",
-#                                    skiprows=[1, 2],
-#                                    na_values=["[Not Available]", "[Unknown]", "[Not Applicable]"],
-#                                    usecols=columns
-#                                    )
-#         self.drugs.set_index(patient_column, inplace=True)
-
-
-# class Biospecimen():
-#     def __init__(self, biospecimens_file="genome.wustl.edu_biospecimen_sample.txt", patient_col_name="bcr_patient_barcode",
-#                  columns=['bcr_sample_barcode', 'sample_type']):
-#         self.biospecimen = pd.read_table(biospecimens_file, sep="\t", skiprows=[1, ],
-#                                          na_values=["[Not Available]", "[Unknown]", "[Not Applicable]"],
-#                                          usecols=columns
-#                                          )
-#         self.sample_barcodes = self.biospecimen[patient_col_name].tolist()
-#         self.biospecimen.set_index(patient_col_name, inplace=True)
