@@ -2,23 +2,23 @@ from openomics.database.interaction import LncRNA2Target, STRING, MiRTarBase
 
 from .test_multiomics import *
 
+# FIXME: URL is broken. Can't find a link to this database.
+# @pytest.fixture
+# def generate_LncRNA2Target():
+#     return LncRNA2Target(path="http://123.59.132.21/lncrna2target/data/", version="low_throughput")
 
-@pytest.fixture
-def generate_LncRNA2Target():
-    return LncRNA2Target(path="http://123.59.132.21/lncrna2target/data/", version="low_throughput")
 
-
-def test_import_LncRNA2Target(generate_LncRNA2Target):
-    """
-    Args:
-        generate_LncRNA2Target:
-    """
-    assert generate_LncRNA2Target.data_path is not None
+# def test_import_LncRNA2Target(generate_LncRNA2Target):
+#     """
+#     Args:
+#         generate_LncRNA2Target:
+#     """
+#     assert generate_LncRNA2Target.data_path is not None
 
 
 @pytest.fixture
 def generate_STRING():
-    string = STRING(edge_attr=["score"])
+    string = STRING(edge_attr=["weight"], index_col=0)
     string.data = string.data.sample(frac=0.01)
     return string
 
@@ -60,5 +60,5 @@ def test_annotate_STRING(generate_TCGA_LUAD, generate_STRING):
     assert not generate_TCGA_LUAD.Protein.annotations["sequence"].empty
 
 
-def test_get_interactions_lnc2target(generate_LncRNA2Target):
-    assert generate_LncRNA2Target.get_interactions() is not None
+# def test_get_interactions_lnc2target(generate_LncRNA2Target):
+#     assert generate_LncRNA2Target.get_interactions() is not None
