@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from os.path import exists, join
 from typing import Dict, Union, Any, Callable
 from typing import List
+from urllib.error import URLError
 
 import dask.dataframe as dd
 import filetype
@@ -121,10 +122,13 @@ class Database(object):
 
             # Remote database file URL
             if validators.url(filepath) or validators.url(join(base_path, filepath)):
-                filepath = get_pkg_data_filename(base_path, filepath)
                 try:
+                    filepath = get_pkg_data_filename(base_path, filepath)
                     filepath_ext = filetype.guess(filepath)
-                except:
+                except URLError as ue:
+                    logger.error(f"{ue}. Skipping {filepath}")
+                    continue
+                except TypeError as te:
                     filepath_ext = None
 
             # Local database path

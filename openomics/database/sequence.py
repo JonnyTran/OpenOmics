@@ -817,7 +817,7 @@ class RNAcentral(SequenceDatabase):
         if file_resources is None:
             file_resources = {}
             file_resources["rnacentral_rfam_annotations.tsv.gz"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
-            file_resources["database_mappings/gencode.tsv"] = "id_mapping/database_mappings/gencode.tsv"
+            file_resources["database_mappings/ensembl_gencode.tsv"] = "id_mapping/database_mappings/ensembl_gencode.tsv"
             file_resources["database_mappings/mirbase.tsv"] = "id_mapping/database_mappings/mirbase.tsv"
 
         super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, index_col=index_col,
