@@ -38,6 +38,8 @@ def match_iterable_keys(left: Union[dd.Series, pd.Series], right: Union[dd.Serie
     def _list_to_key(list_values: List[str], possibilities: Set[str]) -> Optional[str]:
         if list_values is None:
             return None
+        elif len(list_values) == 1:
+            return list_values[0]
 
         for key in list_values:
             if key in possibilities:
@@ -46,6 +48,8 @@ def match_iterable_keys(left: Union[dd.Series, pd.Series], right: Union[dd.Serie
     def _list_to_list(list_values: List[str], multi_possibilities: List[Set[str]]) -> Optional[str]:
         if list_values is None:
             return None
+        elif len(list_values) == 1:
+            return list_values[0]
 
         for possibilities in multi_possibilities:
             if isinstance(possibilities, set) and list_values is not None:
