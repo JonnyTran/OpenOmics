@@ -720,16 +720,29 @@ class MirBase(SequenceDatabase):
             return self._seq_df_dict[fasta_file]
 
         fa = Fasta(fasta_file, read_long_names=True, as_raw=True)
+        mirna_types = {'stem-loop', 'stem', 'type', 'loop'}
 
         entries = []
         for key, record in tqdm.tqdm(fa.items(), desc=str(fasta_file)):
-            attrs = record.long_name.split(" ")
+            attrs: List[str] = record.long_name.split(" ")
+
+            if attrs[-1] in mirna_types:
+                if attrs[-2] in mirna_types:
+                    mirna_type = intern(' '.join(attrs[-2:]))
+                    gene_name_idx = -3
+                else:
+                    mirna_type = intern(attrs[-1])
+                    gene_name_idx = -2
+            else:
+                mirna_type = None
+                gene_name_idx = -1
+
             record_dict = {
                 "gene_id": attrs[0],
                 "mirbase_id": attrs[1],
-                "species": intern(" ".join(attrs[2:4])),
-                "gene_name": attrs[4],
-                "type": intern(attrs[5]) if len(attrs) >= 6 else None,
+                "species": intern(" ".join(attrs[2:gene_name_idx])),
+                "gene_name": attrs[gene_name_idx],
+                "mirna_type": mirna_type,
                 SEQUENCE_COL: str(record),
             }
             if keys is not None and index:

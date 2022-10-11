@@ -19,7 +19,7 @@ from logzero import logger
 
 from ..io.files import get_pkg_data_filename, decompress_file
 from ..transforms.agg import get_multi_aggregators, merge_concat
-from ..transforms.df import drop_duplicate_columns
+from ..transforms.df import drop_duplicate_columns, match_iterable_keys, has_iterables
 
 __all__ = ['Database', 'Annotatable']
 
@@ -274,10 +274,11 @@ class Database(object):
             if isinstance(keys, (dd.Series, dd.Index)):
                 keys = keys.compute()
 
-            if on in df.columns:
-                df = df.loc[df[on].isin(keys)]
-            elif on == df.index.name:
-                df = df.loc[df.index.isin(keys)]
+            if not has_iterables(keys.head()):
+                if on in df.columns:
+                    df = df.loc[df[on].isin(keys)]
+                elif on == df.index.name:
+                    df = df.loc[df.index.isin(keys)]
 
         df = drop_duplicate_columns(df)
 
@@ -347,7 +348,7 @@ class Annotatable(ABC):
 
     def annotate_attributes(self, database: Union[Database, pd.DataFrame], on: Union[str, List[str]],
                             columns: List[str], agg: str = "unique", agg_for: Dict[str, Any] = None,
-                            fuzzy_match: bool = False, ):
+                            fuzzy_match: bool = False, list_match=False):
         """Performs a left outer join between the annotation and Database's
         DataFrame, on the index key. The index argument must be column present
         in both DataFrames. If there exists overlapping columns from the join,
@@ -373,17 +374,18 @@ class Annotatable(ABC):
         if not hasattr(self, "annotations"):
             raise Exception("Must run .initialize_annotations() on, ", self.__class__.__name__, " first.")
 
-        if isinstance(on, str) and on in self.annotations.columns:
-            keys = self.annotations[on]
-        elif isinstance(on, list) and set(on).issubset(self.annotations.columns):
-            keys = self.annotations[on]
-        elif on == self.annotations.index.name:
-            keys = self.annotations.index
-        elif hasattr(self.annotations.index, 'names') and on in self.annotations.index.names:
+        left_df = self.annotations
+        if isinstance(on, str) and on in left_df.columns:
+            left_keys = left_df[on]
+        elif isinstance(on, list) and set(on).issubset(left_df.columns):
+            left_keys = left_df[on]
+        elif on == left_df.index.name:
+            left_keys = left_df.index
+        elif hasattr(left_df.index, 'names') and on in left_df.index.names:
             # MultiIndex
-            keys = self.annotations.index.get_level_values(on)
+            left_keys = left_df.index.get_level_values(on)
         else:
-            keys = None
+            left_keys = None
 
         # Get grouped values from `database`
         if isinstance(database, (pd.DataFrame, dd.DataFrame)):
@@ -395,31 +397,37 @@ class Annotatable(ABC):
                 groupby = df.reset_index().groupby(on)
             else:
                 groupby = df.groupby(on)
-            values = groupby.agg({col: agg_funcs[col] for col in columns})
+            right_df = groupby.agg({col: agg_funcs[col] for col in columns})
         else:
-            values = database.get_annotations(on, columns=columns, agg=agg, agg_for=agg_for, keys=keys)
+            right_df = database.get_annotations(on, columns=columns, agg=agg, agg_for=agg_for, keys=left_keys)
 
+        # Match values between `self.annotations[on]` and `values.index`.
+        left_on = on if left_df.index.name != on else None
+        right_on = on if right_df.index.name != on else None
+        # Fuzzy match between string key values
         if fuzzy_match:
-            values.index = values.index.map(
+            left_on = right_df.index.map(
                 lambda x: difflib.get_close_matches(x, self.annotations.index, n=1)[0])
+        # Join on keys of 'list' values if they exist on either `left_keys` or `right_df.index`
+        elif list_match:
+            left_on, right_on = match_iterable_keys(left=left_keys, right=right_df.index)
+            print(right_on.intersection(left_on))
 
-        if isinstance(self.annotations, type(values)) and (on == self.annotations.index.name or
-                                                           (hasattr(self.annotations.index,
-                                                                    'names') and on == self.annotations.index.names)):
-            # Performing join if `on` is already self's index
-            merged = self.annotations.join(values, on=on, how="left", rsuffix="_")
+        left_index = True if isinstance(left_on, str) and left_df.index.name == left_on else False
+        right_index = True if isinstance(right_on, str) and right_df.index.name == right_on else False
+
+        # Performing join if `on` is already left_df's index
+        if isinstance(left_df, type(right_df)) and left_index:
+            merged = left_df.join(right_df, on=on, how="left", rsuffix="_")
+
+        # Perform merge if `on` not index, and choose appropriate merge func depending on dask or pd DF
         else:
-            # Perfrom merge if `on` another column
-            if isinstance(self.annotations, pd.DataFrame) and isinstance(values, dd.DataFrame):
-                merged = dd.merge(self.annotations, values, how="left",
-                                  left_on=on if self.annotations.index.name != on else None,
-                                  left_index=True if self.annotations.index.name == on else False,
-                                  right_on=on if values.index.name != on else None,
-                                  right_index=True if values.index.name == on else False,
-                                  suffixes=("", "_"))
+            if isinstance(left_df, pd.DataFrame) and isinstance(right_df, dd.DataFrame):
+                merged = dd.merge(left_df, right_df, how="left", left_on=left_on, left_index=left_index,
+                                  right_on=right_on, right_index=right_index, suffixes=("", "_"))
             else:
-                merged = self.annotations.merge(values, left_on=on, right_index=True, how="left",
-                                                suffixes=("", "_"))
+                merged = left_df.merge(right_df, how="left", left_on=left_on, left_index=left_index,
+                                       right_on=right_on, right_index=right_index, suffixes=("", "_"))
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
         duplicate_cols = {col: col.rstrip("_") for col in merged.columns if col.endswith("_")}
@@ -436,7 +444,7 @@ class Annotatable(ABC):
             merged = merged.drop(columns=list(duplicate_cols.keys()))
 
         # Revert back to Pandas DF if not previously a Dask DF
-        if isinstance(self.annotations, pd.DataFrame) and isinstance(merged, dd.DataFrame):
+        if isinstance(left_df, pd.DataFrame) and isinstance(merged, dd.DataFrame):
             merged = merged.compute()
 
         # Assign the new results
