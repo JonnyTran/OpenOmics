@@ -655,6 +655,7 @@ class MiRTarBase(Interactions):
 
     def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
         df = pd.read_excel(self.file_resources["miRTarBase_MTI.xlsx"])
+        self.edges = df
         return df
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
@@ -662,9 +663,10 @@ class MiRTarBase(Interactions):
         df = self.data
         df = filter_rows(df, filters)
 
+        df['miRNA'] = df['miRNA'].str.rstrip('*')
+
         if self.strip_mirna_name:
-            df['miRNA'] = df['miRNA'].str.lower()
-            df['miRNA'] = df['miRNA'].str.replace("-3p.*|-5p.*", "", regex=True)
+            df['miRNA'] = df['miRNA'].str.lower().str.replace("-3p.*|-5p.*", "", regex=True)
 
         mir_target_network = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
                                                      edge_attr=edge_attr,
@@ -955,10 +957,10 @@ class LncRNA2Target(Interactions):
         self.version = version
         if file_resources is None:
             file_resources = {}
-            file_resources["lncRNA_target_from_high_throughput_experiments.txt.rar"] = os.path.join(path,
-                                                                                                    "lncrna_target.rar")
-            file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"] = os.path.join(path,
-                                                                                                "lncRNA_target_from_low_throughput_experiments.xlsx")
+            file_resources["lncRNA_target_from_high_throughput_experiments.txt.rar"] = \
+                os.path.join(path, "lncrna_target.rar")
+            file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"] = \
+                os.path.join(path, "lncRNA_target_from_low_throughput_experiments.xlsx")
 
         if self.version == "high_throughput":
             super().__init__(path, file_resources, source_col_name="lncrna_symbol", target_col_name="gene_symbol",
@@ -971,26 +973,30 @@ class LncRNA2Target(Interactions):
 
     def load_network(self, file_resources, source_col_name, target_col_name, edge_attr, directed, filters,
                      blocksize=None):
+        network = None
         if self.version == "high_throughput":
-            return self.load_network_high_throughput(file_resources, source_col_name, target_col_name, edge_attr,
-                                                     directed)
+            network = self.load_network_high_throughput(file_resources, source_col_name, target_col_name, edge_attr,
+                                                        directed)
         elif self.version == "low_throughput":
-            return self.load_network_low_throughput(file_resources, source_col_name, target_col_name, edge_attr,
-                                                    directed)
+            network = self.load_network_low_throughput(file_resources, source_col_name, target_col_name, edge_attr,
+                                                       directed)
         else:
-            raise Exception("LncRNA2Target version argument must be one of 'high_throughput' or 'low_throughput'")
+            logger.warn("LncRNA2Target version argument must be one of 'high_throughput' or 'low_throughput'")
+
+        return network
 
     def load_network_high_throughput(self, file_resources, source_col_name="lncrna_symbol",
                                      target_col_name="gene_symbol",
                                      edge_attr=None, directed=True, filters=None):
-        table = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"], sep="\t")
-        table = filter_rows(table, filters)
-        print(self.name(), table.columns.tolist())
+        edges = pd.read_table(file_resources["lncRNA_target_from_high_throughput_experiments.txt"], sep="\t")
+        edges = filter_rows(edges, filters)
 
-        table["lncrna_symbol"] = table["lncrna_symbol"].str.upper()
-        table["lncrna_symbol"] = table["lncrna_symbol"].str.replace("LINC", "")
-        table["gene_symbol"] = table["gene_symbol"].str.upper()
-        lncrna2target_high_throughput_network = nx.from_pandas_edgelist(table,
+        edges["lncrna_symbol"] = edges["lncrna_symbol"].str.upper()
+        edges["lncrna_symbol"] = edges["lncrna_symbol"].str.replace("LINC", "")
+        edges["gene_symbol"] = edges["gene_symbol"].str.upper()
+
+        self.data = self.edges = edges
+        lncrna2target_high_throughput_network = nx.from_pandas_edgelist(edges,
                                                                         source=source_col_name,
                                                                         target=target_col_name,
                                                                         edge_attr=edge_attr,
@@ -1000,16 +1006,17 @@ class LncRNA2Target(Interactions):
     def load_network_low_throughput(self, file_resources, source_col_name="GENCODE_gene_name",
                                     target_col_name="Target_official_symbol",
                                     edge_attr=None, directed=True, filters=None):
-        table = pd.read_excel(file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"])
-        table = filter_rows(table, filters)
-        print(self.name(), table.columns.tolist())
+        edges = pd.read_excel(file_resources["lncRNA_target_from_low_throughput_experiments.xlsx"])
+        edges = filter_rows(edges, filters)
 
-        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-",
+        edges["Target_official_symbol"] = edges["Target_official_symbol"].str.replace("(?i)(mir)", "hsa-mir-",
                                                                                       regex=True)
-        table["Target_official_symbol"] = table["Target_official_symbol"].str.replace("--", "-")
-        table["Target_official_symbol"].apply(lambda x: x.lower() if "mir" in x.lower() else x.upper())
-        table["GENCODE_gene_name"] = table["GENCODE_gene_name"].str.upper()
-        lncrna2target_low_throughput_network = nx.from_pandas_edgelist(table,
+        edges["Target_official_symbol"] = edges["Target_official_symbol"].str.replace("--", "-")
+        edges["Target_official_symbol"].apply(lambda x: x.lower() if "mir" in x.lower() else x.upper())
+        edges["GENCODE_gene_name"] = edges["GENCODE_gene_name"].str.upper()
+
+        self.data = self.edges = edges
+        lncrna2target_low_throughput_network = nx.from_pandas_edgelist(edges,
                                                                        source=source_col_name,
                                                                        target=target_col_name,
                                                                        edge_attr=edge_attr,
