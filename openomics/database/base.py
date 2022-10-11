@@ -404,6 +404,7 @@ class Annotatable(ABC):
         # Match values between `self.annotations[on]` and `values.index`.
         left_on = on if left_df.index.name != on else None
         right_on = on if right_df.index.name != on else None
+        orig_keys = left_df.index
         # Fuzzy match between string key values
         if fuzzy_match:
             left_on = right_df.index.map(
@@ -411,7 +412,6 @@ class Annotatable(ABC):
         # Join on keys of 'list' values if they exist on either `left_keys` or `right_df.index`
         elif list_match:
             left_on, right_on = match_iterable_keys(left=left_keys, right=right_df.index)
-            print(right_on.intersection(left_on))
 
         left_index = True if isinstance(left_on, str) and left_df.index.name == left_on else False
         right_index = True if isinstance(right_on, str) and right_df.index.name == right_on else False
@@ -428,6 +428,9 @@ class Annotatable(ABC):
             else:
                 merged = left_df.merge(right_df, how="left", left_on=left_on, left_index=left_index,
                                        right_on=right_on, right_index=right_index, suffixes=("", "_"))
+        # If left_on was a modifed keys
+        if not isinstance(left_on, str) and not left_index:
+            merged.index = orig_keys
 
         # Merge columns if the database DataFrame has overlapping columns with existing column
         duplicate_cols = {col: col.rstrip("_") for col in merged.columns if col.endswith("_")}
