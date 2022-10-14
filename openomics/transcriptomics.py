@@ -13,9 +13,10 @@ import validators
 from dask import delayed
 
 from .database.base import Annotatable
-from .utils import get_pkg_data_filename
-from .utils.df import drop_duplicate_columns
+from .io.files import get_pkg_data_filename
+from .transforms.df import drop_duplicate_columns
 
+__all__ = ['Expression', 'MessengerRNA', 'MicroRNA', 'LncRNA', ]
 
 class Expression(object):
     """This class handles importing of any quantitative omics data that is

@@ -2,19 +2,25 @@ import os
 import re
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
-from typing import Union, List, Callable, Dict, Tuple
+from typing import Union, List, Callable, Dict, Tuple, Optional, Iterable
 
+import numpy as np
 import pandas as pd
 import tqdm
 from Bio import SeqIO
 from Bio.SeqFeature import ExactPosition
 from dask import dataframe as dd
+from logzero import logger
 from pyfaidx import Fasta
 from six.moves import intern
 
 import openomics
-from openomics.utils.read_gtf import read_gtf
+from openomics.io.read_gtf import read_gtf
 from .base import Database
+from ..transforms.agg import get_agg_func
+from ..transforms.df import drop_duplicate_columns
+
+__all__ = ['GENCODE', 'UniProt', 'MirBase', 'RNAcentral']
 
 SEQUENCE_COL = 'sequence'
 
@@ -33,7 +39,7 @@ class SequenceDatabase(Database):
 
     @abstractmethod
     def load_sequences(self, fasta_file: str, index=None, keys: Union[pd.Index, List[str]] = None, blocksize=None) \
-        -> Union[pd.DataFrame, Dict]:
+        -> pd.DataFrame:
         """Returns a pandas DataFrame containing the fasta sequence entries.
         With a column named 'sequence'.
 
@@ -47,12 +53,12 @@ class SequenceDatabase(Database):
         raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, index_name: str, omic: str, agg: str, **kwargs) -> Union[pd.Series, Dict]:
+    def get_sequences(self, index: str, omic: str, agg: str, **kwargs) -> Union[pd.Series, Dict]:
         """Returns a dictionary where keys are 'index' and values are
         sequence(s).
 
         Args:
-            index_name (str): {"gene_id", "gene_name", "transcript_id",
+            index (str): {"gene_id", "gene_name", "transcript_id",
                 "transcript_name"}
             omic (str): {"lncRNA", "microRNA", "messengerRNA"}
             agg (str): {"all", "shortest", "longest"}
@@ -226,7 +232,7 @@ class GENCODE(SequenceDatabase):
             raise Exception("omic argument must be one of {'MessengerRNA', 'LncRNA'}")
 
         assert isinstance(fasta_file, str), \
-            f"Fasta file provided in `file_resources` must be a non-compressed .fa file. Given {fasta_file}"
+            f"Fasta file provided in `file_resources` must be an uncompressed .fa file. Given {fasta_file}."
 
         seq_df = self.load_sequences(fasta_file)
 
@@ -254,6 +260,7 @@ class GENCODE(SequenceDatabase):
 
 class UniProt(SequenceDatabase):
     COLUMNS_RENAME_DICT = {
+        # idmapping_selected.tab
         "UniProtKB-AC": 'protein_id',
         "UniProtKB-ID": 'protein_name',
         "Ensembl": "gene_id",
@@ -264,6 +271,10 @@ class UniProt(SequenceDatabase):
         "GO": "go_id",
         # FASTA headers
         "OS": 'species', "OX": 'species_id', 'GN': 'gene_name', 'PE': 'ProteinExistence', 'SV': "version",
+        # UniProt XML headers
+        "accession": "UniProtKB-AC", "name": "protein_name", "gene": "gene_name", "keyword": "keywords",
+        "geneLocation": "subcellular_location",
+
     }
 
     SPECIES_ID_NAME = {
@@ -279,9 +290,11 @@ class UniProt(SequenceDatabase):
     }
 
     def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
-                 species_id: str = "9606",
-                 file_resources: Dict[str, str] = None, col_rename=COLUMNS_RENAME_DICT, verbose=False,
-                 blocksize=None):
+                 file_resources: Dict[str, str] = None,
+                 species_id: str = "9606", remove_version_num=True,
+                 index_col='UniProtKB-AC', keys=None,
+                 col_rename=COLUMNS_RENAME_DICT,
+                 **kwargs):
         """
         Loads the UniProt database from https://uniprot.org/ .
 
@@ -304,16 +317,18 @@ class UniProt(SequenceDatabase):
             blocksize:
         """
         self.species_id = species_id
-        self.species = UniProt.SPECIES_ID_NAME[species_id] if isinstance(species_id, str) else None
-        self.taxonomic_id = UniProt.SPECIES_ID_TAXONOMIC[self.species] if isinstance(self.species, str) else None
+        self.species = UniProt.SPECIES_ID_NAME[species_id] if species_id in UniProt.SPECIES_ID_NAME else None
+        self.taxonomic_id = UniProt.SPECIES_ID_TAXONOMIC[
+            self.species] if self.species in UniProt.SPECIES_ID_TAXONOMIC else None
+        self.remove_version_num = remove_version_num
 
         if file_resources is None:
             file_resources = {}
 
             file_resources['uniprot_sprot.xml.gz'] = os.path.join(path, "knowledgebase/complete/uniprot_sprot.xml.gz")
             file_resources['uniprot_trembl.xml.gz'] = os.path.join(path, "knowledgebase/complete/uniprot_trembl.xml.gz")
-            file_resources["idmapping_selected.tab.gz"] = os.path.join(path,
-                                                                       "knowledgebase/idmapping/idmapping_selected.tab.gz")
+            file_resources["idmapping_selected.tab.gz"] = os.path.join(
+                path, "knowledgebase/idmapping/idmapping_selected.tab.gz")
 
             if self.species:
                 file_resources['uniprot_sprot.xml.gz'] = os.path.join(
@@ -327,8 +342,9 @@ class UniProt(SequenceDatabase):
             file_resources["proteomes.tsv"] = \
                 "https://rest.uniprot.org/proteomes/stream?compressed=true&fields=upid%2Corganism%2Corganism_id&format=tsv&query=%28%2A%29%20AND%20%28proteome_type%3A1%29"
 
-        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, verbose=verbose,
-                         blocksize=blocksize)
+        super().__init__(path=path, file_resources=file_resources, index_col=index_col, keys=keys,
+                         col_rename=col_rename,
+                         **kwargs)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
@@ -348,42 +364,46 @@ class UniProt(SequenceDatabase):
         if blocksize:
             if "idmapping_selected.parquet" in file_resources and \
                 isinstance(file_resources["idmapping_selected.parquet"], str):
-                idmapping = dd.read_parquet(file_resources["idmapping_selected.parquet"], blocksize=blocksize)
-                idmapping = idmapping.set_index('UniProtKB-AC', sorted=True)
+                idmapping = dd.read_parquet(file_resources["idmapping_selected.parquet"])
 
-            elif "idmapping_selected.tab" in file_resources and isinstance(file_resources["idmapping_selected.tab"],
-                                                                           str):
+            elif "idmapping_selected.tab" in file_resources and \
+                isinstance(file_resources["idmapping_selected.tab"], str):
                 idmapping = dd.read_table(file_resources["idmapping_selected.tab"], blocksize=blocksize, **args)
-                idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
-
             else:
                 idmapping = dd.read_table(file_resources["idmapping_selected.tab.gz"], compression="gzip", **args, )
-                idmapping = idmapping.set_index('UniProtKB-AC', sorted=False)
 
+            idmapping: dd.DataFrame
         else:
-            idmapping: pd.DataFrame = pd.read_table(file_resources["idmapping_selected.tab"],
-                                                    index_col='UniProtKB-AC',
-                                                    **args)
+            if "idmapping_selected.parquet" in file_resources and \
+                isinstance(file_resources["idmapping_selected.parquet"], str):
+                idmapping = pd.read_parquet(file_resources["idmapping_selected.parquet"])
+            else:
+                idmapping = pd.read_table(file_resources["idmapping_selected.tab"], index_col=self.index_col, **args)
 
+        # Filter UniProt accession keys
+        if self.keys is not None and idmapping.index.name == self.index_col:
+            idmapping = idmapping.loc[idmapping.index.isin(self.keys)]
+        elif self.keys is not None and idmapping.index.name != self.index_col:
+            idmapping = idmapping.loc[idmapping[self.index_col].isin(self.keys)]
 
-        for col in ['PDB', 'GI', 'GO', 'RefSeq']:
-            # Split string to list
-            idmapping[col] = idmapping[col].str.split("; ")
+        if idmapping.index.name != self.index_col:
+            idmapping = idmapping.set_index(self.index_col, sorted=False)
+        if not idmapping.known_divisions:
+            idmapping.divisions = idmapping.compute_current_divisions()
 
-        for col in ['Ensembl', 'Ensembl_TRS', 'Ensembl_PRO']:
-            # Removing .# ENGS gene version number at the end
-            idmapping[col] = idmapping[col].str.replace("[.]\d*", "", regex=True)
-            idmapping[col] = idmapping[col].str.split("; ")
+        # Transform list columns
+        if isinstance(idmapping, dd.DataFrame):
+            idmapping = idmapping.assign(**self.assign_transforms(idmapping))
+        else:
+            idmapping = idmapping.assign(**self.assign_transforms(idmapping))
 
-            if col == 'Ensembl_PRO':
-                # Prepend species_id to ensembl protein ids to match with STRING PPI
-                idmapping['protein_external_id'] = idmapping[col]
-                idmapping['protein_external_id'] = idmapping[["NCBI-taxon", 'protein_external_id']].apply(
-                    lambda x: [".".join([x['NCBI-taxon'], protein_id]) \
-                               for protein_id in x['protein_external_id']] \
-                        if isinstance(x['protein_external_id'], list) else None,
-                    meta=pd.Series([['', '']]),
-                    axis=1)
+        # Join metadata from uniprot_sprot.parquet
+        if any(fn.startswith('uniprot') and fn.endswith('.parquet') for fn in file_resources):
+            uniprot_anns = self.load_uniprot_parquet(file_resources, blocksize=blocksize)
+            uniprot_anns = uniprot_anns[uniprot_anns.columns.difference(idmapping.columns)]
+            uniprot_anns = drop_duplicate_columns(uniprot_anns)
+            assert idmapping.index.name == uniprot_anns.index.name, f"{idmapping.index.name} != {uniprot_anns.index.name}"
+            idmapping = idmapping.join(uniprot_anns, on=idmapping.index.name, how='left')
 
         # Load proteome.tsv
         if "proteomes.tsv" in file_resources:
@@ -418,10 +438,100 @@ class UniProt(SequenceDatabase):
 
         return idmapping
 
-    def load_uniprot_xml(self, xml_file: str, keys=None, blocksize=None) -> pd.DataFrame:
+    def assign_transforms(self, idmapping: pd.DataFrame) -> Dict[str, Union[dd.Series, pd.Series]]:
+        # Convert string of list elements to a np.array
+        list2array = lambda x: np.array(x) if isinstance(x, Iterable) else x
+        assign_fn = {}
+        for col in {'PDB', 'GI', 'GO', 'RefSeq'}.intersection(idmapping.columns):
+            try:
+                # Split string to list
+                assign_fn[col] = idmapping[col].str.split("; ").map(list2array)
+            except:
+                continue
+
+        for col in {'Ensembl', 'Ensembl_TRS', 'Ensembl_PRO'}.intersection(idmapping.columns):
+            # Removing .# ENGS gene version number at the end
+            try:
+                if self.remove_version_num:
+                    series = idmapping[col].str.replace("[.]\d*", "", regex=True)
+                else:
+                    series = idmapping[col]
+
+                assign_fn[col] = series.str.split("; ").map(list2array)
+
+                if col == 'Ensembl_PRO':
+                    # Prepend species_id to ensembl protein ids to match with STRING PPI
+                    concat = dd.concat([idmapping["NCBI-taxon"], assign_fn[col]]) \
+                        if isinstance(idmapping, dd.DataFrame) else \
+                        pd.concat([idmapping["NCBI-taxon"], assign_fn[col]])
+
+                    assign_fn['protein_external_id'] = concat.apply(
+                        lambda row: np.char.add(row['NCBI-taxon'] + ".", row['Ensembl_PRO']) \
+                            if isinstance(row['Ensembl_PRO'], Iterable) else None,
+                        axis=1)
+            except:
+                continue
+
+        return assign_fn
+
+    def load_uniprot_parquet(self, file_resources: Dict[str, str], blocksize=None) -> Union[dd.DataFrame, pd.DataFrame]:
+        dfs = []
+        for filename, file_path in file_resources.items():
+            if not ('uniprot' in filename and filename.endswith('.parquet')): continue
+            if blocksize:
+                df: dd.DataFrame = dd.read_parquet(file_path) \
+                    .rename(columns=UniProt.COLUMNS_RENAME_DICT)
+                if df.index.name in UniProt.COLUMNS_RENAME_DICT:
+                    df.index = df.index.rename(UniProt.COLUMNS_RENAME_DICT[df.index.name])
+
+                if self.keys is not None:
+                    if self.index_col in df.columns:
+                        df = df.loc[df[self.index_col].isin(self.keys)]
+                    elif df.index.name == self.index_col:
+                        df = df.loc[df.index.isin(self.keys)]
+
+                if df.index.size.compute() == 0: continue
+
+                if df.index.name != self.index_col:
+                    try:
+                        df = df.set_index(self.index_col, sorted=True)
+                    except Exception as e:
+                        print(file_path, e)
+                        df = df.set_index(self.index_col, sorted=False)
+
+                if not df.known_divisions:
+                    df.divisions = df.compute_current_divisions()
+
+            else:
+                df = pd.read_parquet(file_path).rename(columns=UniProt.COLUMNS_RENAME_DICT).set_index(self.index_col)
+
+                if self.keys is not None:
+                    df_keys = df.index if df.index.name == self.index_col else df[self.index_col]
+                    df = df.loc[df_keys.isin(self.keys)]
+                if df.index.size == 0: continue
+
+            dfs.append(df)
+
+        if dfs:
+            dfs = dd.concat(dfs, interleave_partitions=True) if blocksize else pd.concat(dfs)
+
+            return dfs
+        else:
+            return None
+
+    def load_uniprot_xml(self, file_path: str, keys=None, blocksize=None) -> pd.DataFrame:
         records = []
         seqfeats = []
-        for record in tqdm.tqdm(SeqIO.parse(xml_file, "uniprot-xml"), desc=str(xml_file)):
+        if isinstance(keys, str):
+            index = keys
+            keys_set = self.data.index if keys == self.data.index.name else self.data[keys]
+        elif isinstance(keys, (dd.Index, dd.Series)):
+            index = keys.name
+            keys_set = keys.compute()
+        else:
+            index = keys_set = None
+
+        for record in tqdm.tqdm(SeqIO.parse(file_path, "uniprot-xml"), desc=str(file_path)):
             # Sequence features
             annotations = defaultdict(None, record.annotations)
             record_dict = {
@@ -438,6 +548,9 @@ class UniProt(SequenceDatabase):
                 'sequence_mass': annotations['sequence_mass'],
                 SEQUENCE_COL: str(record.seq),
             }
+            if index is not None:
+                if record_dict[keys] not in keys_set: continue
+
             records.append(record_dict)
 
             # Sequence interval features
@@ -517,12 +630,12 @@ class MirBase(SequenceDatabase):
 
     def __init__(
         self,
-        path="ftp://mirbase.org/pub/mirbase/CURRENT/",
+        path="http://mirbase.org/ftp/CURRENT/",
         file_resources=None,
-        species_id: str = '9606',
-        sequence: str = "mature",
+        species_id: Optional[str] = '9606',
+        index_col: str = "mirbase_id",
         col_rename=None,
-        blocksize=None,
+        **kwargs,
     ):
         """
         Args:
@@ -543,9 +656,8 @@ class MirBase(SequenceDatabase):
             file_resources["rnacentral.mirbase.tsv"] = "ftp://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/" \
                                                        "id_mapping/database_mappings/mirbase.tsv"
 
-        self.sequence = sequence
         self.species_id = species_id
-        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, blocksize=blocksize)
+        super().__init__(path=path, file_resources=file_resources, index_col=index_col, col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
@@ -555,24 +667,42 @@ class MirBase(SequenceDatabase):
         """
         rnacentral_mirbase = pd.read_table(
             file_resources["rnacentral.mirbase.tsv"], low_memory=True, header=None,
-            names=["RNAcentral id", "database", "mirbase id", "species_id", "RNA type", "NA", ],
-            usecols=["RNAcentral id", "database", "mirbase id", "species_id", "RNA type"],
-            dtype={'mirbase id': 'str', "species_id": "str"})
+            names=["RNAcentral id", "database", "mirbase_id", "species_id", "RNA type", "NA"],
+            usecols=["RNAcentral id", "database", "mirbase_id", "species_id", "RNA type"],
+            index_col="RNAcentral id",
+            dtype={'mirbase_id': 'str', "species_id": "category", 'database': 'category', 'RNA type': 'category'})
 
         if isinstance(self.species_id, str):
             rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species_id"] == self.species_id]
-        elif isinstance(self.species_id, list):
+        elif isinstance(self.species_id, Iterable):
             rnacentral_mirbase = rnacentral_mirbase[rnacentral_mirbase["species_id"].isin(set(self.species_id))]
 
         mirbase_df = pd.read_table(file_resources["aliases.txt"], low_memory=True, header=None,
-                                   names=["mirbase id", "gene_name"],
+                                   names=["mirbase_id", "mirbase_name"], index_col=self.index_col,
                                    dtype='str', )
-        mirbase_df = mirbase_df.merge(rnacentral_mirbase, on='mirbase id', how="left")
+        if mirbase_df.index.name == 'mirbase id':
+            mirbase_df = mirbase_df.join(rnacentral_mirbase, on=self.index_col, how="left", rsuffix='_rnacentral')
+        else:
+            mirbase_df = mirbase_df.merge(rnacentral_mirbase, on=self.index_col, how="left")
 
         # Expanding miRNA names in each MirBase Ascension ID
-        mirbase_df['gene_name'] = mirbase_df['gene_name'].str.rstrip(";").str.split(";")
-        mirbase_df = mirbase_df.explode(column='gene_name')
+        mirbase_df['mirbase_name'] = mirbase_df['mirbase_name'].str.rstrip(";").str.split(";")
 
+        seq_dfs = []
+        for filename in file_resources:
+            if filename.endswith('.fa') or filename.endswith('.fasta'):
+                assert isinstance(file_resources[filename], str), f"Must provide a path to an uncompressed .fa file. " \
+                                                                  f"Given {file_resources[filename]}"
+                df = self.load_sequences(file_resources[filename], index=self.index_col, keys=self.keys)
+                seq_dfs.append(df)
+
+        if len(seq_dfs):
+            seq_dfs = pd.concat(seq_dfs, axis=0)
+            mirbase_df = mirbase_df.join(seq_dfs, how='left', on=self.index_col)
+        else:
+            logger.info('Missing sequence data because no "hairpin.fa" or "mature.fa" file were given.')
+
+        # mirbase_df = mirbase_df.explode(column='gene_name')
         # mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.lower()
         # mirbase_name["miRNA name"] = mirbase_name["miRNA name"].str.replace("-3p.*|-5p.*", "")
 
@@ -581,8 +711,8 @@ class MirBase(SequenceDatabase):
     def load_sequences(self, fasta_file, index=None, keys=None, blocksize=None):
         """
         Args:
-            index ():
             fasta_file:
+            index ():
             keys ():
             blocksize:
         """
@@ -590,22 +720,41 @@ class MirBase(SequenceDatabase):
             return self._seq_df_dict[fasta_file]
 
         fa = Fasta(fasta_file, read_long_names=True, as_raw=True)
+        mirna_types = {'stem-loop', 'stem', 'type', 'loop'}
 
         entries = []
         for key, record in tqdm.tqdm(fa.items(), desc=str(fasta_file)):
-            attrs = record.long_name.split(" ")
+            attrs: List[str] = record.long_name.split(" ")
+
+            if attrs[-1] in mirna_types:
+                if attrs[-2] in mirna_types:
+                    mirna_type = intern(' '.join(attrs[-2:]))
+                    gene_name_idx = -3
+                else:
+                    mirna_type = intern(attrs[-1])
+                    gene_name_idx = -2
+            else:
+                mirna_type = None
+                gene_name_idx = -1
+
             record_dict = {
                 "gene_id": attrs[0],
                 "mirbase_id": attrs[1],
-                "gene_name": attrs[-2],
-                "species": " ".join(attrs[2:-3]),
-                "type": attrs[-1],
+                "species": intern(" ".join(attrs[2:gene_name_idx])),
+                "gene_name": attrs[gene_name_idx],
+                "mirna_type": mirna_type,
                 SEQUENCE_COL: str(record),
             }
+            if keys is not None and index:
+                if record_dict[index] not in keys:
+                    del record_dict
+                    continue
 
             entries.append(record_dict)
 
         df = pd.DataFrame(entries)
+        if index:
+            df = df.set_index(index)
         # if blocksize:
         #     df = dd.from_pandas(df, chunksize=blocksize)
 
@@ -630,6 +779,235 @@ class MirBase(SequenceDatabase):
         dfs = []
         for filename in self.file_resources:
             if filename.endswith('.fa'):
+                seq_df = self.load_sequences(self.file_resources[filename])
+                dfs.append(seq_df)
+        seq_df = pd.concat(dfs, axis=0)
+
+        seq_df = seq_df.groupby(index)[SEQUENCE_COL].agg(self.aggregator_fn(agg))
+
+        return seq_df
+
+
+class RNAcentral(SequenceDatabase):
+    """Loads the RNAcentral database from https://rnacentral.org/ .
+
+        Default path: https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/ .
+        Default file_resources: {
+            "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
+            "database_mappings/gencode.tsv": "id_mapping/database_mappings/gencode.tsv",
+            "gencode.fasta": "sequences/by-database/gencode.fasta",
+            ...
+        }
+    """
+    COLUMNS_RENAME_DICT = {
+        'ensembl_gene_id': 'gene_id',
+        'external id': 'transcript_id',
+        'GO terms': 'go_id',
+        'gene symbol': 'gene_id',
+    }
+
+    def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/", file_resources=None,
+                 col_rename=COLUMNS_RENAME_DICT, species_id: Union[List[str], str, None] = None,
+                 index_col="RNAcentral id", keys=None,
+                 remove_version_num=True, remove_species_suffix=True, **kwargs):
+        """
+
+        Args:
+            path ():
+            file_resources ():
+            col_rename ():
+            species_id ():
+            index_col ():
+            keys ():
+            remove_version_num ():
+            remove_species_suffix ():
+            **kwargs ():
+        """
+        self.species_id = species_id
+        self.remove_version_num = remove_version_num
+        self.remove_species_suffix = remove_species_suffix
+
+        if file_resources is None:
+            file_resources = {}
+            file_resources["rnacentral_rfam_annotations.tsv.gz"] = "go_annotations/rnacentral_rfam_annotations.tsv.gz"
+            file_resources["database_mappings/ensembl_gencode.tsv"] = "id_mapping/database_mappings/ensembl_gencode.tsv"
+            file_resources["database_mappings/mirbase.tsv"] = "id_mapping/database_mappings/mirbase.tsv"
+
+        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, index_col=index_col,
+                         keys=keys, **kwargs)
+
+    def load_dataframe(self, file_resources, blocksize=None):
+        """
+        Args:
+            file_resources:
+            blocksize:
+        """
+        # Build transcripts ids by combining `database_mappings/` files
+        transcripts_df = []
+        for filename in (fname for fname in file_resources if "database_mappings" in fname):
+            args = dict(low_memory=True, header=None,
+                        names=["RNAcentral id", "database", "external id", "species_id", "RNA type", "gene symbol"],
+                        dtype={'gene symbol': 'str',
+                               'database': 'category', 'species_id': 'category', 'RNA type': 'category', })
+
+            if blocksize:
+                if filename.endswith('.tsv'):
+                    id_mapping: dd.DataFrame = dd.read_table(
+                        file_resources[filename], blocksize=None if isinstance(blocksize, bool) else blocksize, **args)
+                elif filename.endswith('.parquet'):
+                    id_mapping: dd.DataFrame = dd.read_parquet(
+                        file_resources[filename], blocksize=None if isinstance(blocksize, bool) else blocksize, )
+                else:
+                    id_mapping = None
+            else:
+                if filename.endswith('.tsv'):
+                    id_mapping = pd.read_table(file_resources[filename], **args)
+                elif filename.endswith('.parquet'):
+                    id_mapping = pd.read_parquet(file_resources[filename])
+                else:
+                    id_mapping = None
+
+            if id_mapping is None:
+                raise Exception("Must provide a file with 'database_mappings/(*).tsv' in file_resources")
+
+            # Filter by species
+            if isinstance(self.species_id, str):
+                id_mapping = id_mapping.where(id_mapping["species_id"] == self.species_id)
+            elif isinstance(self.species_id, Iterable):
+                id_mapping = id_mapping.where(id_mapping["species_id"].isin(self.species_id))
+
+            # Filter by index
+            if self.keys and id_mapping.index.name == self.index_col:
+                id_mapping = id_mapping.loc[id_mapping.index.isin(self.keys)]
+            elif self.keys and id_mapping.index.name != self.index_col:
+                id_mapping = id_mapping.loc[id_mapping[self.index_col].isin(self.keys)]
+
+            # Add species_id prefix to index values
+            if "RNAcentral id" in id_mapping.columns:
+                id_mapping["RNAcentral id"] = id_mapping["RNAcentral id"] + "_" + id_mapping["species_id"].astype(str)
+            elif "RNAcentral id" == id_mapping.index.name:
+                id_mapping.index = id_mapping.index + "_" + id_mapping["species_id"].astype(str)
+
+            # Add sequence column from FASTA file of the same database
+            fasta_filename = f"{filename.split('/')[-1].split('.')[0]}.fasta"
+            if fasta_filename in file_resources:
+                seq_df = self.load_sequences(file_resources[fasta_filename])
+                id_mapping = id_mapping.merge(seq_df, how='left',
+                                              left_on="RNAcentral id",
+                                              left_index=True if id_mapping.index.name == "RNAcentral id" else False,
+                                              right_index=True)
+            else:
+                logger.info(f"{fasta_filename} not provided for `{filename}` so missing sequencing data")
+
+            # Remove species_id prefix from index values if necessary
+            if self.remove_version_num and 'gene symbol' in id_mapping.columns:
+                id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
+            if self.remove_species_suffix:
+                id_mapping["RNAcentral id"] = id_mapping["RNAcentral id"].str.replace("_(\d*)", '', regex=True)
+
+            # Set index
+            args = dict(sorted=True) if blocksize else {}
+            id_mapping = id_mapping.set_index(self.index_col, **args)
+            if not id_mapping.known_divisions:
+                id_mapping.divisions = id_mapping.compute_current_divisions()
+
+            transcripts_df.append(id_mapping)
+
+        # Concatenate multiple `database_mappings` files from different databases
+        if blocksize:
+            transcripts_df = dd.concat(transcripts_df, axis=0, interleave_partitions=True, join='outer')
+        else:
+            transcripts_df = pd.concat(transcripts_df, axis=0, join='outer')
+
+        # Join go_id and Rfams annotations to each "RNAcentral id" from 'rnacentral_rfam_annotations.tsv'
+        args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"])
+        if blocksize:
+            if 'rnacentral_rfam_annotations.tsv' in file_resources and isinstance(
+                file_resources['rnacentral_rfam_annotations.tsv'], str):
+                anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
+            else:
+                anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip", **args)
+
+            # Filter annotations by "RNAcentral id" in `transcripts_df`
+            anns = anns.loc[anns["RNAcentral id"].isin(transcripts_df.index.compute())]
+
+            anns = anns.set_index("RNAcentral id", sorted=True)
+            if not anns.known_divisions:
+                anns.divisions = anns.compute_current_divisions()
+
+            # Groupby on index
+            anns_groupby: dd.DataFrame = anns \
+                .groupby(by=lambda idx: idx) \
+                .agg({col: get_agg_func('unique', use_dask=True) for col in ["GO terms", 'Rfams']})
+        else:
+            anns = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], index_col='RNAcentral id', **args)
+            idx = transcripts_df.index.compute() if isinstance(transcripts_df, dd.DataFrame) else transcripts_df.index
+            anns = anns.loc[anns.index.isin(set(idx))]
+            anns_groupby = anns.groupby("RNAcentral id").agg({col: 'unique' for col in ["GO terms", 'Rfams']})
+
+        transcripts_df = transcripts_df.merge(anns_groupby, how='left', left_index=True, right_index=True)
+
+        return transcripts_df
+
+    def load_sequences(self, fasta_file: str, index=None, keys=None, blocksize=None):
+        """
+        Args:
+            index ():
+            fasta_file:
+            keys ():
+            blocksize:
+        """
+        if hasattr(self, '_seq_df_dict') and fasta_file in self._seq_df_dict:
+            return self._seq_df_dict[fasta_file]
+
+        fa = Fasta(fasta_file, as_raw=True)
+
+        entries = []
+        for key, record in tqdm.tqdm(fa.items(), desc=str(fasta_file)):
+            id = re.sub("_(\d*)", '', key) if self.remove_species_suffix else key
+            if keys is not None and self.index_col == 'RNAcentral id' and id not in keys:
+                continue
+
+            if ") " in record.long_name:
+                desc = record.long_name.split(") ")[-1].strip()
+            elif "\\" in record.long_name:
+                desc = record.long_name.split("\\", maxsplit=1)[-1].strip()
+            elif "microRNA " in record.long_name:
+                desc = record.long_name.split("microRNA ", maxsplit=1)[-1].strip()
+            else:
+                desc = record.long_name.split(" ", maxsplit=3)[-1]
+
+            record_dict = {
+                'RNAcentral id': key,
+                'description': desc,
+                SEQUENCE_COL: str(record),
+            }
+
+            entries.append(record_dict)
+
+        df = pd.DataFrame(entries).set_index("RNAcentral id")
+
+        if not hasattr(self, '_seq_df_dict'):
+            self._seq_df_dict = {}
+        self._seq_df_dict[fasta_file] = df
+
+        return df
+
+    def get_sequences(self,
+                      index="RNAcentral id",
+                      omic=None,
+                      agg="all",
+                      **kwargs):
+        """
+        Args:
+            index:
+            omic:
+            agg:
+            **kwargs:
+        """
+        dfs = []
+        for filename in self.file_resources:
+            if filename.endswith('.fa') or filename.endswith('.fasta'):
                 seq_df = self.load_sequences(self.file_resources[filename])
                 dfs.append(seq_df)
         seq_df = pd.concat(dfs, axis=0)

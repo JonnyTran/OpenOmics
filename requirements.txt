@@ -3,14 +3,14 @@ biopython
 bokeh
 dask
 networkx
-numpy
+numpy>=1.22.2
 pandas
 matplotlib
 scipy
 astropy
-h5py
-typing
+h5py!=3.7.0
 bioservices
+lxml>=4.9.1
 itsdangerous
 dash
 dash-daq
@@ -27,5 +27,4 @@ goatools
 obonet
 pyfaidx
 logzero
-pyfaidx
-logzero
+tqdm

@@ -1,11 +1,11 @@
 """Tests for `openomics` package."""
 
-import os, pytest
+import os
+import pytest
 
 from openomics import MessengerRNA, MicroRNA, LncRNA, Protein, SomaticMutation
 from openomics import MultiOmics
-
-from .test_clinical import generate_TCGA_clinical
+from .test_clinical import *
 
 cohort_folder_path = "tests/data/TCGA_LUAD/"
 
@@ -35,8 +35,7 @@ def generate_TCGA_LUAD_MessengerRNA_dask():
         npartitions=4,
     )
     data.drop_genes(data.expressions.columns[50:])
-    data.initialize_annotations(index="gene_name", gene_list=None)
-
+    data.initialize_annotations()
     return data
 
 

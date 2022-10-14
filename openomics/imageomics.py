@@ -24,18 +24,17 @@ class WholeSlideImage:
 
         fname = os.path.join(folder_path, "models", "wsi_preprocessed.hdf5")
 
-        f = h5py.File(fname, "w")
+        with h5py.File(fname, "w") as f:
+            if (not "wsi_preprocessed" in f) or force_preprocess:
+                print("Preprocessing new WSI's")
+                self.run_preprocess(f, folder_path)
 
-        if (not "wsi_preprocessed" in f) or force_preprocess:
-            print("Preprocessing new WSI's")
-            self.run_preprocess(f, folder_path)
-
-        else:
-            print("Already has wsi_preprocessed. Loading data from hdf5 file")
+            else:
+                print("Already has wsi_preprocessed. Loading data from hdf5 file")
 
     @classmethod
     def name(cls):
-        return __class__.__name__
+        return cls.__name__
 
     def run_preprocess(self, f, folder_path):
         """

@@ -18,3 +18,4 @@ sphinx-autobuild
 sphinx-copybutton
 sphinx-automodapi
 graphviz
+tqdm

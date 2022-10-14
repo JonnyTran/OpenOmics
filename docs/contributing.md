@@ -14,7 +14,7 @@ You can contribute in many ways:
 
 ## Report Bugs
 
-Report bugs at [openomics/issues](https://github.com/BioMeCIS-Lab/openomics/issues).
+Report bugs at [openomics/issues](https://github.com/JonnyTran/openomics/issues).
 
 If you are reporting a bug, please include:
 
@@ -45,7 +45,7 @@ If you'd like to help write RTD documentations, note:
 
 ## Submit Feedback
 
-The best way to send feedback is to file an issue at [openomics/issues](https://github.com/BioMeCIS-Lab/openomics/issues).
+The best way to send feedback is to file an issue at [openomics/issues](https://github.com/JonnyTran/openomics/issues).
 
 If you are proposing a feature:
 
@@ -101,9 +101,10 @@ Before you submit a pull request, check that it meets these guidelines:
 
 1. The pull request should include tests. Run tests by with `pytest ./` and make sure tests are 100% passing.
 2. If the pull request adds functionality, the docs should be updated. Put your new functionality into a function with a
-   docstring, and add the feature to the list in [docs/history.md](https://github.com/BioMeCIS-Lab/OpenOmics/blob/master/docs/history.md).
+   docstring, and add the feature to the list
+   in [docs/history.md](https://github.com/JonnyTran/OpenOmics/blob/master/docs/history.md).
 3. The pull request should work for Python 3.6 or higher, and for PyPi. Check
-   [Github Actions Tests](https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml)
+   [Github Actions Tests](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml)
    and make sure that the tests pass for all supported Python versions and operating systems.
 
 ## Tips
@@ -120,7 +121,7 @@ To run a subset of tests:
 ```
 
 To run tests targeting various operating systems and Python versions, make a pull-request to the **master** branch which
-will run as [Github Actions Tests](https://github.com/BioMeCIS-Lab/OpenOmics/actions/workflows/python-package.yml).
+will run as [Github Actions Tests](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml).
 
 ## Deploying
 
@@ -135,4 +136,4 @@ Github Actions will then deploy to PyPI if tests pass.
 ## Code of Conduct
 Please note that the OpenOmics project is released with a Contributor Code of Conduct. By contributing to this project you agree to abide by its terms.
 
-[openomics/issues]: https://github.com/BioMeCIS-Lab/openomics/issues
+[openomics/issues]: https://github.com/JonnyTran/openomics/issues
