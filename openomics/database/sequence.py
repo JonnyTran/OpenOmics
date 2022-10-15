@@ -36,6 +36,7 @@ class SequenceDatabase(Database):
             **kwargs:
         """
         super().__init__(**kwargs)
+        self.close()
 
     @abstractmethod
     def load_sequences(self, fasta_file: str, index=None, keys: Union[pd.Index, List[str]] = None, blocksize=None) \
@@ -416,24 +417,7 @@ class UniProt(SequenceDatabase):
 
         # Load species info from speclist.txt
         if 'speclist.txt' in file_resources:
-            speclist = pd.read_fwf(file_resources['speclist.txt'],
-                                   names=['species_code', 'Taxon', 'species_id', 'attr'],
-                                   comment="==", skipinitialspace=True, skiprows=59, skipfooter=4)
-            speclist = speclist.drop(index=speclist.index[~speclist['attr'].str.contains("=")])
-            speclist['species_id'] = speclist['species_id'].str.rstrip(":")
-
-            speclist = speclist.fillna(method='ffill')
-            speclist = speclist.groupby(speclist.columns[:3].tolist())['attr'] \
-                .apply('|'.join) \
-                .apply(lambda s: dict(map(str.strip, sub.split('=', 1)) for sub in s.split("|") if '=' in sub)) \
-                .apply(pd.Series)
-
-            speclist = speclist.rename(columns={'N': 'Official (scientific) name', 'C': 'Common name', 'S': 'Synonym'}) \
-                .reset_index() \
-                .set_index('species_id')
-            speclist['Taxon'] = speclist['Taxon'].replace(
-                {'A': 'archaea', 'B': 'bacteria', 'E': 'eukaryota', 'V': 'viruses', 'O': 'others'})
-            speclist.index.name = 'NCBI-taxon'
+            speclist = self.get_species_list(file_resources['speclist.txt'])
             idmapping = idmapping.join(speclist, on='NCBI-taxon')
 
         return idmapping
@@ -589,6 +573,26 @@ class UniProt(SequenceDatabase):
                              overwrite=False)
 
         return records_df
+
+    @classmethod
+    def get_species_list(cls, file_path):
+        speclist = pd.read_fwf(file_path,
+                               names=['species_code', 'Taxon', 'species_id', 'attr'],
+                               comment="==", skipinitialspace=True, skiprows=59, skipfooter=4)
+        speclist = speclist.drop(index=speclist.index[~speclist['attr'].str.contains("=")])
+        speclist['species_id'] = speclist['species_id'].str.rstrip(":")
+        speclist = speclist.fillna(method='ffill')
+        speclist = speclist.groupby(speclist.columns[:3].tolist())['attr'] \
+            .apply('|'.join) \
+            .apply(lambda s: dict(map(str.strip, sub.split('=', 1)) for sub in s.split("|") if '=' in sub)) \
+            .apply(pd.Series)
+        speclist = speclist.rename(columns={'N': 'Official (scientific) name', 'C': 'Common name', 'S': 'Synonym'}) \
+            .reset_index() \
+            .set_index('species_id')
+        speclist['Taxon'] = speclist['Taxon'].replace(
+            {'A': 'archaea', 'B': 'bacteria', 'E': 'eukaryota', 'V': 'viruses', 'O': 'others'})
+        speclist.index.name = 'NCBI-taxon'
+        return speclist
 
     def load_sequences(self, fasta_file: str, index=None, keys: Union[pd.Index, List[str]] = None, blocksize=None) \
         -> OrderedDict:

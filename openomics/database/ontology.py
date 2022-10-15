@@ -39,9 +39,10 @@ class Ontology(Database):
             blocksize:
             verbose:
         """
+        super().__init__(path=path, file_resources=file_resources, **kwargs)
         self.network, self.node_list = self.load_network(file_resources)
 
-        super().__init__(path=path, file_resources=file_resources, **kwargs)
+        self.close()
 
     def load_network(self, file_resources) -> Tuple[nx.MultiDiGraph, List[str]]:
         raise NotImplementedError()

@@ -13,7 +13,7 @@ from Bio import SeqIO
 from logzero import logger
 
 from openomics.database.base import Database
-from openomics.database.sequence import SequenceDatabase
+from openomics.database.sequence import SequenceDatabase, UniProt
 from openomics.transforms.df import filter_rows
 
 __all__ = ['STRING', 'GeneMania', 'IntAct', 'BioGRID', 'MiRTarBase', 'LncBase', 'TargetScan', 'LncReg', 'LncRNA2Target',
@@ -52,6 +52,8 @@ class Interactions(Database):
 
         if relabel_nodes is not None:
             self.network = nx.relabel_nodes(self.network, mapping=relabel_nodes)
+
+        self.close()
 
     @classmethod
     def name(cls):
@@ -742,6 +744,48 @@ class LncBase(Interactions, Database):
                                                                edge_attr=edge_attr,
                                                                create_using=nx.DiGraph() if directed else nx.Graph())
         return lncBase_lncRNA_miRNA_network
+
+
+class TarBase(Interactions):
+
+    def __init__(self, path='https://dianalab.e-ce.uth.gr/downloads', file_resources: Dict = None,
+                 source_col_name: str = 'mirna', target_col_name: str = 'geneName',
+                 edge_attr: List[str] = None, filters: Union[str, Dict[str, Union[str, List[str]]]] = None,
+                 directed: bool = True, relabel_nodes: dict = None, blocksize=None, **kwargs):
+        if file_resources is None:
+            file_resources = {
+                'tarbase_v8_data.tar.gz': 'https://dianalab.e-ce.uth.gr/downloads/tarbase_v8_data.tar.gz',
+                'speclist': 'https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/docs/speclist',
+            }
+
+        super().__init__(path, file_resources, source_col_name, target_col_name, edge_attr, filters, directed,
+                         relabel_nodes, blocksize, **kwargs)
+
+    def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
+        edges = pd.read_table(file_resources['tarbase_v8_data.tar.gz'], compression='tar')
+
+        if 'speclist' in file_resources:
+            species_df = UniProt.get_species_list(file_resources['speclist'])
+            species_df = species_df[['Official (scientific) name', 'Common name', 'Synonym']].melt(ignore_index=False)
+            species_df = species_df.dropna().reset_index()
+            species_name2id = species_df.set_index('value')['NCBI-taxon'].to_dict()
+            edges['species_id'] = edges['species'].map(species_name2id)
+
+        self.edges = edges
+        return edges
+
+    def load_network(self, file_resources: Dict, source_col_name: str, target_col_name: str, edge_attr: List[str],
+                     directed: bool, filters: Dict[str, Any], blocksize=None):
+        df = self.data
+        df = filter_rows(df, filters)
+
+        # Remove parenthesis containing species
+        df['geneName'] = df['geneName'].str.replace(r'(\(\w*\)){1}$', '', regex=True)
+
+        g = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
+                                    edge_attr=edge_attr,
+                                    create_using=nx.DiGraph() if directed else nx.Graph())
+        return g
 
 
 class TargetScan(Interactions, Database):
