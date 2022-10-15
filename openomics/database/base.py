@@ -16,6 +16,7 @@ import pandas as pd
 import tqdm
 import validators
 from logzero import logger
+from typing.io import IO
 
 from ..io.files import get_pkg_data_filename, decompress_file
 from ..transforms.agg import get_multi_aggregators, merge_concat
@@ -191,10 +192,10 @@ class Database(object):
 
 
     def close(self):
-        # Close opened file resources
+        # Close file readers on file resources (from decompress_file)
         for filename, filepath in self.file_resources.items():
-            if hasattr(self.file_resources[filename], 'close'):
-                self.file_resources[filename].close()
+            if isinstance(filepath, IO) or hasattr(filepath, 'close'):
+                filepath.close()
 
     @abstractmethod
     def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
