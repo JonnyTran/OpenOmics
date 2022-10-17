@@ -415,22 +415,33 @@ class Annotatable(ABC):
         elif list_match:
             left_on, right_on = match_iterable_keys(left=left_keys, right=right_df.index)
 
-        # Set whehter
+        # Set whether to join on index
         left_index = True if isinstance(left_on, str) and left_df.index.name == left_on else False
         right_index = True if isinstance(right_on, str) and right_df.index.name == right_on else False
+        if left_index:
+            left_on = None
+        if right_index:
+            right_on = None
 
         # Performing join if `on` is already left_df's index
-        if isinstance(left_df, type(right_df)) and left_index:
-            merged = left_df.join(right_df, on=on, how="left", rsuffix="_")
+        try:
+            if isinstance(left_df, type(right_df)) and left_index:
+                merged = left_df.join(right_df, on=on, how="left", rsuffix="_")
 
-        # Perform merge if `on` not index, and choose appropriate merge func depending on dask or pd DF
-        else:
-            if isinstance(left_df, pd.DataFrame) and isinstance(right_df, dd.DataFrame):
-                merged = dd.merge(left_df, right_df, how="left", left_on=left_on, left_index=left_index,
-                                  right_on=right_on, right_index=right_index, suffixes=("", "_"))
+            # Perform merge if `on` not index, and choose appropriate merge func depending on dask or pd DF
             else:
-                merged = left_df.merge(right_df, how="left", left_on=left_on, left_index=left_index,
-                                       right_on=right_on, right_index=right_index, suffixes=("", "_"))
+                if isinstance(left_df, pd.DataFrame) and isinstance(right_df, dd.DataFrame):
+                    merged = dd.merge(left_df, right_df, how="left", left_on=left_on, left_index=left_index,
+                                      right_on=right_on, right_index=right_index, suffixes=("", "_"))
+                else:
+                    merged = left_df.merge(right_df, how="left", left_on=left_on, left_index=left_index,
+                                           right_on=right_on, right_index=right_index, suffixes=("", "_"))
+        except Exception as e:
+            print('left_index', left_index)
+            print('left_on', left_on)
+            print('right_index', right_index)
+            print('right_on', right_on)
+            raise e
 
         if list_match:
             if 'key_0' in merged.columns:

@@ -961,9 +961,6 @@ class RNAcentral(SequenceDatabase):
             keys ():
             blocksize:
         """
-        if hasattr(self, '_seq_df_dict') and fasta_file in self._seq_df_dict:
-            return self._seq_df_dict[fasta_file]
-
         fa = Fasta(fasta_file, as_raw=True)
 
         entries = []
@@ -971,15 +968,7 @@ class RNAcentral(SequenceDatabase):
             id = re.sub("_(\d*)", '', key) if self.remove_species_suffix else key
             if keys is not None and self.index_col == 'RNAcentral id' and id not in keys:
                 continue
-
-            if ") " in record.long_name:
-                desc = record.long_name.split(") ")[-1].strip()
-            elif "\\" in record.long_name:
-                desc = record.long_name.split("\\", maxsplit=1)[-1].strip()
-            elif "microRNA " in record.long_name:
-                desc = record.long_name.split("microRNA ", maxsplit=1)[-1].strip()
-            else:
-                desc = record.long_name.split(" ", maxsplit=3)[-1]
+            desc = record.long_name.split(" ", maxsplit=1)[-1]
 
             record_dict = {
                 'RNAcentral id': key,
@@ -990,10 +979,6 @@ class RNAcentral(SequenceDatabase):
             entries.append(record_dict)
 
         df = pd.DataFrame(entries).set_index("RNAcentral id")
-
-        if not hasattr(self, '_seq_df_dict'):
-            self._seq_df_dict = {}
-        self._seq_df_dict[fasta_file] = df
 
         return df
 
