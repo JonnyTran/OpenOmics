@@ -46,6 +46,7 @@ class Interactions(Database):
             blocksize ():
         """
         super().__init__(path=path, file_resources=file_resources, blocksize=blocksize, **kwargs)
+        self.filters = filters
         self.network = self.load_network(file_resources=self.file_resources, source_col_name=source_col_name,
                                          target_col_name=target_col_name, edge_attr=edge_attr, directed=directed,
                                          filters=filters, blocksize=blocksize)
@@ -862,13 +863,16 @@ class RNAInter(Interactions):
             else:
                 edges = pd.read_table(file_resources[fn], compression='tar' if fn.endswith('.tar.gz') else None, **args)
 
+        edges = filter_rows(edges, self.filters)
+
         self.edges = edges
         return edges
 
     def load_network(self, file_resources, source_col_name='Interactor1.Symbol', target_col_name='Interactor2.Symbol',
                      edge_attr='score', directed=True, filters=None, blocksize=None):
         edges = self.data
-        edges = filter_rows(edges, filters)
+        if filters != self.filters:
+            edges = filter_rows(edges, filters)
 
         g = nx.from_pandas_edgelist(edges, source=source_col_name, target=target_col_name,
                                     edge_attr=edge_attr,

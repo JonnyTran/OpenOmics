@@ -80,7 +80,7 @@ def concat_unique_dask_agg() -> dd.Aggregation:
         The function which will aggregate the result from all the partitions(reduce)
         '''
         s = s._selected_obj
-        return s.groupby(level=list(range(s.index.nlevels))).apply(
+        return s.groupby(level=list(range(s.index.nlevels)), group_keys=True).apply(
             lambda li: np.hstack(li) if isinstance(li, Iterable) and len(li) else None)
 
     def finalize(s) -> pd.Series:
