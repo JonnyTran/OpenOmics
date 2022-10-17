@@ -45,8 +45,9 @@ class Interactions(Database):
                 A dictionary to rename nodes in the network, where the nodes with name <dict[key]> will be renamed to <dict[value]>
             blocksize ():
         """
-        super().__init__(path=path, file_resources=file_resources, blocksize=blocksize, **kwargs)
         self.filters = filters
+
+        super().__init__(path=path, file_resources=file_resources, blocksize=blocksize, **kwargs)
         self.network = self.load_network(file_resources=self.file_resources, source_col_name=source_col_name,
                                          target_col_name=target_col_name, edge_attr=edge_attr, directed=directed,
                                          filters=filters, blocksize=blocksize)
