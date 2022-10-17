@@ -95,14 +95,14 @@ def drop_duplicate_columns(df: Union[pd.DataFrame, dd.DataFrame]) -> Union[pd.Da
     return df
 
 
-def filter_rows(df: pd.DataFrame, filters: Union[str, Dict[str, List]], case: bool = True):
+def filter_rows(df: pd.DataFrame, filters: Union[str, Dict[str, List]], uncased=False):
     """
 
     Args:
         df (pd.DataFrame):
         filters (str or dict):
             Either a pandas query expression or a dict of column names for keys and matching values.
-        case (bool): Default True.
+        uncased (bool): Default False.
             Whether to match case in pd.Series.str.contains if filters is a dict of values.
 
     Returns:
@@ -123,17 +123,15 @@ def filter_rows(df: pd.DataFrame, filters: Union[str, Dict[str, List]], case: bo
 
             if isinstance(values, list):
                 values = {val.upper() for val in values}
-                if case is True:
-                    df = df.loc[df[col].isin(values)]
-                else:
+                if uncased:
                     df = df.loc[df[col].str.upper().isin(values)]
+                else:
+                    df = df.loc[df[col].isin(values)]
+
             elif isinstance(values, str):
-                df = df.loc[df[col].str.contains(values, case=case)]
+                df = df.loc[df[col].str.contains(values, case=not uncased)]
             else:
                 df = df.loc[df[col] == values]
-
-    if isinstance(df, pd.DataFrame) and df.shape[0] == 0:
-        logger.warn(f"Dataframe is empty ({df.shape}) because of query: {filters}")
 
     if isinstance(num_samples, int):
         logger.info(f'Removed {num_samples - df.shape[0]} rows from query: {filters}')
