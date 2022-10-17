@@ -13,11 +13,11 @@ from Bio import SeqIO
 from logzero import logger
 
 from openomics.database.base import Database
-from openomics.database.sequence import SequenceDatabase
+from openomics.database.sequence import SequenceDatabase, UniProt
 from openomics.transforms.df import filter_rows
 
-__all__ = ['STRING', 'GeneMania', 'IntAct', 'BioGRID', 'MiRTarBase', 'LncBase', 'TargetScan', 'LncReg', 'LncRNA2Target',
-           'lncRNome', 'NPInter', 'StarBase']
+__all__ = ['STRING', 'GeneMania', 'IntAct', 'BioGRID', 'MiRTarBase', 'LncBase', 'TargetScan', 'TarBase',
+           'LncReg', 'LncRNA2Target', 'lncRNome', 'NPInter', 'RNAInter', 'StarBase']
 
 class Interactions(Database):
     edges: Optional[Union[pd.DataFrame, dd.DataFrame]]
@@ -53,13 +53,16 @@ class Interactions(Database):
         if relabel_nodes is not None:
             self.network = nx.relabel_nodes(self.network, mapping=relabel_nodes)
 
+        self.close()
+
     @classmethod
     def name(cls):
         return cls.__name__
 
     @abstractmethod
-    def load_network(self, file_resources: Dict, source_col_name: str, target_col_name: str, edge_attr: List[str],
-                     directed: bool, filters: Dict[str, Any], blocksize=None):
+    def load_network(self, file_resources: Dict, source_col_name: str, target_col_name: str,
+                     edge_attr: Union[str, List[str]], directed: bool, filters: Dict[str, Any], blocksize=None) \
+        -> nx.Graph:
         """
         Handles data processing from `file_resources` to a Pandas DataFrame which contain edgelist data, then constructs
         and return a NetworkX Graph.
@@ -683,7 +686,7 @@ class LncBase(Interactions, Database):
     }
     """
 
-    def __init__(self, path, file_resources=None, strip_mirna_name=False,
+    def __init__(self, path='https://dianalab.e-ce.uth.gr/downloads/', file_resources=None, strip_mirna_name=False,
                  source_col_name="mirna", target_col_name="geneId",
                  edge_attr=None,
                  filters=None,
@@ -710,7 +713,7 @@ class LncBase(Interactions, Database):
             edge_attr = ["tissue", "positive_negative"]
         if file_resources is None:
             file_resources = {}
-            file_resources["LncBasev2_download.csv"] = os.path.join(path, "LncBasev2_download.csv")
+            file_resources["LncBasev2_download.csv"] = os.path.join(path, "lncbase_v2_exp_data.tar.gz")
 
         super().__init__(path=path, file_resources=file_resources, source_col_name=source_col_name,
                          target_col_name=target_col_name, edge_attr=edge_attr, filters=filters, directed=directed,
@@ -742,6 +745,135 @@ class LncBase(Interactions, Database):
                                                                edge_attr=edge_attr,
                                                                create_using=nx.DiGraph() if directed else nx.Graph())
         return lncBase_lncRNA_miRNA_network
+
+
+class TarBase(Interactions):
+    """
+
+    """
+
+    def __init__(self, path='https://dianalab.e-ce.uth.gr/downloads', file_resources: Dict = None,
+                 source_col_name: str = 'mirna', target_col_name: str = 'geneName',
+                 edge_attr: List[str] = None, filters: Union[str, Dict[str, Union[str, List[str]]]] = None,
+                 directed: bool = True, relabel_nodes: dict = None, blocksize=None, **kwargs):
+        """
+
+        Args:
+            path ():
+            file_resources ():
+            source_col_name ():
+            target_col_name ():
+            edge_attr ():
+            filters ():
+            directed ():
+            relabel_nodes ():
+            blocksize ():
+            **kwargs ():
+        """
+        if file_resources is None:
+            file_resources = {
+                'tarbase_v8_data.tar.gz': 'https://dianalab.e-ce.uth.gr/downloads/tarbase_v8_data.tar.gz',
+                'speclist': 'https://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/docs/speclist',
+            }
+
+        super().__init__(path, file_resources, source_col_name, target_col_name, edge_attr, filters, directed,
+                         relabel_nodes, blocksize, **kwargs)
+
+    def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
+        edges = pd.read_table(file_resources['tarbase_v8_data.tar.gz'], compression='tar',
+                              dtype={'tissue': 'category', 'method': 'category', 'positive_negative': 'category',
+                                     'species': 'category',
+                                     'direct_indirect': 'category', 'up_down': 'category', 'cell_line': 'category',
+                                     })
+
+        if 'speclist' in file_resources:
+            species_df = UniProt.get_species_list(file_resources['speclist'])
+            species_df = species_df[['Official (scientific) name', 'Common name', 'Synonym']].melt(ignore_index=False)
+            species_df = species_df.dropna().reset_index()
+            species_name2id = species_df.set_index('value')['NCBI-taxon'].to_dict()
+            edges['species_id'] = edges['species'].map(species_name2id)
+
+        self.edges = edges
+        return edges
+
+    def load_network(self, file_resources: Dict, source_col_name: str, target_col_name: str, edge_attr: List[str],
+                     directed: bool, filters: Dict[str, Any], blocksize=None):
+        df = self.data
+        df = filter_rows(df, filters)
+
+        # Remove parenthesis containing 3 letter species name
+        df['geneName'] = df['geneName'].str.replace(r'(\(\w{3}\)){1}$', '', regex=True)
+        idx = df['geneName'].str.contains('\(')
+        df.loc[idx, 'geneName'] = df.loc[idx, 'geneName'].str.replace(r'(\(\d of \d\))', '', regex=True).str.strip()
+
+        idx = df['geneName'].str.contains("\(\w*\)", regex=True)
+        df.loc[idx, 'geneName'] = df.loc[idx, 'geneName'].str.extract(r'\((\w*)\)(\w*)')[0]
+
+        idx = df['geneName'].str.contains('\(')
+        df.loc[idx, 'geneName'] = df.loc[idx, 'geneName'].str.split('(', expand=True)[0]
+
+        g = nx.from_pandas_edgelist(df, source=source_col_name, target=target_col_name,
+                                    edge_attr=edge_attr,
+                                    create_using=nx.DiGraph() if directed else nx.Graph())
+        return g
+
+
+class RNAInter(Interactions):
+    """
+
+    """
+
+    def __init__(self, path='http://www.rnainter.org/raidMedia/download/', file_resources: Dict = None,
+                 source_col_name: str = 'Interactor1.Symbol', target_col_name: str = 'Interactor2.Symbol',
+                 edge_attr: List[str] = 'score', filters: Union[str, Dict[str, Union[str, List[str]]]] = None,
+                 directed: bool = True, relabel_nodes: dict = None, blocksize=None, **kwargs):
+        """
+
+        Args:
+            path ():
+            file_resources ():
+            source_col_name ():
+            target_col_name ():
+            edge_attr ():
+            filters ():
+            directed ():
+            relabel_nodes ():
+            blocksize ():
+            **kwargs ():
+        """
+        if file_resources is None:
+            file_resources = {
+                'Download_data_RR.tar.gz': 'Download_data_RR.tar.gz',
+                'Download_data_RP.tar.gz': 'Download_data_RP.tar.gz',
+            }
+
+        super().__init__(path, file_resources, source_col_name, target_col_name, edge_attr, filters, directed,
+                         relabel_nodes, blocksize, **kwargs)
+
+    def load_dataframe(self, file_resources: Dict, blocksize: int = None) -> pd.DataFrame:
+        args = dict(dtype={'Category1': 'category', 'Category2': 'category',
+                           'Species1': 'category', 'Species2': 'category', 'score': 'float',
+                           'predict': 'category', 'weak': 'category', 'strong': 'category'})
+        edge_files = (fn for fn in file_resources if fn.startswith('Download_data'))
+        for fn in edge_files:
+            if blocksize:
+                if not isinstance(file_resources[fn], str): continue
+                edges = dd.read_table(file_resources[fn], compression='tar' if fn.endswith('.tar.gz') else None, **args)
+            else:
+                edges = pd.read_table(file_resources[fn], compression='tar' if fn.endswith('.tar.gz') else None, **args)
+
+        self.edges = edges
+        return edges
+
+    def load_network(self, file_resources, source_col_name='Interactor1.Symbol', target_col_name='Interactor2.Symbol',
+                     edge_attr='score', directed=True, filters=None, blocksize=None):
+        edges = self.data
+        edges = filter_rows(edges, filters)
+
+        g = nx.from_pandas_edgelist(edges, source=source_col_name, target=target_col_name,
+                                    edge_attr=edge_attr,
+                                    create_using=nx.DiGraph() if directed else nx.Graph())
+        return g
 
 
 class TargetScan(Interactions, Database):
