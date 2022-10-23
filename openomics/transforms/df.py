@@ -18,7 +18,10 @@ def has_iterables(series: Union[dd.Series, pd.Series], n=10) -> bool:
         bool
     """
     if isinstance(series, (dd.Series, dd.Index)):
-        values = series.head(n=n, npartitions=-1)
+        try:
+            values = series.head(n=n, npartitions=-1)
+        except:
+            values = series.head(n=n)
     elif isinstance(series, pd.Series):
         values = series.head(n=n)
     elif isinstance(series, pd.Index):
