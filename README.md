@@ -1,4 +1,4 @@
-<p align="center">
+<p align="center" href="https://openomics.readthedocs.io/en/latest/">
   <img src="https://github.com/JonnyTran/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png" max-height="200">
 </p>
 
@@ -9,6 +9,7 @@
 [![DOI](https://zenodo.org/badge/125549505.svg)](https://zenodo.org/badge/latestdoi/125549505)
 [![OpenOmics](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml/badge.svg?branch=master)](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml)
 [![codecov](https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg?token=6N1UZ27MPH)](https://codecov.io/gh/JonnyTran/OpenOmics)
+
 **OpenOmics is currently under active development and we may break API compatibility in the future.**
 
 This Python package provide a series of tools to integrate and explore the genomics, transcriptomics, proteomics, and
