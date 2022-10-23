@@ -1,5 +1,7 @@
-<p align="center" href="https://openomics.readthedocs.io/en/latest/">
-  <img src="https://github.com/JonnyTran/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png" max-height="200">
+<p align="center">
+    <a href="https://openomics.readthedocs.io/en/latest/">
+        <img src="https://github.com/JonnyTran/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png" max-height="200">
+    </a>
 </p>
 
 [![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
