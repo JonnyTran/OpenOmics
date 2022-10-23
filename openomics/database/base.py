@@ -379,16 +379,16 @@ class Annotatable(ABC):
 
         left_df = self.annotations
         if isinstance(on, str) and on in left_df.columns:
-            left_keys = left_df[on]
+            keys = left_df[on]
         elif isinstance(on, list) and set(on).issubset(left_df.columns):
-            left_keys = left_df[on]
+            keys = left_df[on]
         elif on == left_df.index.name:
-            left_keys = left_df.index
+            keys = left_df.index
         elif hasattr(left_df.index, 'names') and on in left_df.index.names:
             # MultiIndex
-            left_keys = left_df.index.get_level_values(on)
+            keys = left_df.index.get_level_values(on)
         else:
-            left_keys = None
+            keys = None
 
         # Get grouped values from `database`
         if isinstance(database, (pd.DataFrame, dd.DataFrame)):
@@ -402,7 +402,7 @@ class Annotatable(ABC):
                 groupby = df.groupby(on)
             right_df = groupby.agg({col: agg_funcs[col] for col in columns})
         else:
-            right_df = database.get_annotations(on, columns=columns, agg=agg, agg_for=agg_for, keys=left_keys)
+            right_df = database.get_annotations(on, columns=columns, agg=agg, agg_for=agg_for, keys=keys)
 
         # Match values between `self.annotations[on]` and `values.index`.
         left_on = right_on = on
@@ -413,7 +413,7 @@ class Annotatable(ABC):
                 lambda x: difflib.get_close_matches(x, self.annotations.index, n=1)[0])
         # Join on keys of 'list' values if they exist on either `left_keys` or `right_df.index`
         elif list_match:
-            left_on, right_on = match_iterable_keys(left=left_keys, right=right_df.index)
+            left_on, right_on = match_iterable_keys(left=keys, right=right_df.index)
 
         # Set whether to join on index
         left_index = True if isinstance(left_on, str) and left_df.index.name == left_on else False
