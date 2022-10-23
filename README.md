@@ -1,5 +1,5 @@
 <p align="center">
-    <a href="https://openomics.readthedocs.io/en/latest/">
+    <a href="https://openomics.readthedocs.io/en/latest/" target="_blank">
         <img src="https://github.com/JonnyTran/OpenOmics/raw/master/openomics_web/assets/openomics_logo.png" max-height="200">
     </a>
 </p>
