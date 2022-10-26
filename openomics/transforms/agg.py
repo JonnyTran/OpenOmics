@@ -7,7 +7,7 @@ import pandas as pd
 from pandas.core.groupby import SeriesGroupBy
 
 
-def get_agg_func(keyword: str, use_dask=False) -> Union[str, Callable, dd.Aggregation]:
+def get_agg_func(keyword: Union[str, Callable], use_dask=False) -> Union[str, Callable, dd.Aggregation]:
     """
 
     Args:
@@ -17,7 +17,10 @@ def get_agg_func(keyword: str, use_dask=False) -> Union[str, Callable, dd.Aggreg
     Returns:
         func (callable): a callable function, pandas aggregator func name, or a Dask Aggregation.
     """
-    if keyword == "unique" and use_dask:
+    if callable(keyword) or isinstance(keyword, dd.Aggregation):
+        return keyword
+
+    elif keyword == "unique" and use_dask:
         # get unique values (in a list-like np.array) from each groupby key
         func = concat_unique_dask_agg()
     elif keyword == "unique" and not use_dask:
@@ -26,6 +29,7 @@ def get_agg_func(keyword: str, use_dask=False) -> Union[str, Callable, dd.Aggreg
     elif keyword == "concat":
         # Concatenate values into list
         func = concat
+
     else:
         # Any other aggregation keywords or callable function
         func = keyword
