@@ -405,7 +405,8 @@ class GeneOntology(Ontology):
 
             # Convert `Qualifiers` entries of list of strings to string
             args = dict(meta=pd.Series([""])) if isinstance(anns, dd.DataFrame) else {}
-            anns['Qualifier'] = anns['Qualifier'].apply(lambda li: "".join([i for i in li if i != "NOT"]), **args)
+            anns.loc[:, 'Qualifier'] = anns['Qualifier'].apply(
+                lambda li: "".join([i for i in li if i != "NOT"]), **args)
 
             # Aggregate gene-GO annotations
             if isinstance(anns, pd.DataFrame) and len(anns.index):
@@ -438,7 +439,7 @@ class GeneOntology(Ontology):
             _exclude_single_fn = lambda li: None \
                 if isinstance(li, Iterable) and len(li) == 1 and "GO:0005515" in li else li
             args = dict(meta=pd.Series([list()])) if isinstance(anns, dd.DataFrame) else {}
-            pos_neg_anns[dst_node_col] = pos_neg_anns[dst_node_col].apply(_exclude_single_fn, **args)
+            pos_neg_anns.loc[:, dst_node_col] = pos_neg_anns[dst_node_col].apply(_exclude_single_fn, **args)
 
             # Drop rows with all nan values
             if isinstance(pos_neg_anns, pd.DataFrame):
