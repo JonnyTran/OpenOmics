@@ -392,20 +392,20 @@ class GeneOntology(Ontology):
             annotations = annotations.reset_index()
 
         # Split train/valid/test annotations
-        train_anns = annotations[annotations["Date"] <= pd.to_datetime(train_date)]
-        valid_anns = annotations[(annotations["Date"] <= pd.to_datetime(valid_date)) & \
-                                 (annotations["Date"] > pd.to_datetime(train_date))]
-        test_anns = annotations[(annotations["Date"] <= pd.to_datetime(test_date)) & \
-                                (annotations["Date"] > pd.to_datetime(valid_date))]
+        train_anns = annotations.loc[annotations["Date"] <= pd.to_datetime(train_date)]
+        valid_anns = annotations.loc[(annotations["Date"] <= pd.to_datetime(valid_date)) & \
+                                     (annotations["Date"] > pd.to_datetime(train_date))]
+        test_anns = annotations.loc[(annotations["Date"] <= pd.to_datetime(test_date)) & \
+                                    (annotations["Date"] > pd.to_datetime(valid_date))]
 
         outputs = []
         for anns in [train_anns, valid_anns, test_anns]:
             # Keep track of which annotation has a "NOT" Qualifier
-            is_neg_ann = anns["Qualifier"].map(lambda li: "NOT" in li)
+            is_neg_ann = anns.loc[:, "Qualifier"].map(lambda li: "NOT" in li)
 
             # Convert `Qualifiers` entries of list of strings to string
             args = dict(meta=pd.Series([""])) if isinstance(anns, dd.DataFrame) else {}
-            anns.loc[:, 'Qualifier'] = anns['Qualifier'].apply(
+            anns.loc[:, 'Qualifier'] = anns.loc[:, 'Qualifier'].apply(
                 lambda li: "".join([i for i in li if i != "NOT"]), **args)
 
             # Aggregate gene-GO annotations
