@@ -1,9 +1,9 @@
 import logging
 from typing import List, Dict, Union
 
-import openomics
 import pandas as pd
 
+import openomics
 from .clinical import (
     ClinicalData,
     HISTOLOGIC_SUBTYPE_COL,
@@ -99,7 +99,7 @@ class MultiOmics:
     def get_omics_list(self):
         return self._omics
 
-    def __getitem__(self, item: str) -> Expression:
+    def __getitem__(self, item: str) -> Union[Expression, Annotatable]:
         """This function allows the MultiOmicData class objects to access
         individual omics by a dictionary lookup, e.g. openomics["MicroRNA"]
 

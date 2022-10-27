@@ -10,6 +10,7 @@ import numpy as np
 import obonet
 import pandas as pd
 import scipy.sparse as ssp
+from logzero import logger
 from networkx import NetworkXError
 from pandas import DataFrame
 
@@ -454,7 +455,7 @@ class GeneOntology(Ontology):
         return tuple(outputs)
 
 
-def get_predecessor_terms(anns: Union[pd.Series, Iterable], g: Union[nx.MultiDiGraph, Dict[str, List[str]]],
+def get_predecessor_terms(anns: Union[pd.Series, Iterable], g: Union[Dict[str, List[str]], nx.MultiDiGraph],
                           join_groups=False, keep_terms=True, exclude={'GO:0005575', 'GO:0008150', 'GO:0003674'}) \
     -> Union[pd.Series, List[str]]:
     """
@@ -469,14 +470,21 @@ def get_predecessor_terms(anns: Union[pd.Series, Iterable], g: Union[nx.MultiDiG
     Returns:
 
     """
+    if exclude is None:
+        exclude = {}
 
     def _get_ancestors(terms: Iterable):
         try:
             if isinstance(terms, Iterable):
                 if isinstance(g, dict):
-                    parents = {parent for term in terms for parent in g[term] if parent not in exclude}
-                elif isinstance(g, nx.MultiDiGraph):
-                    parents = {parent for term in terms for parent in nx.ancestors(g, term) if parent not in exclude}
+                    parents = {parent \
+                               for term in terms if term in g \
+                               for parent in g[term] if parent not in exclude}
+
+                elif isinstance(g, nx.Graph):
+                    parents = {parent \
+                               for term in terms if term in g.nodes \
+                               for parent in nx.ancestors(g, term) if parent not in exclude}
                 else:
                     raise Exception("Provided `g` arg must be either an nx.Graph or a Dict")
             else:
@@ -490,7 +498,7 @@ def get_predecessor_terms(anns: Union[pd.Series, Iterable], g: Union[nx.MultiDiG
 
         except (NetworkXError, KeyError) as nxe:
             if "foo" not in nxe.__str__():
-                print("get_predecessor_terms._get_ancestors:", nxe)
+                logger.error(f"{nxe.__class__.__name__} get_predecessor_terms._get_ancestors: {nxe}")
             out = terms if keep_terms else []
 
         return out
