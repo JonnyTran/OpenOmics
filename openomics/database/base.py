@@ -216,6 +216,27 @@ class Database(object):
     def list_databases():
         return DEFAULT_LIBRARIES
 
+    def get_mapper(self, col_a: str, col_b: str) -> pd.Series:
+        """
+        Create a mapping between values from self.data['col_a'] to values in self.data['col_b']. If either 'col_a' or
+        'col_b' contain list-like data, then expand the values in these lists.
+        Args:
+            col_a ():
+            col_b ():
+
+        Returns:
+            pd.Series
+        """
+        df: pd.DataFrame = self.data.reset_index()[[col_a, col_b]].dropna()
+        if has_iterables(df[col_a]):
+            df = df.explode(col_a)
+        if has_iterables(df[col_b]):
+            df = df.explode(col_b)
+
+        mapping = pd.Series(df[col_b].values, index=pd.Index(df[col_a].values, name=col_a), name=col_b)
+
+        return mapping
+
     def get_annotations(self, on: Union[str, List[str]],
                         columns: List[str],
                         agg: str = "unique",
