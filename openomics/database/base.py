@@ -227,13 +227,13 @@ class Database(object):
         Returns:
             pd.Series
         """
-        df: pd.DataFrame = self.data.reset_index()[[col_a, col_b]].dropna()
+        df: Union[pd.DataFrame, dd.DataFrame] = self.data.reset_index()[[col_a, col_b]].dropna()
         if has_iterables(df[col_a]):
-            df = df.explode(col_a)
+            df = df.explode(col_a).dropna()
         if has_iterables(df[col_b]):
-            df = df.explode(col_b)
+            df = df.explode(col_b).dropna()
 
-        mapping = pd.Series(df[col_b].values, index=pd.Index(df[col_a].values, name=col_a), name=col_b)
+        mapping = df.set_index(col_a)[col_b]
 
         return mapping
 
