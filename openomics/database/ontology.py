@@ -28,6 +28,7 @@ class Ontology(Database):
     def __init__(self,
                  path,
                  file_resources=None,
+                 blocksize=None,
                  **kwargs):
         """
         Manages dataset input processing from tables and construct an ontology network from .obo file. There ontology
@@ -36,18 +37,21 @@ class Ontology(Database):
         Args:
             path:
             file_resources:
-            col_rename:
             blocksize:
             verbose:
         """
-        # TODO redo the order of .load_datframe(), .load_annotations() and .load_network()
+        # TODO redo the order of .load_dataframe(), .load_annotations() and .load_network()
+        super().__init__(path=path, file_resources=file_resources, blocksize=blocksize, **kwargs)
         self.network, self.node_list = self.load_network(file_resources)
-        super().__init__(path=path, file_resources=file_resources, **kwargs)
+        self.annotations = self.load_annotation(file_resources, blocksize)
 
         self.close()
 
     def load_network(self, file_resources) -> Tuple[nx.MultiDiGraph, List[str]]:
         raise NotImplementedError()
+
+    def load_annotation(self, file_resources, blocksize) -> Union[pd.DataFrame, dd.DataFrame]:
+        pass
 
     def filter_network(self, namespace) -> None:
         """
@@ -255,8 +259,7 @@ class GeneOntology(Ontology):
             file_resources["go-basic.obo"] = "http://purl.obolibrary.org/obo/go/go-basic.obo"
 
         super().__init__(path, file_resources, index_col=index_col, keys=keys, col_rename=col_rename,
-                         blocksize=blocksize,
-                         **kwargs)
+                         blocksize=blocksize, **kwargs)
 
     def info(self):
         print("network {}".format(nx.info(self.network)))
@@ -271,6 +274,19 @@ class GeneOntology(Ontology):
         else:
             go_terms = None
 
+        return go_terms
+
+    def load_network(self, file_resources) -> Tuple[nx.Graph, np.ndarray]:
+        for file in file_resources:
+            if file.endswith(".obo"):
+                network: nx.MultiDiGraph = obonet.read_obo(file_resources[file])
+                network = network.reverse(copy=True)
+                node_list = np.array(network.nodes)
+
+                return network, node_list
+        return None, None
+
+    def load_annotation(self, file_resources, blocksize=None):
         # Handle .gaf annotation files
         dfs = {}
         for filename, filepath_or_buffer in file_resources.items():
@@ -303,7 +319,6 @@ class GeneOntology(Ontology):
                 if filename.endswith(".gaf"):
                     dfs[gaf_name] = read_gaf(filepath_or_buffer, index_col=self.index_col, keys=self.keys,
                                              usecols=self.usecols)
-
         # Filter and set index divisions
         # for gaf_name, df in dfs.items():
         #     if self.keys is not None and self.index_col and df.index.name == self.index_col:
@@ -313,7 +328,6 @@ class GeneOntology(Ontology):
         #
         #     if isinstance(df, dd.DataFrame) and not df.known_divisions:
         #         dfs[gaf_name].divisions = df.compute_current_divisions()
-
         if len(dfs):
             self.annotations = dd.concat(list(dfs.values()), interleave_partitions=True) \
                 if blocksize else pd.concat(dfs.values())
@@ -323,17 +337,6 @@ class GeneOntology(Ontology):
                 if self.annotations.index.name in UniProtGOA.COLUMNS_RENAME_DICT:
                     self.annotations.index = self.annotations.index.rename(
                         UniProtGOA.COLUMNS_RENAME_DICT[self.annotations.index.name])
-
-        return go_terms
-
-    def load_network(self, file_resources) -> Tuple[nx.Graph, np.ndarray]:
-        for file in file_resources:
-            if file.endswith(".obo"):
-                network: nx.MultiDiGraph = obonet.read_obo(file_resources[file])
-                network = network.reverse(copy=True)
-                node_list = np.array(network.nodes)
-
-                return network, node_list
 
     def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", groupby: List[str] = ["Qualifier"],
                           train_date="2017-06-15", valid_date="2017-11-15", test_date="2021-12-31",
@@ -596,32 +599,26 @@ class InterPro(Ontology):
     """
     Default parameters
     path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/"
-    file_resources = {}
-    file_resources["entry.list"] = os.path.join(path, "entry.list")
-    file_resources["protein2ipr.dat.gz"] = os.path.join(path, "protein2ipr.dat.gz")
-    file_resources["interpro2go"] = os.path.join(path, "interpro2go")
-    file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
+    file_resources = {
+        "entry.list": "entry.list",
+        "protein2ipr.dat.gz": "protein2ipr.dat.gz",
+        "interpro2go": "interpro2go",
+        "ParentChildTreeFile.txt": "ParentChildTreeFile.txt",
+    }
     """
 
     def __init__(self, path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/", index_col='UniProtKB-AC',
-                 keys=None,
-                 file_resources=None, col_rename=None, **kwargs):
+                 keys=None, file_resources=None, col_rename=None, **kwargs):
         """
-        Default parameters
-            path="https://ftp.ebi.ac.uk/pub/databases/interpro/current_release/"
-            file_resources = {}
-            file_resources["entry.list"] = os.path.join(path, "entry.list")
-            file_resources["protein2ipr.dat.gz"] = os.path.join(path, "protein2ipr.dat.gz")
-            file_resources["interpro2go"] = os.path.join(path, "interpro2go")
-            file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
 
         Args:
-            path:
-            file_resources:
-            col_rename:
-            verbose:
+            path ():
+            index_col (str): Default 'UniProtKB-AC'.
+            keys ():
+            file_resources ():
+            col_rename ():
+            **kwargs ():
         """
-        assert keys is not None
         assert index_col is not None
 
         if file_resources is None:
@@ -631,14 +628,36 @@ class InterPro(Ontology):
             file_resources["interpro2go"] = os.path.join(path, "interpro2go")
             file_resources["ParentChildTreeFile.txt"] = os.path.join(path, "ParentChildTreeFile.txt")
 
+        if any('protein2ipr' in fn for fn in file_resources):
+            assert keys is not None, "Processing protein2ipr requires user to provide `keys` as a list of " \
+                                     "`UniProtKB-AC` values"
+
         super().__init__(path=path, file_resources=file_resources, index_col=index_col, keys=keys,
                          col_rename=col_rename, **kwargs)
 
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None):
         ipr_entries = pd.read_table(file_resources["entry.list"], index_col="ENTRY_AC")
+
         ipr2go = self.parse_interpro2go(file_resources["interpro2go"])
         if ipr2go is not None:
             ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
+
+        return ipr_entries
+
+    def load_network(self, file_resources) -> Tuple[nx.Graph, np.ndarray]:
+        network, node_list = None, None
+        for filename in file_resources:
+            if 'ParentChildTreeFile' in filename and isinstance(file_resources[filename], str):
+                network: nx.MultiDiGraph = self.parse_ipr_treefile(file_resources[filename])
+                node_list = np.array(network.nodes)
+
+        return network, node_list
+
+    def load_annotation(self, file_resources, blocksize=None):
+        if not any('protein2ipr' in fn for fn in file_resources):
+            return None
+
+        ipr_entries = self.data
 
         # Use Dask
         args = dict(names=['UniProtKB-AC', 'ENTRY_AC', 'ENTRY_NAME', 'accession', 'start', 'stop'],
@@ -650,17 +669,14 @@ class InterPro(Ontology):
             annotations = dd.read_parquet(file_resources["protein2ipr.parquet"])
         else:
             annotations = dd.read_table(file_resources["protein2ipr.dat"], **args)
-
         if self.keys is not None and self.index_col in annotations.columns:
             annotations = annotations.loc[annotations[self.index_col].isin(self.keys)]
         elif self.keys is not None and self.index_col == annotations.index.name:
             annotations = annotations.loc[annotations.index.isin(self.keys)]
-
         # if annotations.index.name != self.index_col:
         #     annotations = annotations.set_index(self.index_col, sorted=True)
         # if not annotations.known_divisions:
         #     annotations.divisions = annotations.compute_current_divisions()
-
         # Set ordering for rows and columns
         row_order = self.keys
         col_order = ipr_entries.index
@@ -693,11 +709,10 @@ class InterPro(Ontology):
                                     aggregate=lambda x: x.dropna().sum() if not x.isna().all() else None,
                                     meta=pd.Series([ssp.coo_matrix])).compute()
         assert len(adj) == 1, f"len(adj) = {len(adj)}"
-
         # Create a sparse matrix of UniProtKB-AC x ENTRY_AC
-        self.annotations = pd.DataFrame.sparse.from_spmatrix(adj[0], index=row_order, columns=col_order)
+        annotations = pd.DataFrame.sparse.from_spmatrix(adj[0], index=row_order, columns=col_order)
 
-        return ipr_entries
+        return annotations
 
     def parse_interpro2go(self, file: StringIO) -> pd.DataFrame:
         def _process_line(line: str) -> Tuple[str, str, str]:
@@ -715,15 +730,6 @@ class InterPro(Ontology):
 
             ipr2go = pd.DataFrame(tuples, columns=['ENTRY_AC', "go_id", "go_desc"])
             return ipr2go
-
-    def load_network(self, file_resources) -> Tuple[nx.Graph, np.ndarray]:
-        network, node_list = None, None
-        for filename in file_resources:
-            if 'ParentChildTreeFile' in filename and isinstance(file_resources[filename], str):
-                network: nx.MultiDiGraph = self.parse_ipr_treefile(file_resources[filename])
-                node_list = np.array(network.nodes)
-
-        return network, node_list
 
     def parse_ipr_treefile(self, lines: Union[List[str], StringIO]) -> nx.MultiDiGraph:
         """Parse the InterPro Tree from the given file.
