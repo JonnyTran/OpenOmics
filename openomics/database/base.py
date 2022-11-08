@@ -114,12 +114,12 @@ class Database(object):
             base_path = os.path.expanduser(base_path)
 
         files_prog = tqdm.tqdm(file_resources.items(), desc='Loading file_resources', disable=not verbose)
-        for filename, filepath in files_prog:
+        for name, filepath in files_prog:
             if filepath.startswith("~"):
                 filepath = os.path.expanduser(filepath)
 
             if verbose:
-                files_prog.set_description("Loading file_resources['{}']".format(filename))
+                files_prog.set_description("Loading file_resources['{}']".format(name))
 
             # Remote database file URL
             if validators.url(filepath) or validators.url(join(base_path, filepath)):
@@ -133,10 +133,10 @@ class Database(object):
                     filepath_ext = None
 
             # Local database path
-            elif exists(filepath) or exists(join(base_path, filepath)):
-                if isinstance(filepath, str) and not exists(filepath):
-                    if exists(os.path.join(base_path, filepath)):
-                        filepath = os.path.join(base_path, filepath)
+            elif isinstance(filepath, str) and (exists(filepath) or exists(join(base_path, filepath))):
+                if not exists(filepath):
+                    if exists(join(base_path, filepath)):
+                        filepath = join(base_path, filepath)
                     else:
                         warnings.warn(f"`base_path` is a local file directory, so all file_resources must be local. "
                                       f"Cannot use `filepath` = {filepath} with `base_path` = {base_path}")
@@ -145,57 +145,20 @@ class Database(object):
                     filepath_ext = filetype.guess(filepath)
                 except:
                     filepath_ext = None
+
             else:
                 # file_path is an external file outside of `base_path`
                 filepath_ext = None
 
             # Update filepath on uncompressed file
-            file_resources_new[filename] = filepath
+            file_resources_new[name] = filepath
 
             if filepath_ext:
-                filestream, new_filename = decompress_file(filepath, filename, file_ext=filepath_ext)
+                filestream, new_filename = decompress_file(filepath, name, file_ext=filepath_ext)
                 file_resources_new[new_filename] = filestream
-
-        # if validators.url(base_path) or any(validators.url(filepath) for filepath in file_resources.values()):
-        #     for filename, filepath in file_resources.items():
-        #         # Download file (if not already cached) and replace the file_resource path
-        #         if isinstance(filepath, str):
-        #             filepath = get_pkg_data_filename(base_path, filepath)
-        #             filepath_ext = filetype.guess(filepath)
-        #         else:
-        #             filepath_ext = None
-        #
-        #         uncomp_filename, file = decompress_file(filepath, filename, filepath_ext)
-        #         file_resources_new[uncomp_filename] = file
-        #
-        # # Local database path
-        # elif os.path.isdir(base_path) and exists(base_path):
-        #     for filename, filepath in file_resources.items():
-        #         if not exists(filepath):
-        #             warnings.warn(f"`base_path` is a local file directory, so all file_resources must be local. "
-        #                   f"`filepath` = {filepath}")
-        #             continue
-        #
-        #         if isinstance(filepath, str):
-        #             filepath_ext = filetype.guess(filepath)
-        #         else:
-        #             filepath_ext = None
-        #
-        #         uncomp_filename, file = decompress_file(filepath, filename, filepath_ext)
-        #         file_resources_new[uncomp_filename] = file
-        # else:
-        #     raise IOError(
-        #         f"`base_path` {base_path} not supported. Must be either a remote URL point or a local directory path.")
 
         logging.info(f"{self.name()} file_resources: {file_resources_new}")
         return file_resources_new
-
-
-    def close(self):
-        # Close file readers on file resources (from decompress_file)
-        for filename, filepath in self.file_resources.items():
-            if isinstance(filepath, IO) or hasattr(filepath, 'close'):
-                filepath.close()
 
     @abstractmethod
     def load_dataframe(self, file_resources: Dict[str, str], blocksize: int = None) -> pd.DataFrame:
@@ -207,6 +170,12 @@ class Database(object):
                 full file path.
             blocksize (int):
         """
+
+    def close(self):
+        # Close file readers on file resources (from decompress_file)
+        for filename, filepath in self.file_resources.items():
+            if isinstance(filepath, IO) or hasattr(filepath, 'close'):
+                filepath.close()
 
     @classmethod
     def name(cls):
