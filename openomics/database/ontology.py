@@ -260,11 +260,13 @@ class GeneOntology(Ontology):
         super().__init__(path, file_resources, index_col=index_col, keys=keys, col_rename=col_rename,
                          blocksize=blocksize, **kwargs)
 
+        self.data = self.load_dataframe(self.file_resources, self.blocksize)
+
     def info(self):
         print("network {}".format(nx.info(self.network)))
 
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None) -> DataFrame:
-        if self.network:
+        if hasattr(self, 'network') and self.network is not None:
             # Annotations for each GO term from nodes in the NetworkX graph created by the .obo file
             go_terms = pd.DataFrame.from_dict(dict(self.network.nodes(data=True)), orient='index')
             go_terms["def"] = go_terms["def"].apply(
@@ -276,14 +278,14 @@ class GeneOntology(Ontology):
         return go_terms
 
     def load_network(self, file_resources) -> Tuple[nx.Graph, np.ndarray]:
-        for file in file_resources:
-            if file.endswith(".obo"):
-                network: nx.MultiDiGraph = obonet.read_obo(file_resources[file])
-                network = network.reverse(copy=True)
-                node_list = np.array(network.nodes)
+        network, node_list = None, None
+        fn = next((fn for fn in file_resources if fn.endswith(".obo")), None)
+        if fn:
+            network: nx.MultiDiGraph = obonet.read_obo(file_resources[fn])
+            network = network.reverse(copy=True)
+            node_list = np.array(network.nodes)
 
-                return network, node_list
-        return None, None
+        return network, node_list
 
     def load_annotation(self, file_resources, blocksize=None):
         # Handle .gaf annotation files
