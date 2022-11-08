@@ -41,8 +41,9 @@ class Ontology(Database):
             verbose:
         """
         super().__init__(path=path, file_resources=file_resources, blocksize=blocksize, **kwargs)
-        self.network, self.node_list = self.load_network(file_resources)
-        self.annotations = self.load_annotation(file_resources, blocksize)
+
+        self.network, self.node_list = self.load_network(self.file_resources)
+        self.annotations = self.load_annotation(self.file_resources, self.blocksize)
 
         self.close()
 
