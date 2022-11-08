@@ -40,7 +40,6 @@ class Ontology(Database):
             blocksize:
             verbose:
         """
-        # TODO redo the order of .load_dataframe(), .load_annotations() and .load_network()
         super().__init__(path=path, file_resources=file_resources, blocksize=blocksize, **kwargs)
         self.network, self.node_list = self.load_network(file_resources)
         self.annotations = self.load_annotation(file_resources, blocksize)
@@ -638,9 +637,20 @@ class InterPro(Ontology):
     def load_dataframe(self, file_resources: Dict[str, TextIOWrapper], blocksize=None):
         ipr_entries = pd.read_table(file_resources["entry.list"], index_col="ENTRY_AC")
 
-        ipr2go = self.parse_interpro2go(file_resources["interpro2go"])
-        if ipr2go is not None:
-            ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
+        ipr2go_fn = next((fn for fn in file_resources if 'interpro2go' in fn), None)
+        if ipr2go_fn:
+            ipr2go = self.parse_interpro2go(file_resources[ipr2go_fn])
+            if ipr2go is not None:
+                ipr_entries = ipr_entries.join(ipr2go.groupby('ENTRY_AC')["go_id"].unique(), on="ENTRY_AC")
+
+        ipr2go_fn = next((fn for fn in file_resources if 'interpro.xml' in fn), None)
+        if ipr2go_fn:
+            ipr_xml = pd.read_xml(file_resources[ipr2go_fn], xpath='//interpro',
+                                  compression='gzip' if ipr2go_fn.endswith('.gz') else None) \
+                .dropna(axis=1, how='all') \
+                .rename(columns={'id': 'ENTRY_AC'}) \
+                .set_index('ENTRY_AC')
+            ipr_entries = ipr_entries.join(ipr_xml, on="ENTRY_AC")
 
         return ipr_entries
 
@@ -714,7 +724,7 @@ class InterPro(Ontology):
 
         return annotations
 
-    def parse_interpro2go(self, file: StringIO) -> pd.DataFrame:
+    def parse_interpro2go(self, file: str) -> pd.DataFrame:
         def _process_line(line: str) -> Tuple[str, str, str]:
             pos = line.find('> GO')
             interpro_terms, go_term = line[:pos], line[pos:]
