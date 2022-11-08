@@ -288,7 +288,7 @@ class GeneOntology(Ontology):
 
         return network, node_list
 
-    def load_annotation(self, file_resources, blocksize=None):
+    def load_annotation(self, file_resources, blocksize=None) -> Union[pd.DataFrame, dd.DataFrame]:
         # Handle .gaf annotation files
         dfs = {}
         for filename, filepath_or_buffer in file_resources.items():
@@ -321,24 +321,19 @@ class GeneOntology(Ontology):
                 if filename.endswith(".gaf"):
                     dfs[gaf_name] = read_gaf(filepath_or_buffer, index_col=self.index_col, keys=self.keys,
                                              usecols=self.usecols)
-        # Filter and set index divisions
-        # for gaf_name, df in dfs.items():
-        #     if self.keys is not None and self.index_col and df.index.name == self.index_col:
-        #         dfs[gaf_name] = df.loc[df.index.isin(self.keys)]
-        #     elif self.keys is not None and self.index_col and df.index.name != self.index_col:
-        #         dfs[gaf_name] = df.loc[df[self.index_col].isin(self.keys)]
-        #
-        #     if isinstance(df, dd.DataFrame) and not df.known_divisions:
-        #         dfs[gaf_name].divisions = df.compute_current_divisions()
+
         if len(dfs):
-            self.annotations = dd.concat(list(dfs.values()), interleave_partitions=True) \
+            annotations = dd.concat(list(dfs.values()), interleave_partitions=True) \
                 if blocksize else pd.concat(dfs.values())
 
-            if len(self.annotations.columns.intersection(UniProtGOA.COLUMNS_RENAME_DICT.keys())):
-                self.annotations = self.annotations.rename(columns=UniProtGOA.COLUMNS_RENAME_DICT)
-                if self.annotations.index.name in UniProtGOA.COLUMNS_RENAME_DICT:
-                    self.annotations.index = self.annotations.index.rename(
-                        UniProtGOA.COLUMNS_RENAME_DICT[self.annotations.index.name])
+            annotations = annotations.rename(columns=UniProtGOA.COLUMNS_RENAME_DICT)
+            if annotations.index.name in UniProtGOA.COLUMNS_RENAME_DICT:
+                annotations.index = annotations.index.rename(
+                    UniProtGOA.COLUMNS_RENAME_DICT[annotations.index.name])
+        else:
+            annotations = None
+
+        return annotations
 
     def split_annotations(self, src_node_col="gene_name", dst_node_col="go_id", groupby: List[str] = ["Qualifier"],
                           train_date="2017-06-15", valid_date="2017-11-15", test_date="2021-12-31",
