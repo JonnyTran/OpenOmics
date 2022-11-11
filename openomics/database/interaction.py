@@ -46,6 +46,10 @@ class Interactions(Database):
             blocksize ():
         """
         self.filters = filters
+        self.source_col_name = source_col_name
+        self.target_col_name = target_col_name
+        self.directed = directed
+        self.edge_attr = edge_attr
 
         super().__init__(path=path, file_resources=file_resources, blocksize=blocksize, **kwargs)
         self.network = self.load_network(file_resources=self.file_resources, source_col_name=source_col_name,
@@ -436,7 +440,7 @@ class STRING(Interactions, SequenceDatabase):
                                          shape=(len(keys), len(keys)))
                 return coo_adj
 
-            # Create a sparse adjacency matrix each partition, then combine them
+            # Create a sparse adjacency matrix for each partition, then add them to combine
             adj = edges_df.reduction(chunk=edgelist2adj,
                                      aggregate=lambda x: x.dropna().sum() if not x.isna().all() else None,
                                      meta=pd.Series([ssp.coo_matrix])).compute()
@@ -444,9 +448,8 @@ class STRING(Interactions, SequenceDatabase):
 
             G = nx.from_scipy_sparse_matrix(adj[0], create_using=nx.DiGraph() if directed else nx.Graph(),
                                             edge_attribute=edge_attr)
-
             idx2node = {i: node for i, node in enumerate(keys)}
-            G = nx.relabel_nodes(G, mapping=idx2node, copy=False)
+            G = nx.relabel_nodes(G, mapping=idx2node, copy=True)
             del adj
             gc.collect()
 
