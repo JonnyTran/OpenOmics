@@ -261,6 +261,8 @@ class GeneOntology(Ontology):
         super().__init__(path, file_resources, index_col=index_col, keys=keys, col_rename=col_rename,
                          blocksize=blocksize, **kwargs)
 
+        # By default, the __init__ constructor run load_dataframe() before load_network(), but for GeneOntology,
+        # we get node data from the nx.Graph, so we must run load_dataframe() again when self.network is not None.
         self.data = self.load_dataframe(self.file_resources, self.blocksize)
 
     def info(self):
@@ -273,6 +275,14 @@ class GeneOntology(Ontology):
             go_terms["def"] = go_terms["def"].apply(
                 lambda x: x.split('"')[1] if isinstance(x, str) else None)
             go_terms.index.name = "go_id"
+
+            # Find depth of the ontology for each term node
+            hierarchy = nx.subgraph_view(self.network, filter_edge=lambda u, v, e: e == 'is_a')
+            for namespace in go_terms['namespace'].unique():
+                root_term = go_terms.query(f'name == "{namespace}"').index.item()
+                namespace_terms = go_terms.query(f'namespace == "{namespace}"').index
+                shortest_paths = nx.shortest_path_length(hierarchy.subgraph(namespace_terms), root_term)
+                go_terms.loc[namespace_terms, 'depth'] = namespace_terms.map(shortest_paths)
         else:
             go_terms = None
 
