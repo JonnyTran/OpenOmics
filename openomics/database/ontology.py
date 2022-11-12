@@ -283,6 +283,7 @@ class GeneOntology(Ontology):
                 namespace_terms = go_terms.query(f'namespace == "{namespace}"').index
                 shortest_paths = nx.shortest_path_length(hierarchy.subgraph(namespace_terms), root_term)
                 go_terms.loc[namespace_terms, 'depth'] = namespace_terms.map(shortest_paths)
+            go_terms['depth'] = go_terms['depth'].astype(int)
         else:
             go_terms = None
 
