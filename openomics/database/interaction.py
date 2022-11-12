@@ -1,5 +1,4 @@
 import copy
-import gc
 import os
 from abc import abstractmethod
 from collections.abc import Iterable
@@ -11,6 +10,7 @@ import pandas as pd
 import scipy.sparse as ssp
 from Bio import SeqIO
 from logzero import logger
+from pandas.core.dtypes.common import is_numeric_dtype
 
 from openomics.database.base import Database
 from openomics.database.sequence import SequenceDatabase, UniProt
@@ -142,7 +142,7 @@ class STRING(Interactions, SequenceDatabase):
     def __init__(self, path="https://stringdb-static.org/download/", file_resources=None,
                  species_id: Union[str, List[str]] = "9606", version="v11.0",
                  source_col_name="protein1", target_col_name="protein2",
-                 edge_attr='combined_score', directed=False,
+                 edge_attr: Union[str, List[str]] = 'combined_score', directed=False,
                  relabel_nodes=None,
                  index_col='#string_protein_id',
                  keys=None,
@@ -371,7 +371,7 @@ class STRING(Interactions, SequenceDatabase):
         return attrs
 
     def load_network(self, file_resources, source_col_name='protein1', target_col_name='protein2',
-                     edge_attr: str = 'combined_score', directed=False, filters=None, blocksize=None):
+                     edge_attr: Union[str, List[str]] = 'combined_score', directed=False, filters=None, blocksize=None):
         keys = self.data.index.compute() if isinstance(self.data, dd.DataFrame) else self.data.index
         select_files = [fn for fn, path in file_resources.items() if "links" in fn]
 
@@ -410,8 +410,8 @@ class STRING(Interactions, SequenceDatabase):
 
         # Convert edge_attr (edge weights) from 3 digit integer to float
         assignfunc = {}
-        for col in (edge_attr if isinstance(edge_attr, Iterable) else [edge_attr]):
-            if col in edges_df.columns:
+        for col in (edge_attr if isinstance(edge_attr, list) else [edge_attr]):
+            if col in edges_df.columns and is_numeric_dtype(edges_df[col]):
                 assignfunc[col] = edges_df[col].astype('float16') / 1000
         if assignfunc:
             edges_df = edges_df.assign(**assignfunc)
@@ -422,9 +422,7 @@ class STRING(Interactions, SequenceDatabase):
         # Set ordering for rows and columns
         node2idx = {node: i for i, node in enumerate(keys)}
 
-        if blocksize:
-            edges_df: dd.DataFrame
-
+        if isinstance(edges_df, dd.DataFrame):
             def edgelist2adj(df: pd.DataFrame) -> ssp.coo_matrix:
                 if df.shape[0] == 1 and df.iloc[0, 0] == 'foo':
                     return None
@@ -438,6 +436,7 @@ class STRING(Interactions, SequenceDatabase):
 
                 coo_adj = ssp.coo_matrix((df[edge_attr], (df['row'], df['col'])),
                                          shape=(len(keys), len(keys)))
+                coo_adj.eliminate_zeros()
                 return coo_adj
 
             # Create a sparse adjacency matrix for each partition, then add them to combine
@@ -447,11 +446,10 @@ class STRING(Interactions, SequenceDatabase):
             assert len(adj) == 1, f"len(adj) = {len(adj)}"
 
             G = nx.from_scipy_sparse_matrix(adj[0], create_using=nx.DiGraph() if directed else nx.Graph(),
-                                            edge_attribute=edge_attr)
+                                            edge_attribute='weight')
             idx2node = {i: node for i, node in enumerate(keys)}
             G = nx.relabel_nodes(G, mapping=idx2node, copy=True)
             del adj
-            gc.collect()
 
         else:
             # Determine which edge attr to add
