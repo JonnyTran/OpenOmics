@@ -276,14 +276,14 @@ class GeneOntology(Ontology):
                 lambda x: x.split('"')[1] if isinstance(x, str) else None)
             go_terms.index.name = "go_id"
 
-            # Find depth of the ontology for each term node
+            # Get depth of each term node in its ontology
             hierarchy = nx.subgraph_view(self.network, filter_edge=lambda u, v, e: e == 'is_a')
             for namespace in go_terms['namespace'].unique():
                 root_term = go_terms.query(f'name == "{namespace}"').index.item()
                 namespace_terms = go_terms.query(f'namespace == "{namespace}"').index
                 shortest_paths = nx.shortest_path_length(hierarchy.subgraph(namespace_terms), root_term)
                 go_terms.loc[namespace_terms, 'depth'] = namespace_terms.map(shortest_paths)
-            go_terms['depth'] = go_terms['depth'].astype(int)
+            go_terms['depth'] = go_terms['depth'].fillna(0).astype(int)
         else:
             go_terms = None
 
