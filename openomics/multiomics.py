@@ -63,8 +63,6 @@ class MultiOmics:
         """
         if isinstance(path, str) and '~' in path:
             path = os.path.expanduser(path)
-        if not path.endswith(f'.{cls.__name__}'):
-            path = path + f'.{cls.__name__}'
 
         with open(join(path, 'metadata.yml'), 'r') as f:
             warnings.simplefilter('ignore', yaml.error.UnsafeLoaderWarning)
@@ -108,8 +106,6 @@ class MultiOmics:
         """
         if isinstance(path, str) and '~' in path:
             path = os.path.expanduser(path)
-        if not path.endswith(f'.{self.__class__.__name__}'):
-            path = path + f'.{self.__class__.__name__}'
 
         if not exists(path):
             os.makedirs(path)
