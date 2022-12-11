@@ -1,7 +1,12 @@
 import logging
+import os
+import warnings
+from os.path import exists, join
 from typing import List, Dict, Union
 
 import pandas as pd
+from logzero import logger
+from ruamel import yaml
 
 import openomics
 from .clinical import (
@@ -45,6 +50,81 @@ class MultiOmics:
                "\nAnnotations: {}".format(
             {ntype: df.shape for ntype, df in self.data.items()},
             {ntype: omic.annotations.shape for ntype, omic in self.__dict__.items() if hasattr(omic, 'annotations')})
+
+    @classmethod
+    def load(cls, path):
+        """
+        Load a MultiOmics save directory and create a MultiOmics object.
+        Args:
+            path (str):
+
+        Returns:
+            MultiOmics
+        """
+        if isinstance(path, str) and '~' in path:
+            path = os.path.expanduser(path)
+
+        with open(join(path, 'metadata.yml'), 'r') as f:
+            warnings.simplefilter('ignore', yaml.error.UnsafeLoaderWarning)
+            attrs: Dict = yaml.load(f)
+
+        logger.info(f"Loading {attrs} from {path}")
+
+        omics = []
+        for name in attrs['_omics']:
+            if exists(join(path, f'{name}.expressions.pickle')):
+                df = pd.read_pickle(join(path, f'{name}.expressions.pickle'))
+                if name == MessengerRNA.name():
+                    OmicsClass = MessengerRNA
+                elif name == MicroRNA.name():
+                    OmicsClass = MicroRNA
+                elif name == LncRNA.name():
+                    OmicsClass = LncRNA
+                elif name == Protein.name():
+                    OmicsClass = Protein
+                elif name == Expression.name():
+                    OmicsClass = Expression
+
+                omic = OmicsClass(df, transpose=False)
+                # annotation data
+                if exists(join(path, f'{name}.annotations.pickle')):
+                    omic.annotations = pd.read_pickle(join(path, f'{name}.annotations.pickle'))
+
+                omics.append(omic)
+
+        self = cls(cohort_name=attrs['_cohort_name'], omics_data=omics)
+        return self
+
+    def save(self, path):
+        """
+        Serialize all omics data to disk.
+        Args:
+            path (str): A path to a directory where the MultiOmics data will be serialized into files.
+        """
+        if isinstance(path, str) and '~' in path:
+            path = os.path.expanduser(path)
+
+        if not exists(path):
+            os.makedirs(path)
+
+        # Write metadata to YAML so can be readable
+        attrs = {
+            '_omics': getattr(self, '_omics', None),
+            '_cohort_name': getattr(self, '_cohort_name', None),
+        }
+        with open(join(path, 'metadata.yml'), 'w') as outfile:
+            yaml.dump(attrs, outfile, default_flow_style=False)
+
+        # Write each omics type
+        for name, expressions_df in self.data.items():
+            # expressions data
+            if not exists(join(path, f'{name}.expressions.pickle')):
+                expressions_df.to_pickle(join(path, f'{name}.expressions.pickle'))
+
+            # annotation data
+            expression_obj = self.__getitem__(name)
+            if not exists(join(path, f'{name}.annotations.pickle')):
+                expression_obj.annotations.to_pickle(join(path, f'{name}.annotations.pickle'))
 
     def add_omic(self,
                  omic_data: Union[Expression, Annotatable],
