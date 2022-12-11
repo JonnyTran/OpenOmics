@@ -326,12 +326,17 @@ class Annotatable(ABC):
             raise Exception("{} must run annotate_expressions() first.".format(
                 self.name()))
 
-    def initialize_annotations(self, index=None):
+    def init_annotations(self, index=None):
         """
         Args:
             index:
             gene_list:
         """
+        if hasattr(self, 'annotations') and isinstance(self.annotations,
+                                                       (pd.DataFrame, dd.DataFrame)) and not self.annotations.empty:
+            warnings.warn("Cannot initialize annotations because annotations already exists.")
+            return
+
         if index is None:
             index = self.get_genes_list()
 
