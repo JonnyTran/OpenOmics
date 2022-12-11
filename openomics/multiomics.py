@@ -106,6 +106,8 @@ class MultiOmics:
         """
         if isinstance(path, str) and '~' in path:
             path = os.path.expanduser(path)
+        if not path.endswith(f'.{self.__class__.__name__}'):
+            path = path + f'.{self.__class__.__name__}'
 
         if not exists(path):
             os.makedirs(path)
