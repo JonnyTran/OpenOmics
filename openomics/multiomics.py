@@ -86,11 +86,14 @@ class MultiOmics:
                     OmicsClass = Expression
 
                 omic = OmicsClass(df, transpose=False)
-                # annotation data
-                if exists(join(path, f'{name}.annotations.pickle')):
-                    omic.annotations = pd.read_pickle(join(path, f'{name}.annotations.pickle'))
+            else:
+                continue
 
-                omics.append(omic)
+            # annotation data
+            if exists(join(path, f'{name}.annotations.pickle')):
+                omic.annotations = pd.read_pickle(join(path, f'{name}.annotations.pickle'))
+
+            omics.append(omic)
 
         self = cls(cohort_name=attrs['_cohort_name'], omics_data=omics)
         return self
@@ -128,14 +131,14 @@ class MultiOmics:
 
     def add_omic(self,
                  omic_data: Union[Expression, Annotatable],
-                 initialize_annotations: bool = True):
+                 init_annotations: bool = True):
         """Adds an omic object to the Multiomics such that the samples in omic
         matches the samples existing in the other omics.
 
         Args:
             omic_data (Expression): The omic to add, e.g., MessengerRNA,
                 MicroRNA, LncRNA, etc.
-            initialize_annotations (bool): default True. If true, initializes
+            init_annotations (bool): default True. If true, initializes
                 the annotation dataframe in the omic object
         """
         self.__dict__[omic_data.name()] = omic_data
@@ -147,8 +150,8 @@ class MultiOmics:
         self.data[omic_data.name()] = omic_data.expressions
 
         # Initialize annotation
-        if initialize_annotations:
-            omic_data.initialize_annotations(index=omic_data.get_genes_list())
+        if init_annotations:
+            omic_data.init_annotations(index=omic_data.get_genes_list())
 
         logging.info(
             "{} {} , indexed by: {}".format(omic_data.name(),

@@ -1,8 +1,5 @@
 """Tests for `openomics` package."""
 
-import os
-import pytest
-
 from openomics import MessengerRNA, MicroRNA, LncRNA, Protein, SomaticMutation
 from openomics import MultiOmics
 from .test_clinical import *
@@ -35,7 +32,7 @@ def generate_TCGA_LUAD_MessengerRNA_dask():
         npartitions=4,
     )
     data.drop_genes(data.expressions.columns[50:])
-    data.initialize_annotations()
+    data.init_annotations()
     return data
 
 
