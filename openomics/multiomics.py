@@ -68,7 +68,7 @@ class MultiOmics:
             warnings.simplefilter('ignore', yaml.error.UnsafeLoaderWarning)
             attrs: Dict = yaml.load(f)
 
-        logger.info(f"Loading {attrs} from {path}")
+        logger.info(f"Loading MultiOmics {attrs} from {path}")
 
         omics = []
         for name in attrs['_omics']:
