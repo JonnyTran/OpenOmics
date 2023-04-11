@@ -14,7 +14,7 @@ import pandas as pd
 
 __author__ = """Nhat (Jonny) Tran"""
 __email__ = 'nhat.tran@mavs.uta.edu'
-__version__ = '0.8.8'
+__version__ = '0.8.9'
 
 
 # Initialize configurations

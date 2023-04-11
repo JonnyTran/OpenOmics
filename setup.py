@@ -56,7 +56,7 @@ if __name__ == '__main__':
 #     readme = readme_file.read()
 #
 # # Package meta-data.
-# version='0.8.8'
+# version='0.8.9'
 # DESCRIPTION = 'OpenOmics provides a bioinformatics API and web-app platform integrate and visualize the multiomics and clinical data.'
 # URL = 'https://github.com/JonnyTran/OpenOmics'
 # EMAIL = 'nhat.tran@mavs.uta.edu'
