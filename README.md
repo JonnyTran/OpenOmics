@@ -39,10 +39,19 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 - Accessible by both developers and scientists with a Python API that works seamlessly with an external Galaxy tool interface or the built-in Dash web interface (WIP).
 
 
-## Installation via pip:
-
+## Installation:
+### PyPI
 ```console
 pip install openomics
+```
+### Conda
+**Comming soon**
+
+### From source
+```sh
+git clone https://github.com/JonnyTran/OpenOmics/
+cd OpenOmics
+pip install -e .
 ```
 
 ##
