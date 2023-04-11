@@ -86,19 +86,19 @@ jobs:
 #                uses: codecov/codecov-action@v1
 #                with:
 #                    token: ${{ secrets.CODECOV_TOKEN }}
-#                    files: ./coverage1.xml,./coverage2.xml
-#                    directory: ./coverage/reports/
-#                    flags: unittests
-#                    env_vars: OS,PYTHON
-#                    name: codecov-umbrella
-#                    fail_ci_if_error: false
-#                    path_to_write_report: ./coverage/codecov_report.txt
-#                    verbose: true
+            #                    files: ./coverage1.xml,./coverage2.xml
+            #                    directory: ./coverage/reports/
+            #                    flags: unittests
+            #                    env_vars: OS,PYTHON
+            #                    name: codecov-umbrella
+            #                    fail_ci_if_error: false
+            #                    path_to_write_report: ./coverage/codecov_report.txt
+            #                    verbose: true
 
-#            -   name: Build and publish
-#                env:
-#                    TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-#                    TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-#                run: |
-#                    python setup.py sdist bdist_wheel
-#                    twine upload dist/*
+            -   name: Build and publish
+                env:
+                    TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+                    TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+                run: |
+                    python setup.py sdist bdist_wheel
+                    twine upload dist/*
