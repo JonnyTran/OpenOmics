@@ -6,7 +6,7 @@ flake8
 tox
 coverage
 twine
-pytest
+pytest>=7.3.0
 pytest-runner
 pytest-cov
 Sphinx

@@ -3,14 +3,11 @@ from openomics.database.ontology import GeneOntology
 from openomics.database.sequence import RNAcentral
 
 from .test_multiomics import *
-
-
 @pytest.fixture
 def generate_RNACentral_ftp():
     rnacentral = RNAcentral(path="https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/")
     rnacentral.data = rnacentral.data.sample(frac=0.01)
     return rnacentral
-
 
 @pytest.fixture
 def generate_GTEx_expressions():
