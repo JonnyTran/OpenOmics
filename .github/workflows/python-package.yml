@@ -95,7 +95,7 @@ jobs:
 
             -   name: Build and publish
                 with:
-                    python-version: 3.9
+                    python-version: '3.9'
                 env:
                     TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
                     TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
