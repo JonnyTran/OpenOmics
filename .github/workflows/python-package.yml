@@ -20,9 +20,9 @@ jobs:
                     -   os: macos-latest
                         pip_cache: ~/Library/Caches/pip
                         download_cache: ~/.astropy/cache/download/url/
-#                    -   os: windows-latest
-#                        pip_cache: ~\AppData\Local\pip\Cache
-#                        download_cache: ~\.astropy\cache\download\url\
+                    -   os: windows-latest
+                        pip_cache: ~\AppData\Local\pip\Cache
+                        download_cache: ~\.astropy\cache\download\url\
 
         steps:
             -   uses: actions/checkout@v2
@@ -94,11 +94,10 @@ jobs:
             #                    verbose: true
 
             -   name: Build and publish
-                with:
-                    python-version: '3.9'
                 env:
                     TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
                     TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
                 run: |
                     python setup.py sdist bdist_wheel
                     twine upload dist/*
+
