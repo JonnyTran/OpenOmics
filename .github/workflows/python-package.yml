@@ -8,7 +8,6 @@ on:
 
 jobs:
     build:
-
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
@@ -95,7 +94,8 @@ jobs:
             #                    verbose: true
 
             -   name: Build and publish
-                if: python-version == 3.9
+                with:
+                    python-version: 3.9
                 env:
                     TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
                     TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
