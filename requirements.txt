@@ -27,6 +27,7 @@ filetype
 logzero
 tqdm
 itsdangerous
+ruamel.yaml
 
 # Visualizations
 bokeh

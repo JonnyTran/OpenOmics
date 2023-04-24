@@ -6,11 +6,12 @@
 
 [![PyPI version](https://badge.fury.io/py/openomics.svg)](https://badge.fury.io/py/openomics)
 [![Documentation Status](https://readthedocs.org/projects/openomics/badge/?version=latest)](https://openomics.readthedocs.io/en/latest/?badge=latest)
+[![OpenOmics](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml/badge.svg?branch=master)](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml)
+[![codecov](https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg?token=6N1UZ27MPH)](https://codecov.io/gh/JonnyTran/OpenOmics)
+
 [![pyOpenSci](https://tinyurl.com/y22nb8up)](https://github.com/pyOpenSci/software-review/issues/31)
 [![status](https://joss.theoj.org/papers/aca43e3c2989a803b514faef72dd3294/status.svg)](https://joss.theoj.org/papers/aca43e3c2989a803b514faef72dd3294)
 [![DOI](https://zenodo.org/badge/125549505.svg)](https://zenodo.org/badge/latestdoi/125549505)
-[![OpenOmics](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml/badge.svg?branch=master)](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml)
-[![codecov](https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg?token=6N1UZ27MPH)](https://codecov.io/gh/JonnyTran/OpenOmics)
 
 **OpenOmics is currently under active development and we may break API compatibility in the future.**
 
@@ -38,10 +39,19 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 - Accessible by both developers and scientists with a Python API that works seamlessly with an external Galaxy tool interface or the built-in Dash web interface (WIP).
 
 
-## Installation via pip:
-
+## Installation:
+### PyPI
+```console
+pip install openomics
 ```
-$ pip install openomics
+### Conda
+**Comming soon**
+
+### From source
+```sh
+git clone https://github.com/JonnyTran/OpenOmics/
+cd OpenOmics
+pip install -e .
 ```
 
 ##
