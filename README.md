@@ -8,6 +8,7 @@
 [![Documentation Status](https://readthedocs.org/projects/openomics/badge/?version=latest)](https://openomics.readthedocs.io/en/latest/?badge=latest)
 [![OpenOmics](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml/badge.svg?branch=master)](https://github.com/JonnyTran/OpenOmics/actions/workflows/python-package.yml)
 [![codecov](https://codecov.io/gh/JonnyTran/OpenOmics/branch/master/graph/badge.svg?token=6N1UZ27MPH)](https://codecov.io/gh/JonnyTran/OpenOmics)
+[![openomics](https://snyk.io/advisor/python/openomics/badge.svg)](https://snyk.io/advisor/python/openomics)
 
 [![pyOpenSci](https://tinyurl.com/y22nb8up)](https://github.com/pyOpenSci/software-review/issues/31)
 [![status](https://joss.theoj.org/papers/aca43e3c2989a803b514faef72dd3294/status.svg)](https://joss.theoj.org/papers/aca43e3c2989a803b514faef72dd3294)
@@ -44,8 +45,11 @@ OpenOmics also has an efficient data pipeline that bridges the popular data mani
 ```console
 pip install openomics
 ```
+
 ### Conda
-**Comming soon**
+```sh
+conda install openomics -c jonnytran # Work in progress
+```
 
 ### From source
 ```sh
