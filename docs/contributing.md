@@ -89,7 +89,8 @@ $ python setup.py test or py.test $ tox
 
 6. Commit your changes and push your branch to GitHub:
 ```
-$ git add . $ git commit -m "Your detailed description of your changes."
+$ git add .
+$ git commit -m "Your detailed description of your changes."
 $ git push develop name-of-your-bugfix-or-feature
 ```
 7. Submit a pull request through the GitHub website to the develop branch. Once major features are tested, we can create
