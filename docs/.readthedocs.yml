@@ -14,15 +14,15 @@ formats:
   - htmlzip
 
 # Optionally declare the Python requirements required to build your docs
-python:
-  version: 3.7
-  install:
-    - requirements: requirements_dev.txt
-    - method: pip
-      path: .
-      extra_requirements:
-        - docs
-        - graphviz
-    - method: setuptools
-      path: .
-  system_packages: true
+#python:
+#  version: 3.7
+#  install:
+#    - requirements: requirements_dev.txt
+#    - method: pip
+#      path: .
+#      extra_requirements:
+#        - docs
+#        - graphviz
+#    - method: setuptools
+#      path: .
+#  system_packages: true
