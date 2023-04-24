@@ -19,3 +19,4 @@ sphinx-copybutton
 sphinx-automodapi
 graphviz
 tqdm
+ruamel.yaml
