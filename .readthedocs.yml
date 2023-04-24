@@ -4,11 +4,11 @@ python:
     version: 3.7
     install:
       - requirements: requirements_dev.txt
-      - method: pip
-        path: .
-        extra_requirements:
-          - docs
-          - graphviz
+#      - method: pip
+#        path: .
+#        extra_requirements:
+#          - docs
+#          - graphviz
       - method: setuptools
         path: .
     system_packages: true
