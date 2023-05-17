@@ -1,5 +1,6 @@
 import os
 import re
+import traceback
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple, Optional, Iterable
@@ -848,8 +849,8 @@ class RNAcentral(SequenceDatabase):
             file_resources:
             blocksize:
         """
-        # Build transcripts ids by combining `database_mappings/` files
         transcripts_df = []
+        # Concatenate transcripts ids by combining `database_mappings/` files from multiple RNAcentral databases
         for filename in (fname for fname in file_resources if "database_mappings" in fname):
             args = dict(low_memory=True, header=None,
                         names=["RNAcentral id", "database", "external id", "species_id", "RNA type", "gene symbol"],
@@ -894,7 +895,7 @@ class RNAcentral(SequenceDatabase):
             elif "RNAcentral id" == id_mapping.index.name:
                 id_mapping.index = id_mapping.index + "_" + id_mapping["species_id"].astype(str)
 
-            # Add sequence column from FASTA file of the same database
+            # Add sequence column if a FASTA file provided for the database
             fasta_filename = f"{filename.split('/')[-1].split('.')[0]}.fasta"
             if fasta_filename in file_resources:
                 seq_df = self.load_sequences(file_resources[fasta_filename])
@@ -926,6 +927,15 @@ class RNAcentral(SequenceDatabase):
             transcripts_df = pd.concat(transcripts_df, axis=0, join='outer')
 
         # Join go_id and Rfams annotations to each "RNAcentral id" from 'rnacentral_rfam_annotations.tsv'
+        try:
+            transcripts_df = self.add_rfam_annotation(transcripts_df, file_resources, blocksize)
+        except Exception as e:
+            logger.warning(f"Failed to add Rfam annotations to transcripts_df: {e}")
+
+        return transcripts_df
+
+    def add_rfam_annotation(self, transcripts_df: Union[pd.DataFrame, dd.DataFrame],
+                            file_resources, blocksize=None):
         args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"])
         if blocksize:
             if 'rnacentral_rfam_annotations.tsv' in file_resources and isinstance(
@@ -952,7 +962,6 @@ class RNAcentral(SequenceDatabase):
             anns_groupby = anns.groupby("RNAcentral id").agg({col: 'unique' for col in ["GO terms", 'Rfams']})
 
         transcripts_df = transcripts_df.merge(anns_groupby, how='left', left_index=True, right_index=True)
-
         return transcripts_df
 
     def load_sequences(self, fasta_file: str, index=None, keys=None, blocksize=None):
