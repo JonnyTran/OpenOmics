@@ -793,15 +793,16 @@ class MirBase(SequenceDatabase):
 
 
 class RNAcentral(SequenceDatabase):
-    """Loads the RNAcentral database from https://rnacentral.org/ .
+    """
+    Loads the RNAcentral database from https://rnacentral.org/ and provides a series of methods to extract sequence data from it.
 
-        Default path: https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/ .
-        Default file_resources: {
-            "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
-            "database_mappings/gencode.tsv": "id_mapping/database_mappings/gencode.tsv",
-            "gencode.fasta": "sequences/by-database/gencode.fasta",
-            ...
-        }
+    Default path: https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/ .
+    Default file_resources: {
+        "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
+        "database_mappings/gencode.tsv": "id_mapping/database_mappings/gencode.tsv",
+        "gencode.fasta": "sequences/by-database/gencode.fasta",
+        ...
+    }
     """
     COLUMNS_RENAME_DICT = {
         'ensembl_gene_id': 'gene_id',
@@ -815,6 +816,7 @@ class RNAcentral(SequenceDatabase):
                  index_col="RNAcentral id", keys=None,
                  remove_version_num=True, remove_species_suffix=True, **kwargs):
         """
+        Provide
 
         Args:
             path ():
@@ -912,7 +914,7 @@ class RNAcentral(SequenceDatabase):
             # Set index
             args = dict(sorted=True) if blocksize else {}
             id_mapping = id_mapping.set_index(self.index_col, **args)
-            if not id_mapping.known_divisions:
+            if isinstance(id_mapping, dd.DataFrame) and not id_mapping.known_divisions:
                 id_mapping.divisions = id_mapping.compute_current_divisions()
 
             transcripts_df.append(id_mapping)
