@@ -67,12 +67,12 @@ def decompress_file(filepath: str, filename: str, file_ext: filetype.Type) \
         data = filepath
 
     elif file_ext.extension == "gz":
-        logger.info("Decompressed gzip file at {}".format(filepath))
+        logger.info(f"Decompressed {filename} file at {filepath}")
         data = gzip.open(filepath, "rt")
         filename = filename.replace(".gz", "")
 
     elif file_ext.extension == "zip":
-        logger.info("Decompressed zip file at {}".format(filepath))
+        logger.info(f"Decompressed {filename} file at {filepath}")
         with zipfile.ZipFile(filepath, "r") as zf:
             filename = filename.replace(".zip", "")
 
@@ -82,7 +82,7 @@ def decompress_file(filepath: str, filename: str, file_ext: filetype.Type) \
                     data = zf.open(subfile.filename, mode="r")
 
     elif file_ext.extension == "rar":
-        logger.info("Decompressed rar file at {}".format(filepath))
+        logger.info(f"Decompressed {filename} file at {filepath}")
         with rarfile.RarFile(filepath, "r") as rf:
             filename = filename.replace(".rar", "")
 
