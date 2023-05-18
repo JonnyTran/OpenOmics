@@ -889,7 +889,7 @@ class RNAcentral(SequenceDatabase):
             elif self.keys and id_mapping.index.name != self.index_col:
                 id_mapping = id_mapping.loc[id_mapping[self.index_col].isin(self.keys)]
 
-            # Add species_id prefix to index values
+            # Add species_id prefix to index values to match the sequence ids
             if "RNAcentral id" in id_mapping.columns:
                 id_mapping["RNAcentral id"] = id_mapping["RNAcentral id"] + "_" + id_mapping["species_id"].astype(str)
             elif "RNAcentral id" == id_mapping.index.name:
@@ -906,7 +906,6 @@ class RNAcentral(SequenceDatabase):
             else:
                 logger.info(f"{fasta_filename} not provided for `{filename}` so missing sequencing data")
 
-            # Remove species_id prefix from index values if necessary
             if self.remove_version_num and 'gene symbol' in id_mapping.columns:
                 id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
             if self.remove_species_suffix:
@@ -935,26 +934,28 @@ class RNAcentral(SequenceDatabase):
         return transcripts_df
 
     def add_rfam_annotation(self, transcripts_df: Union[pd.DataFrame, dd.DataFrame],
-                            file_resources, blocksize=None):
+                            file_resources, blocksize=None) -> Union[pd.DataFrame, dd.DataFrame]:
         args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"])
+
         if blocksize:
             if 'rnacentral_rfam_annotations.tsv' in file_resources and isinstance(
                 file_resources['rnacentral_rfam_annotations.tsv'], str):
                 anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
             else:
                 anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip", **args)
+            anns = anns.set_index("RNAcentral id", sorted=True)
 
             # Filter annotations by "RNAcentral id" in `transcripts_df`
             anns = anns.loc[anns["RNAcentral id"].isin(transcripts_df.index.compute())]
 
-            anns = anns.set_index("RNAcentral id", sorted=True)
-            if not anns.known_divisions:
+            if anns.known_divisions:
                 anns.divisions = anns.compute_current_divisions()
 
             # Groupby on index
             anns_groupby: dd.DataFrame = anns \
                 .groupby(by=lambda idx: idx) \
                 .agg({col: get_agg_func('unique', use_dask=True) for col in ["GO terms", 'Rfams']})
+
         else:
             anns = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], index_col='RNAcentral id', **args)
             idx = transcripts_df.index.compute() if isinstance(transcripts_df, dd.DataFrame) else transcripts_df.index
