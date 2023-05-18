@@ -1,5 +1,6 @@
 import os
 import re
+import traceback
 from abc import abstractmethod
 from collections import defaultdict, OrderedDict
 from typing import Union, List, Callable, Dict, Tuple, Optional, Iterable
@@ -793,15 +794,16 @@ class MirBase(SequenceDatabase):
 
 
 class RNAcentral(SequenceDatabase):
-    """Loads the RNAcentral database from https://rnacentral.org/ .
+    """
+    Loads the RNAcentral database from https://rnacentral.org/ and provides a series of methods to extract sequence data from it.
 
-        Default path: https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/ .
-        Default file_resources: {
-            "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
-            "database_mappings/gencode.tsv": "id_mapping/database_mappings/gencode.tsv",
-            "gencode.fasta": "sequences/by-database/gencode.fasta",
-            ...
-        }
+    Default path: https://ftp.ebi.ac.uk/pub/databases/RNAcentral/current_release/ .
+    Default file_resources: {
+        "rnacentral_rfam_annotations.tsv": "go_annotations/rnacentral_rfam_annotations.tsv.gz",
+        "database_mappings/gencode.tsv": "id_mapping/database_mappings/gencode.tsv",
+        "gencode.fasta": "sequences/by-database/gencode.fasta",
+        ...
+    }
     """
     COLUMNS_RENAME_DICT = {
         'ensembl_gene_id': 'gene_id',
@@ -815,6 +817,7 @@ class RNAcentral(SequenceDatabase):
                  index_col="RNAcentral id", keys=None,
                  remove_version_num=True, remove_species_suffix=True, **kwargs):
         """
+        Provide
 
         Args:
             path ():
@@ -846,8 +849,8 @@ class RNAcentral(SequenceDatabase):
             file_resources:
             blocksize:
         """
-        # Build transcripts ids by combining `database_mappings/` files
         transcripts_df = []
+        # Concatenate transcripts ids by combining `database_mappings/` files from multiple RNAcentral databases
         for filename in (fname for fname in file_resources if "database_mappings" in fname):
             args = dict(low_memory=True, header=None,
                         names=["RNAcentral id", "database", "external id", "species_id", "RNA type", "gene symbol"],
@@ -886,13 +889,13 @@ class RNAcentral(SequenceDatabase):
             elif self.keys and id_mapping.index.name != self.index_col:
                 id_mapping = id_mapping.loc[id_mapping[self.index_col].isin(self.keys)]
 
-            # Add species_id prefix to index values
+            # Add species_id prefix to index values to match the sequence ids
             if "RNAcentral id" in id_mapping.columns:
                 id_mapping["RNAcentral id"] = id_mapping["RNAcentral id"] + "_" + id_mapping["species_id"].astype(str)
             elif "RNAcentral id" == id_mapping.index.name:
                 id_mapping.index = id_mapping.index + "_" + id_mapping["species_id"].astype(str)
 
-            # Add sequence column from FASTA file of the same database
+            # Add sequence column if a FASTA file provided for the database
             fasta_filename = f"{filename.split('/')[-1].split('.')[0]}.fasta"
             if fasta_filename in file_resources:
                 seq_df = self.load_sequences(file_resources[fasta_filename])
@@ -903,7 +906,6 @@ class RNAcentral(SequenceDatabase):
             else:
                 logger.info(f"{fasta_filename} not provided for `{filename}` so missing sequencing data")
 
-            # Remove species_id prefix from index values if necessary
             if self.remove_version_num and 'gene symbol' in id_mapping.columns:
                 id_mapping["gene symbol"] = id_mapping["gene symbol"].str.replace("[.].\d*", "", regex=True)
             if self.remove_species_suffix:
@@ -912,7 +914,7 @@ class RNAcentral(SequenceDatabase):
             # Set index
             args = dict(sorted=True) if blocksize else {}
             id_mapping = id_mapping.set_index(self.index_col, **args)
-            if not id_mapping.known_divisions:
+            if isinstance(id_mapping, dd.DataFrame) and not id_mapping.known_divisions:
                 id_mapping.divisions = id_mapping.compute_current_divisions()
 
             transcripts_df.append(id_mapping)
@@ -924,25 +926,36 @@ class RNAcentral(SequenceDatabase):
             transcripts_df = pd.concat(transcripts_df, axis=0, join='outer')
 
         # Join go_id and Rfams annotations to each "RNAcentral id" from 'rnacentral_rfam_annotations.tsv'
+        try:
+            transcripts_df = self.add_rfam_annotation(transcripts_df, file_resources, blocksize)
+        except Exception as e:
+            logger.warning(f"Failed to add Rfam annotations to transcripts_df: {e}")
+
+        return transcripts_df
+
+    def add_rfam_annotation(self, transcripts_df: Union[pd.DataFrame, dd.DataFrame],
+                            file_resources, blocksize=None) -> Union[pd.DataFrame, dd.DataFrame]:
         args = dict(low_memory=True, names=["RNAcentral id", "GO terms", "Rfams"])
+
         if blocksize:
             if 'rnacentral_rfam_annotations.tsv' in file_resources and isinstance(
                 file_resources['rnacentral_rfam_annotations.tsv'], str):
                 anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], **args)
             else:
                 anns = dd.read_table(file_resources["rnacentral_rfam_annotations.tsv.gz"], compression="gzip", **args)
+            anns = anns.set_index("RNAcentral id", sorted=True)
 
             # Filter annotations by "RNAcentral id" in `transcripts_df`
             anns = anns.loc[anns["RNAcentral id"].isin(transcripts_df.index.compute())]
 
-            anns = anns.set_index("RNAcentral id", sorted=True)
-            if not anns.known_divisions:
+            if anns.known_divisions:
                 anns.divisions = anns.compute_current_divisions()
 
             # Groupby on index
             anns_groupby: dd.DataFrame = anns \
                 .groupby(by=lambda idx: idx) \
                 .agg({col: get_agg_func('unique', use_dask=True) for col in ["GO terms", 'Rfams']})
+
         else:
             anns = pd.read_table(file_resources["rnacentral_rfam_annotations.tsv"], index_col='RNAcentral id', **args)
             idx = transcripts_df.index.compute() if isinstance(transcripts_df, dd.DataFrame) else transcripts_df.index
@@ -950,7 +963,6 @@ class RNAcentral(SequenceDatabase):
             anns_groupby = anns.groupby("RNAcentral id").agg({col: 'unique' for col in ["GO terms", 'Rfams']})
 
         transcripts_df = transcripts_df.merge(anns_groupby, how='left', left_index=True, right_index=True)
-
         return transcripts_df
 
     def load_sequences(self, fasta_file: str, index=None, keys=None, blocksize=None):

@@ -1,10 +1,9 @@
 import gzip
-import logging
 import os
 import zipfile
-from pathlib import Path
 from typing import Tuple, Union, TextIO
 from urllib.error import URLError
+from logzero import logger
 
 import dask.dataframe as dd
 import filetype
@@ -19,19 +18,19 @@ import openomics
 
 
 # @astropy.config.set_temp_cache(openomics.config["cache_dir"])
-def get_pkg_data_filename(baseurl: Path, filepath: str):
+def get_pkg_data_filename(baseurl: str, filepath: str):
     """Downloads a remote file given the url, then caches it to the user's home
     folder.
 
     Args:
-        base: Url to the download path, excluding the file name
+        baseurl: Url to the download path, excluding the file name
         filepath: The file path to download
 
     Returns:
         filename (str): A file path on the local file system corresponding to
         the data requested in data_name.
     """
-    # Split data url and file name if the user provided a whole path in file_resources
+    # Split data url and file name if the user provided a whole path in `file_resources`
     if validators.url(filepath):
         base, filepath = os.path.split(filepath)
         base = base + "/"
@@ -39,7 +38,8 @@ def get_pkg_data_filename(baseurl: Path, filepath: str):
         base, filepath = baseurl, filepath
 
     try:
-        logging.debug("Fetching file from: {}{}, saving to {}".format(base, filepath, openomics.config['cache_dir']))
+        # TODO doesn't yet save files to 'cache_dir' but to astropy's default cache dir
+        # logger.debug(f"Fetching file from: {base}{filepath}, saving to {openomics.config['cache_dir']}")
 
         with data.conf.set_temp("dataurl", base), data.conf.set_temp("remote_timeout", 30):
             return data.get_pkg_data_filename(filepath, package="openomics.database", show_progress=True)
@@ -49,7 +49,7 @@ def get_pkg_data_filename(baseurl: Path, filepath: str):
                         f"Please try manually downloading the files and add path to `file_resources` arg. \n{e}")
 
 
-def decompress_file(filepath: Path, filename: str, file_ext: filetype.Type) \
+def decompress_file(filepath: str, filename: str, file_ext: filetype.Type) \
     -> Tuple[Union[gzip.GzipFile, TextIO], str]:
     """
     Decompress the `data_file` corresponding to its `file_ext`, then remove the `file_ext` suffix from `filename`.
@@ -67,12 +67,12 @@ def decompress_file(filepath: Path, filename: str, file_ext: filetype.Type) \
         data = filepath
 
     elif file_ext.extension == "gz":
-        logging.info("Decompressed gzip file at {}".format(filepath))
+        logger.info(f"Decompressed {filename} file at {filepath}")
         data = gzip.open(filepath, "rt")
         filename = filename.replace(".gz", "")
 
     elif file_ext.extension == "zip":
-        logging.info("Decompressed zip file at {}".format(filepath))
+        logger.info(f"Decompressed {filename} file at {filepath}")
         with zipfile.ZipFile(filepath, "r") as zf:
             filename = filename.replace(".zip", "")
 
@@ -82,7 +82,7 @@ def decompress_file(filepath: Path, filename: str, file_ext: filetype.Type) \
                     data = zf.open(subfile.filename, mode="r")
 
     elif file_ext.extension == "rar":
-        logging.info("Decompressed rar file at {}".format(filepath))
+        logger.info(f"Decompressed {filename} file at {filepath}")
         with rarfile.RarFile(filepath, "r") as rf:
             filename = filename.replace(".rar", "")
 
