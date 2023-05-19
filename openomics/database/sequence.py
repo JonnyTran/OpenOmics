@@ -150,14 +150,16 @@ class GENCODE(SequenceDatabase):
         if not gtf_files:
             gtf_files = select_files_with_ext(file_resources, ".gtf.gz")
 
-        dfs = []
+        ddfs = []
         for filename, filepath in gtf_files.items():
             if blocksize and not isinstance(filepath, str): continue
-            df = read_gtf(filepath, blocksize=blocksize,
-                          compression="gzip" if filename.endswith(".gz") else None)
-            dfs.append(df)
+            ddf = read_gtf(filepath, blocksize=blocksize,
+                           compression="gzip" if filename.endswith(".gz") else None)
 
-        annotation_df = dd.concat(dfs) if blocksize else pd.concat(dfs)
+            ddfs.append(ddf)
+
+        annotation_df = dd.concat(ddfs, interleave_partitions=True,
+                                  ignore_unknown_divisions=True) if blocksize else pd.concat(ddfs)
 
         if self.remove_version_num:
             annotation_df = annotation_df.assign(

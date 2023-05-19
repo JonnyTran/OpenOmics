@@ -134,20 +134,21 @@ def get_uncompressed_filepath(filepath: str) -> str:
         return ''
 
 
-def select_files_with_ext(file_resources: Dict[str, str], ext: str, prefix: Optional[str] = None) -> Dict[str, str]:
+def select_files_with_ext(file_resources: Dict[str, str], ext: str, contains: Optional[str] = None) -> Dict[str, str]:
     """Return a list of file paths with the specified file extension. Only string values are considered as file paths.
 
     Args:
         file_resources (dict): A dictionary of file names and their corresponding file paths
         ext (str): The file extension to filter the file names by
-        prefix (str): A prefix to filter the file names by
+        contains (str): If not None, only return file paths that contain the specified string
 
     Returns:
         file_paths (dict): A dict of file names and corresponding paths with the specified file extension
     """
     subset_file_resources = {}
     for filename, filepath in file_resources.items():
-        if isinstance(filepath, str) and filename.endswith(ext) and (prefix is None or filename.startswith(prefix)):
+        if not isinstance(filepath, str): continue
+        if filename.endswith(ext) and (contains is None or contains in filename):
             subset_file_resources[filename] = filepath
 
     return subset_file_resources
