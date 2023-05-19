@@ -142,16 +142,15 @@ class GENCODE(SequenceDatabase):
             file_resources:
             blocksize:
         """
-        dfs = []
         gtf_files = select_files_with_ext(file_resources, ".gtf")
-
         if not gtf_files:
             gtf_files = select_files_with_ext(file_resources, ".gtf.gz")
 
+        dfs = []
         for filename, filepath in gtf_files.items():
             if blocksize and not isinstance(filepath, str): continue
             df = read_gtf(filepath, blocksize=blocksize,
-                          compression="gzip" if isinstance(filepath, str) and filepath.endswith(".gz") else None)
+                          compression="gzip" if filename.endswith(".gz") else None)
             dfs.append(df)
 
         annotation_df = dd.concat(dfs) if blocksize else pd.concat(dfs)
