@@ -24,10 +24,6 @@ class DiseaseAssociation(Database):
         return self.data.groupby(index)[Annotatable.DISEASE_ASSOCIATIONS_COL].unique()
 
 
-class OMIM(DiseaseAssociation):
-    pass
-
-
 class MalaCards(DiseaseAssociation):
     """Loads the MalaCards database from "http://zdzlab.einstein.yu.edu/1/hedd/" .
 

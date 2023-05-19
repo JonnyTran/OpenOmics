@@ -2,7 +2,7 @@ import gzip
 import os
 import zipfile
 from os.path import exists
-from typing import Tuple, Union, TextIO, Optional
+from typing import Tuple, Union, TextIO, Optional, Dict, List
 from urllib.error import URLError
 from logzero import logger
 
@@ -132,6 +132,25 @@ def remove_compression_type_suffix(filepath: str) -> str:
         return uncompressed_path
     else:
         return ''
+
+
+def select_files_with_ext(file_resources: Dict[str, str], ext: str, prefix: Optional[str] = None) -> Dict[str, str]:
+    """Return a list of file paths with the specified file extension.
+
+    Args:
+        file_resources (dict): A dictionary of file names and their corresponding file paths
+        ext (str): The file extension to filter the file names by
+        prefix (str): A prefix to filter the file names by
+
+    Returns:
+        file_paths (dict): A dict of file names and corresponding paths with the specified file extension
+    """
+    file_paths = {}
+    for file_name, file_path in file_resources.items():
+        if file_name.endswith(ext) and (prefix is None or file_name.startswith(prefix)):
+            file_paths[file_name] = file_path
+
+    return file_paths
 
 
 def read_db(path, table, index_col):

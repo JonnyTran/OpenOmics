@@ -37,7 +37,9 @@ class Database(object):
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
 
     def __init__(self, path: str, file_resources: Dict = None, index_col=None, keys=None, usecols=None,
-                 col_rename: Dict[str, str] = None, blocksize: int = None, verbose=False, **kwargs):
+                 col_rename: Dict[str, str] = None, blocksize: int = None, write_uncompressed: bool = False,
+                 verbose=False,
+                 **kwargs):
         """
         Args:
             path:
@@ -67,6 +69,8 @@ class Database(object):
                 of cores, up to a maximum of 64MB. Can be a number like 64000000
                 or a string like "64MB". If None, a single block is used for
                 each file.
+            write_uncompressed (bool): default False
+                Whether to write the uncompressed file to disk. If True, then
             verbose (bool): Default False.
         """
         self.data_path = path
@@ -76,7 +80,8 @@ class Database(object):
         self.blocksize = blocksize
         self.verbose = verbose
 
-        self.file_resources = self.load_file_resources(path, file_resources=file_resources, verbose=verbose)
+        self.file_resources = self.load_file_resources(path, file_resources=file_resources,
+                                                       write_uncompressed=write_uncompressed, verbose=verbose)
 
         self.data = self.load_dataframe(self.file_resources, blocksize=blocksize)
         if self.data is not None and col_rename is not None:
@@ -92,7 +97,8 @@ class Database(object):
             out.append("{} {}".format(self.network.name, str(self.network)))
         return "\n".join(out)
 
-    def load_file_resources(self, base_path: str, file_resources: Dict[str, str], verbose=False) -> Dict[str, Any]:
+    def load_file_resources(self, base_path: str, file_resources: Dict[str, str], write_uncompressed: bool = False,
+                            verbose=False) -> Dict[str, Any]:
         """For each file in file_resources, download the file if path+file is a
         URL or load from disk if a local path. Additionally unzip or unrar if
         the file is compressed.
@@ -154,7 +160,8 @@ class Database(object):
             file_resources_new[name] = filepath
 
             if filepath_ext:
-                filestream, new_filename = decompress_file(filepath, name, file_ext=filepath_ext)
+                filestream, new_filename = decompress_file(filepath, name, file_ext=filepath_ext,
+                                                           write_uncompressed=write_uncompressed)
                 file_resources_new[new_filename] = filestream
 
         logging.info(f"{self.name()} file_resources: {file_resources_new}")
