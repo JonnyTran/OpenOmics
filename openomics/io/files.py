@@ -145,12 +145,12 @@ def select_files_with_ext(file_resources: Dict[str, str], ext: str, prefix: Opti
     Returns:
         file_paths (dict): A dict of file names and corresponding paths with the specified file extension
     """
-    file_paths = {}
-    for file_name, file_path in file_resources.items():
-        if file_name.endswith(ext) and (prefix is None or file_name.startswith(prefix)):
-            file_paths[file_name] = file_path
+    subset_file_resources = {}
+    for filename, filepath in file_resources.items():
+        if isinstance(filepath, str) and filename.endswith(ext) and (prefix is None or filename.startswith(prefix)):
+            subset_file_resources[filename] = filepath
 
-    return file_paths
+    return subset_file_resources
 
 
 def read_db(path, table, index_col):
