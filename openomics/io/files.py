@@ -50,7 +50,7 @@ def get_pkg_data_filename(baseurl: str, filepath: str):
                         f"Please try manually downloading the files and add path to `file_resources` arg. \n{e}")
 
 
-def decompress_file(filepath: str, filename: str, file_ext: filetype.Type, write_uncompressed=True) \
+def decompress_file(filepath: str, filename: str, file_ext: filetype.Type, write_uncompressed=False) \
     -> Tuple[Union[gzip.GzipFile, TextIO], str]:
     """
     Decompress the `filepath` corresponding to its `file_ext` compression type, then return the uncompressed data (or its path) and
