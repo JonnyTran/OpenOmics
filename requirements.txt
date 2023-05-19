@@ -1,7 +1,7 @@
 # Core
 numpy
 pandas
-dask
+dask[distributed]
 networkx
 scipy
 astropy
