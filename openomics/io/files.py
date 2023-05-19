@@ -135,7 +135,7 @@ def get_uncompressed_filepath(filepath: str) -> str:
 
 
 def select_files_with_ext(file_resources: Dict[str, str], ext: str, prefix: Optional[str] = None) -> Dict[str, str]:
-    """Return a list of file paths with the specified file extension.
+    """Return a list of file paths with the specified file extension. Only string values are considered as file paths.
 
     Args:
         file_resources (dict): A dictionary of file names and their corresponding file paths

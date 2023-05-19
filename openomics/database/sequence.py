@@ -138,9 +138,13 @@ class GENCODE(SequenceDatabase):
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
+        Loads the GENCODE annotation file into a pandas or dask DataFrame.
         Args:
             file_resources:
             blocksize:
+
+        Returns:
+
         """
         gtf_files = select_files_with_ext(file_resources, ".gtf")
         if not gtf_files:

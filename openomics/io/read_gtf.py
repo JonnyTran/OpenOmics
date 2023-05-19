@@ -82,7 +82,7 @@ def read_gtf(filepath_or_buffer, blocksize=None, compression=None, expand_attrib
             result_df = parse_gtf_dask(filepath_or_buffer, blocksize=blocksize, features=features,
                                        compression=compression)
         else:
-            result_df = parse_gtf(filepath_or_buffer, features=features)
+            result_df = parse_gtf(filepath_or_buffer, features=features, compression=compression)
 
     for column_name, column_type in list(column_converters.items()):
         result_df[column_name] = [
@@ -119,7 +119,7 @@ def read_gtf(filepath_or_buffer, blocksize=None, compression=None, expand_attrib
 
 def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024, features=None,
               intern_columns=["seqname", "source", "strand", "frame"],
-              fix_quotes_columns=["attribute"]) -> pd.DataFrame:
+              fix_quotes_columns=["attribute"], compression=None) -> pd.DataFrame:
     """
     Borrowed code from https://github.com/openvax/gtfparse
 
@@ -167,6 +167,7 @@ def parse_gtf(filepath_or_buffer, chunksize=1024 * 1024, features=None,
         skip_blank_lines=True,
         on_bad_lines='error',
         chunksize=chunksize,
+        compression=compression,
         engine="c",
         dtype={
             "start": np.int64,
@@ -347,7 +348,7 @@ def parse_gtf_and_expand_attributes(filepath_or_buffer, blocksize=None, compress
 
     else:
         # Pandas
-        df = parse_gtf(filepath_or_buffer, chunksize=chunksize, features=features)
+        df = parse_gtf(filepath_or_buffer, chunksize=chunksize, features=features, compression=compression)
 
         attribute_values = df.pop("attribute")
 
