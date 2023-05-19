@@ -70,7 +70,7 @@ class Database(object):
                 or a string like "64MB". If None, a single block is used for
                 each file.
             write_uncompressed (bool): default False
-                Whether to write the uncompressed file to disk. If True, then
+                Whether to write the uncompressed file to disk.
             verbose (bool): Default False.
         """
         self.data_path = path
@@ -112,6 +112,8 @@ class Database(object):
                 required filenames and value are file paths. If None, then the
                 class constructor should automatically build the required file
                 resources dict.
+            write_uncompressed (bool): default False
+                Whether to write the uncompressed file to disk.
             verbose: default False
                 Whether to show progress bar of files being loaded
         """
