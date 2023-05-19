@@ -1,7 +1,7 @@
 import gzip
 import os
 import zipfile
-from os.path import exists
+from os.path import exists, getsize
 from typing import Tuple, Union, TextIO, Optional, Dict, List
 from urllib.error import URLError
 from logzero import logger
@@ -103,7 +103,7 @@ def decompress_file(filepath: str, filename: str, file_ext: filetype.Type, write
             uncompressed_data = data.read()
             f_out.write(uncompressed_data)
 
-    if exists(remove_compression_type_suffix(filepath)):
+    if exists(remove_compression_type_suffix(filepath)) and getsize(remove_compression_type_suffix(filepath)) > 0:
         data = remove_compression_type_suffix(filepath)
 
     return data, filename
