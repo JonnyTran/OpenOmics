@@ -42,8 +42,8 @@ class SequenceDatabase(Database):
 
     @abstractmethod
     def load_sequences(self, fasta_file: str, index=None, keys: Union[pd.Index, List[str]] = None, blocksize=None) \
-        -> pd.DataFrame:
-        """Returns a pandas DataFrame containing the fasta sequence entries.
+        -> Union[pd.DataFrame, dd.DataFrame]:
+        """Returns a DataFrame containing the fasta sequence entries.
         With a column named 'sequence'.
 
         Args:
@@ -56,7 +56,7 @@ class SequenceDatabase(Database):
         raise NotImplementedError
 
     @abstractmethod
-    def get_sequences(self, index: str, omic: str, agg: str, **kwargs) -> Union[pd.Series, Dict]:
+    def get_sequences(self, index: str, omic: str, agg: str, **kwargs) -> Union[pd.Series, Dict[str, pd.Series]]:
         """Returns a dictionary where keys are 'index' and values are
         sequence(s).
 
@@ -299,9 +299,10 @@ class UniProt(SequenceDatabase):
 
     def __init__(self, path="https://ftp.uniprot.org/pub/databases/uniprot/current_release/",
                  file_resources: Dict[str, str] = None,
-                 species_id: str = "9606", remove_version_num=True,
-                 index_col='UniProtKB-AC', keys=None,
+                 species_id: str = "9606",
+                 index_col='UniProtKB-AC', keys: pd.Series = None,
                  col_rename=COLUMNS_RENAME_DICT,
+                 remove_version_num=True,
                  **kwargs):
         """
         Loads the UniProt database from https://uniprot.org/ .
@@ -318,11 +319,14 @@ class UniProt(SequenceDatabase):
         }
 
         Args:
-            path:
-            file_resources:
+            path: ftp path to the UniProt database.
+            file_resources: Dict of file names and paths to download from the UniProt database.
+            species_id: string of the species ID to filter the database by.
+            index_col: string to use as the index column for the protein sequences.
+            keys: the keys on the `index_col` to subset the database by.
             col_rename:
-            verbose:
-            blocksize:
+            remove_version_num:
+            **kwargs:
         """
         self.species_id = species_id
         self.species = UniProt.SPECIES_ID_NAME[species_id] if species_id in UniProt.SPECIES_ID_NAME else None

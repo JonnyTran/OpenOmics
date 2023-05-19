@@ -36,9 +36,10 @@ class Database(object):
     data: pd.DataFrame
     COLUMNS_RENAME_DICT = None  # Needs initialization since subclasses may use this field to rename columns in dataframes.
 
-    def __init__(self, path: str, file_resources: Dict = None, index_col=None, keys=None, usecols=None,
+    def __init__(self, path: str, file_resources: Dict[str, str] = None, index_col: str = None, keys: pd.Series = None,
+                 usecols: List[str] = None,
                  col_rename: Dict[str, str] = None, blocksize: int = None, write_uncompressed: bool = False,
-                 verbose=False,
+                 verbose: bool = False,
                  **kwargs):
         """
         Args:
