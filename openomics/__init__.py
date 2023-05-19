@@ -50,8 +50,9 @@ if os.path.isfile(user_conf_path):
             user_conf = json.load(fp=file)
 
         if user_conf:
-            for p in user_conf['database']:
+            for p in user_conf.get('database', []):
                 this.config.update(p)
+
     except Exception as e:
         logging.info("Could not import configurations from", user_conf_path)
 
