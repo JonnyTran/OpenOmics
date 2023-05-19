@@ -92,24 +92,24 @@ def decompress_file(filepath: str, filename: str, file_ext: filetype.Type, write
                     data = rf.open(subfile.filename, mode="r")
 
     else:
-        print(f"WARNING: filepath_ext.extension {file_ext.extension} not supported.")
-        data = filepath
+        logger.warn(f"WARNING: filepath_ext.extension {file_ext.extension} not supported.")
+        return data, filename
 
-    filename = remove_compression_type_suffix(filename)
+    filename = get_uncompressed_filepath(filename)
+    uncompressed_path = get_uncompressed_filepath(filepath)
 
-    if write_uncompressed and not exists(remove_compression_type_suffix(filepath)):
-        with open(remove_compression_type_suffix(filepath), 'w', encoding='utf8') as f_out:
-            logger.info(f"Writing uncompressed {filename} file to {remove_compression_type_suffix(filepath)}")
-            uncompressed_data = data.read()
-            f_out.write(uncompressed_data)
+    if write_uncompressed and not exists(uncompressed_path):
+        with open(uncompressed_path, 'w', encoding='utf8') as f_out:
+            logger.info(f"Writing uncompressed {filename} file to {uncompressed_path}")
+            f_out.write(data.read())
 
-    if exists(remove_compression_type_suffix(filepath)) and getsize(remove_compression_type_suffix(filepath)) > 0:
-        data = remove_compression_type_suffix(filepath)
+    if exists(uncompressed_path) and getsize(uncompressed_path) > 0:
+        data = uncompressed_path
 
     return data, filename
 
 
-def remove_compression_type_suffix(filepath: str) -> str:
+def get_uncompressed_filepath(filepath: str) -> str:
     """Return the uncompressed filepath by removing the file extension suffix.
 
     Args:
