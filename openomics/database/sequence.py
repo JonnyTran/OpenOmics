@@ -18,6 +18,7 @@ from six.moves import intern
 import openomics
 from openomics.io.read_gtf import read_gtf
 from .base import Database
+from ..io.files import select_files_with_ext
 from ..transforms.agg import get_agg_func
 from ..transforms.df import drop_duplicate_columns
 
@@ -112,6 +113,7 @@ class GENCODE(SequenceDatabase):
         col_rename=None,
         blocksize=0,
         remove_version_num=False,
+        **kwargs
     ):
         """
         Args:
@@ -132,7 +134,7 @@ class GENCODE(SequenceDatabase):
 
         self.remove_version_num = remove_version_num
 
-        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, blocksize=blocksize)
+        super().__init__(path=path, file_resources=file_resources, col_rename=col_rename, blocksize=blocksize, **kwargs)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
@@ -141,20 +143,18 @@ class GENCODE(SequenceDatabase):
             blocksize:
         """
         dfs = []
-        if blocksize:
-            for filename in file_resources:
-                if '.gtf' in filename and isinstance(file_resources[filename], str):
-                    df = read_gtf(file_resources[filename], blocksize=blocksize,
-                                  compression="gzip" if filename.endswith(".gz") else None)
-                    dfs.append(df)
-            annotation_df = dd.concat(dfs)
-        else:
-            for filename in file_resources:
-                if filename.endswith(".gtf"):
-                    df = read_gtf(file_resources[filename])
-                    dfs.append(df)
+        gtf_files = select_files_with_ext(file_resources, ".gtf")
 
-            annotation_df = pd.concat(dfs)
+        if not gtf_files:
+            gtf_files = select_files_with_ext(file_resources, ".gtf.gz")
+
+        for filename, filepath in gtf_files.items():
+            if blocksize and not isinstance(filepath, str): continue
+            df = read_gtf(filepath, blocksize=blocksize,
+                          compression="gzip" if filepath.endswith(".gz") else None)
+            dfs.append(df)
+
+        annotation_df = dd.concat(dfs) if blocksize else pd.concat(dfs)
 
         if self.remove_version_num:
             annotation_df["gene_id"] = annotation_df["gene_id"].str.replace("[.]\d*", "", regex=True)
@@ -667,7 +667,7 @@ class MirBase(SequenceDatabase):
     def load_dataframe(self, file_resources, blocksize=None):
         """
         Args:
-            file_resources:
+            file_resources: dict of file name and path
             blocksize:
         """
         rnacentral_mirbase = pd.read_table(
@@ -929,7 +929,8 @@ class RNAcentral(SequenceDatabase):
         try:
             transcripts_df = self.add_rfam_annotation(transcripts_df, file_resources, blocksize)
         except Exception as e:
-            logger.warning(f"Failed to add Rfam annotations to transcripts_df: {e}")
+            logger.warning(f"Failed to add Rfam annotations to transcripts_df:")
+            traceback.print_exc()
 
         return transcripts_df
 
@@ -946,9 +947,9 @@ class RNAcentral(SequenceDatabase):
             anns = anns.set_index("RNAcentral id", sorted=True)
 
             # Filter annotations by "RNAcentral id" in `transcripts_df`
-            anns = anns.loc[anns["RNAcentral id"].isin(transcripts_df.index.compute())]
+            anns = anns.loc[anns.index.isin(transcripts_df.index.compute())]
 
-            if anns.known_divisions:
+            if not anns.known_divisions:
                 anns.divisions = anns.compute_current_divisions()
 
             # Groupby on index

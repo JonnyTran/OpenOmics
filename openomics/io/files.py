@@ -1,7 +1,8 @@
 import gzip
 import os
 import zipfile
-from typing import Tuple, Union, TextIO
+from os.path import exists
+from typing import Tuple, Union, TextIO, Optional, Dict, List
 from urllib.error import URLError
 from logzero import logger
 
@@ -49,52 +50,108 @@ def get_pkg_data_filename(baseurl: str, filepath: str):
                         f"Please try manually downloading the files and add path to `file_resources` arg. \n{e}")
 
 
-def decompress_file(filepath: str, filename: str, file_ext: filetype.Type) \
+def decompress_file(filepath: str, filename: str, file_ext: filetype.Type, write_uncompressed=False) \
     -> Tuple[Union[gzip.GzipFile, TextIO], str]:
     """
-    Decompress the `data_file` corresponding to its `file_ext`, then remove the `file_ext` suffix from `filename`.
+    Decompress the `filepath` corresponding to its `file_ext` compression type, then return the uncompressed data (or its path) and
+    the `filename` without the `file_ext` suffix.
+
     Args:
-        filepath ():
-        filename ():
-        file_ext ():
+        filepath (str): The file path to the data file
+        filename (str): The filename of the data file
+        file_ext (filetype.Type): The file extension of the data file
+        write_uncompressed (bool): Whether to write the uncompressed file to disk
 
     Returns:
-        updated_filename, uncompressed_file
+        uncompressed_file (): The uncompressed file path
+        updated_filename (str): The filename without the `file_ext` suffix
     """
     data = filepath
-    # This null if-clause is needed when filetype_ext is None, causing the next clauses to fail
+
     if file_ext is None:
-        data = filepath
+        return data, filename
 
     elif file_ext.extension == "gz":
-        logger.info(f"Decompressed {filename} file at {filepath}")
         data = gzip.open(filepath, "rt")
-        filename = filename.replace(".gz", "")
 
     elif file_ext.extension == "zip":
-        logger.info(f"Decompressed {filename} file at {filepath}")
         with zipfile.ZipFile(filepath, "r") as zf:
-            filename = filename.replace(".zip", "")
-
             for subfile in zf.infolist():
-                # If the file extension matches
-                if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]:
+                # Select first file with matching file extension
+                subfile_name = os.path.splitext(subfile.filename)[-1]
+                if subfile_name == os.path.splitext(filename.replace(".zip", ""))[-1]:
                     data = zf.open(subfile.filename, mode="r")
 
     elif file_ext.extension == "rar":
-        logger.info(f"Decompressed {filename} file at {filepath}")
         with rarfile.RarFile(filepath, "r") as rf:
-            filename = filename.replace(".rar", "")
 
             for subfile in rf.infolist():
                 # If the file extension matches
-                if os.path.splitext(subfile.filename)[-1] == os.path.splitext(filename)[-1]:
+                subfile_name = os.path.splitext(subfile.filename)[-1]
+                if subfile_name == os.path.splitext(filename.replace(".rar", ""))[-1]:
                     data = rf.open(subfile.filename, mode="r")
+
     else:
         print(f"WARNING: filepath_ext.extension {file_ext.extension} not supported.")
         data = filepath
 
+    filename = remove_compression_type_suffix(filename)
+
+    if write_uncompressed and not exists(remove_compression_type_suffix(filepath)):
+        with open(remove_compression_type_suffix(filepath), 'w', encoding='utf8') as f_out:
+            logger.info(f"Writing uncompressed {filename} file to {remove_compression_type_suffix(filepath)}")
+            uncompressed_data = data.read()
+            f_out.write(uncompressed_data)
+
+    if exists(remove_compression_type_suffix(filepath)):
+        data = remove_compression_type_suffix(filepath)
+
     return data, filename
+
+
+def remove_compression_type_suffix(filepath: str) -> str:
+    """Return the uncompressed filepath by removing the file extension suffix.
+
+    Args:
+        filepath (str): File path to the compressed file
+
+    Returns:
+        uncompressed_path (str): File path to the uncompressed file
+    """
+    uncompressed_path = ''
+    if filepath.endswith(".gz"):
+        uncompressed_path = filepath.removesuffix(".gz")
+    elif filepath.endswith(".zip"):
+        uncompressed_path = filepath.removesuffix(".zip")
+    elif filepath.endswith(".rar"):
+        uncompressed_path = filepath.removesuffix(".rar")
+    else:
+        uncompressed_path = filepath + ".uncompressed"
+
+    if uncompressed_path and filepath != uncompressed_path:
+        return uncompressed_path
+    else:
+        return ''
+
+
+def select_files_with_ext(file_resources: Dict[str, str], ext: str, prefix: Optional[str] = None) -> Dict[str, str]:
+    """Return a list of file paths with the specified file extension.
+
+    Args:
+        file_resources (dict): A dictionary of file names and their corresponding file paths
+        ext (str): The file extension to filter the file names by
+        prefix (str): A prefix to filter the file names by
+
+    Returns:
+        file_paths (dict): A dict of file names and corresponding paths with the specified file extension
+    """
+    file_paths = {}
+    for file_name, file_path in file_resources.items():
+        if file_name.endswith(ext) and (prefix is None or file_name.startswith(prefix)):
+            file_paths[file_name] = file_path
+
+    return file_paths
+
 
 def read_db(path, table, index_col):
     """

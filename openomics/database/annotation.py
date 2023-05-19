@@ -31,7 +31,7 @@ class ProteinAtlas(Database):
     }
 
     def __init__(self, path="https://www.proteinatlas.org/download/", file_resources=None,
-                 col_rename=COLUMNS_RENAME_DICT, blocksize=0, verbose=False):
+                 col_rename=COLUMNS_RENAME_DICT, blocksize=0, verbose=False, **kwargs):
         """
         Args:
             path:
@@ -44,7 +44,7 @@ class ProteinAtlas(Database):
             file_resources = {}
             file_resources["proteinatlas.tsv.zip"] = "proteinatlas.tsv.zip"
 
-        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize, verbose=verbose)
+        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize, verbose=verbose, **kwargs)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
@@ -96,7 +96,7 @@ class GTEx(Database):
     }
 
     def __init__(self, path="https://storage.googleapis.com/gtex_analysis_v8/rna_seq_data/",
-                 file_resources=None, col_rename=None, blocksize=0, verbose=False):
+                 file_resources=None, col_rename=None, blocksize=0, verbose=False, **kwargs):
         """
         Args:
             path:
@@ -116,7 +116,7 @@ class GTEx(Database):
             file_resources["GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"] = \
                 "GTEx_Analysis_2017-06-05_v8_RSEMv1.3.0_transcript_tpm.gct.gz"
 
-        super().__init__(path, file_resources, col_rename=None, blocksize=blocksize, verbose=verbose)
+        super().__init__(path, file_resources, col_rename=None, blocksize=blocksize, verbose=verbose, **kwargs)
 
     def load_dataframe(self, file_resources, blocksize=None) -> pd.DataFrame:
         """
@@ -174,7 +174,7 @@ class NONCODE(Database):
     """
 
     def __init__(self, path="http://www.noncode.org/datadownload", file_resources=None, col_rename=None, verbose=False,
-                 blocksize=None):
+                 blocksize=None, **kwargs):
         """
         Args:
             path:
@@ -189,7 +189,7 @@ class NONCODE(Database):
             file_resources["NONCODEv5_Transcript2Gene"] = os.path.join(path, "NONCODEv5_Transcript2Gene")
             file_resources["NONCODEv5_human.func"] = os.path.join(path, "NONCODEv5_human.func")
 
-        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize, verbose=verbose)
+        super().__init__(path, file_resources, col_rename=col_rename, blocksize=blocksize, verbose=verbose, **kwargs)
 
     def load_dataframe(self, file_resources, blocksize=None):
         """
