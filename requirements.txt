@@ -38,3 +38,4 @@ dash
 dash-daq
 dash-bootstrap-components
 flask>=2.2.5 # not directly required, pinned by Snyk to avoid a vulnerability
+gevent>=23.9.0 # not directly required, pinned by Snyk to avoid a vulnerability
